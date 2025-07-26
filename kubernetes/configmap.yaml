@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: prometheus-ai
+data:
+  # Database configurations
+  INFLUXDB_HOST: "influxdb-service"
+  INFLUXDB_PORT: "8086"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "prometheus"
+  NEO4J_HOST: "neo4j-service"
+  NEO4J_PORT: "7687"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # Service discovery
+  CONSUL_HOST: "consul-service"
+  CONSUL_PORT: "8500"
+  
+  # Message streaming
+  KAFKA_BROKERS: "kafka-service:9092"
+  
+  # Application settings
+  NODE_ENV: "production"
+  PYTHONPATH: "/app"
+  LOG_LEVEL: "INFO"
