@@ -3,6 +3,7 @@
 import asyncio
 import os
 from typing import Dict, List, Optional, Any
+from datetime import datetime
 import torch
 import numpy as np
 import structlog
@@ -24,6 +25,8 @@ from .mantle_dynamics import DeepEarthMantleDynamicsSimulator
 from .gan_engine import GANEngine, GANConfig, GANEnsemble
 from .uncertainty_quantification import GeologicalUncertaintyQuantifier, UncertaintyConfig
 from .gan_pinn_integration import GANPINNIntegrationEngine, GANPINNConfig
+from .insar_deformation_analyzer import InSARDeformationAnalyzer
+from .earthquake_forecasting import EarthquakeForecastingEngine
 
 logger = structlog.get_logger()
 
@@ -48,6 +51,9 @@ class HeliosEngine:
         # Initialize Integrated Geodynamic Modeler
         self.geodynamic_modeler = None
         
+        # Initialize InSAR Deformation Analyzer
+        self.insar_analyzer = InSARDeformationAnalyzer(device=self.device)
+        
         # Initialize Long-term Geological Simulator
         self.geological_simulator = None
         
@@ -62,6 +68,9 @@ class HeliosEngine:
         
         # Initialize GAN-PINN Integration Engine
         self.gan_pinn_integration = None
+        
+        # Initialize Earthquake Forecasting Engine
+        self.earthquake_forecasting = None
         
         # Physics constraints and parameters
         self.physics_constraints = {
@@ -127,6 +136,9 @@ class HeliosEngine:
             
             # Initialize GAN-PINN integration engine
             self.gan_pinn_integration = GANPINNIntegrationEngine(self.pinn_engine, self.gan_engine, self.device)
+            
+            # Initialize earthquake forecasting engine
+            self.earthquake_forecasting = EarthquakeForecastingEngine()
             
             self.is_initialized = True
             logger.info("Helios AI Engine initialized successfully")
@@ -2552,6 +2564,386 @@ class HeliosEngine:
         serializable["results"] = serializable_results
         return serializable
 
+    async def process_insar_scene(
+        self,
+        scene_data: Dict[str, Any],
+        apply_atmospheric_correction: bool = True,
+        apply_noise_reduction: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Process InSAR scene data for deformation analysis.
+        
+        Args:
+            scene_data: InSAR scene data dictionary
+            apply_atmospheric_correction: Whether to apply atmospheric correction
+            apply_noise_reduction: Whether to apply noise reduction
+            
+        Returns:
+            Processing results including deformation patterns and measurements
+        """
+        try:
+            logger.info("Processing InSAR scene", scene_id=scene_data.get('scene_id'))
+            
+            # Import here to avoid circular imports
+            from .insar_deformation_analyzer import InSARScene
+            
+            # Convert dictionary to InSAR scene object
+            scene = InSARScene(
+                scene_id=scene_data['scene_id'],
+                timestamp=datetime.fromisoformat(scene_data['timestamp']),
+                satellite=scene_data['satellite'],
+                orbit_direction=scene_data['orbit_direction'],
+                look_angle=scene_data['look_angle'],
+                heading_angle=scene_data['heading_angle'],
+                wavelength=scene_data['wavelength'],
+                spatial_resolution=scene_data['spatial_resolution'],
+                coverage_area=tuple(scene_data['coverage_area'])
+            )
+            
+            # Add data arrays if provided
+            if 'unwrapped_phase' in scene_data:
+                scene.unwrapped_phase = np.array(scene_data['unwrapped_phase'])
+            if 'coherence' in scene_data:
+                scene.coherence = np.array(scene_data['coherence'])
+            if 'interferogram' in scene_data:
+                scene.interferogram = np.array(scene_data['interferogram'])
+            
+            # Add metadata
+            scene.metadata = scene_data.get('metadata', {})
+            
+            # Process the scene
+            results = self.insar_analyzer.process_insar_scene(
+                scene,
+                apply_atmospheric_correction=apply_atmospheric_correction,
+                apply_noise_reduction=apply_noise_reduction
+            )
+            
+            # Convert results to serializable format
+            serializable_results = self._convert_insar_results(results)
+            
+            logger.info("InSAR scene processing completed", 
+                       scene_id=scene_data.get('scene_id'),
+                       status=results['status'])
+            
+            return serializable_results
+            
+        except Exception as e:
+            logger.error("Failed to process InSAR scene", error=str(e))
+            raise
+
+    async def analyze_insar_deformation_patterns(
+        self,
+        scenes_data: List[Dict[str, Any]],
+        temporal_analysis: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Analyze deformation patterns across multiple InSAR scenes.
+        
+        Args:
+            scenes_data: List of InSAR scene data dictionaries
+            temporal_analysis: Whether to perform temporal analysis
+            
+        Returns:
+            Comprehensive deformation analysis results
+        """
+        try:
+            logger.info("Analyzing InSAR deformation patterns", 
+                       num_scenes=len(scenes_data))
+            
+            # Process each scene
+            scene_results = []
+            for scene_data in scenes_data:
+                result = await self.process_insar_scene(scene_data)
+                scene_results.append(result)
+            
+            # Perform temporal analysis if requested
+            temporal_results = None
+            if temporal_analysis and len(scene_results) > 1:
+                temporal_results = self._analyze_temporal_deformation(scene_results)
+            
+            # Aggregate results
+            analysis_results = {
+                'analysis_id': f"insar_analysis_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
+                'num_scenes_processed': len(scene_results),
+                'scene_results': scene_results,
+                'temporal_analysis': temporal_results,
+                'processing_timestamp': datetime.utcnow().isoformat()
+            }
+            
+            logger.info("InSAR deformation pattern analysis completed",
+                       num_scenes=len(scenes_data))
+            
+            return analysis_results
+            
+        except Exception as e:
+            logger.error("Failed to analyze InSAR deformation patterns", error=str(e))
+            raise
+
+    async def train_insar_models(
+        self,
+        training_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Train InSAR analysis models (atmospheric correction and deformation pattern recognition).
+        
+        Args:
+            training_config: Training configuration including data paths and parameters
+            
+        Returns:
+            Training results and model performance metrics
+        """
+        try:
+            logger.info("Starting InSAR model training")
+            
+            # Extract training parameters
+            epochs = training_config.get('epochs', 100)
+            batch_size = training_config.get('batch_size', 16)
+            learning_rate = training_config.get('learning_rate', 1e-4)
+            
+            # Load training data (this would typically load from files)
+            training_scenes = self._load_insar_training_data(
+                training_config.get('training_data_path')
+            )
+            validation_scenes = self._load_insar_training_data(
+                training_config.get('validation_data_path')
+            )
+            
+            training_results = {}
+            
+            # Train atmospheric correction model if requested
+            if training_config.get('train_atmospheric_model', True):
+                logger.info("Training atmospheric correction model")
+                atm_history = self.insar_analyzer.train_atmospheric_model(
+                    training_scenes, validation_scenes,
+                    epochs=epochs, batch_size=batch_size, learning_rate=learning_rate
+                )
+                training_results['atmospheric_model'] = atm_history
+            
+            # Train deformation pattern model if requested
+            if training_config.get('train_deformation_model', True):
+                logger.info("Training deformation pattern model")
+                
+                # Prepare training data with ground truth patterns
+                deformation_training_data = self._prepare_deformation_training_data(
+                    training_scenes, training_config.get('ground_truth_patterns', [])
+                )
+                deformation_validation_data = self._prepare_deformation_training_data(
+                    validation_scenes, training_config.get('validation_patterns', [])
+                )
+                
+                def_history = self.insar_analyzer.train_deformation_model(
+                    deformation_training_data, deformation_validation_data,
+                    epochs=epochs, batch_size=batch_size, learning_rate=learning_rate
+                )
+                training_results['deformation_model'] = def_history
+            
+            # Save models if requested
+            if training_config.get('save_models', True):
+                model_save_path = training_config.get('model_save_path', self.model_cache_dir)
+                self.insar_analyzer.save_models(
+                    atmospheric_model_path=f"{model_save_path}/atmospheric_model.pth",
+                    deformation_model_path=f"{model_save_path}/deformation_model.pth"
+                )
+            
+            results = {
+                'training_id': f"insar_training_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
+                'training_results': training_results,
+                'training_config': training_config,
+                'completion_timestamp': datetime.utcnow().isoformat()
+            }
+            
+            logger.info("InSAR model training completed")
+            return results
+            
+        except Exception as e:
+            logger.error("Failed to train InSAR models", error=str(e))
+            raise
+
+    async def load_insar_models(
+        self,
+        atmospheric_model_path: Optional[str] = None,
+        deformation_model_path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Load pre-trained InSAR analysis models.
+        
+        Args:
+            atmospheric_model_path: Path to atmospheric correction model
+            deformation_model_path: Path to deformation pattern model
+            
+        Returns:
+            Model loading status
+        """
+        try:
+            logger.info("Loading InSAR models")
+            
+            # Use default paths if not provided
+            if atmospheric_model_path is None:
+                atmospheric_model_path = f"{self.model_cache_dir}/atmospheric_model.pth"
+            if deformation_model_path is None:
+                deformation_model_path = f"{self.model_cache_dir}/deformation_model.pth"
+            
+            # Load models
+            self.insar_analyzer.load_models(
+                atmospheric_model_path=atmospheric_model_path if os.path.exists(atmospheric_model_path) else None,
+                deformation_model_path=deformation_model_path if os.path.exists(deformation_model_path) else None
+            )
+            
+            results = {
+                'atmospheric_model_loaded': os.path.exists(atmospheric_model_path),
+                'deformation_model_loaded': os.path.exists(deformation_model_path),
+                'loading_timestamp': datetime.utcnow().isoformat()
+            }
+            
+            logger.info("InSAR models loaded", **results)
+            return results
+            
+        except Exception as e:
+            logger.error("Failed to load InSAR models", error=str(e))
+            raise
+
+    def _convert_insar_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert InSAR processing results to serializable format"""
+        serializable = {
+            'scene_id': results['scene_id'],
+            'timestamp': results['timestamp'].isoformat() if isinstance(results['timestamp'], datetime) else results['timestamp'],
+            'processing_timestamp': results['processing_timestamp'].isoformat() if isinstance(results['processing_timestamp'], datetime) else results['processing_timestamp'],
+            'status': results['status']
+        }
+        
+        # Add error message if present
+        if 'error_message' in results:
+            serializable['error_message'] = results['error_message']
+        
+        # Convert atmospheric correction results
+        if results.get('atmospheric_correction'):
+            atm_correction = results['atmospheric_correction']
+            serializable['atmospheric_correction'] = {
+                'correction_method': atm_correction.correction_method,
+                'correction_quality': atm_correction.correction_quality,
+                'turbulence_strength': atm_correction.turbulence_strength
+            }
+        
+        # Convert deformation patterns
+        if results.get('deformation_patterns'):
+            patterns = []
+            for pattern in results['deformation_patterns']:
+                pattern_dict = {
+                    'pattern_id': pattern.pattern_id,
+                    'pattern_type': pattern.pattern_type,
+                    'center_location': pattern.center_location.to_dict(),
+                    'spatial_extent': pattern.spatial_extent,
+                    'magnitude': pattern.magnitude,
+                    'confidence': pattern.confidence
+                }
+                if pattern.temporal_evolution:
+                    pattern_dict['temporal_evolution'] = [
+                        (ts.isoformat(), val) for ts, val in pattern.temporal_evolution
+                    ]
+                if pattern.uncertainty:
+                    pattern_dict['uncertainty'] = pattern.uncertainty
+                if pattern.associated_features:
+                    pattern_dict['associated_features'] = pattern.associated_features
+                
+                patterns.append(pattern_dict)
+            
+            serializable['deformation_patterns'] = patterns
+        
+        # Convert displacement measurements
+        if results.get('displacement_measurements'):
+            measurements = []
+            for measurement in results['displacement_measurements']:
+                measurement_dict = {
+                    'timestamp': measurement.timestamp.isoformat(),
+                    'location': measurement.location.to_dict(),
+                    'displacement_vector': measurement.displacement_vector.tolist(),
+                    'measurement_type': measurement.measurement_type,
+                    'uncertainty': measurement.uncertainty.tolist(),
+                    'reference_frame': measurement.reference_frame
+                }
+                measurements.append(measurement_dict)
+            
+            serializable['displacement_measurements'] = measurements
+        
+        # Add uncertainty estimates
+        if results.get('uncertainty_estimates'):
+            serializable['uncertainty_estimates'] = results['uncertainty_estimates']
+        
+        # Add processing flags
+        serializable['noise_reduction_applied'] = results.get('noise_reduction_applied', False)
+        
+        return serializable
+
+    def _analyze_temporal_deformation(self, scene_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze temporal evolution of deformation across multiple scenes"""
+        try:
+            # Extract timestamps and measurements
+            timestamps = []
+            max_displacements = []
+            pattern_counts = []
+            
+            for result in scene_results:
+                if result['status'] == 'success':
+                    timestamps.append(datetime.fromisoformat(result['timestamp']))
+                    
+                    # Find maximum displacement
+                    measurements = result.get('displacement_measurements', [])
+                    if measurements:
+                        displacements = [
+                            np.linalg.norm(np.array(m['displacement_vector'])) 
+                            for m in measurements
+                        ]
+                        max_displacements.append(max(displacements))
+                    else:
+                        max_displacements.append(0.0)
+                    
+                    pattern_counts.append(len(result.get('deformation_patterns', [])))
+            
+            if len(timestamps) < 2:
+                return {'error': 'Insufficient data for temporal analysis'}
+            
+            # Calculate deformation rate
+            time_span_days = (timestamps[-1] - timestamps[0]).days
+            if time_span_days > 0:
+                deformation_rate = (max_displacements[-1] - max_displacements[0]) / time_span_days * 365.25
+            else:
+                deformation_rate = 0.0
+            
+            # Calculate statistics
+            temporal_analysis = {
+                'time_span_days': time_span_days,
+                'num_acquisitions': len(timestamps),
+                'max_displacement': max(max_displacements) if max_displacements else 0.0,
+                'min_displacement': min(max_displacements) if max_displacements else 0.0,
+                'mean_displacement': np.mean(max_displacements) if max_displacements else 0.0,
+                'deformation_rate_m_per_year': deformation_rate,
+                'average_patterns_per_scene': np.mean(pattern_counts) if pattern_counts else 0.0,
+                'displacement_trend': 'increasing' if deformation_rate > 0.001 else 'decreasing' if deformation_rate < -0.001 else 'stable'
+            }
+            
+            return temporal_analysis
+            
+        except Exception as e:
+            logger.error("Failed to analyze temporal deformation", error=str(e))
+            return {'error': str(e)}
+
+    def _load_insar_training_data(self, data_path: Optional[str]) -> List:
+        """Load InSAR training data from file path"""
+        # This is a placeholder - in a real implementation, this would load
+        # actual InSAR scenes from files (e.g., HDF5, NetCDF, GeoTIFF)
+        if not data_path or not os.path.exists(data_path):
+            logger.warning("Training data path not found, using synthetic data")
+            return []
+        
+        # For now, return empty list - would implement actual data loading
+        return []
+
+    def _prepare_deformation_training_data(self, scenes: List, ground_truth_patterns: List) -> List:
+        """Prepare training data for deformation pattern recognition"""
+        # This would pair scenes with their ground truth deformation patterns
+        # For now, return empty list - would implement actual data preparation
+        return []
+
     async def cleanup(self):
         """Cleanup resources"""
         logger.info("Cleaning up Helios engine")
@@ -2565,4 +2957,337 @@ class HeliosEngine:
             torch.cuda.empty_cache()
         
         self.is_initialized = False
-        logger.info("Helios engine cleanup complete")
+        logger.info("Helios engine cleanup complete")   
+ 
+    # Earthquake Forecasting Methods
+    
+    async def analyze_earthquake_patterns(
+        self,
+        events: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Analyze earthquake patterns using machine learning models.
+        
+        Args:
+            events: List of seismic event dictionaries
+            
+        Returns:
+            Pattern analysis results
+        """
+        try:
+            from ..models.geological import SeismicEvent, GeologicalLocation, EventType
+            
+            # Convert dictionaries to SeismicEvent objects
+            seismic_events = []
+            for event_data in events:
+                location = GeologicalLocation(
+                    latitude=event_data["latitude"],
+                    longitude=event_data["longitude"],
+                    elevation=event_data.get("elevation", 0.0),
+                    depth=event_data.get("depth")
+                )
+                
+                event = SeismicEvent(
+                    timestamp=datetime.fromisoformat(event_data["timestamp"]),
+                    location=location,
+                    magnitude=event_data["magnitude"],
+                    depth=event_data["depth"],
+                    event_type=EventType(event_data.get("event_type", "earthquake")),
+                    confidence=event_data.get("confidence", 1.0),
+                    agency=event_data.get("agency"),
+                    event_id=event_data.get("event_id")
+                )
+                seismic_events.append(event)
+            
+            # Analyze patterns using earthquake forecasting engine
+            results = self.earthquake_forecasting.analyze_earthquake_patterns(seismic_events)
+            
+            logger.info(f"Analyzed earthquake patterns for {len(seismic_events)} events")
+            
+            return {
+                "status": "success",
+                "num_events": len(seismic_events),
+                "analysis_results": results,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error("Failed to analyze earthquake patterns", error=str(e))
+            raise
+    
+    async def create_statistical_seismicity_model(
+        self,
+        events: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Create statistical seismicity models with confidence intervals.
+        
+        Args:
+            events: List of seismic event dictionaries
+            
+        Returns:
+            Statistical model results
+        """
+        try:
+            from ..models.geological import SeismicEvent, GeologicalLocation, EventType
+            
+            # Convert dictionaries to SeismicEvent objects
+            seismic_events = []
+            for event_data in events:
+                location = GeologicalLocation(
+                    latitude=event_data["latitude"],
+                    longitude=event_data["longitude"],
+                    elevation=event_data.get("elevation", 0.0),
+                    depth=event_data.get("depth")
+                )
+                
+                event = SeismicEvent(
+                    timestamp=datetime.fromisoformat(event_data["timestamp"]),
+                    location=location,
+                    magnitude=event_data["magnitude"],
+                    depth=event_data["depth"],
+                    event_type=EventType(event_data.get("event_type", "earthquake")),
+                    confidence=event_data.get("confidence", 1.0),
+                    agency=event_data.get("agency"),
+                    event_id=event_data.get("event_id")
+                )
+                seismic_events.append(event)
+            
+            # Create statistical model using earthquake forecasting engine
+            results = self.earthquake_forecasting.create_statistical_seismicity_model(seismic_events)
+            
+            logger.info(f"Created statistical seismicity model from {len(seismic_events)} events")
+            
+            return {
+                "status": "success",
+                "num_events": len(seismic_events),
+                "model_results": results,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error("Failed to create statistical seismicity model", error=str(e))
+            raise
+    
+    async def perform_temporal_clustering_analysis(
+        self,
+        events: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Perform temporal clustering analysis for earthquake sequences.
+        
+        Args:
+            events: List of seismic event dictionaries
+            
+        Returns:
+            Clustering analysis results
+        """
+        try:
+            from ..models.geological import SeismicEvent, GeologicalLocation, EventType
+            
+            # Convert dictionaries to SeismicEvent objects
+            seismic_events = []
+            for event_data in events:
+                location = GeologicalLocation(
+                    latitude=event_data["latitude"],
+                    longitude=event_data["longitude"],
+                    elevation=event_data.get("elevation", 0.0),
+                    depth=event_data.get("depth")
+                )
+                
+                event = SeismicEvent(
+                    timestamp=datetime.fromisoformat(event_data["timestamp"]),
+                    location=location,
+                    magnitude=event_data["magnitude"],
+                    depth=event_data["depth"],
+                    event_type=EventType(event_data.get("event_type", "earthquake")),
+                    confidence=event_data.get("confidence", 1.0),
+                    agency=event_data.get("agency"),
+                    event_id=event_data.get("event_id")
+                )
+                seismic_events.append(event)
+            
+            # Perform clustering analysis using earthquake forecasting engine
+            clusters = self.earthquake_forecasting.perform_temporal_clustering_analysis(seismic_events)
+            
+            # Convert clusters to serializable format
+            cluster_results = []
+            for cluster in clusters:
+                cluster_data = {
+                    "cluster_id": cluster.cluster_id,
+                    "cluster_type": cluster.cluster_type,
+                    "num_events": len(cluster.events),
+                    "spatial_extent_km": cluster.spatial_extent,
+                    "temporal_extent_days": cluster.temporal_extent,
+                    "magnitude_range": cluster.magnitude_range,
+                    "centroid_location": {
+                        "latitude": cluster.centroid_location.latitude,
+                        "longitude": cluster.centroid_location.longitude,
+                        "elevation": cluster.centroid_location.elevation
+                    },
+                    "centroid_time": cluster.centroid_time.isoformat(),
+                    "events": [
+                        {
+                            "event_id": event.event_id,
+                            "timestamp": event.timestamp.isoformat(),
+                            "magnitude": event.magnitude,
+                            "depth": event.depth,
+                            "latitude": event.location.latitude,
+                            "longitude": event.location.longitude
+                        }
+                        for event in cluster.events
+                    ]
+                }
+                cluster_results.append(cluster_data)
+            
+            logger.info(f"Performed temporal clustering analysis, found {len(clusters)} clusters")
+            
+            return {
+                "status": "success",
+                "num_events": len(seismic_events),
+                "num_clusters": len(clusters),
+                "clusters": cluster_results,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error("Failed to perform temporal clustering analysis", error=str(e))
+            raise
+    
+    async def generate_probabilistic_hazard_assessment(
+        self,
+        events: List[Dict[str, Any]],
+        target_region: Dict[str, float],
+        forecast_period_days: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Generate probabilistic hazard assessment with uncertainty quantification.
+        
+        Args:
+            events: List of seismic event dictionaries
+            target_region: Geographic region for assessment
+            forecast_period_days: Forecast period in days
+            
+        Returns:
+            Probabilistic hazard assessment results
+        """
+        try:
+            from ..models.geological import SeismicEvent, GeologicalLocation, EventType
+            
+            # Convert dictionaries to SeismicEvent objects
+            seismic_events = []
+            for event_data in events:
+                location = GeologicalLocation(
+                    latitude=event_data["latitude"],
+                    longitude=event_data["longitude"],
+                    elevation=event_data.get("elevation", 0.0),
+                    depth=event_data.get("depth")
+                )
+                
+                event = SeismicEvent(
+                    timestamp=datetime.fromisoformat(event_data["timestamp"]),
+                    location=location,
+                    magnitude=event_data["magnitude"],
+                    depth=event_data["depth"],
+                    event_type=EventType(event_data.get("event_type", "earthquake")),
+                    confidence=event_data.get("confidence", 1.0),
+                    agency=event_data.get("agency"),
+                    event_id=event_data.get("event_id")
+                )
+                seismic_events.append(event)
+            
+            # Generate probabilistic hazard assessment
+            forecast_result = self.earthquake_forecasting.generate_probabilistic_hazard_assessment(
+                seismic_events, target_region, forecast_period_days
+            )
+            
+            # Convert forecast result to serializable format
+            result_data = {
+                "forecast_time": forecast_result.forecast_time.isoformat(),
+                "forecast_period": {
+                    "start": forecast_result.forecast_period[0].isoformat(),
+                    "end": forecast_result.forecast_period[1].isoformat()
+                },
+                "target_region": forecast_result.target_region,
+                "probability_estimates": forecast_result.probability_estimates,
+                "confidence_intervals": {
+                    mag_range: {"lower": ci[0], "upper": ci[1]}
+                    for mag_range, ci in forecast_result.confidence_intervals.items()
+                },
+                "hazard_level": forecast_result.hazard_level.value,
+                "model_used": forecast_result.model_used.value,
+                "uncertainty_metrics": forecast_result.uncertainty_metrics,
+                "contributing_factors": forecast_result.contributing_factors
+            }
+            
+            logger.info(f"Generated probabilistic hazard assessment for {len(seismic_events)} events, "
+                       f"hazard level: {forecast_result.hazard_level.value}")
+            
+            return {
+                "status": "success",
+                "num_events": len(seismic_events),
+                "forecast_period_days": forecast_period_days,
+                "forecast_result": result_data,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error("Failed to generate probabilistic hazard assessment", error=str(e))
+            raise
+    
+    async def get_earthquake_forecasting_config(self) -> Dict[str, Any]:
+        """
+        Get earthquake forecasting engine configuration.
+        
+        Returns:
+            Configuration parameters
+        """
+        try:
+            return {
+                "status": "success",
+                "config": self.earthquake_forecasting.config,
+                "available_models": [
+                    "random_forest",
+                    "gradient_boosting", 
+                    "statistical_seismicity",
+                    "temporal_clustering",
+                    "etas"
+                ],
+                "supported_forecast_periods": [1, 7, 30, 365],  # days
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error("Failed to get earthquake forecasting config", error=str(e))
+            raise
+    
+    async def update_earthquake_forecasting_config(
+        self,
+        config_updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Update earthquake forecasting engine configuration.
+        
+        Args:
+            config_updates: Configuration updates to apply
+            
+        Returns:
+            Updated configuration
+        """
+        try:
+            # Update configuration
+            for key, value in config_updates.items():
+                if key in self.earthquake_forecasting.config:
+                    self.earthquake_forecasting.config[key].update(value)
+            
+            logger.info("Updated earthquake forecasting configuration", updates=config_updates)
+            
+            return {
+                "status": "success",
+                "updated_config": self.earthquake_forecasting.config,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error("Failed to update earthquake forecasting config", error=str(e))
+            raise

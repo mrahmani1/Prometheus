@@ -1,0 +1,457 @@
+"""
+Probabilistic Eruption Forecasting Models
+Implements machine learning models for eruption probability estimation
+"""
+
+import numpy as np
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+import structlog
+from dataclasses import dataclass
+
+from models.volcanic_data import EruptionForecast, SeismicEvent, DeformationMeasurement
+
+logger = structlog.get_logger()
+
+@dataclass
+class ForecastTimeframe:
+    """Time frame for eruption probability forecasting"""
+    name: str
+    hours: int
+    
+class ProbabilisticEruptionForecaster:
+    """
+    Probabilistic eruption forecasting using machine learning models
+    
+    Implements multiple forecasting approaches:
+    - Statistical models based on historical patterns
+    - Machine learning models using real-time monitoring data
+    - Physics-informed models incorporating magma dynamics
+    """
+    
+    def __init__(self):
+        # Forecast timeframes
+        self.timeframes = [
+            ForecastTimeframe("1_hour", 1),
+            ForecastTimeframe("6_hours", 6),
+            ForecastTimeframe("24_hours", 24),
+            ForecastTimeframe("1_week", 168),
+            ForecastTimeframe("1_month", 720),
+            ForecastTimeframe("1_year", 8760)
+        ]
+        
+        # Model parameters
+        self.model_weights = {
+            'statistical': 0.3,
+            'machine_learning': 0.4,
+            'physics_informed': 0.3
+        }
+        
+        # Baseline eruption probabilities by volcano type
+        self.baseline_probabilities = {
+            'shield': 0.01,      # Like Kilauea
+            'stratovolcano': 0.005,  # Like Etna
+            'caldera': 0.001,    # Like Yellowstone
+            'cinder_cone': 0.002
+        }
+        
+        logger.info("Probabilistic Eruption Forecaster initialized")
+    
+    async def generate_probabilistic_forecast(self, volcano_id: str, 
+                                            monitoring_data: Dict) -> EruptionForecast:
+        """
+        Generate probabilistic eruption forecast for multiple timeframes
+        
+        Args:
+            volcano_id: Unique identifier for the volcano
+            monitoring_data: Multi-source monitoring data
+            
+        Returns:
+            EruptionForecast: Probabilistic forecast with uncertainty estimates
+        """
+        logger.info("Generating probabilistic eruption forecast", volcano_id=volcano_id)
+        
+        try:
+            # Get volcano characteristics
+            volcano_type = await self._get_volcano_type(volcano_id)
+            historical_data = await self._get_historical_eruption_data(volcano_id)
+            
+            # Generate forecasts for each timeframe
+            probability_by_timeframe = {}
+            uncertainty_by_timeframe = {}
+            
+            for timeframe in self.timeframes:
+                # Statistical model forecast
+                statistical_prob = await self._statistical_forecast(
+                    volcano_id, timeframe, historical_data
+                )
+                
+                # Machine learning model forecast
+                ml_prob = await self._machine_learning_forecast(
+                    volcano_id, timeframe, monitoring_data
+                )
+                
+                # Physics-informed model forecast
+                physics_prob = await self._physics_informed_forecast(
+                    volcano_id, timeframe, monitoring_data
+                )
+                
+                # Ensemble forecast
+                ensemble_prob, uncertainty = self._combine_forecasts({
+                    'statistical': statistical_prob,
+                    'machine_learning': ml_prob,
+                    'physics_informed': physics_prob
+                })
+                
+                probability_by_timeframe[timeframe.name] = ensemble_prob
+                uncertainty_by_timeframe[timeframe.name] = uncertainty
+            
+            # Calculate overall forecast confidence
+            forecast_confidence = self._calculate_forecast_confidence(
+                monitoring_data, historical_data
+            )
+            
+            # Identify key indicators
+            key_indicators = self._identify_key_indicators(monitoring_data)
+            
+            forecast = EruptionForecast(
+                volcano_id=volcano_id,
+                timestamp=datetime.utcnow(),
+                probability_by_timeframe=probability_by_timeframe,
+                uncertainty=np.mean(list(uncertainty_by_timeframe.values())),
+                confidence=forecast_confidence,
+                key_indicators=key_indicators,
+                model_ensemble_results={
+                    'statistical': {tf.name: await self._statistical_forecast(volcano_id, tf, historical_data) 
+                                  for tf in self.timeframes},
+                    'machine_learning': {tf.name: await self._machine_learning_forecast(volcano_id, tf, monitoring_data) 
+                                       for tf in self.timeframes},
+                    'physics_informed': {tf.name: await self._physics_informed_forecast(volcano_id, tf, monitoring_data) 
+                                       for tf in self.timeframes}
+                }
+            )
+            
+            logger.info(
+                "Eruption forecast generated",
+                volcano_id=volcano_id,
+                short_term_prob=probability_by_timeframe.get("24_hours", 0),
+                confidence=forecast_confidence
+            )
+            
+            return forecast
+            
+        except Exception as e:
+            logger.error(
+                "Error generating eruption forecast",
+                volcano_id=volcano_id,
+                error=str(e)
+            )
+            raise
+    
+    async def _get_volcano_type(self, volcano_id: str) -> str:
+        """Get volcano type for baseline probability estimation"""
+        # This would query a volcano database
+        volcano_types = {
+            'yellowstone': 'caldera',
+            'kilauea': 'shield',
+            'etna': 'stratovolcano',
+            'stromboli': 'stratovolcano',
+            'sakurajima': 'stratovolcano'
+        }
+        
+        return volcano_types.get(volcano_id, 'stratovolcano')
+    
+    async def _get_historical_eruption_data(self, volcano_id: str) -> List[Dict]:
+        """Get historical eruption data for the volcano"""
+        # This would query historical eruption database
+        # For now, simulate historical data
+        
+        historical_eruptions = {
+            'yellowstone': [
+                {'date': datetime(2012, 1, 1), 'vei': 2},
+                {'date': datetime(2018, 3, 15), 'vei': 1}
+            ],
+            'kilauea': [
+                {'date': datetime(2020, 12, 20), 'vei': 2},
+                {'date': datetime(2021, 9, 29), 'vei': 1},
+                {'date': datetime(2022, 11, 27), 'vei': 1}
+            ],
+            'etna': [
+                {'date': datetime(2021, 2, 16), 'vei': 2},
+                {'date': datetime(2022, 5, 21), 'vei': 1},
+                {'date': datetime(2023, 8, 13), 'vei': 2}
+            ]
+        }
+        
+        return historical_eruptions.get(volcano_id, [])
+    
+    async def _statistical_forecast(self, volcano_id: str, timeframe: ForecastTimeframe, 
+                                  historical_data: List[Dict]) -> float:
+        """Generate statistical forecast based on historical patterns"""
+        if not historical_data:
+            volcano_type = await self._get_volcano_type(volcano_id)
+            return self.baseline_probabilities.get(volcano_type, 0.005)
+        
+        # Calculate eruption rate from historical data
+        if len(historical_data) < 2:
+            return 0.01  # Low probability with limited data
+        
+        # Time since last eruption
+        last_eruption = max(historical_data, key=lambda x: x['date'])
+        time_since_last = (datetime.utcnow() - last_eruption['date']).total_seconds() / 3600  # hours
+        
+        # Average recurrence interval
+        eruption_dates = sorted([e['date'] for e in historical_data])
+        intervals = [(eruption_dates[i+1] - eruption_dates[i]).total_seconds() / 3600 
+                    for i in range(len(eruption_dates)-1)]
+        avg_interval = np.mean(intervals) if intervals else 8760  # Default 1 year
+        
+        # Poisson process probability
+        rate = 1.0 / avg_interval  # eruptions per hour
+        probability = 1 - np.exp(-rate * timeframe.hours)
+        
+        # Adjust based on time since last eruption
+        if time_since_last > avg_interval:
+            probability *= 1.5  # Increased probability if overdue
+        elif time_since_last < avg_interval * 0.1:
+            probability *= 0.5  # Decreased probability if recent eruption
+        
+        return min(probability, 0.95)  # Cap at 95%
+    
+    async def _machine_learning_forecast(self, volcano_id: str, timeframe: ForecastTimeframe,
+                                       monitoring_data: Dict) -> float:
+        """Generate ML-based forecast using monitoring data"""
+        # This would use trained ML models (Random Forest, Neural Networks, etc.)
+        # For now, implement a simplified feature-based approach
+        
+        features = self._extract_ml_features(monitoring_data)
+        
+        # Simulate ML model prediction based on features
+        base_prob = 0.01
+        
+        # Seismic activity contribution
+        if features['seismic_rate'] > 10:  # > 10 events per day
+            base_prob *= 2.0
+        if features['avg_magnitude'] > 3.0:
+            base_prob *= 1.5
+        
+        # Deformation contribution
+        if features['deformation_rate'] > 0.001:  # > 1mm/day
+            base_prob *= 1.8
+        
+        # Geochemical contribution
+        if features['gas_flux_change'] > 0.5:  # 50% increase
+            base_prob *= 1.6
+        
+        # Thermal contribution
+        if features['thermal_anomaly'] > 20:  # 20°C above baseline
+            base_prob *= 1.4
+        
+        # Time-dependent scaling
+        time_scaling = {
+            1: 0.1,      # 1 hour
+            6: 0.3,      # 6 hours
+            24: 0.6,     # 24 hours
+            168: 1.0,    # 1 week
+            720: 1.2,    # 1 month
+            8760: 1.5    # 1 year
+        }
+        
+        scaled_prob = base_prob * time_scaling.get(timeframe.hours, 1.0)
+        
+        return min(scaled_prob, 0.9)
+    
+    async def _physics_informed_forecast(self, volcano_id: str, timeframe: ForecastTimeframe,
+                                       monitoring_data: Dict) -> float:
+        """Generate physics-informed forecast using magma dynamics"""
+        # This would integrate with the Helios PINN models
+        # For now, implement simplified physics-based approach
+        
+        # Estimate magma chamber pressure from deformation
+        deformation_data = monitoring_data.get('deformation', [])
+        if not deformation_data:
+            return 0.005  # Low probability without deformation data
+        
+        # Calculate pressure change rate
+        recent_deformation = [d for d in deformation_data if 
+                            (datetime.utcnow() - d.timestamp).days <= 30]
+        
+        if len(recent_deformation) < 2:
+            return 0.01
+        
+        # Simplified pressure estimation from uplift
+        displacements = [np.linalg.norm(d.displacement_vector) for d in recent_deformation]
+        times = [(d.timestamp - recent_deformation[0].timestamp).total_seconds() 
+                for d in recent_deformation]
+        
+        if len(displacements) > 1 and times[-1] > 0:
+            deformation_rate = (displacements[-1] - displacements[0]) / times[-1]  # m/s
+            
+            # Convert to pressure change (simplified)
+            # Real implementation would use elastic half-space models
+            pressure_rate = abs(deformation_rate) * 1e9  # Pa/s (very simplified)
+            
+            # Critical pressure threshold for eruption
+            critical_pressure = 1e7  # Pa (simplified)
+            
+            # Time to critical pressure
+            if pressure_rate > 0:
+                time_to_critical = critical_pressure / pressure_rate  # seconds
+                time_to_critical_hours = time_to_critical / 3600
+                
+                # Probability increases as we approach critical pressure
+                if time_to_critical_hours <= timeframe.hours:
+                    probability = 1.0 - (time_to_critical_hours / timeframe.hours)
+                    return min(probability * 0.8, 0.8)  # Cap at 80%
+        
+        return 0.01  # Low baseline probability
+    
+    def _extract_ml_features(self, monitoring_data: Dict) -> Dict[str, float]:
+        """Extract features for machine learning models"""
+        features = {
+            'seismic_rate': 0.0,
+            'avg_magnitude': 0.0,
+            'deformation_rate': 0.0,
+            'gas_flux_change': 0.0,
+            'thermal_anomaly': 0.0
+        }
+        
+        # Seismic features
+        seismic_data = monitoring_data.get('seismic', [])
+        if seismic_data:
+            recent_events = [e for e in seismic_data if 
+                           (datetime.utcnow() - e.timestamp).days <= 1]
+            features['seismic_rate'] = len(recent_events)
+            if recent_events:
+                features['avg_magnitude'] = np.mean([e.magnitude for e in recent_events])
+        
+        # Deformation features
+        deformation_data = monitoring_data.get('deformation', [])
+        if len(deformation_data) >= 2:
+            recent_data = sorted(deformation_data, key=lambda x: x.timestamp)[-2:]
+            if len(recent_data) == 2:
+                time_diff = (recent_data[1].timestamp - recent_data[0].timestamp).total_seconds()
+                if time_diff > 0:
+                    disp_diff = np.linalg.norm(
+                        recent_data[1].displacement_vector - recent_data[0].displacement_vector
+                    )
+                    features['deformation_rate'] = disp_diff / time_diff  # m/s
+        
+        # Geochemical features (simplified)
+        geochemical_data = monitoring_data.get('geochemical', [])
+        if len(geochemical_data) >= 2:
+            recent_samples = sorted(geochemical_data, key=lambda x: x.timestamp)[-2:]
+            if 'SO2' in recent_samples[0].composition and 'SO2' in recent_samples[1].composition:
+                so2_change = (recent_samples[1].composition['SO2'] - 
+                            recent_samples[0].composition['SO2'])
+                features['gas_flux_change'] = abs(so2_change) / recent_samples[0].composition['SO2']
+        
+        # Thermal features
+        thermal_data = monitoring_data.get('thermal', [])
+        if thermal_data:
+            recent_temps = [t.temperature for t in thermal_data if 
+                          (datetime.utcnow() - t.timestamp).days <= 7]
+            if recent_temps:
+                baseline_temp = 20.0  # Assumed baseline
+                max_temp = max(recent_temps)
+                features['thermal_anomaly'] = max(0, max_temp - baseline_temp)
+        
+        return features
+    
+    def _combine_forecasts(self, model_forecasts: Dict[str, float]) -> Tuple[float, float]:
+        """Combine forecasts from different models using ensemble weighting"""
+        weighted_sum = 0.0
+        total_weight = 0.0
+        
+        for model_name, forecast in model_forecasts.items():
+            weight = self.model_weights.get(model_name, 0.0)
+            weighted_sum += weight * forecast
+            total_weight += weight
+        
+        if total_weight == 0:
+            ensemble_forecast = 0.01
+        else:
+            ensemble_forecast = weighted_sum / total_weight
+        
+        # Calculate uncertainty based on model disagreement
+        forecasts = list(model_forecasts.values())
+        if len(forecasts) > 1:
+            uncertainty = np.std(forecasts) / np.mean(forecasts) if np.mean(forecasts) > 0 else 0.5
+        else:
+            uncertainty = 0.3  # Default uncertainty
+        
+        return min(ensemble_forecast, 0.95), min(uncertainty, 1.0)
+    
+    def _calculate_forecast_confidence(self, monitoring_data: Dict, 
+                                     historical_data: List[Dict]) -> float:
+        """Calculate overall confidence in the forecast"""
+        confidence_factors = []
+        
+        # Data availability confidence
+        data_types = ['seismic', 'deformation', 'geochemical', 'thermal']
+        available_data = sum([1 for dt in data_types if monitoring_data.get(dt)])
+        data_confidence = available_data / len(data_types)
+        confidence_factors.append(data_confidence)
+        
+        # Historical data confidence
+        if len(historical_data) >= 3:
+            historical_confidence = 0.8
+        elif len(historical_data) >= 1:
+            historical_confidence = 0.6
+        else:
+            historical_confidence = 0.3
+        confidence_factors.append(historical_confidence)
+        
+        # Data quality confidence
+        quality_score = monitoring_data.get('quality_score', 0.7)
+        confidence_factors.append(quality_score)
+        
+        # Overall confidence
+        overall_confidence = np.mean(confidence_factors)
+        
+        return min(overall_confidence, 0.95)
+    
+    def _identify_key_indicators(self, monitoring_data: Dict) -> List[str]:
+        """Identify key indicators driving the forecast"""
+        indicators = []
+        
+        # Check each data type for significant signals
+        seismic_data = monitoring_data.get('seismic', [])
+        if seismic_data:
+            recent_events = [e for e in seismic_data if 
+                           (datetime.utcnow() - e.timestamp).days <= 7]
+            if len(recent_events) > 20:
+                indicators.append("Elevated seismic activity")
+            if recent_events and max(e.magnitude for e in recent_events) > 4.0:
+                indicators.append("Large magnitude earthquakes")
+        
+        deformation_data = monitoring_data.get('deformation', [])
+        if len(deformation_data) >= 2:
+            recent_data = sorted(deformation_data, key=lambda x: x.timestamp)[-2:]
+            if len(recent_data) == 2:
+                time_diff = (recent_data[1].timestamp - recent_data[0].timestamp).total_seconds()
+                if time_diff > 0:
+                    disp_diff = np.linalg.norm(
+                        recent_data[1].displacement_vector - recent_data[0].displacement_vector
+                    )
+                    rate = disp_diff / time_diff
+                    if rate > 0.001:  # > 1mm/day
+                        indicators.append("Rapid ground deformation")
+        
+        geochemical_data = monitoring_data.get('geochemical', [])
+        if geochemical_data:
+            recent_sample = max(geochemical_data, key=lambda x: x.timestamp)
+            if 'SO2' in recent_sample.composition and recent_sample.composition['SO2'] > 100:
+                indicators.append("Elevated volcanic gas emissions")
+        
+        thermal_data = monitoring_data.get('thermal', [])
+        if thermal_data:
+            recent_temp = max(t.temperature for t in thermal_data if 
+                            (datetime.utcnow() - t.timestamp).days <= 7)
+            if recent_temp > 50:
+                indicators.append("Thermal anomalies detected")
+        
+        if not indicators:
+            indicators.append("Background volcanic activity")
+        
+        return indicators

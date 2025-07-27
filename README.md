@@ -276,10 +276,10 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-- **Documentation**: [docs.prometheus-ai.org](https://docs.prometheus-ai.org)
+- **Documentation**: [docs.siletzia.org](https://docs.siletzia.org)
 - **Issues**: GitHub Issues for bug reports and feature requests
 - **Discussions**: GitHub Discussions for questions and community support
-- **Email**: support@prometheus-ai.org
+- **Email**: support@siletzia.org
 
 ## 🙏 Acknowledgments
 
