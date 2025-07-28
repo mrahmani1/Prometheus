@@ -6,9 +6,23 @@ from pydantic import BaseModel, Field
 import numpy as np
 import structlog
 
+# Import transfer learning API
+from .transfer_learning import router as transfer_learning_router
+# Import model deployment API
+from .model_deployment import router as model_deployment_router
+# Import edge optimization API
+from .edge_optimization import router as edge_optimization_router
+
 logger = structlog.get_logger()
 
 router = APIRouter()
+
+# Include transfer learning routes
+router.include_router(transfer_learning_router)
+# Include model deployment routes
+router.include_router(model_deployment_router)
+# Include edge optimization routes
+router.include_router(edge_optimization_router)
 
 # Pydantic models for request/response validation
 class GeologicalDataRequest(BaseModel):

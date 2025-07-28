@@ -27,6 +27,8 @@ from .uncertainty_quantification import GeologicalUncertaintyQuantifier, Uncerta
 from .gan_pinn_integration import GANPINNIntegrationEngine, GANPINNConfig
 from .insar_deformation_analyzer import InSARDeformationAnalyzer
 from .earthquake_forecasting import EarthquakeForecastingEngine
+from .transfer_learning_engine import TransferLearningEngine, GeologicalDomain, AdaptationConfig
+from .domain_adaptation_utils import GeologicalDomainRegistry, AdaptationStrategySelector
 
 logger = structlog.get_logger()
 
@@ -71,6 +73,15 @@ class HeliosEngine:
         
         # Initialize Earthquake Forecasting Engine
         self.earthquake_forecasting = None
+        
+        # Initialize Transfer Learning Engine
+        self.transfer_learning_engine = None
+        
+        # Initialize Domain Registry
+        self.domain_registry = None
+        
+        # Initialize Strategy Selector
+        self.strategy_selector = None
         
         # Physics constraints and parameters
         self.physics_constraints = {
@@ -139,6 +150,11 @@ class HeliosEngine:
             
             # Initialize earthquake forecasting engine
             self.earthquake_forecasting = EarthquakeForecastingEngine()
+            
+            # Initialize transfer learning components
+            self.transfer_learning_engine = TransferLearningEngine()
+            self.domain_registry = GeologicalDomainRegistry()
+            self.strategy_selector = AdaptationStrategySelector()
             
             self.is_initialized = True
             logger.info("Helios AI Engine initialized successfully")
@@ -3290,4 +3306,434 @@ class HeliosEngine:
             
         except Exception as e:
             logger.error("Failed to update earthquake forecasting config", error=str(e))
+            raise    
+
+    # Transfer Learning Methods
+    
+    async def adapt_model_to_domain(
+        self,
+        source_model_id: str,
+        target_domain_id: str,
+        adaptation_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Adapt a source model to a target geological domain
+        
+        Args:
+            source_model_id: Identifier of the source model
+            target_domain_id: Identifier of the target domain
+            adaptation_config: Configuration for adaptation process
+            
+        Returns:
+            Adaptation results
+        """
+        try:
+            # Get target domain
+            target_domain = self.domain_registry.get_domain(target_domain_id)
+            if not target_domain:
+                raise ValueError(f"Target domain {target_domain_id} not found")
+            
+            # Get source model
+            source_model = self.pinn_engine.get_model(source_model_id)
+            if source_model is None:
+                raise ValueError(f"Source model {source_model_id} not found")
+            
+            # Create adaptation configuration
+            config = AdaptationConfig(
+                source_domain=None,  # Would be determined from model metadata
+                target_domain=target_domain,
+                adaptation_method=adaptation_config.get("adaptation_method"),
+                learning_rate=adaptation_config.get("learning_rate", 1e-4),
+                num_epochs=adaptation_config.get("num_epochs", 100),
+                batch_size=adaptation_config.get("batch_size", 32),
+                regularization_strength=adaptation_config.get("regularization_strength", 0.01),
+                few_shot_samples=adaptation_config.get("few_shot_samples", 10),
+                validation_split=adaptation_config.get("validation_split", 0.2)
+            )
+            
+            # Generate dummy target data (in practice, would come from data ingestion)
+            target_data = self._generate_domain_data(target_domain, config.batch_size * 20)
+            
+            # Perform adaptation
+            result = self.transfer_learning_engine.adapt_to_domain(
+                source_model, target_domain, target_data, config
+            )
+            
+            # Store adapted model
+            adapted_model_id = f"{source_model_id}_adapted_{target_domain_id}"
+            self.pinn_engine.register_model(adapted_model_id, result.adapted_model)
+            
+            logger.info(f"Model adaptation completed: {source_model_id} -> {adapted_model_id}")
+            
+            return {
+                "source_model_id": source_model_id,
+                "adapted_model_id": adapted_model_id,
+                "target_domain": target_domain_id,
+                "adaptation_method": config.adaptation_method,
+                "adaptation_metrics": result.adaptation_metrics,
+                "validation_scores": result.validation_scores,
+                "confidence_score": result.confidence_score,
+                "status": "completed"
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to adapt model {source_model_id} to domain {target_domain_id}", error=str(e))
+            raise
+    
+    async def few_shot_adapt_model(
+        self,
+        source_model_id: str,
+        target_domain_id: str,
+        few_shot_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Adapt a model using few-shot learning for data-sparse regions
+        
+        Args:
+            source_model_id: Identifier of the source model
+            target_domain_id: Identifier of the target domain
+            few_shot_config: Configuration for few-shot learning
+            
+        Returns:
+            Few-shot adaptation results
+        """
+        try:
+            # Get target domain
+            target_domain = self.domain_registry.get_domain(target_domain_id)
+            if not target_domain:
+                raise ValueError(f"Target domain {target_domain_id} not found")
+            
+            # Get source model
+            source_model = self.pinn_engine.get_model(source_model_id)
+            if source_model is None:
+                raise ValueError(f"Source model {source_model_id} not found")
+            
+            # Create few-shot configuration
+            config = AdaptationConfig(
+                source_domain=None,
+                target_domain=target_domain,
+                adaptation_method="few_shot",
+                learning_rate=few_shot_config.get("learning_rate", 1e-3),
+                num_epochs=few_shot_config.get("num_epochs", 50),
+                batch_size=few_shot_config.get("batch_size", 16),
+                few_shot_samples=few_shot_config.get("few_shot_samples", 10),
+                validation_split=few_shot_config.get("validation_split", 0.2)
+            )
+            
+            # Generate small dataset for few-shot learning
+            few_shot_data = self._generate_domain_data(target_domain, config.few_shot_samples * 5)
+            
+            # Perform few-shot adaptation
+            result = self.transfer_learning_engine.few_shot_adapt(
+                source_model, target_domain, few_shot_data, config
+            )
+            
+            # Store adapted model
+            adapted_model_id = f"{source_model_id}_fewshot_{target_domain_id}"
+            self.pinn_engine.register_model(adapted_model_id, result.adapted_model)
+            
+            logger.info(f"Few-shot adaptation completed: {source_model_id} -> {adapted_model_id}")
+            
+            return {
+                "source_model_id": source_model_id,
+                "adapted_model_id": adapted_model_id,
+                "target_domain": target_domain_id,
+                "few_shot_samples": config.few_shot_samples,
+                "adaptation_metrics": result.adaptation_metrics,
+                "validation_scores": result.validation_scores,
+                "confidence_score": result.confidence_score,
+                "status": "completed"
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to perform few-shot adaptation for model {source_model_id}", error=str(e))
+            raise
+    
+    async def get_adaptation_strategy_recommendation(
+        self,
+        target_domain_id: str
+    ) -> Dict[str, Any]:
+        """
+        Get adaptation strategy recommendations for a target domain
+        
+        Args:
+            target_domain_id: Identifier of the target domain
+            
+        Returns:
+            Strategy recommendations
+        """
+        try:
+            # Get target domain
+            target_domain = self.domain_registry.get_domain(target_domain_id)
+            if not target_domain:
+                raise ValueError(f"Target domain {target_domain_id} not found")
+            
+            # Get strategy recommendations
+            recommendations = self.strategy_selector.get_strategy_recommendations(target_domain)
+            
+            # Get general adaptation recommendations
+            general_recommendations = self.transfer_learning_engine.get_adaptation_recommendations(target_domain)
+            
+            return {
+                "target_domain": target_domain_id,
+                "region_name": target_domain.region_name,
+                "data_sparsity_level": target_domain.data_sparsity_level,
+                "geological_setting": target_domain.geological_setting,
+                "strategy_recommendations": recommendations,
+                "general_recommendations": general_recommendations,
+                "recommended_strategy": self.strategy_selector.select_strategy(target_domain)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get adaptation recommendations for domain {target_domain_id}", error=str(e))
+            raise
+    
+    async def register_geological_domain(
+        self,
+        domain_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Register a new geological domain
+        
+        Args:
+            domain_data: Domain information dictionary
+            
+        Returns:
+            Registration result
+        """
+        try:
+            from .domain_adaptation_utils import GeologicalSetting, TectonicContext, DataCharacteristics
+            
+            # Validate and create domain
+            geological_setting = GeologicalSetting(domain_data["geological_setting"])
+            tectonic_context = TectonicContext(domain_data["tectonic_context"])
+            
+            data_characteristics = DataCharacteristics(**domain_data["data_characteristics"])
+            
+            # Register domain
+            self.domain_registry.register_domain(
+                domain_id=domain_data["domain_id"],
+                region_name=domain_data["region_name"],
+                geological_setting=geological_setting,
+                tectonic_context=tectonic_context,
+                data_characteristics=data_characteristics,
+                available_data_types=domain_data["available_data_types"],
+                data_sparsity_level=domain_data["data_sparsity_level"]
+            )
+            
+            logger.info(f"Registered geological domain: {domain_data['domain_id']}")
+            
+            return {
+                "domain_id": domain_data["domain_id"],
+                "region_name": domain_data["region_name"],
+                "status": "registered",
+                "total_domains": len(self.domain_registry.domains)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to register geological domain", error=str(e))
+            raise
+    
+    async def get_similar_domains(
+        self,
+        target_domain_id: str,
+        top_k: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Find domains similar to the target domain
+        
+        Args:
+            target_domain_id: Target domain identifier
+            top_k: Number of similar domains to return
+            
+        Returns:
+            Similar domains information
+        """
+        try:
+            similar_domains = self.domain_registry.get_similar_domains(target_domain_id, top_k)
+            
+            result = []
+            for domain_id, similarity_score in similar_domains:
+                domain = self.domain_registry.get_domain(domain_id)
+                if domain:
+                    result.append({
+                        "domain_id": domain_id,
+                        "region_name": domain.region_name,
+                        "similarity_score": similarity_score,
+                        "geological_setting": domain.geological_setting,
+                        "tectonic_context": domain.tectonic_context,
+                        "data_sparsity_level": domain.data_sparsity_level
+                    })
+            
+            return {
+                "target_domain": target_domain_id,
+                "similar_domains": result,
+                "total_found": len(result)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to find similar domains for {target_domain_id}", error=str(e))
+            raise
+    
+    async def validate_adapted_model(
+        self,
+        adapted_model_id: str,
+        validation_domain_id: str
+    ) -> Dict[str, Any]:
+        """
+        Validate an adapted model's performance
+        
+        Args:
+            adapted_model_id: Identifier of the adapted model
+            validation_domain_id: Domain to validate against
+            
+        Returns:
+            Validation results
+        """
+        try:
+            # Get adapted model
+            adapted_model = self.pinn_engine.get_model(adapted_model_id)
+            if adapted_model is None:
+                raise ValueError(f"Adapted model {adapted_model_id} not found")
+            
+            # Get validation domain
+            validation_domain = self.domain_registry.get_domain(validation_domain_id)
+            if not validation_domain:
+                raise ValueError(f"Validation domain {validation_domain_id} not found")
+            
+            # Get original model (assume it's the base model without adaptation suffix)
+            original_model_id = adapted_model_id.split('_adapted_')[0].split('_fewshot_')[0]
+            original_model = self.pinn_engine.get_model(original_model_id)
+            
+            # Generate validation data
+            validation_data = self._generate_domain_data(validation_domain, 200)
+            
+            # Perform validation
+            validation_scores = self.transfer_learning_engine.validator.validate_adapted_model(
+                adapted_model, validation_data, original_model, validation_domain
+            )
+            
+            logger.info(f"Model validation completed for {adapted_model_id}")
+            
+            return {
+                "adapted_model_id": adapted_model_id,
+                "validation_domain": validation_domain_id,
+                "validation_scores": validation_scores,
+                "validation_summary": {
+                    "overall_performance": "good" if validation_scores.get('mse_improvement', 0) > 0 else "needs_improvement",
+                    "physics_consistency": validation_scores.get('physics_consistency', 0),
+                    "geological_plausibility": validation_scores.get('geological_plausibility', 0),
+                    "improvement_over_original": validation_scores.get('mse_improvement', 0)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to validate adapted model {adapted_model_id}", error=str(e))
+            raise
+    
+    async def get_adaptation_history(self) -> Dict[str, Any]:
+        """
+        Get history of all adaptation processes
+        
+        Returns:
+            Adaptation history
+        """
+        try:
+            history_data = []
+            for entry in self.transfer_learning_engine.adaptation_history:
+                history_data.append({
+                    "target_domain": entry['target_domain'],
+                    "strategy": entry['strategy'],
+                    "validation_scores": entry['result'].validation_scores,
+                    "adaptation_metrics": entry['result'].adaptation_metrics,
+                    "confidence_score": entry['result'].confidence_score
+                })
+            
+            return {
+                "adaptation_history": history_data,
+                "total_adaptations": len(history_data),
+                "successful_adaptations": sum(1 for entry in history_data if entry['confidence_score'] > 0.5)
+            }
+            
+        except Exception as e:
+            logger.error("Failed to get adaptation history", error=str(e))
+            raise
+    
+    async def list_geological_domains(self) -> List[Dict[str, Any]]:
+        """
+        List all registered geological domains
+        
+        Returns:
+            List of domain information
+        """
+        try:
+            domains = []
+            for domain_id in self.domain_registry.list_domains():
+                domain = self.domain_registry.get_domain(domain_id)
+                if domain:
+                    domains.append({
+                        "domain_id": domain.domain_id,
+                        "region_name": domain.region_name,
+                        "geological_setting": domain.geological_setting,
+                        "tectonic_context": domain.tectonic_context,
+                        "data_sparsity_level": domain.data_sparsity_level,
+                        "available_data_types": domain.available_data_types
+                    })
+            
+            return domains
+            
+        except Exception as e:
+            logger.error("Failed to list geological domains", error=str(e))
+            raise
+    
+    def _generate_domain_data(self, domain: GeologicalDomain, num_samples: int):
+        """
+        Generate synthetic data for a geological domain (helper method)
+        
+        Args:
+            domain: Geological domain
+            num_samples: Number of samples to generate
+            
+        Returns:
+            DataLoader with synthetic data
+        """
+        from torch.utils.data import DataLoader, TensorDataset
+        
+        # Generate synthetic data based on domain characteristics
+        num_features = len(domain.available_data_types) * 5  # 5 features per data type
+        
+        # Add noise based on domain data quality
+        noise_level = 1.0 - domain.data_characteristics.get('data_quality', 0.8)
+        
+        data = torch.randn(num_samples, num_features) + noise_level * torch.randn(num_samples, num_features)
+        targets = torch.randn(num_samples, 1)  # Simplified target
+        
+        dataset = TensorDataset(data, targets)
+        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+        
+        return dataloader
+    
+    def get_pinn_model(self):
+        """Get the main PINN model for transfer learning"""
+        return self.models.get("pinn_geological")
+    
+    async def get_transfer_learning_status(self) -> Dict[str, Any]:
+        """
+        Get status of transfer learning components
+        
+        Returns:
+            Transfer learning status
+        """
+        try:
+            return {
+                "transfer_learning_engine": self.transfer_learning_engine is not None,
+                "domain_registry": self.domain_registry is not None,
+                "strategy_selector": self.strategy_selector is not None,
+                "registered_domains": len(self.domain_registry.domains) if self.domain_registry else 0,
+                "adaptation_history": len(self.transfer_learning_engine.adaptation_history) if self.transfer_learning_engine else 0,
+                "available_strategies": list(self.transfer_learning_engine.adaptation_strategies.keys()) if self.transfer_learning_engine else []
+            }
+            
+        except Exception as e:
+            logger.error("Failed to get transfer learning status", error=str(e))
             raise

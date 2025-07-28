@@ -44,6 +44,10 @@ pytest==7.4.0
 pytest-asyncio==0.21.1
 httpx==0.24.1
 
+# Edge AI optimization dependencies
+psutil==5.9.5  # For memory monitoring
+hashlib  # Built-in, for model hashing
+
 # GAN and uncertainty quantification
 matplotlib==3.7.2
 seaborn==0.12.2
