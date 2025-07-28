@@ -105,9 +105,10 @@ class ModelCompressor:
                 centroids = self._kmeans_clustering(weights, n_clusters)
                 
                 # Replace weights with nearest centroids
-                for i, weight in enumerate(weights):
-                    closest_centroid = min(centroids, key=lambda x: abs(x - weight))
-                    weights[i] = closest_centroid
+                centroids_tensor = torch.tensor(centroids, device=weights.device, dtype=weights.dtype)
+                distances = torch.abs(weights.unsqueeze(1) - centroids_tensor.unsqueeze(0))
+                closest_indices = torch.argmin(distances, dim=1)
+                weights[:] = centroids_tensor[closest_indices]
                 
                 module.weight.data = weights.reshape(module.weight.shape)
         

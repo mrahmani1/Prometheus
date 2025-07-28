@@ -1,0 +1,359 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-device-manager
+  namespace: prometheus-ai
+  labels:
+    app: edge-device-manager
+    component: edge-management
+    version: v1.0.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edge-device-manager
+  template:
+    metadata:
+      labels:
+        app: edge-device-manager
+        component: edge-management
+        version: v1.0.0
+    spec:
+      containers:
+      - name: edge-device-manager
+        image: prometheus-ai/edge-device-manager:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: PORT
+          value: "8080"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: redis-url
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: postgres-url
+        - name: CONSUL_HOST
+          value: "consul"
+        - name: CONSUL_PORT
+          value: "8500"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: jwt-secret
+        - name: MODEL_REGISTRY_URL
+          value: "http://helios-core:8080"
+        - name: DEVICE_HEARTBEAT_INTERVAL
+          value: "30"
+        - name: DEVICE_TIMEOUT
+          value: "300"
+        - name: MAX_DEVICES_PER_REGION
+          value: "1000"
+        - name: DEPLOYMENT_TIMEOUT
+          value: "600"
+        - name: MAX_CONCURRENT_DEPLOYMENTS
+          value: "10"
+        - name: SYNC_INTERVAL
+          value: "300"
+        - name: MAX_SYNC_RETRIES
+          value: "3"
+        - name: SYNC_BATCH_SIZE
+          value: "100"
+        - name: HEALTH_CHECK_INTERVAL
+          value: "60"
+        - name: METRICS_PORT
+          value: "9090"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: config-volume
+        configMap:
+          name: edge-device-manager-config
+      - name: logs-volume
+        emptyDir: {}
+      restartPolicy: Always
+      serviceAccountName: edge-device-manager
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-device-manager
+  namespace: prometheus-ai
+  labels:
+    app: edge-device-manager
+    component: edge-management
+spec:
+  selector:
+    app: edge-device-manager
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-device-manager
+  namespace: prometheus-ai
+  labels:
+    app: edge-device-manager
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: edge-device-manager
+  namespace: prometheus-ai
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: edge-device-manager
+  namespace: prometheus-ai
+subjects:
+- kind: ServiceAccount
+  name: edge-device-manager
+  namespace: prometheus-ai
+roleRef:
+  kind: Role
+  name: edge-device-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-device-manager-config
+  namespace: prometheus-ai
+  labels:
+    app: edge-device-manager
+data:
+  config.yaml: |
+    service:
+      name: edge-device-manager
+      version: 1.0.0
+      environment: production
+    
+    device_management:
+      heartbeat_interval: 30
+      device_timeout: 300
+      max_devices_per_region: 1000
+      regional_limits_enabled: true
+    
+    model_deployment:
+      deployment_timeout: 600
+      max_concurrent_deployments: 10
+      auto_rollback_enabled: true
+      health_check_enabled: true
+    
+    data_synchronization:
+      sync_interval: 300
+      max_sync_retries: 3
+      sync_batch_size: 100
+      compression_enabled: true
+      encryption_enabled: true
+    
+    health_monitoring:
+      check_interval: 60
+      thresholds:
+        cpu_warning: 80.0
+        cpu_critical: 95.0
+        memory_warning: 80.0
+        memory_critical: 95.0
+        storage_warning: 85.0
+        storage_critical: 95.0
+        temperature_warning: 70.0
+        temperature_critical: 85.0
+    
+    logging:
+      level: INFO
+      format: json
+      correlation_id_enabled: true
+    
+    metrics:
+      enabled: true
+      port: 9090
+      path: /metrics
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: edge-device-manager-hpa
+  namespace: prometheus-ai
+  labels:
+    app: edge-device-manager
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: edge-device-manager
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: edge-device-manager-pdb
+  namespace: prometheus-ai
+  labels:
+    app: edge-device-manager
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: edge-device-manager
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: edge-device-manager-netpol
+  namespace: prometheus-ai
+  labels:
+    app: edge-device-manager
+spec:
+  podSelector:
+    matchLabels:
+      app: edge-device-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    - podSelector:
+        matchLabels:
+          app: vulcan-ui
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: consul
+    ports:
+    - protocol: TCP
+      port: 8500
+  - to:
+    - podSelector:
+        matchLabels:
+          app: helios-core
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
