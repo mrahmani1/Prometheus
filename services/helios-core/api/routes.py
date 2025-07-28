@@ -12,6 +12,10 @@ from .transfer_learning import router as transfer_learning_router
 from .model_deployment import router as model_deployment_router
 # Import edge optimization API
 from .edge_optimization import router as edge_optimization_router
+# Import mineral resource prediction API
+from .mineral_resource_prediction import router as mineral_resource_router
+# Import geothermal assessment API
+from .geothermal_assessment import router as geothermal_assessment_router
 
 logger = structlog.get_logger()
 
@@ -23,6 +27,10 @@ router.include_router(transfer_learning_router)
 router.include_router(model_deployment_router)
 # Include edge optimization routes
 router.include_router(edge_optimization_router)
+# Include mineral resource prediction routes
+router.include_router(mineral_resource_router)
+# Include geothermal assessment routes
+router.include_router(geothermal_assessment_router)
 
 # Pydantic models for request/response validation
 class GeologicalDataRequest(BaseModel):

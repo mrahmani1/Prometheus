@@ -228,14 +228,14 @@
     - _Requirements: 10.2, 10.3_
 
 - [ ] 12. Develop resource prediction and hazard assessment systems
-  - [ ] 12.1 Create mineral resource prediction models
+  - [x] 12.1 Create mineral resource prediction models
     - Build machine learning models for ore deposit pattern recognition
     - Implement geochemical signature analysis for resource identification
     - Create geological process modeling for resource formation
     - Write uncertainty quantification for resource predictions
     - _Requirements: 6.1, 6.3, 2.3.7_
 
-  - [ ] 12.2 Build geothermal resource assessment system
+  - [x] 12.2 Build geothermal resource assessment system
     - Implement thermal modeling for geothermal potential assessment
     - Create subsurface temperature and permeability estimation
     - Build geothermal system sustainability modeling

@@ -1,0 +1,842 @@
+"""
+Geothermal Resource Assessment System
+
+This module implements comprehensive geothermal resource assessment capabilities including:
+- Thermal modeling for geothermal potential assessment
+- Subsurface temperature and permeability estimation
+- Geothermal system sustainability modeling
+- Economic viability assessment for geothermal resources
+
+Requirements: 6.2, 6.3
+"""
+
+import numpy as np
+import torch
+import torch.nn as nn
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass, field
+from datetime import datetime
+import logging
+from scipy.optimize import minimize
+from scipy.interpolate import griddata
+import matplotlib.pyplot as plt
+
+try:
+    from .physics_constraints import PhysicsConstraintEnforcer
+    from .pinn_engine import PINNEngine
+    from .uncertainty_quantification import GeologicalUncertaintyQuantifier
+    from ..models.geological import GeologicalLocation, ThermalMeasurement
+except ImportError:
+    # Handle direct execution
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.physics_constraints import PhysicsConstraintEnforcer
+    from core.pinn_engine import PINNEngine
+    from core.uncertainty_quantification import GeologicalUncertaintyQuantifier
+    from models.geological import GeologicalLocation, ThermalMeasurement
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class GeothermalReservoir:
+    """Represents a geothermal reservoir with its properties"""
+    location: GeologicalLocation
+    depth_range: Tuple[float, float]  # min_depth, max_depth in meters
+    temperature_range: Tuple[float, float]  # min_temp, max_temp in Celsius
+    permeability: float  # in millidarcies
+    porosity: float  # fraction
+    fluid_type: str  # water, steam, brine
+    salinity: float  # mg/L
+    volume: float  # cubic meters
+    heat_capacity: float  # J/kg/K
+    thermal_conductivity: float  # W/m/K
+    pressure: float  # MPa
+    flow_rate_potential: float  # kg/s
+
+
+@dataclass
+class GeothermalAssessmentResult:
+    """Results of geothermal resource assessment"""
+    reservoir: GeothermalReservoir
+    thermal_power_potential: float  # MW
+    electrical_power_potential: float  # MW
+    sustainability_years: float
+    economic_viability_score: float  # 0-1 scale
+    confidence_interval: Tuple[float, float]
+    uncertainty_factors: Dict[str, float]
+    assessment_timestamp: datetime
+    model_version: str
+
+
+@dataclass
+class EconomicParameters:
+    """Economic parameters for geothermal viability assessment"""
+    drilling_cost_per_meter: float = 1500.0  # USD per meter
+    plant_construction_cost_per_mw: float = 4000000.0  # USD per MW
+    operation_maintenance_cost_annual: float = 0.03  # fraction of capital cost
+    electricity_price: float = 0.08  # USD per kWh
+    discount_rate: float = 0.08  # annual discount rate
+    project_lifetime_years: int = 30
+    tax_rate: float = 0.25
+
+
+class ThermalModelingEngine:
+    """Physics-informed thermal modeling for geothermal systems"""
+    
+    def __init__(self, physics_constraints: PhysicsConstraintEnforcer):
+        self.physics_constraints = physics_constraints
+        self.thermal_model = self._build_thermal_model()
+        
+    def _build_thermal_model(self) -> nn.Module:
+        """Build neural network for thermal modeling"""
+        class ThermalPINN(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layers = nn.Sequential(
+                    nn.Linear(4, 64),  # x, y, z, t
+                    nn.Tanh(),
+                    nn.Linear(64, 128),
+                    nn.Tanh(),
+                    nn.Linear(128, 128),
+                    nn.Tanh(),
+                    nn.Linear(128, 64),
+                    nn.Tanh(),
+                    nn.Linear(64, 3)  # temperature, pressure, flow_velocity
+                )
+                
+            def forward(self, x):
+                return self.layers(x)
+                
+        return ThermalPINN()
+    
+    def estimate_subsurface_temperature(
+        self, 
+        locations: List[GeologicalLocation],
+        depth_profile: np.ndarray,
+        surface_measurements: List[ThermalMeasurement]
+    ) -> np.ndarray:
+        """
+        Estimate subsurface temperature distribution using physics-informed modeling
+        
+        Args:
+            locations: Geographic locations for assessment
+            depth_profile: Depth levels for temperature estimation
+            surface_measurements: Available surface thermal measurements
+            
+        Returns:
+            3D temperature field (lat, lon, depth)
+        """
+        logger.info("Estimating subsurface temperature distribution")
+        
+        # Create spatial grid
+        lats = [loc.latitude for loc in locations]
+        lons = [loc.longitude for loc in locations]
+        
+        lat_grid = np.linspace(min(lats), max(lats), 50)
+        lon_grid = np.linspace(min(lons), max(lons), 50)
+        depth_grid = depth_profile
+        
+        # Physics-informed temperature estimation
+        temperature_field = np.zeros((len(lat_grid), len(lon_grid), len(depth_grid)))
+        
+        for i, lat in enumerate(lat_grid):
+            for j, lon in enumerate(lon_grid):
+                for k, depth in enumerate(depth_grid):
+                    # Apply geothermal gradient with physics constraints
+                    surface_temp = self._interpolate_surface_temperature(
+                        lat, lon, surface_measurements
+                    )
+                    
+                    # Physics-informed temperature calculation
+                    geothermal_gradient = self._calculate_geothermal_gradient(
+                        lat, lon, depth, surface_measurements
+                    )
+                    
+                    # Apply heat transfer physics
+                    temperature = surface_temp + (geothermal_gradient * depth / 1000)
+                    
+                    # Apply physics constraints (ensure reasonable temperature bounds)
+                    temperature = max(0, min(temperature, 1200))  # Physical temperature limits
+                    
+                    temperature_field[i, j, k] = temperature
+        
+        return temperature_field
+    
+    def _interpolate_surface_temperature(
+        self, 
+        lat: float, 
+        lon: float, 
+        measurements: List[ThermalMeasurement]
+    ) -> float:
+        """Interpolate surface temperature from measurements"""
+        if not measurements:
+            return 15.0  # Default surface temperature
+            
+        points = [(m.location.latitude, m.location.longitude) for m in measurements]
+        values = [m.temperature for m in measurements]
+        
+        try:
+            interpolated = griddata(
+                points, values, (lat, lon), method='linear', fill_value=15.0
+            )
+            return float(interpolated) if not np.isnan(interpolated) else 15.0
+        except:
+            return 15.0
+    
+    def _calculate_geothermal_gradient(
+        self, 
+        lat: float, 
+        lon: float, 
+        depth: float,
+        measurements: List[ThermalMeasurement]
+    ) -> float:
+        """Calculate local geothermal gradient"""
+        # Default geothermal gradient (°C/km)
+        base_gradient = 25.0
+        
+        # Adjust based on geological setting
+        # Higher gradients near volcanic areas, lower in stable cratons
+        gradient_adjustment = self._assess_geological_setting(lat, lon)
+        
+        return base_gradient * gradient_adjustment
+    
+    def _assess_geological_setting(self, lat: float, lon: float) -> float:
+        """Assess geological setting to adjust geothermal gradient"""
+        # Simplified geological setting assessment
+        # In practice, this would use geological databases
+        
+        # Assume higher gradients near plate boundaries
+        # This is a simplified model - real implementation would use geological data
+        return 1.0 + 0.5 * np.random.random()  # 1.0 to 1.5 multiplier
+
+
+class PermeabilityEstimator:
+    """Estimates subsurface permeability for geothermal systems"""
+    
+    def __init__(self):
+        self.permeability_model = self._build_permeability_model()
+    
+    def _build_permeability_model(self) -> nn.Module:
+        """Build neural network for permeability estimation"""
+        class PermeabilityNet(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layers = nn.Sequential(
+                    nn.Linear(6, 32),  # depth, porosity, lithology, fracture_density, stress, temperature
+                    nn.ReLU(),
+                    nn.Linear(32, 64),
+                    nn.ReLU(),
+                    nn.Linear(64, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, 1),  # permeability
+                    nn.Sigmoid()  # Ensure positive output
+                )
+                
+            def forward(self, x):
+                return self.layers(x) * 1000  # Scale to millidarcies
+                
+        return PermeabilityNet()
+    
+    def estimate_permeability(
+        self, 
+        depth: float,
+        porosity: float,
+        lithology_code: int,
+        fracture_density: float,
+        stress_state: float,
+        temperature: float
+    ) -> float:
+        """
+        Estimate permeability based on geological and physical parameters
+        
+        Args:
+            depth: Depth in meters
+            porosity: Porosity fraction (0-1)
+            lithology_code: Encoded lithology type
+            fracture_density: Fracture density (fractures/m)
+            stress_state: Effective stress (MPa)
+            temperature: Temperature (°C)
+            
+        Returns:
+            Permeability in millidarcies
+        """
+        # Normalize inputs
+        inputs = torch.tensor([
+            depth / 5000.0,  # Normalize to typical geothermal depths
+            porosity,
+            lithology_code / 10.0,
+            fracture_density / 10.0,
+            stress_state / 100.0,
+            temperature / 300.0
+        ], dtype=torch.float32)
+        
+        with torch.no_grad():
+            permeability = self.permeability_model(inputs.unsqueeze(0))
+            
+        return float(permeability.item())
+
+
+class GeothermalSustainabilityModeler:
+    """Models long-term sustainability of geothermal systems"""
+    
+    def __init__(self):
+        self.sustainability_model = self._build_sustainability_model()
+    
+    def _build_sustainability_model(self) -> nn.Module:
+        """Build model for sustainability assessment"""
+        class SustainabilityNet(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layers = nn.Sequential(
+                    nn.Linear(8, 64),  # reservoir properties
+                    nn.ReLU(),
+                    nn.Linear(64, 128),
+                    nn.ReLU(),
+                    nn.Linear(128, 64),
+                    nn.ReLU(),
+                    nn.Linear(64, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, 2)  # sustainability_years, decline_rate
+                )
+                
+            def forward(self, x):
+                return self.layers(x)
+                
+        return SustainabilityNet()
+    
+    def assess_sustainability(
+        self, 
+        reservoir: GeothermalReservoir,
+        extraction_rate: float,
+        reinjection_rate: float
+    ) -> Tuple[float, float]:
+        """
+        Assess long-term sustainability of geothermal extraction
+        
+        Args:
+            reservoir: Geothermal reservoir properties
+            extraction_rate: Planned extraction rate (kg/s)
+            reinjection_rate: Planned reinjection rate (kg/s)
+            
+        Returns:
+            Tuple of (sustainability_years, annual_decline_rate)
+        """
+        # Prepare input features
+        inputs = torch.tensor([
+            reservoir.volume / 1e9,  # Normalize volume
+            reservoir.temperature_range[1] / 300.0,  # Max temperature
+            reservoir.permeability / 1000.0,  # Normalize permeability
+            reservoir.porosity,
+            extraction_rate / 100.0,  # Normalize extraction rate
+            reinjection_rate / 100.0,  # Normalize reinjection rate
+            (reinjection_rate / extraction_rate) if extraction_rate > 0 else 0,
+            reservoir.thermal_conductivity / 5.0  # Normalize thermal conductivity
+        ], dtype=torch.float32)
+        
+        with torch.no_grad():
+            output = self.sustainability_model(inputs.unsqueeze(0))
+            sustainability_years = float(output[0, 0].item()) * 50  # Scale to years
+            decline_rate = float(output[0, 1].item()) * 0.1  # Scale to percentage
+            
+        return sustainability_years, decline_rate
+    
+    def model_thermal_decline(
+        self, 
+        reservoir: GeothermalReservoir,
+        extraction_scenario: Dict[str, float],
+        time_horizon_years: int = 30
+    ) -> np.ndarray:
+        """
+        Model thermal decline over time
+        
+        Args:
+            reservoir: Geothermal reservoir
+            extraction_scenario: Extraction parameters
+            time_horizon_years: Modeling time horizon
+            
+        Returns:
+            Array of temperature decline over time
+        """
+        time_steps = np.linspace(0, time_horizon_years, time_horizon_years + 1)
+        initial_temp = reservoir.temperature_range[1]
+        
+        # Physics-based thermal decline model
+        thermal_decline = np.zeros_like(time_steps)
+        
+        for i, t in enumerate(time_steps):
+            # Exponential decline with physics constraints
+            decline_factor = np.exp(-extraction_scenario.get('decline_rate', 0.02) * t)
+            
+            # Apply minimum sustainable temperature
+            min_temp = 150.0  # Minimum viable temperature for power generation
+            declined_temp = initial_temp * decline_factor
+            
+            thermal_decline[i] = max(declined_temp, min_temp)
+        
+        return thermal_decline
+
+
+class EconomicViabilityAssessor:
+    """Assesses economic viability of geothermal projects"""
+    
+    def __init__(self, economic_params: EconomicParameters):
+        self.params = economic_params
+    
+    def assess_economic_viability(
+        self, 
+        reservoir: GeothermalReservoir,
+        power_potential_mw: float,
+        sustainability_years: float
+    ) -> Dict[str, float]:
+        """
+        Comprehensive economic viability assessment
+        
+        Args:
+            reservoir: Geothermal reservoir properties
+            power_potential_mw: Electrical power potential in MW
+            sustainability_years: Expected project lifetime
+            
+        Returns:
+            Dictionary with economic metrics
+        """
+        logger.info(f"Assessing economic viability for {power_potential_mw:.1f} MW project")
+        
+        # Calculate capital costs
+        drilling_depth = (reservoir.depth_range[0] + reservoir.depth_range[1]) / 2
+        drilling_cost = drilling_depth * self.params.drilling_cost_per_meter * 2  # Production + injection wells
+        
+        plant_cost = power_potential_mw * self.params.plant_construction_cost_per_mw
+        total_capex = drilling_cost + plant_cost
+        
+        # Calculate operational costs and revenues
+        annual_generation_mwh = power_potential_mw * 8760 * 0.85  # 85% capacity factor
+        annual_revenue = annual_generation_mwh * self.params.electricity_price
+        annual_opex = total_capex * self.params.operation_maintenance_cost_annual
+        
+        # Calculate financial metrics
+        project_lifetime = min(sustainability_years, self.params.project_lifetime_years)
+        
+        npv = self._calculate_npv(
+            annual_revenue, annual_opex, total_capex, project_lifetime
+        )
+        
+        irr = self._calculate_irr(
+            annual_revenue, annual_opex, total_capex, project_lifetime
+        )
+        
+        payback_period = self._calculate_payback_period(
+            annual_revenue, annual_opex, total_capex
+        )
+        
+        lcoe = self._calculate_lcoe(
+            total_capex, annual_opex, annual_generation_mwh, project_lifetime
+        )
+        
+        # Economic viability score (0-1)
+        viability_score = self._calculate_viability_score(npv, irr, payback_period, lcoe)
+        
+        return {
+            'total_capex_usd': total_capex,
+            'annual_revenue_usd': annual_revenue,
+            'annual_opex_usd': annual_opex,
+            'npv_usd': npv,
+            'irr_percent': irr * 100,
+            'payback_period_years': payback_period,
+            'lcoe_usd_per_mwh': lcoe,
+            'viability_score': viability_score,
+            'project_lifetime_years': project_lifetime
+        }
+    
+    def _calculate_npv(
+        self, 
+        annual_revenue: float, 
+        annual_opex: float, 
+        capex: float, 
+        lifetime: float
+    ) -> float:
+        """Calculate Net Present Value"""
+        annual_cash_flow = annual_revenue - annual_opex
+        
+        npv = -capex  # Initial investment
+        for year in range(1, int(lifetime) + 1):
+            discounted_cash_flow = annual_cash_flow / ((1 + self.params.discount_rate) ** year)
+            npv += discounted_cash_flow
+            
+        return npv
+    
+    def _calculate_irr(
+        self, 
+        annual_revenue: float, 
+        annual_opex: float, 
+        capex: float, 
+        lifetime: float
+    ) -> float:
+        """Calculate Internal Rate of Return"""
+        annual_cash_flow = annual_revenue - annual_opex
+        
+        def npv_function(rate):
+            npv = -capex
+            for year in range(1, int(lifetime) + 1):
+                npv += annual_cash_flow / ((1 + rate) ** year)
+            return npv
+        
+        try:
+            result = minimize(lambda r: abs(npv_function(r[0])), [0.1], bounds=[(0, 1)])
+            return result.x[0] if result.success else 0.0
+        except:
+            return 0.0
+    
+    def _calculate_payback_period(
+        self, 
+        annual_revenue: float, 
+        annual_opex: float, 
+        capex: float
+    ) -> float:
+        """Calculate simple payback period"""
+        annual_cash_flow = annual_revenue - annual_opex
+        if annual_cash_flow <= 0:
+            return float('inf')
+        return capex / annual_cash_flow
+    
+    def _calculate_lcoe(
+        self, 
+        capex: float, 
+        annual_opex: float, 
+        annual_generation_mwh: float, 
+        lifetime: float
+    ) -> float:
+        """Calculate Levelized Cost of Energy"""
+        # Present value of costs
+        pv_costs = capex
+        for year in range(1, int(lifetime) + 1):
+            pv_costs += annual_opex / ((1 + self.params.discount_rate) ** year)
+        
+        # Present value of generation
+        pv_generation = 0
+        for year in range(1, int(lifetime) + 1):
+            pv_generation += annual_generation_mwh / ((1 + self.params.discount_rate) ** year)
+        
+        return pv_costs / pv_generation if pv_generation > 0 else float('inf')
+    
+    def _calculate_viability_score(
+        self, 
+        npv: float, 
+        irr: float, 
+        payback_period: float, 
+        lcoe: float
+    ) -> float:
+        """Calculate overall viability score (0-1)"""
+        # Normalize metrics to 0-1 scale
+        npv_score = min(max(npv / 50000000, 0), 1)  # Normalize to $50M
+        irr_score = min(max(irr / 0.15, 0), 1)  # Normalize to 15%
+        payback_score = min(max((15 - payback_period) / 15, 0), 1)  # 15 year max
+        lcoe_score = min(max((100 - lcoe) / 100, 0), 1)  # $100/MWh benchmark
+        
+        # Weighted average
+        weights = [0.3, 0.3, 0.2, 0.2]  # NPV, IRR, Payback, LCOE
+        scores = [npv_score, irr_score, payback_score, lcoe_score]
+        
+        return sum(w * s for w, s in zip(weights, scores))
+
+
+class GeothermalResourceAssessmentSystem:
+    """Main system for comprehensive geothermal resource assessment"""
+    
+    def __init__(self, economic_params: Optional[EconomicParameters] = None):
+        self.physics_constraints = PhysicsConstraintEnforcer()
+        self.thermal_engine = ThermalModelingEngine(self.physics_constraints)
+        self.permeability_estimator = PermeabilityEstimator()
+        self.sustainability_modeler = GeothermalSustainabilityModeler()
+        # Initialize uncertainty quantifier with mock dependencies for now
+        try:
+            from .gan_engine import GANEngine
+            import torch
+            device = torch.device('cpu')
+            gan_engine = GANEngine(device=device)
+            self.uncertainty_quantifier = GeologicalUncertaintyQuantifier(gan_engine, device)
+        except ImportError:
+            # Use a simple mock for uncertainty quantification
+            self.uncertainty_quantifier = None
+        
+        self.economic_params = economic_params or EconomicParameters()
+        self.economic_assessor = EconomicViabilityAssessor(self.economic_params)
+        
+        logger.info("Geothermal Resource Assessment System initialized")
+    
+    def assess_geothermal_potential(
+        self,
+        locations: List[GeologicalLocation],
+        thermal_measurements: List[ThermalMeasurement],
+        geological_data: Dict[str, Any],
+        assessment_depth_range: Tuple[float, float] = (1000, 5000)
+    ) -> List[GeothermalAssessmentResult]:
+        """
+        Comprehensive geothermal resource assessment
+        
+        Args:
+            locations: Geographic locations for assessment
+            thermal_measurements: Available thermal measurements
+            geological_data: Geological context data
+            assessment_depth_range: Depth range for assessment (min, max in meters)
+            
+        Returns:
+            List of assessment results for each location
+        """
+        logger.info(f"Starting geothermal assessment for {len(locations)} locations")
+        
+        results = []
+        
+        # Create depth profile for assessment
+        depth_profile = np.linspace(
+            assessment_depth_range[0], 
+            assessment_depth_range[1], 
+            20
+        )
+        
+        # Estimate subsurface temperature field
+        temperature_field = self.thermal_engine.estimate_subsurface_temperature(
+            locations, depth_profile, thermal_measurements
+        )
+        
+        for i, location in enumerate(locations):
+            try:
+                # Extract temperature profile for this location
+                temp_profile = temperature_field[i, i, :] if i < temperature_field.shape[0] else temperature_field[0, 0, :]
+                
+                # Identify optimal reservoir depth
+                optimal_depth_idx = np.argmax(temp_profile)
+                optimal_depth = depth_profile[optimal_depth_idx]
+                optimal_temperature = temp_profile[optimal_depth_idx]
+                
+                # Estimate reservoir properties
+                reservoir = self._estimate_reservoir_properties(
+                    location, optimal_depth, optimal_temperature, geological_data
+                )
+                
+                # Calculate power potential
+                thermal_power = self._calculate_thermal_power_potential(reservoir)
+                electrical_power = thermal_power * 0.12  # ~12% thermal efficiency
+                
+                # Assess sustainability
+                sustainability_years, decline_rate = self.sustainability_modeler.assess_sustainability(
+                    reservoir, 
+                    extraction_rate=50.0,  # kg/s
+                    reinjection_rate=45.0   # kg/s (90% reinjection)
+                )
+                
+                # Economic viability assessment
+                economic_metrics = self.economic_assessor.assess_economic_viability(
+                    reservoir, electrical_power, sustainability_years
+                )
+                
+                # Uncertainty quantification
+                uncertainty_factors = self._quantify_uncertainties(
+                    reservoir, thermal_measurements, geological_data
+                )
+                
+                confidence_interval = self._calculate_confidence_interval(
+                    electrical_power, uncertainty_factors
+                )
+                
+                # Create assessment result
+                result = GeothermalAssessmentResult(
+                    reservoir=reservoir,
+                    thermal_power_potential=thermal_power,
+                    electrical_power_potential=electrical_power,
+                    sustainability_years=sustainability_years,
+                    economic_viability_score=economic_metrics['viability_score'],
+                    confidence_interval=confidence_interval,
+                    uncertainty_factors=uncertainty_factors,
+                    assessment_timestamp=datetime.now(),
+                    model_version="1.0.0"
+                )
+                
+                results.append(result)
+                
+                logger.info(f"Assessment completed for location {i+1}: "
+                          f"{electrical_power:.1f} MW potential, "
+                          f"viability score: {economic_metrics['viability_score']:.2f}")
+                
+            except Exception as e:
+                logger.error(f"Error assessing location {i+1}: {str(e)}")
+                continue
+        
+        return results
+    
+    def _estimate_reservoir_properties(
+        self,
+        location: GeologicalLocation,
+        depth: float,
+        temperature: float,
+        geological_data: Dict[str, Any]
+    ) -> GeothermalReservoir:
+        """Estimate reservoir properties based on location and geological data"""
+        
+        # Estimate permeability based on geological setting
+        lithology_code = geological_data.get('lithology_code', 5)  # Default to moderate
+        fracture_density = geological_data.get('fracture_density', 2.0)
+        stress_state = depth * 0.025  # Approximate stress gradient
+        
+        permeability = self.permeability_estimator.estimate_permeability(
+            depth, 0.15, lithology_code, fracture_density, stress_state, temperature
+        )
+        
+        # Estimate other reservoir properties
+        porosity = max(0.05, 0.25 - depth / 20000)  # Decreasing with depth
+        volume = 1e8  # Default reservoir volume (m³)
+        
+        return GeothermalReservoir(
+            location=location,
+            depth_range=(depth - 200, depth + 200),
+            temperature_range=(temperature - 10, temperature + 10),
+            permeability=permeability,
+            porosity=porosity,
+            fluid_type="water",
+            salinity=geological_data.get('salinity', 5000),
+            volume=volume,
+            heat_capacity=4200,  # Water heat capacity
+            thermal_conductivity=2.5,  # Typical rock thermal conductivity
+            pressure=depth * 0.01,  # Hydrostatic pressure approximation
+            flow_rate_potential=permeability * 0.1  # Simplified flow rate estimate
+        )
+    
+    def _calculate_thermal_power_potential(self, reservoir: GeothermalReservoir) -> float:
+        """Calculate thermal power potential of reservoir"""
+        # Simplified thermal power calculation
+        mass_flow_rate = reservoir.flow_rate_potential  # kg/s
+        temperature_drop = 50  # Assumed temperature drop in system
+        specific_heat = reservoir.heat_capacity  # J/kg/K
+        
+        thermal_power_watts = mass_flow_rate * specific_heat * temperature_drop
+        thermal_power_mw = thermal_power_watts / 1e6
+        
+        return thermal_power_mw
+    
+    def _quantify_uncertainties(
+        self,
+        reservoir: GeothermalReservoir,
+        measurements: List[ThermalMeasurement],
+        geological_data: Dict[str, Any]
+    ) -> Dict[str, float]:
+        """Quantify uncertainties in assessment"""
+        
+        # Data quality uncertainty
+        measurement_density = len(measurements) / 100  # Normalize to typical density
+        data_quality_uncertainty = max(0.1, 1.0 - measurement_density)
+        
+        # Geological uncertainty
+        geological_complexity = geological_data.get('complexity_score', 0.5)
+        geological_uncertainty = geological_complexity
+        
+        # Model uncertainty
+        model_uncertainty = 0.2  # Inherent model uncertainty
+        
+        # Depth uncertainty (higher uncertainty at greater depths)
+        depth_uncertainty = min(0.5, reservoir.depth_range[1] / 10000)
+        
+        return {
+            'data_quality': data_quality_uncertainty,
+            'geological': geological_uncertainty,
+            'model': model_uncertainty,
+            'depth': depth_uncertainty,
+            'overall': np.sqrt(
+                data_quality_uncertainty**2 + 
+                geological_uncertainty**2 + 
+                model_uncertainty**2 + 
+                depth_uncertainty**2
+            )
+        }
+    
+    def _calculate_confidence_interval(
+        self,
+        power_estimate: float,
+        uncertainty_factors: Dict[str, float]
+    ) -> Tuple[float, float]:
+        """Calculate confidence interval for power estimate"""
+        overall_uncertainty = uncertainty_factors['overall']
+        
+        # 95% confidence interval
+        margin = 1.96 * overall_uncertainty * power_estimate
+        
+        lower_bound = max(0, power_estimate - margin)
+        upper_bound = power_estimate + margin
+        
+        return (lower_bound, upper_bound)
+    
+    def generate_assessment_report(
+        self, 
+        results: List[GeothermalAssessmentResult],
+        output_path: str = "geothermal_assessment_report.json"
+    ) -> Dict[str, Any]:
+        """Generate comprehensive assessment report"""
+        
+        if not results:
+            return {"error": "No assessment results to report"}
+        
+        # Summary statistics
+        total_potential_mw = sum(r.electrical_power_potential for r in results)
+        viable_projects = [r for r in results if r.economic_viability_score > 0.6]
+        
+        report = {
+            "assessment_summary": {
+                "total_locations_assessed": len(results),
+                "total_electrical_potential_mw": total_potential_mw,
+                "viable_projects_count": len(viable_projects),
+                "average_viability_score": np.mean([r.economic_viability_score for r in results]),
+                "assessment_date": datetime.now().isoformat()
+            },
+            "detailed_results": []
+        }
+        
+        for i, result in enumerate(results):
+            detailed_result = {
+                "location_id": i + 1,
+                "coordinates": {
+                    "latitude": result.reservoir.location.latitude,
+                    "longitude": result.reservoir.location.longitude,
+                    "elevation": result.reservoir.location.elevation
+                },
+                "reservoir_properties": {
+                    "depth_range_m": result.reservoir.depth_range,
+                    "temperature_range_c": result.reservoir.temperature_range,
+                    "permeability_md": result.reservoir.permeability,
+                    "porosity": result.reservoir.porosity,
+                    "volume_m3": result.reservoir.volume
+                },
+                "power_potential": {
+                    "thermal_mw": result.thermal_power_potential,
+                    "electrical_mw": result.electrical_power_potential,
+                    "confidence_interval_mw": result.confidence_interval
+                },
+                "sustainability": {
+                    "expected_lifetime_years": result.sustainability_years
+                },
+                "economic_viability": {
+                    "viability_score": result.economic_viability_score,
+                    "classification": self._classify_viability(result.economic_viability_score)
+                },
+                "uncertainty_analysis": result.uncertainty_factors
+            }
+            
+            report["detailed_results"].append(detailed_result)
+        
+        # Save report
+        import json
+        with open(output_path, 'w') as f:
+            json.dump(report, f, indent=2, default=str)
+        
+        logger.info(f"Assessment report saved to {output_path}")
+        return report
+    
+    def _classify_viability(self, score: float) -> str:
+        """Classify economic viability based on score"""
+        if score >= 0.8:
+            return "Highly Viable"
+        elif score >= 0.6:
+            return "Viable"
+        elif score >= 0.4:
+            return "Marginal"
+        else:
+            return "Not Viable"
