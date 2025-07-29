@@ -53,7 +53,13 @@ class BenchmarkDataset:
 
 class ScientificBenchmarkValidator:
     def __init__(self):
-        self.project_root = Path(__file__).parent.parent
+        # Handle cases where __file__ is not defined (e.g., when run via exec)
+        try:
+            self.project_root = Path(__file__).parent.parent
+        except NameError:
+            # Fallback to current working directory
+            self.project_root = Path.cwd()
+        
         self.models_dir = self.project_root / "services" / "helios-core" / "models"
         self.benchmarks_dir = self.project_root / "tests" / "benchmarks"
         self.validation_results: List[ValidationResult] = []

@@ -58,7 +58,13 @@ class DocumentationReport:
 
 class DocumentationGenerator:
     def __init__(self):
-        self.project_root = Path(__file__).parent.parent
+        # Handle cases where __file__ is not defined (e.g., when run via exec)
+        try:
+            self.project_root = Path(__file__).parent.parent
+        except NameError:
+            # Fallback to current working directory
+            self.project_root = Path.cwd()
+        
         self.services_dir = self.project_root / "services"
         self.docs_dir = self.project_root / "docs"
         self.docs_dir.mkdir(exist_ok=True)
@@ -654,15 +660,15 @@ def main():
             documentation_gate_passed = False
         
         if report.api_completeness < generator.doc_requirements["api_doc_completeness"]:
-            logger.error(f"API DOCUMENTATION GATE FAILED: Completeness {report.api_completeness:.1%} below threshold {generator.doc_requirements['api_doc_completeness']:.1%}")
+            logger.error(f"API DOCUMENTATION GATE FAILED: API completeness {report.api_completeness:.1%} below threshold {generator.doc_requirements['api_doc_completeness']:.1%}")
             documentation_gate_passed = False
         
         # Exit with appropriate code
         if not documentation_gate_passed:
-            logger.error("Documentation quality gates failed!")
+            logger.error("Documentation gates failed!")
             sys.exit(1)
         else:
-            logger.info("All documentation quality gates passed!")
+            logger.info("All documentation gates passed!")
             sys.exit(0)
             
     except Exception as e:

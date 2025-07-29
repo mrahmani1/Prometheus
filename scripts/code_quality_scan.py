@@ -55,7 +55,13 @@ class QualityReport:
 
 class CodeQualityScanner:
     def __init__(self):
-        self.project_root = Path(__file__).parent.parent
+        # Handle cases where __file__ is not defined (e.g., when run via exec)
+        try:
+            self.project_root = Path(__file__).parent.parent
+        except NameError:
+            # Fallback to current working directory
+            self.project_root = Path.cwd()
+        
         self.services_dir = self.project_root / "services"
         self.quality_issues: List[QualityIssue] = []
         self.security_vulnerabilities: List[SecurityVulnerability] = []

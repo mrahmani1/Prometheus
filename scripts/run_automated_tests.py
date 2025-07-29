@@ -43,7 +43,13 @@ class TestSuite:
 
 class AutomatedTestRunner:
     def __init__(self):
-        self.project_root = Path(__file__).parent.parent
+        # Handle cases where __file__ is not defined (e.g., when run via exec)
+        try:
+            self.project_root = Path(__file__).parent.parent
+        except NameError:
+            # Fallback to current working directory
+            self.project_root = Path.cwd()
+        
         self.services_dir = self.project_root / "services"
         self.test_results: List[TestResult] = []
         self.changed_files: List[str] = []

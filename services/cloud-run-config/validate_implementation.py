@@ -59,12 +59,14 @@ def validate_python_syntax():
     syntax_errors = []
     for file_path in python_files:
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 compile(f.read(), file_path, 'exec')
             print(f"✅ {file_path} - syntax OK")
         except SyntaxError as e:
             syntax_errors.append(f"{file_path}: {e}")
             print(f"❌ {file_path} - syntax error: {e}")
+        except UnicodeDecodeError as e:
+            print(f"⚠️  {file_path} - encoding error: {e}")
         except FileNotFoundError:
             print(f"⚠️  {file_path} - file not found")
     
@@ -83,7 +85,7 @@ def validate_docker_files():
     valid_dockerfiles = 0
     for dockerfile in docker_files:
         if os.path.exists(dockerfile):
-            with open(dockerfile, 'r') as f:
+            with open(dockerfile, 'r', encoding='utf-8') as f:
                 content = f.read()
                 
             # Basic validation
@@ -109,7 +111,7 @@ def validate_yaml_files():
     valid_yamls = 0
     for yaml_file in yaml_files:
         try:
-            with open(yaml_file, 'r') as f:
+            with open(yaml_file, 'r', encoding='utf-8') as f:
                 yaml.safe_load(f)
             print(f"✅ {yaml_file} - valid YAML")
             valid_yamls += 1
@@ -132,7 +134,7 @@ def validate_terraform_files():
     valid_tf_files = 0
     for tf_file in terraform_files:
         if os.path.exists(tf_file):
-            with open(tf_file, 'r') as f:
+            with open(tf_file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 
             # Basic validation for Terraform syntax
@@ -152,7 +154,7 @@ def validate_configuration_completeness():
     
     # Check cloud-run-optimizer.py for required classes
     try:
-        with open("cloud-run-optimizer.py", 'r') as f:
+        with open("cloud-run-optimizer.py", 'r', encoding='utf-8') as f:
             optimizer_content = f.read()
         
         required_classes = [
@@ -179,7 +181,7 @@ def validate_configuration_completeness():
     
     # Check multi-region-deployment.py for required classes
     try:
-        with open("multi-region-deployment.py", 'r') as f:
+        with open("multi-region-deployment.py", 'r', encoding='utf-8') as f:
             deployment_content = f.read()
         
         required_classes = [
@@ -206,7 +208,7 @@ def validate_configuration_completeness():
     
     # Check cost-optimization.py for required classes
     try:
-        with open("cost-optimization.py", 'r') as f:
+        with open("cost-optimization.py", 'r', encoding='utf-8') as f:
             cost_content = f.read()
         
         required_classes = [
@@ -238,7 +240,7 @@ def validate_requirements():
     print("\n📦 Validating Python requirements...")
     
     try:
-        with open("requirements.txt", 'r') as f:
+        with open("requirements.txt", 'r', encoding='utf-8') as f:
             requirements = f.read()
         
         required_packages = [
@@ -271,7 +273,7 @@ def validate_deployment_script():
     print("\n🚀 Validating deployment script...")
     
     try:
-        with open("deploy.sh", 'r') as f:
+        with open("deploy.sh", 'r', encoding='utf-8') as f:
             script_content = f.read()
         
         required_functions = [
@@ -312,7 +314,7 @@ def validate_feature_completeness():
         features_implemented.append("❌ Missing Cloud Run optimized containers")
     
     # Check for automatic scaling implementation
-    with open("cloud-run-optimizer.py", 'r') as f:
+    with open("cloud-run-optimizer.py", 'r', encoding='utf-8') as f:
         optimizer_content = f.read()
     
     if "def calculate_scaling_decision" in optimizer_content:
@@ -357,7 +359,7 @@ def generate_validation_report():
     print("\n📊 Generating validation report...")
     
     report = {
-        "validation_timestamp": datetime.utcnow().isoformat(),
+        "validation_timestamp": datetime.now().isoformat(),
         "validation_results": {
             "file_structure": validate_file_structure(),
             "python_syntax": validate_python_syntax(),
