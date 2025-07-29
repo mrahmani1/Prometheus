@@ -1,0 +1,491 @@
+# Enhanced Horizontal Pod Autoscaler configurations with intelligent monitoring-based scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-enhanced-hpa
+  namespace: prometheus-ai
+  annotations:
+    monitoring.prometheus-ai.com/scaling-policy: "standard"
+    monitoring.prometheus-ai.com/critical-service: "true"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "100"
+  - type: Pods
+    pods:
+      metric:
+        name: response_time_p95
+      target:
+        type: AverageValue
+        averageValue: "2"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: helios-core-enhanced-hpa
+  namespace: prometheus-ai
+  annotations:
+    monitoring.prometheus-ai.com/scaling-policy: "ai-workload"
+    monitoring.prometheus-ai.com/critical-service: "true"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: helios-core-deployment
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85
+  - type: Pods
+    pods:
+      metric:
+        name: ai_model_inference_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "50"
+  - type: Pods
+    pods:
+      metric:
+        name: gpu_utilization
+      target:
+        type: AverageValue
+        averageValue: "75"
+  - type: Pods
+    pods:
+      metric:
+        name: simulation_processing_time
+      target:
+        type: AverageValue
+        averageValue: "300"  # 5 minutes max processing time
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 120
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 3
+        periodSeconds: 120
+    scaleDown:
+      stabilizationWindowSeconds: 600  # Longer stabilization for AI workloads
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 120
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: volcano-watchtower-enhanced-hpa
+  namespace: prometheus-ai
+  annotations:
+    monitoring.prometheus-ai.com/scaling-policy: "emergency-response"
+    monitoring.prometheus-ai.com/critical-service: "true"
+    monitoring.prometheus-ai.com/emergency-service: "true"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: volcano-watchtower-deployment
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: seismic_events_processing_rate
+      target:
+        type: AverageValue
+        averageValue: "100"
+  - type: Pods
+    pods:
+      metric:
+        name: volcanic_alert_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "10"  # Very low threshold for emergency alerts
+  - type: Pods
+    pods:
+      metric:
+        name: insar_processing_backlog
+      target:
+        type: AverageValue
+        averageValue: "5"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30  # Fast scaling for critical volcanic monitoring
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: data-ingestion-enhanced-hpa
+  namespace: prometheus-ai
+  annotations:
+    monitoring.prometheus-ai.com/scaling-policy: "data-processing"
+    monitoring.prometheus-ai.com/critical-service: "true"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: data-ingestion-deployment
+  minReplicas: 2
+  maxReplicas: 15
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Pods
+    pods:
+      metric:
+        name: kafka_consumer_lag
+      target:
+        type: AverageValue
+        averageValue: "1000"
+  - type: Pods
+    pods:
+      metric:
+        name: data_processing_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "500"
+  - type: Pods
+    pods:
+      metric:
+        name: satellite_data_backlog_minutes
+      target:
+        type: AverageValue
+        averageValue: "15"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 3
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: system-monitor-enhanced-hpa
+  namespace: prometheus-ai
+  annotations:
+    monitoring.prometheus-ai.com/scaling-policy: "monitoring"
+    monitoring.prometheus-ai.com/critical-service: "true"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: system-monitor-deployment
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: active_incidents
+      target:
+        type: AverageValue
+        averageValue: "10"
+  - type: Pods
+    pods:
+      metric:
+        name: health_check_latency
+      target:
+        type: AverageValue
+        averageValue: "5"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+# PodDisruptionBudgets for critical services
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: volcano-watchtower-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: volcano-watchtower
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: helios-core-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: helios-core
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: system-monitor-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: system-monitor
+
+---
+# ServiceMonitor for Prometheus to scrape custom metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prometheus-ai-services
+  namespace: prometheus-ai
+  labels:
+    app: prometheus-ai
+spec:
+  selector:
+    matchLabels:
+      monitoring: "enabled"
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+
+---
+# PrometheusRule for custom scaling metrics
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: scaling-metrics
+  namespace: prometheus-ai
+spec:
+  groups:
+  - name: scaling.rules
+    rules:
+    - alert: HighScalingFrequency
+      expr: increase(scaling_actions_total[5m]) > 5
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High scaling frequency detected for {{ $labels.service }}"
+        description: "Service {{ $labels.service }} has scaled {{ $value }} times in the last 5 minutes"
+    
+    - alert: ScalingAtMaxCapacity
+      expr: kube_deployment_status_replicas / kube_deployment_spec_replicas > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Service {{ $labels.deployment }} is near maximum capacity"
+        description: "Service {{ $labels.deployment }} is running at {{ $value | humanizePercentage }} of maximum capacity"
+    
+    - alert: ScalingFailure
+      expr: increase(scaling_actions_total{success="false"}[10m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Scaling failure detected for {{ $labels.service }}"
+        description: "Failed to scale {{ $labels.service }}: {{ $labels.error }}"
+
+---
+# Custom metrics for intelligent scaling
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scaling-metrics-config
+  namespace: prometheus-ai
+data:
+  metrics.yaml: |
+    metrics:
+      # API Gateway metrics
+      http_requests_per_second:
+        query: "rate(http_requests_total[1m])"
+        threshold: 100
+        
+      response_time_p95:
+        query: "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+        threshold: 2.0
+        
+      # Helios Core metrics
+      ai_model_inference_queue_depth:
+        query: "ai_model_inference_queue_size"
+        threshold: 50
+        
+      gpu_utilization:
+        query: "nvidia_gpu_utilization_gpu"
+        threshold: 75
+        
+      simulation_processing_time:
+        query: "avg(simulation_duration_seconds)"
+        threshold: 300
+        
+      # Volcano Watchtower metrics
+      seismic_events_processing_rate:
+        query: "rate(seismic_events_processed_total[1m])"
+        threshold: 100
+        
+      volcanic_alert_queue_depth:
+        query: "volcanic_alert_queue_size"
+        threshold: 10
+        
+      insar_processing_backlog:
+        query: "insar_processing_backlog_count"
+        threshold: 5
+        
+      # Data Ingestion metrics
+      kafka_consumer_lag:
+        query: "kafka_consumer_lag_sum"
+        threshold: 1000
+        
+      data_processing_queue_depth:
+        query: "data_processing_queue_size"
+        threshold: 500
+        
+      satellite_data_backlog_minutes:
+        query: "satellite_data_backlog_minutes"
+        threshold: 15
+        
+      # System Monitor metrics
+      active_incidents:
+        query: "active_incidents_total"
+        threshold: 10
+        
+      health_check_latency:
+        query: "avg(health_check_duration_seconds)"
+        threshold: 5

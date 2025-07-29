@@ -1,0 +1,196 @@
+# Multi-cloud deployment configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-cloud-config
+  namespace: prometheus-ai
+data:
+  # Cloud provider configurations
+  cloud.provider: "auto-detect"  # aws, gcp, azure, or auto-detect
+  
+  # AWS-specific configurations
+  aws.region: "us-west-2"
+  aws.availability_zones: "us-west-2a,us-west-2b,us-west-2c"
+  aws.storage_class: "gp3"
+  aws.load_balancer_type: "nlb"
+  aws.enable_spot_instances: "true"
+  aws.spot_instance_types: "m5.large,m5.xlarge,c5.large,c5.xlarge"
+  
+  # GCP-specific configurations
+  gcp.region: "us-central1"
+  gcp.zones: "us-central1-a,us-central1-b,us-central1-c"
+  gcp.storage_class: "ssd"
+  gcp.load_balancer_type: "external"
+  gcp.enable_preemptible: "true"
+  gcp.machine_types: "n1-standard-2,n1-standard-4,n2-standard-2,n2-standard-4"
+  
+  # Azure-specific configurations
+  azure.region: "East US"
+  azure.availability_zones: "1,2,3"
+  azure.storage_class: "managed-premium"
+  azure.load_balancer_type: "standard"
+  azure.enable_spot_instances: "true"
+  azure.vm_sizes: "Standard_D2s_v3,Standard_D4s_v3,Standard_F2s_v2,Standard_F4s_v2"
+  
+  # Multi-cloud networking
+  enable_cross_cloud_replication: "true"
+  primary_cloud: "aws"
+  secondary_cloud: "gcp"
+  tertiary_cloud: "azure"
+  
+  # Global load balancing
+  enable_global_load_balancer: "true"
+  traffic_distribution: "latency-based"  # latency-based, geo-based, or weighted
+  
+  # Disaster recovery settings
+  backup_frequency: "6h"
+  cross_region_backup: "true"
+  rpo_minutes: "15"  # Recovery Point Objective
+  rto_minutes: "30"  # Recovery Time Objective
+
+---
+# Cloud-specific storage classes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd-aws
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd-gcp
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-ssd
+  replication-type: regional-pd
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd-azure
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: Premium_LRS
+  cachingmode: ReadOnly
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Pod Disruption Budgets for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: helios-core-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: helios-core
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: data-ingestion-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: data-ingestion
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: volcano-watchtower-pdb
+  namespace: prometheus-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: volcano-watchtower
+
+---
+# Network policies for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-ai-network-policy
+  namespace: prometheus-ai
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-ai
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 8080  # API Gateway
+    - protocol: TCP
+      port: 8000  # Helios Core
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53  # DNS
+    - protocol: UDP
+      port: 53  # DNS
+    - protocol: TCP
+      port: 443  # HTTPS
+    - protocol: TCP
+      port: 80   # HTTP
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-ai
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+    - protocol: TCP
+      port: 8086  # InfluxDB
+    - protocol: TCP
+      port: 7687  # Neo4j
+    - protocol: TCP
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 9092  # Kafka
