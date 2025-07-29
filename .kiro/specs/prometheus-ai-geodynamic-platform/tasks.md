@@ -227,7 +227,7 @@
     - Write connectivity restoration and data synchronization procedures
     - _Requirements: 10.2, 10.3_
 
-- [ ] 12. Develop resource prediction and hazard assessment systems
+- [x] 12. Develop resource prediction and hazard assessment systems
   - [x] 12.1 Create mineral resource prediction models
     - Build machine learning models for ore deposit pattern recognition
     - Implement geochemical signature analysis for resource identification
@@ -242,7 +242,7 @@
     - Write economic viability assessment for geothermal resources
     - _Requirements: 6.2, 6.3_
 
-  - [ ] 12.3 Develop comprehensive hazard mapping system
+  - [x] 12.3 Develop comprehensive hazard mapping system
     - Create multi-hazard risk assessment combining volcanic and seismic risks
     - Build probabilistic hazard mapping with uncertainty visualization
     - Implement real-time hazard map updates based on monitoring data

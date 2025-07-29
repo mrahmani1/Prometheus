@@ -111,6 +111,10 @@ app.mount("/metrics", metrics_app)
 # Include API routes
 app.include_router(router, prefix="/api/v1")
 
+# Include hazard mapping routes
+from api.hazard_mapping_api import router as hazard_mapping_router
+app.include_router(hazard_mapping_router)
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
