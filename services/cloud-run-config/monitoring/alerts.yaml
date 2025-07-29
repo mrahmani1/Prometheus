@@ -1,0 +1,208 @@
+# Cloud Run Monitoring Alerts Configuration
+
+alertPolicy:
+  displayName: "Prometheus AI Cloud Run Alerts"
+  conditions:
+    - displayName: "High Response Latency"
+      conditionThreshold:
+        filter: 'resource.type="cloud_run_revision"'
+        comparison: COMPARISON_GREATER_THAN
+        thresholdValue: 5.0  # 5 seconds
+        duration: 300s  # 5 minutes
+        aggregations:
+          - alignmentPeriod: 60s
+            perSeriesAligner: ALIGN_MEAN
+            crossSeriesReducer: REDUCE_MEAN
+            groupByFields:
+              - resource.label.service_name
+              - resource.label.location
+      
+    - displayName: "High Error Rate"
+      conditionThreshold:
+        filter: 'resource.type="cloud_run_revision"'
+        comparison: COMPARISON_GREATER_THAN
+        thresholdValue: 0.05  # 5% error rate
+        duration: 180s  # 3 minutes
+        aggregations:
+          - alignmentPeriod: 60s
+            perSeriesAligner: ALIGN_RATE
+            crossSeriesReducer: REDUCE_MEAN
+            groupByFields:
+              - resource.label.service_name
+    
+    - displayName: "High CPU Utilization"
+      conditionThreshold:
+        filter: 'resource.type="cloud_run_revision"'
+        comparison: COMPARISON_GREATER_THAN
+        thresholdValue: 0.8  # 80% CPU utilization
+        duration: 600s  # 10 minutes
+        aggregations:
+          - alignmentPeriod: 60s
+            perSeriesAligner: ALIGN_MEAN
+            crossSeriesReducer: REDUCE_MEAN
+            groupByFields:
+              - resource.label.service_name
+              - resource.label.location
+    
+    - displayName: "High Memory Utilization"
+      conditionThreshold:
+        filter: 'resource.type="cloud_run_revision"'
+        comparison: COMPARISON_GREATER_THAN
+        thresholdValue: 0.9  # 90% memory utilization
+        duration: 300s  # 5 minutes
+        aggregations:
+          - alignmentPeriod: 60s
+            perSeriesAligner: ALIGN_MEAN
+            crossSeriesReducer: REDUCE_MEAN
+            groupByFields:
+              - resource.label.service_name
+    
+    - displayName: "Cold Start Rate Too High"
+      conditionThreshold:
+        filter: 'resource.type="cloud_run_revision"'
+        comparison: COMPARISON_GREATER_THAN
+        thresholdValue: 10  # 10 cold starts per minute
+        duration: 300s
+        aggregations:
+          - alignmentPeriod: 60s
+            perSeriesAligner: ALIGN_RATE
+            crossSeriesReducer: REDUCE_SUM
+            groupByFields:
+              - resource.label.service_name
+    
+    - displayName: "Service Unavailable"
+      conditionAbsent:
+        filter: 'resource.type="cloud_run_revision"'
+        duration: 300s  # 5 minutes
+        aggregations:
+          - alignmentPeriod: 60s
+            perSeriesAligner: ALIGN_MEAN
+            crossSeriesReducer: REDUCE_MEAN
+            groupByFields:
+              - resource.label.service_name
+              - resource.label.location
+
+  notificationChannels:
+    - projects/prometheus-ai-platform/notificationChannels/email-alerts
+    - projects/prometheus-ai-platform/notificationChannels/slack-alerts
+    - projects/prometheus-ai-platform/notificationChannels/pagerduty-alerts
+
+  alertStrategy:
+    autoClose: 86400s  # 24 hours
+
+---
+# Cost Alert Policy
+costAlertPolicy:
+  displayName: "Prometheus AI Cost Alerts"
+  conditions:
+    - displayName: "High Daily Cost"
+      conditionThreshold:
+        filter: 'resource.type="cloud_run_revision"'
+        comparison: COMPARISON_GREATER_THAN
+        thresholdValue: 100.0  # $100 per day
+        duration: 3600s  # 1 hour
+        aggregations:
+          - alignmentPeriod: 3600s
+            perSeriesAligner: ALIGN_SUM
+            crossSeriesReducer: REDUCE_SUM
+    
+    - displayName: "Unexpected Cost Spike"
+      conditionThreshold:
+        filter: 'resource.type="cloud_run_revision"'
+        comparison: COMPARISON_GREATER_THAN
+        thresholdValue: 50.0  # 50% increase
+        duration: 1800s  # 30 minutes
+        aggregations:
+          - alignmentPeriod: 300s
+            perSeriesAligner: ALIGN_RATE
+            crossSeriesReducer: REDUCE_MEAN
+
+  notificationChannels:
+    - projects/prometheus-ai-platform/notificationChannels/finance-alerts
+    - projects/prometheus-ai-platform/notificationChannels/ops-alerts
+
+---
+# Performance SLO Configuration
+sloConfig:
+  serviceLevelObjectives:
+    - displayName: "API Gateway Availability SLO"
+      serviceLevelIndicator:
+        requestBased:
+          goodTotalRatio:
+            goodServiceFilter: 'resource.type="cloud_run_revision" resource.label.service_name="api-gateway"'
+            totalServiceFilter: 'resource.type="cloud_run_revision" resource.label.service_name="api-gateway"'
+      goal: 0.999  # 99.9% availability
+      rollingPeriod: 2592000s  # 30 days
+    
+    - displayName: "Helios Core Latency SLO"
+      serviceLevelIndicator:
+        requestBased:
+          distributionCut:
+            distributionFilter: 'resource.type="cloud_run_revision" resource.label.service_name="helios-core"'
+            range:
+              max: 10.0  # 10 seconds maximum latency
+      goal: 0.95  # 95% of requests under 10s
+      rollingPeriod: 2592000s  # 30 days
+    
+    - displayName: "Volcano Watchtower Real-time SLO"
+      serviceLevelIndicator:
+        requestBased:
+          distributionCut:
+            distributionFilter: 'resource.type="cloud_run_revision" resource.label.service_name="volcano-watchtower"'
+            range:
+              max: 2.0  # 2 seconds maximum for real-time monitoring
+      goal: 0.99  # 99% of requests under 2s
+      rollingPeriod: 604800s  # 7 days
+
+---
+# Custom Metrics for Geological Data Processing
+customMetrics:
+  - name: "geological_data_processing_rate"
+    displayName: "Geological Data Processing Rate"
+    metricKind: GAUGE
+    valueType: DOUBLE
+    description: "Rate of geological data processing per second"
+    labels:
+      - key: "service_name"
+        valueType: STRING
+      - key: "data_type"
+        valueType: STRING
+      - key: "region"
+        valueType: STRING
+  
+  - name: "volcanic_alert_level"
+    displayName: "Volcanic Alert Level"
+    metricKind: GAUGE
+    valueType: INT64
+    description: "Current volcanic alert level (0-5 scale)"
+    labels:
+      - key: "volcano_id"
+        valueType: STRING
+      - key: "region"
+        valueType: STRING
+  
+  - name: "ai_model_inference_time"
+    displayName: "AI Model Inference Time"
+    metricKind: GAUGE
+    valueType: DOUBLE
+    description: "Time taken for AI model inference in seconds"
+    labels:
+      - key: "model_name"
+        valueType: STRING
+      - key: "model_version"
+        valueType: STRING
+      - key: "region"
+        valueType: STRING
+  
+  - name: "cost_optimization_savings"
+    displayName: "Cost Optimization Savings"
+    metricKind: GAUGE
+    valueType: DOUBLE
+    description: "Cost savings achieved through optimization in USD"
+    labels:
+      - key: "service_name"
+        valueType: STRING
+      - key: "optimization_type"
+        valueType: STRING
+      - key: "region"
+        valueType: STRING

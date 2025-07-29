@@ -1,0 +1,335 @@
+# CI/CD Pipeline Configuration for Prometheus AI Platform
+
+# Pipeline triggers
+triggers:
+  branches:
+    - main
+    - develop
+    - feature/*
+    - hotfix/*
+  paths:
+    - services/**
+    - kubernetes/**
+    - scripts/**
+    - tests/**
+  skip_ci_patterns:
+    - "[skip ci]"
+    - "[ci skip]"
+    - "[skip-ci]"
+    - "docs:"
+    - "README"
+
+# Pipeline stages configuration
+stages:
+  build:
+    enabled: true
+    timeout: 900  # 15 minutes
+    parallel: true
+    retry_attempts: 2
+    
+  test:
+    enabled: true
+    timeout: 2400  # 40 minutes
+    parallel: true
+    retry_attempts: 1
+    coverage_required: true
+    
+  security_scan:
+    enabled: true
+    timeout: 1200  # 20 minutes
+    parallel: true
+    retry_attempts: 1
+    tools:
+      - bandit
+      - npm_audit
+      - trivy
+      - secrets_scanner
+    
+  quality_gate:
+    enabled: true
+    timeout: 600  # 10 minutes
+    parallel: false
+    retry_attempts: 1
+    
+  deploy_staging:
+    enabled: true
+    timeout: 1800  # 30 minutes
+    parallel: false
+    retry_attempts: 1
+    auto_approve: true
+    
+  integration_test:
+    enabled: true
+    timeout: 1200  # 20 minutes
+    parallel: true
+    retry_attempts: 2
+    
+  deploy_production:
+    enabled: true
+    timeout: 2400  # 40 minutes
+    parallel: false
+    retry_attempts: 1
+    auto_approve: false  # Requires manual approval
+    
+  health_check:
+    enabled: true
+    timeout: 900  # 15 minutes
+    parallel: false
+    retry_attempts: 1
+
+# Quality gates
+quality_gates:
+  test_coverage:
+    min_coverage: 0.80
+    min_branch_coverage: 0.75
+    min_function_coverage: 0.85
+    
+  security:
+    max_high_vulnerabilities: 0
+    max_medium_vulnerabilities: 5
+    max_low_vulnerabilities: 20
+    
+  code_quality:
+    min_overall_score: 7.0
+    max_code_duplication: 0.10
+    max_cyclomatic_complexity: 15
+    max_technical_debt_ratio: 0.05
+    
+  model_quality:
+    min_accuracy: 0.80
+    min_physics_compliance: 0.70
+    max_prediction_drift: 0.15
+    
+  performance:
+    max_build_time_minutes: 15
+    max_test_time_minutes: 40
+    max_deployment_time_minutes: 30
+
+# Environment configurations
+environments:
+  development:
+    auto_deploy: true
+    approval_required: false
+    health_check_duration: 60
+    rollback_on_failure: true
+    
+  staging:
+    auto_deploy: true
+    approval_required: false
+    health_check_duration: 300
+    rollback_on_failure: true
+    smoke_tests: true
+    
+  production:
+    auto_deploy: false
+    approval_required: true
+    health_check_duration: 600
+    rollback_on_failure: true
+    canary_deployment: true
+    blue_green_deployment: true
+
+# Deployment strategies
+deployment:
+  strategy: "blue_green"  # blue_green, rolling, canary
+  
+  blue_green:
+    health_check_delay: 30
+    traffic_switch_delay: 60
+    rollback_threshold:
+      error_rate: 0.05
+      response_time_p95: 5000  # milliseconds
+      
+  rolling:
+    max_unavailable: "25%"
+    max_surge: "25%"
+    
+  canary:
+    initial_traffic_percent: 10
+    increment_percent: 20
+    increment_interval_minutes: 10
+    success_threshold: 0.99
+
+# Notification settings
+notifications:
+  channels:
+    slack:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#prometheus-ai-cicd"
+      notify_on:
+        - pipeline_start
+        - pipeline_success
+        - pipeline_failure
+        - deployment_success
+        - deployment_failure
+        - rollback
+        
+    email:
+      smtp_server: "${SMTP_SERVER}"
+      smtp_port: 587
+      username: "${SMTP_USERNAME}"
+      password: "${SMTP_PASSWORD}"
+      recipients:
+        - devops@prometheus-ai.com
+        - qa@prometheus-ai.com
+      notify_on:
+        - pipeline_failure
+        - deployment_failure
+        - rollback
+        
+    teams:
+      webhook_url: "${TEAMS_WEBHOOK_URL}"
+      notify_on:
+        - deployment_success
+        - deployment_failure
+
+# Artifact management
+artifacts:
+  retention:
+    successful_builds: 30  # days
+    failed_builds: 7      # days
+    
+  storage:
+    type: "s3"  # s3, gcs, azure
+    bucket: "prometheus-ai-artifacts"
+    path_prefix: "cicd-artifacts"
+    
+  docker_registry:
+    url: "${DOCKER_REGISTRY_URL}"
+    username: "${DOCKER_REGISTRY_USERNAME}"
+    password: "${DOCKER_REGISTRY_PASSWORD}"
+    namespace: "prometheus-ai"
+
+# Security settings
+security:
+  secret_scanning:
+    enabled: true
+    patterns:
+      - "password"
+      - "api_key"
+      - "secret"
+      - "token"
+      - "private_key"
+      
+  vulnerability_scanning:
+    enabled: true
+    fail_on_high: true
+    fail_on_medium: false
+    
+  code_signing:
+    enabled: true
+    key_path: "${CODE_SIGNING_KEY_PATH}"
+    
+  sbom_generation:
+    enabled: true
+    format: "spdx"
+
+# Performance optimization
+performance:
+  caching:
+    enabled: true
+    docker_layer_caching: true
+    dependency_caching: true
+    test_result_caching: true
+    
+  parallelization:
+    max_parallel_jobs: 4
+    test_parallelization: true
+    build_parallelization: true
+    
+  resource_limits:
+    cpu_limit: "4"
+    memory_limit: "8Gi"
+    disk_limit: "50Gi"
+
+# Monitoring and observability
+monitoring:
+  metrics:
+    enabled: true
+    prometheus_endpoint: "http://prometheus:9090"
+    custom_metrics:
+      - pipeline_duration
+      - stage_duration
+      - success_rate
+      - failure_rate
+      - deployment_frequency
+      
+  logging:
+    level: "INFO"
+    structured: true
+    retention_days: 30
+    
+  tracing:
+    enabled: true
+    jaeger_endpoint: "http://jaeger:14268"
+
+# Compliance and governance
+compliance:
+  change_approval:
+    required_for_production: true
+    approvers:
+      - devops-team
+      - security-team
+      
+  audit_logging:
+    enabled: true
+    events:
+      - pipeline_start
+      - pipeline_end
+      - deployment_start
+      - deployment_end
+      - approval_granted
+      - approval_denied
+      
+  policy_enforcement:
+    enabled: true
+    policies:
+      - no_direct_production_deployment
+      - require_security_scan
+      - require_test_coverage
+
+# Branch-specific configurations
+branch_policies:
+  main:
+    require_pull_request: true
+    require_status_checks: true
+    required_status_checks:
+      - "ci/build"
+      - "ci/test"
+      - "ci/security-scan"
+      - "ci/quality-gate"
+    dismiss_stale_reviews: true
+    require_code_owner_reviews: true
+    
+  develop:
+    require_pull_request: true
+    require_status_checks: true
+    required_status_checks:
+      - "ci/build"
+      - "ci/test"
+    
+  feature/*:
+    require_pull_request: false
+    require_status_checks: true
+    required_status_checks:
+      - "ci/build"
+      - "ci/test"
+
+# Integration settings
+integrations:
+  jira:
+    enabled: true
+    url: "${JIRA_URL}"
+    username: "${JIRA_USERNAME}"
+    token: "${JIRA_TOKEN}"
+    project_key: "PROM"
+    
+  github:
+    enabled: true
+    token: "${GITHUB_TOKEN}"
+    status_checks: true
+    
+  sonarqube:
+    enabled: true
+    url: "${SONARQUBE_URL}"
+    token: "${SONARQUBE_TOKEN}"
+    project_key: "prometheus-ai"

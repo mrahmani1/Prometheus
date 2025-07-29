@@ -1,0 +1,54 @@
+# Terraform variables for Prometheus AI Cloud Run deployment
+
+# Google Cloud Project ID
+project_id = "prometheus-ai-platform"
+
+# Regions for multi-region deployment
+regions = [
+  "us-central1",      # Iowa, USA (Primary)
+  "europe-west1",     # Belgium, Europe
+  "asia-northeast1"   # Tokyo, Japan
+]
+
+# Service configurations
+services = {
+  helios-core = {
+    image_name    = "helios-core"
+    cpu          = "4000m"
+    memory       = "8Gi"
+    concurrency  = 10
+    timeout      = "300s"
+    min_instances = 0
+    max_instances = 50
+  }
+  
+  api-gateway = {
+    image_name    = "api-gateway"
+    cpu          = "2000m"
+    memory       = "4Gi"
+    concurrency  = 1000
+    timeout      = "60s"
+    min_instances = 1
+    max_instances = 100
+  }
+  
+  data-ingestion = {
+    image_name    = "data-ingestion"
+    cpu          = "2000m"
+    memory       = "4Gi"
+    concurrency  = 100
+    timeout      = "600s"
+    min_instances = 0
+    max_instances = 20
+  }
+  
+  volcano-watchtower = {
+    image_name    = "volcano-watchtower"
+    cpu          = "3000m"
+    memory       = "6Gi"
+    concurrency  = 50
+    timeout      = "180s"
+    min_instances = 1
+    max_instances = 30
+  }
+}

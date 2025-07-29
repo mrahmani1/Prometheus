@@ -16,6 +16,10 @@ from .edge_optimization import router as edge_optimization_router
 from .mineral_resource_prediction import router as mineral_resource_router
 # Import geothermal assessment API
 from .geothermal_assessment import router as geothermal_assessment_router
+# Import TPU Pod API
+from .tpu_pod_api import router as tpu_pod_router
+# Import GPU Cluster API
+from .gpu_cluster_api import router as gpu_cluster_router
 
 logger = structlog.get_logger()
 
@@ -31,6 +35,10 @@ router.include_router(edge_optimization_router)
 router.include_router(mineral_resource_router)
 # Include geothermal assessment routes
 router.include_router(geothermal_assessment_router)
+# Include TPU Pod routes
+router.include_router(tpu_pod_router)
+# Include GPU Cluster routes
+router.include_router(gpu_cluster_router)
 
 # Pydantic models for request/response validation
 class GeologicalDataRequest(BaseModel):
