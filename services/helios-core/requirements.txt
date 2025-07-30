@@ -45,6 +45,11 @@ pytest==7.4.0
 pytest-asyncio==0.21.1
 httpx==0.24.1
 
+# Causal inference dependencies
+networkx==3.1
+statsmodels==0.14.0
+pgmpy==0.1.23
+
 # Edge AI optimization dependencies
 psutil==5.9.5  # For memory monitoring
 hashlib  # Built-in, for model hashing

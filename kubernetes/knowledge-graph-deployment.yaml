@@ -1,0 +1,287 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knowledge-graph
+  namespace: prometheus-ai
+  labels:
+    app: knowledge-graph
+    component: ai-services
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: knowledge-graph
+  template:
+    metadata:
+      labels:
+        app: knowledge-graph
+        component: ai-services
+    spec:
+      containers:
+      - name: knowledge-graph
+        image: prometheus/knowledge-graph:latest
+        ports:
+        - containerPort: 8007
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: prometheus-config
+              key: ENVIRONMENT
+        - name: NEO4J_URI
+          valueFrom:
+            configMapKeyRef:
+              name: prometheus-config
+              key: NEO4J_URI
+        - name: NEO4J_USER
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: neo4j-user
+        - name: NEO4J_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: neo4j-password
+        - name: POSTGRES_URI
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: postgres-uri
+        - name: INFLUXDB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: prometheus-config
+              key: INFLUXDB_URL
+        - name: INFLUXDB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: influxdb-token
+        - name: INFLUXDB_ORG
+          valueFrom:
+            configMapKeyRef:
+              name: prometheus-config
+              key: INFLUXDB_ORG
+        - name: INFLUXDB_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: prometheus-config
+              key: INFLUXDB_BUCKET
+        - name: SEMANTIC_SCHOLAR_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: semantic-scholar-api-key
+              optional: true
+        - name: CROSSREF_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: crossref-api-key
+              optional: true
+        - name: PUBMED_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: prometheus-secrets
+              key: pubmed-api-key
+              optional: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8007
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8007
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: model-cache
+          mountPath: /app/models
+        - name: temp-storage
+          mountPath: /tmp
+      volumes:
+      - name: model-cache
+        persistentVolumeClaim:
+          claimName: knowledge-graph-models-pvc
+      - name: temp-storage
+        emptyDir:
+          sizeLimit: 1Gi
+      initContainers:
+      - name: wait-for-neo4j
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z neo4j-service 7687; do
+            echo "Waiting for Neo4j..."
+            sleep 2
+          done
+          echo "Neo4j is ready"
+      - name: wait-for-postgres
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z postgres-service 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready"
+      - name: wait-for-influxdb
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z influxdb-service 8086; do
+            echo "Waiting for InfluxDB..."
+            sleep 2
+          done
+          echo "InfluxDB is ready"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: knowledge-graph-service
+  namespace: prometheus-ai
+  labels:
+    app: knowledge-graph
+spec:
+  selector:
+    app: knowledge-graph
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8007
+    targetPort: 8007
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: knowledge-graph-models-pvc
+  namespace: prometheus-ai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: knowledge-graph-hpa
+  namespace: prometheus-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: knowledge-graph
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: knowledge-graph-network-policy
+  namespace: prometheus-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: knowledge-graph
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    - podSelector:
+        matchLabels:
+          app: helios-core
+    - podSelector:
+        matchLabels:
+          app: volcano-watchtower
+    ports:
+    - protocol: TCP
+      port: 8007
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: neo4j
+    ports:
+    - protocol: TCP
+      port: 7687
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: influxdb
+    ports:
+    - protocol: TCP
+      port: 8086
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80

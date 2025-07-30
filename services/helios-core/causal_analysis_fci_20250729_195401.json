@@ -1,0 +1,46 @@
+{
+  "algorithm": "fci",
+  "timestamp": "2025-07-29T19:50:42.700990",
+  "nodes": [
+    "magma_intrusion_rate",
+    "deep_temperature",
+    "tectonic_stress",
+    "gas_emissions",
+    "seismic_activity",
+    "thermal_anomalies",
+    "elevation",
+    "weather_conditions"
+  ],
+  "edges": [
+    {
+      "source": "magma_intrusion_rate",
+      "target": "gas_emissions",
+      "edge_type": "<->",
+      "strength": 0.49676398103225816,
+      "confidence": 1.0,
+      "p_value": 1e-10,
+      "geological_interpretation": "Causal relationship between magma_intrusion_rate and gas_emissions with strength 0.497. Further geological analysis needed to determine specific mechanism."
+    },
+    {
+      "source": "magma_intrusion_rate",
+      "target": "seismic_activity",
+      "edge_type": "<->",
+      "strength": 0.34369833849956555,
+      "confidence": 0.9999999999,
+      "p_value": 1e-10,
+      "geological_interpretation": "Causal relationship between magma_intrusion_rate and seismic_activity with strength 0.344. Further geological analysis needed to determine specific mechanism."
+    },
+    {
+      "source": "magma_intrusion_rate",
+      "target": "thermal_anomalies",
+      "edge_type": "<->",
+      "strength": 0.37323287240071634,
+      "confidence": 1.0,
+      "p_value": 1e-10,
+      "geological_interpretation": "Causal relationship between magma_intrusion_rate and thermal_anomalies with strength 0.373. Further geological analysis needed to determine specific mechanism."
+    },
+    {
+      "source": "magma_intrusion_rate",
+      "target": "weather_conditions",
+      "edge_type": "<->",
+      "strength": 

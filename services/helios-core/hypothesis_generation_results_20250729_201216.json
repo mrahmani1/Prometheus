@@ -1,0 +1,405 @@
+{
+  "metadata": {
+    "generation_timestamp": "2025-07-29T20:12:16.608036",
+    "processing_time_seconds": 0.020953,
+    "input_relationships": 5,
+    "geological_context": {
+      "geological_setting": "active_stratovolcano",
+      "location": "Mount_Prometheus_Observatory",
+      "temporal_scale": "real_time_monitoring",
+      "spatial_scale": "local_volcanic_system",
+      "volcano_type": "andesitic_stratovolcano",
+      "tectonic_setting": "subduction_zone",
+      "monitoring_network": "comprehensive",
+      "historical_activity": "frequent_unrest_episodes"
+    }
+  },
+  "hypotheses": [
+    {
+      "id": "int_magma_temperature_magma_temperature_20250729_201216",
+      "statement": "Interaction hypothesis: magma_temperature and magma_temperature interact to jointly influence geological processes",
+      "confidence_score": 0.7119010052985326,
+      "novelty_score": 1.3499999999999999,
+      "testability_score": 0.64,
+      "predicted_outcomes": [
+        "Interaction effects should be measurable in field data"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "int_magma_temperature_gas_pressure_20250729_201216",
+      "statement": "Causal chain hypothesis: magma_temperature influences seismic_activity through the intermediate variable gas_pressure",
+      "confidence_score": 0.709614017776251,
+      "novelty_score": 1.3499999999999999,
+      "testability_score": 0.64,
+      "predicted_outcomes": [
+        "Chain effect: magma_temperature \u2192 gas_pressure \u2192 seismic_activity",
+        "Combined strength should be approximately 0.620",
+        "Interaction effects should be measurable in field data"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "alt_magma_temperature_thermal_emission_indirect_coupling_20250729_201216",
+      "statement": "Alternative mechanism: magma_temperature influences thermal_emission through indirect_coupling rather than direct causation",
+      "confidence_score": 0.7292806844429177,
+      "novelty_score": 1.0799999999999998,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, thermal_emission should increase",
+        "The blackbody_radiation mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "alt_magma_temperature_thermal_emission_feedback_mechanism_20250729_201216",
+      "statement": "Alternative mechanism: magma_temperature influences thermal_emission through feedback_mechanism rather than direct causation",
+      "confidence_score": 0.7292806844429177,
+      "novelty_score": 1.0799999999999998,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, thermal_emission should increase",
+        "The blackbody_radiation mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "alt_magma_temperature_thermal_emission_threshold_effect_20250729_201216",
+      "statement": "Alternative mechanism: magma_temperature influences thermal_emission through threshold_effect rather than direct causation",
+      "confidence_score": 0.7292806844429177,
+      "novelty_score": 1.0799999999999998,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, thermal_emission should increase",
+        "The blackbody_radiation mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "alt_magma_temperature_gas_pressure_chemical_reaction_20250729_201216",
+      "statement": "Alternative mechanism: magma_temperature influences gas_pressure through chemical_reaction rather than direct causation",
+      "confidence_score": 0.7242806844429177,
+      "novelty_score": 1.0799999999999998,
+      "testability_score": 0.9999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, gas_pressure should increase",
+        "The thermal_expansion_of_volatiles mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "alt_magma_temperature_gas_pressure_gas_expansion_20250729_201216",
+      "statement": "Alternative mechanism: magma_temperature influences gas_pressure through gas_expansion rather than direct causation",
+      "confidence_score": 0.7142806844429177,
+      "novelty_score": 1.0799999999999998,
+      "testability_score": 0.9999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, gas_pressure should increase",
+        "The thermal_expansion_of_volatiles mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "alt_magma_temperature_gas_pressure_phase_transition_20250729_201216",
+      "statement": "Alternative mechanism: magma_temperature influences gas_pressure through phase_transition rather than direct causation",
+      "confidence_score": 0.7142806844429177,
+      "novelty_score": 1.0799999999999998,
+      "testability_score": 0.9999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, gas_pressure should increase",
+        "The thermal_expansion_of_volatiles mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "int_gas_pressure_magma_temperature_20250729_201216",
+      "statement": "Feedback loop hypothesis: magma_temperature and seismic_activity form a feedback system through gas_pressure",
+      "confidence_score": 0.709614017776251,
+      "novelty_score": 1.0499999999999998,
+      "testability_score": 0.64,
+      "predicted_outcomes": [
+        "Interaction effects should be measurable in field data"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "int_gas_pressure_seismic_activity_20250729_201216",
+      "statement": "Causal chain hypothesis: gas_pressure influences ground_deformation through the intermediate variable seismic_activity",
+      "confidence_score": 0.6769107422463859,
+      "novelty_score": 1.0499999999999998,
+      "testability_score": 0.48,
+      "predicted_outcomes": [
+        "Chain effect: gas_pressure \u2192 seismic_activity \u2192 ground_deformation",
+        "Combined strength should be approximately 0.489",
+        "Interaction effects should be measurable in field data"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "int_seismic_activity_gas_pressure_20250729_201216",
+      "statement": "Feedback loop hypothesis: gas_pressure and ground_deformation form a feedback system through seismic_activity",
+      "confidence_score": 0.6769107422463859,
+      "novelty_score": 1.0499999999999998,
+      "testability_score": 0.48,
+      "predicted_outcomes": [
+        "Interaction effects should be measurable in field data"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 3
+    },
+    {
+      "id": "int_seismic_activity_ground_deformation_20250729_201216",
+      "statement": "Causal chain hypothesis: seismic_activity influences stress_field_changes through the intermediate variable ground_deformation",
+      "confidence_score": 0.6728669939667272,
+      "novelty_score": 1.0499999999999998,
+      "testability_score": 0.48,
+      "predicted_outcomes": [
+        "Chain effect: seismic_activity \u2192 ground_deformation \u2192 stress_field_changes",
+        "Combined strength should be approximately 0.523",
+        "Interaction effects should be measurable in field data"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "int_ground_deformation_seismic_activity_20250729_201216",
+      "statement": "Feedback loop hypothesis: seismic_activity and stress_field_changes form a feedback system through ground_deformation",
+      "confidence_score": 0.6728669939667272,
+      "novelty_score": 1.0499999999999998,
+      "testability_score": 0.48,
+      "predicted_outcomes": [
+        "Interaction effects should be measurable in field data"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 3
+    },
+    {
+      "id": "hyp_magma_temperature_thermal_emission_20250729_201216",
+      "statement": "In active_stratovolcano, changes in magma_temperature causally influence thermal_emission through blackbody_radiation, with a increase relationship of strength 0.910",
+      "confidence_score": 0.7292806844429177,
+      "novelty_score": 0.8999999999999999,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, thermal_emission should increase",
+        "The blackbody_radiation mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "hyp_magma_temperature_gas_pressure_20250729_201216",
+      "statement": "In active_stratovolcano, changes in magma_temperature causally influence gas_pressure through thermal_expansion_of_volatiles, with a increase relationship of strength 0.850",
+      "confidence_score": 0.7242806844429177,
+      "novelty_score": 0.8999999999999999,
+      "testability_score": 0.9999999999999999,
+      "predicted_outcomes": [
+        "When magma_temperature increases, gas_pressure should increase",
+        "The thermal_expansion_of_volatiles mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "alt_ground_deformation_stress_field_changes_indirect_coupling_20250729_201216",
+      "statement": "Alternative mechanism: ground_deformation influences stress_field_changes through indirect_coupling rather than direct causation",
+      "confidence_score": 0.6767806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When ground_deformation increases, stress_field_changes should increase",
+        "The elastic_deformation_coupling mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 3
+    },
+    {
+      "id": "alt_ground_deformation_stress_field_changes_feedback_mechanism_20250729_201216",
+      "statement": "Alternative mechanism: ground_deformation influences stress_field_changes through feedback_mechanism rather than direct causation",
+      "confidence_score": 0.6767806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When ground_deformation increases, stress_field_changes should increase",
+        "The elastic_deformation_coupling mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 3
+    },
+    {
+      "id": "alt_ground_deformation_stress_field_changes_threshold_effect_20250729_201216",
+      "statement": "Alternative mechanism: ground_deformation influences stress_field_changes through threshold_effect rather than direct causation",
+      "confidence_score": 0.6767806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When ground_deformation increases, stress_field_changes should increase",
+        "The elastic_deformation_coupling mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "alt_gas_pressure_seismic_activity_indirect_coupling_20250729_201216",
+      "statement": "Alternative mechanism: gas_pressure influences seismic_activity through indirect_coupling rather than direct causation",
+      "confidence_score": 0.6742806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When gas_pressure increases, seismic_activity should increase",
+        "The pressure_induced_fracturing mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "alt_gas_pressure_seismic_activity_feedback_mechanism_20250729_201216",
+      "statement": "Alternative mechanism: gas_pressure influences seismic_activity through feedback_mechanism rather than direct causation",
+      "confidence_score": 0.6742806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When gas_pressure increases, seismic_activity should increase",
+        "The pressure_induced_fracturing mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "alt_gas_pressure_seismic_activity_threshold_effect_20250729_201216",
+      "statement": "Alternative mechanism: gas_pressure influences seismic_activity through threshold_effect rather than direct causation",
+      "confidence_score": 0.6742806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When gas_pressure increases, seismic_activity should increase",
+        "The pressure_induced_fracturing mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "alt_seismic_activity_ground_deformation_indirect_coupling_20250729_201216",
+      "statement": "Alternative mechanism: seismic_activity influences ground_deformation through indirect_coupling rather than direct causation",
+      "confidence_score": 0.6592806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.6,
+      "predicted_outcomes": [
+        "When seismic_activity increases, ground_deformation should increase",
+        "The elastic_stress_release mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "alt_seismic_activity_ground_deformation_feedback_mechanism_20250729_201216",
+      "statement": "Alternative mechanism: seismic_activity influences ground_deformation through feedback_mechanism rather than direct causation",
+      "confidence_score": 0.6592806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.6,
+      "predicted_outcomes": [
+        "When seismic_activity increases, ground_deformation should increase",
+        "The elastic_stress_release mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 2
+    },
+    {
+      "id": "alt_seismic_activity_ground_deformation_threshold_effect_20250729_201216",
+      "statement": "Alternative mechanism: seismic_activity influences ground_deformation through threshold_effect rather than direct causation",
+      "confidence_score": 0.6592806844429177,
+      "novelty_score": 0.84,
+      "testability_score": 0.6,
+      "predicted_outcomes": [
+        "When seismic_activity increases, ground_deformation should increase",
+        "The elastic_stress_release mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "hyp_ground_deformation_stress_field_changes_20250729_201216",
+      "statement": "In active_stratovolcano, changes in ground_deformation causally influence stress_field_changes through elastic_deformation_coupling, with a increase relationship of strength 0.780",
+      "confidence_score": 0.6767806844429177,
+      "novelty_score": 0.7,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When ground_deformation increases, stress_field_changes should increase",
+        "The elastic_deformation_coupling mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 3
+    },
+    {
+      "id": "hyp_gas_pressure_seismic_activity_20250729_201216",
+      "statement": "In active_stratovolcano, changes in gas_pressure causally influence seismic_activity through pressure_induced_fracturing, with a increase relationship of strength 0.730",
+      "confidence_score": 0.6742806844429177,
+      "novelty_score": 0.7,
+      "testability_score": 0.7999999999999999,
+      "predicted_outcomes": [
+        "When gas_pressure increases, seismic_activity should increase",
+        "The pressure_induced_fracturing mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    },
+    {
+      "id": "hyp_seismic_activity_ground_deformation_20250729_201216",
+      "statement": "In active_stratovolcano, changes in seismic_activity causally influence ground_deformation through elastic_stress_release, with a increase relationship of strength 0.670",
+      "confidence_score": 0.6592806844429177,
+      "novelty_score": 0.7,
+      "testability_score": 0.6,
+      "predicted_outcomes": [
+        "When seismic_activity increases, ground_deformation should increase",
+        "The elastic_stress_release mechanism should be observable"
+      ],
+      "has_experimental_design": true,
+      "experiment_count": 1
+    }
+  ],
+  "laws": [
+    {
+      "name": "Magma Temperature_Thermal Emission_Relationship_Law",
+      "mathematical_expression": "Eq(thermal_emission, T*a + b)",
+      "variables": [
+        "b",
+        "thermal_emission",
+        "a",
+        "T"
+      ],
+      "confidence": 0.9859999999999999,
+      "domain_applicability": [
+        "deformation_processes",
+        "tectonic_processes",
+        "thermal_processes",
+        "pressure_systems",
+        "volcanic_systems"
+      ]
+    }
+  ],
+  "summary": {
+    "average_confidence": 0.6913443778568746,
+    "average_novelty": 0.9588888888888888,
+    "average_testability": 0.7348148148148149,
+    "top_hypothesis": {
+      "statement": "Alternative mechanism: magma_temperature influences thermal_emission through indirect_coupling rather than direct causation",
+      "confidence": 0.7292806844429177,
+      "novelty": 1.0799999999999998
+    },
+    "formulated_laws_count": 1,
+    "recommendations": [
+      "Investigate 24 highly novel hypotheses for breakthrough potential",
+      "Begin experimental validation of 27 testable hypotheses",
+      "Validate 1 formulated geological laws through independent datasets"
+    ]
+  }
+}

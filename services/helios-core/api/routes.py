@@ -20,6 +20,8 @@ from .geothermal_assessment import router as geothermal_assessment_router
 from .tpu_pod_api import router as tpu_pod_router
 # Import GPU Cluster API
 from .gpu_cluster_api import router as gpu_cluster_router
+# Import Causal Inference API
+from .causal_inference import router as causal_inference_router
 
 logger = structlog.get_logger()
 
@@ -39,6 +41,8 @@ router.include_router(geothermal_assessment_router)
 router.include_router(tpu_pod_router)
 # Include GPU Cluster routes
 router.include_router(gpu_cluster_router)
+# Include causal inference routes
+router.include_router(causal_inference_router)
 
 # Pydantic models for request/response validation
 class GeologicalDataRequest(BaseModel):
@@ -981,8 +985,8 @@ async def analyze_monitoring_data(
     except Exception as e:
         logger.error("Failed to analyze monitoring data", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
-#
- Earthquake Forecasting API endpoints
+
+# Earthquake Forecasting API endpoints
 
 class EarthquakePatternAnalysisRequest(BaseModel):
     events: List[Dict[str, Any]] = Field(..., description="List of seismic events for pattern analysis")
@@ -1300,8 +1304,8 @@ async def generate_test_earthquake_data(
     except Exception as e:
         logger.error("Failed to generate test earthquake data", error=str(e))
         raise HTTPException(status_code=500, detail=f"Data generation failed: {str(e)}")
-# 
-Earthquake Impact Modeling endpoints
+
+# Earthquake Impact Modeling endpoints
 class GroundShakingRequest(BaseModel):
     earthquake: Dict[str, Any] = Field(..., description="Earthquake event data")
     target_locations: List[Dict[str, float]] = Field(..., description="Target locations for ground motion calculation")
@@ -1833,8 +1837,7 @@ async def get_earthquake_impact_model_info():
     except Exception as e:
         logger.error("Failed to get earthquake impact model info", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get model info: {str(e)}")
-# 
-Infrastructure Vulnerability Assessment endpoints
+# Infrastructure Vulnerability Assessment endpoints
 class BuildingInventoryItem(BaseModel):
     building_id: str = Field(..., description="Unique building identifier")
     location: Dict[str, float] = Field(..., description="Building location (lat, lon, elevation)")
