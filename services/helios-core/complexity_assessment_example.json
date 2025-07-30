@@ -1,0 +1,105 @@
+{
+  "data_assessment": {
+    "total_data_points": 17000,
+    "data_quality_score": 0.9393711104989052,
+    "temporal_coverage": 1.0,
+    "spatial_coverage": 0.0015,
+    "data_types_available": [
+      "seismic_data",
+      "deformation_data",
+      "thermal_data",
+      "geochemical_data",
+      "gas_emission_data"
+    ],
+    "missing_data_fraction": 0.060565096952908584,
+    "noise_level": 0.0
+  },
+  "resource_assessment": {
+    "cpu_cores": 32,
+    "memory_gb": 31.155765533447266,
+    "gpu_count": 0,
+    "gpu_memory_gb": 0.0,
+    "storage_gb": 1861.6005821228027,
+    "network_bandwidth_mbps": 1000.0
+  },
+  "complexity_assessments": {
+    "minimal": {
+      "parameter_count": 897,
+      "computational_flops": 848.0,
+      "memory_requirement": 0.0009599737823009491,
+      "training_time_estimate": 0.000897000848,
+      "inference_time_estimate": 8.48e-10,
+      "accuracy_score": 0.85,
+      "physics_constraint_count": 0,
+      "coupling_terms": 0
+    },
+    "simplified": {
+      "parameter_count": 3329,
+      "computational_flops": 3216.0,
+      "memory_requirement": 0.0009871535003185272,
+      "training_time_estimate": 0.003329003216,
+      "inference_time_estimate": 3.216e-09,
+      "accuracy_score": 0.85,
+      "physics_constraint_count": 0,
+      "coupling_terms": 0
+    },
+    "moderate": {
+      "parameter_count": 12289,
+      "computational_flops": 12048.0,
+      "memory_requirement": 0.0010872893035411835,
+      "training_time_estimate": 0.012289012048,
+      "inference_time_estimate": 1.2048e-08,
+      "accuracy_score": 0.85,
+      "physics_constraint_count": 0,
+      "coupling_terms": 0
+    },
+    "advanced": {
+      "parameter_count": 46593,
+      "computational_flops": 46096.0,
+      "memory_requirement": 0.001470666378736496,
+      "training_time_estimate": 0.046593046096000006,
+      "inference_time_estimate": 4.6096e-08,
+      "accuracy_score": 0.85,
+      "physics_constraint_count": 0,
+      "coupling_terms": 0
+    },
+    "full": {
+      "parameter_count": 180737,
+      "computational_flops": 179728.0,
+      "memory_requirement": 0.002969842404127121,
+      "training_time_estimate": 0.18073717972800002,
+      "inference_time_estimate": 1.79728e-07,
+      "accuracy_score": 0.85,
+      "physics_constraint_count": 0,
+      "coupling_terms": 0
+    }
+  },
+  "optimal_configuration": {
+    "complexity_level": "minimal",
+    "network_layers": [
+      32,
+      16
+    ],
+    "physics_constraints": [
+      "mass_conservation"
+    ],
+    "coupling_terms": [],
+    "time_stepping_method": "explicit_euler",
+    "spatial_resolution": 1000.0,
+    "temporal_resolution": 3600.0,
+    "batch_size": 32,
+    "training_epochs": 50,
+    "convergence_tolerance": 0.001
+  },
+  "cost_breakdown": {
+    "training_cost": 97.91999999999999,
+    "inference_cost": 0.05280000000000001,
+    "memory_cost": 6.9230794906616214e-06,
+    "storage_cost": 6.440281867980957e-07,
+    "total_cost": 97.97280756710768
+  },
+  "recommendations": [
+    "No GPU detected - consider GPU acceleration for better performance",
+    "Using minimal complexity - results may have limited accuracy"
+  ]
+}

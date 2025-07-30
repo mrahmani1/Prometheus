@@ -22,6 +22,8 @@ from .tpu_pod_api import router as tpu_pod_router
 from .gpu_cluster_api import router as gpu_cluster_router
 # Import Causal Inference API
 from .causal_inference import router as causal_inference_router
+# Import Model Complexity API
+from .model_complexity_api import router as model_complexity_router
 
 logger = structlog.get_logger()
 
@@ -43,6 +45,8 @@ router.include_router(tpu_pod_router)
 router.include_router(gpu_cluster_router)
 # Include causal inference routes
 router.include_router(causal_inference_router)
+# Include model complexity routes
+router.include_router(model_complexity_router)
 
 # Pydantic models for request/response validation
 class GeologicalDataRequest(BaseModel):

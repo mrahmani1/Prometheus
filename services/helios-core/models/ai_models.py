@@ -48,6 +48,20 @@ class OptimizationType(str, Enum):
     LBFGS = "lbfgs"
 
 
+class GeologicalProcess(str, Enum):
+    """Types of geological processes"""
+    VOLCANIC_ERUPTION = "volcanic_eruption"
+    EARTHQUAKE = "earthquake"
+    LANDSLIDE = "landslide"
+    TSUNAMI = "tsunami"
+    CRUSTAL_DEFORMATION = "crustal_deformation"
+    MAGMA_INTRUSION = "magma_intrusion"
+    HYDROTHERMAL_CIRCULATION = "hydrothermal_circulation"
+    TECTONIC_MOVEMENT = "tectonic_movement"
+    MANTLE_CONVECTION = "mantle_convection"
+    GEOCHEMICAL_REACTION = "geochemical_reaction"
+
+
 class ModelType(str, Enum):
     """Types of AI models"""
     PINN = "physics_informed_neural_network"
