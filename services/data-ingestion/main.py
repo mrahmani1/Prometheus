@@ -115,6 +115,10 @@ app.mount("/metrics", metrics_app)
 # Include API routes
 app.include_router(router, prefix="/api/v1")
 
+# Include MongoDB API routes
+from api.mongodb_api import router as mongodb_router
+app.include_router(mongodb_router, prefix="/api/v1")
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

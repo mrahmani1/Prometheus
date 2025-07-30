@@ -13,8 +13,9 @@ from influxdb_client import Point
 
 from models.geological_data import (
     SeismicEvent, ThermalMeasurement, SatelliteObservation,
-    FiberOpticMeasurement, StrainMeasurement
+    FiberOpticMeasurement, StrainMeasurement, GeochemicalSample, AtmosphericMeasurement
 )
+from storage.mongodb_storage import MongoDBStorage
 
 logger = structlog.get_logger()
 
@@ -28,6 +29,7 @@ class DataStorage:
         # Database connections
         self.mongodb_client = None
         self.mongodb_db = None
+        self.mongodb_storage = None
         self.postgresql_pool = None
         self.redis_client = None
         self.influxdb_client = None
@@ -64,14 +66,19 @@ class DataStorage:
             raise
     
     async def _initialize_mongodb(self):
-        """Initialize MongoDB connection"""
+        """Initialize MongoDB connection and storage"""
         try:
+            # Initialize the dedicated MongoDB storage
+            self.mongodb_storage = MongoDBStorage(self.mongodb_url, "prometheus")
+            await self.mongodb_storage.initialize()
+            
+            # Keep the original client for backward compatibility
             self.mongodb_client = motor.motor_asyncio.AsyncIOMotorClient(self.mongodb_url)
             self.mongodb_db = self.mongodb_client.prometheus
             
             # Test connection
             await self.mongodb_client.admin.command('ping')
-            logger.info("MongoDB connection established")
+            logger.info("MongoDB connection and storage established")
             
         except Exception as e:
             logger.error("Failed to connect to MongoDB", error=str(e))
@@ -436,8 +443,11 @@ class DataStorage:
     async def store_gravity_measurement(self, measurement: Dict[str, Any]):
         """Store gravity measurement"""
         try:
-            # Store in MongoDB for now
-            if self.mongodb_client:
+            # Store in MongoDB using the dedicated storage
+            if self.mongodb_storage:
+                await self.mongodb_storage.store_unstructured_data(measurement, "gravity_measurements")
+            elif self.mongodb_client:
+                # Fallback to direct MongoDB client
                 doc = {
                     **measurement,
                     "created_at": datetime.utcnow()
@@ -450,9 +460,93 @@ class DataStorage:
             logger.error("Failed to store gravity measurement", error=str(e))
             raise
     
+    async def store_geochemical_sample(self, sample: GeochemicalSample):
+        """Store geochemical sample using MongoDB storage"""
+        try:
+            if self.mongodb_storage:
+                document_id = await self.mongodb_storage.store_geochemical_sample(sample)
+                logger.debug("Stored geochemical sample", id=document_id)
+                return document_id
+            else:
+                raise Exception("MongoDB storage not initialized")
+        except Exception as e:
+            logger.error("Failed to store geochemical sample", error=str(e))
+            raise
+    
+    async def store_atmospheric_measurement_mongodb(self, measurement: AtmosphericMeasurement):
+        """Store atmospheric measurement using MongoDB storage"""
+        try:
+            if self.mongodb_storage:
+                document_id = await self.mongodb_storage.store_atmospheric_measurement(measurement)
+                logger.debug("Stored atmospheric measurement", id=document_id)
+                return document_id
+            else:
+                raise Exception("MongoDB storage not initialized")
+        except Exception as e:
+            logger.error("Failed to store atmospheric measurement", error=str(e))
+            raise
+    
+    async def store_unstructured_geological_data(self, data: Dict[str, Any], collection_name: str):
+        """Store arbitrary unstructured geological data"""
+        try:
+            if self.mongodb_storage:
+                document_id = await self.mongodb_storage.store_unstructured_data(data, collection_name)
+                logger.debug("Stored unstructured geological data", id=document_id, collection=collection_name)
+                return document_id
+            else:
+                raise Exception("MongoDB storage not initialized")
+        except Exception as e:
+            logger.error("Failed to store unstructured geological data", error=str(e))
+            raise
+    
+    async def bulk_insert_geological_data(self, documents: List[Dict[str, Any]], collection_name: str):
+        """Bulk insert geological documents"""
+        try:
+            if self.mongodb_storage:
+                document_ids = await self.mongodb_storage.bulk_insert(documents, collection_name)
+                logger.info("Bulk inserted geological data", count=len(document_ids), collection=collection_name)
+                return document_ids
+            else:
+                raise Exception("MongoDB storage not initialized")
+        except Exception as e:
+            logger.error("Failed bulk insert geological data", error=str(e))
+            raise
+    
+    async def query_geological_data_by_location(self, longitude: float, latitude: float, 
+                                               radius_km: float, collection_name: str, limit: int = 100):
+        """Query geological data by location"""
+        try:
+            if self.mongodb_storage:
+                results = await self.mongodb_storage.query_by_location(
+                    longitude, latitude, radius_km, collection_name, limit
+                )
+                logger.debug("Location query completed", count=len(results), collection=collection_name)
+                return results
+            else:
+                raise Exception("MongoDB storage not initialized")
+        except Exception as e:
+            logger.error("Failed location query", error=str(e))
+            raise
+    
+    async def get_geological_data_quality_report(self, collection_name: str):
+        """Get data quality report for geological data"""
+        try:
+            if self.mongodb_storage:
+                report = await self.mongodb_storage.get_data_quality_report(collection_name)
+                logger.debug("Generated data quality report", collection=collection_name)
+                return report
+            else:
+                raise Exception("MongoDB storage not initialized")
+        except Exception as e:
+            logger.error("Failed to generate data quality report", error=str(e))
+            raise
+    
     async def cleanup(self):
         """Cleanup all database connections"""
         try:
+            if self.mongodb_storage:
+                await self.mongodb_storage.cleanup()
+            
             if self.mongodb_client:
                 self.mongodb_client.close()
             

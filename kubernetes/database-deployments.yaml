@@ -250,4 +250,365 @@ spec:
   ports:
   - protocol: TCP
     port: 6379
-    targetPort: 6379
+    targetPort: 6379-
+--
+# TimescaleDB Database Deployment
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb
+  namespace: prometheus-ai
+  labels:
+    app: timescaledb
+    component: database
+spec:
+  serviceName: timescaledb-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+        component: database
+    spec:
+      containers:
+      - name: timescaledb
+        image: timescale/timescaledb:2.12.1-pg15
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "prometheus_timeseries"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: TS_TUNE_MEMORY
+          value: "2GB"
+        - name: TS_TUNE_NUM_CPUS
+          value: "2"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: timescaledb-storage
+          mountPath: /var/lib/postgresql/data
+        - name: timescaledb-init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - prometheus
+            - -d
+            - prometheus_timeseries
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - prometheus
+            - -d
+            - prometheus_timeseries
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: timescaledb-init
+        configMap:
+          name: timescaledb-init-scripts
+  volumeClaimTemplates:
+  - metadata:
+      name: timescaledb-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 100Gi
+      storageClassName: fast-ssd
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb
+  namespace: prometheus-ai
+  labels:
+    app: timescaledb
+    component: database
+spec:
+  selector:
+    app: timescaledb
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb-headless
+  namespace: prometheus-ai
+  labels:
+    app: timescaledb
+    component: database
+spec:
+  selector:
+    app: timescaledb
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  clusterIP: None
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: timescaledb-init-scripts
+  namespace: prometheus-ai
+data:
+  01-init.sql: |
+    -- TimescaleDB initialization script for Prometheus AI Platform
+    -- This script sets up the TimescaleDB database with optimized schemas for geological data
+
+    -- Enable required extensions
+    CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+    CREATE EXTENSION IF NOT EXISTS postgis CASCADE;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements CASCADE;
+    CREATE EXTENSION IF NOT EXISTS btree_gist CASCADE;
+
+    -- Create schemas for organization
+    CREATE SCHEMA IF NOT EXISTS sensors;
+    CREATE SCHEMA IF NOT EXISTS seismic;
+    CREATE SCHEMA IF NOT EXISTS volcanic;
+    CREATE SCHEMA IF NOT EXISTS analytics;
+
+    -- Set search path
+    SET search_path TO public, sensors, seismic, volcanic, analytics;
+
+    -- Create custom types for geological data
+    CREATE TYPE sensor_quality AS ENUM ('good', 'questionable', 'bad', 'missing');
+    CREATE TYPE seismic_event_type AS ENUM ('earthquake', 'volcanic', 'explosion', 'landslide', 'unknown');
+    CREATE TYPE alert_level AS ENUM ('green', 'yellow', 'orange', 'red');
+
+  02-tables.sql: |
+    -- Create sensor readings hypertable
+    CREATE TABLE sensors.readings (
+        time TIMESTAMPTZ NOT NULL,
+        sensor_id TEXT NOT NULL,
+        measurement_type TEXT NOT NULL,
+        value DOUBLE PRECISION NOT NULL,
+        unit TEXT NOT NULL,
+        quality_flag sensor_quality DEFAULT 'good',
+        location GEOMETRY(POINT, 4326),
+        elevation DOUBLE PRECISION,
+        metadata JSONB,
+        processing_flags TEXT[],
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Create hypertable with 1-day chunks
+    SELECT create_hypertable('sensors.readings', 'time', chunk_time_interval => INTERVAL '1 day');
+
+    -- Create seismic events hypertable
+    CREATE TABLE seismic.events (
+        time TIMESTAMPTZ NOT NULL,
+        event_id TEXT NOT NULL UNIQUE,
+        magnitude DOUBLE PRECISION,
+        magnitude_type TEXT,
+        depth DOUBLE PRECISION,
+        location GEOMETRY(POINT, 4326),
+        event_type seismic_event_type DEFAULT 'earthquake',
+        confidence DOUBLE PRECISION CHECK (confidence >= 0 AND confidence <= 1),
+        waveform_data BYTEA,
+        phase_picks JSONB,
+        moment_tensor JSONB,
+        focal_mechanism JSONB,
+        network_stations TEXT[],
+        processing_info JSONB,
+        metadata JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Create hypertable with 1-week chunks for seismic events
+    SELECT create_hypertable('seismic.events', 'time', chunk_time_interval => INTERVAL '1 week');
+
+    -- Create volcanic monitoring hypertable
+    CREATE TABLE volcanic.monitoring (
+        time TIMESTAMPTZ NOT NULL,
+        volcano_id TEXT NOT NULL,
+        alert_level alert_level DEFAULT 'green',
+        deformation_rate DOUBLE PRECISION,
+        gas_emission_rate DOUBLE PRECISION,
+        gas_composition JSONB,
+        thermal_anomaly DOUBLE PRECISION,
+        seismic_activity_count INTEGER DEFAULT 0,
+        tremor_amplitude DOUBLE PRECISION,
+        infrasound_activity DOUBLE PRECISION,
+        ground_temperature DOUBLE PRECISION,
+        spring_temperature DOUBLE PRECISION,
+        ph_level DOUBLE PRECISION,
+        risk_assessment JSONB,
+        automated_alerts JSONB,
+        observatory_notes TEXT,
+        metadata JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Create hypertable with 1-day chunks for volcanic monitoring
+    SELECT create_hypertable('volcanic.monitoring', 'time', chunk_time_interval => INTERVAL '1 day');
+
+  03-indexes.sql: |
+    -- Create indexes for efficient queries
+    CREATE INDEX idx_readings_sensor_id_time ON sensors.readings (sensor_id, time DESC);
+    CREATE INDEX idx_readings_measurement_type_time ON sensors.readings (measurement_type, time DESC);
+    CREATE INDEX idx_readings_location ON sensors.readings USING GIST (location);
+    CREATE INDEX idx_readings_quality ON sensors.readings (quality_flag, time DESC);
+    CREATE INDEX idx_readings_metadata ON sensors.readings USING GIN (metadata);
+
+    -- Create indexes for seismic events
+    CREATE INDEX idx_events_event_id ON seismic.events (event_id);
+    CREATE INDEX idx_events_magnitude_time ON seismic.events (magnitude DESC, time DESC);
+    CREATE INDEX idx_events_location ON seismic.events USING GIST (location);
+    CREATE INDEX idx_events_type_time ON seismic.events (event_type, time DESC);
+    CREATE INDEX idx_events_depth_time ON seismic.events (depth, time DESC);
+
+    -- Create indexes for volcanic monitoring
+    CREATE INDEX idx_monitoring_volcano_time ON volcanic.monitoring (volcano_id, time DESC);
+    CREATE INDEX idx_monitoring_alert_level ON volcanic.monitoring (alert_level, time DESC);
+    CREATE INDEX idx_monitoring_deformation ON volcanic.monitoring (deformation_rate, time DESC) WHERE deformation_rate IS NOT NULL;
+    CREATE INDEX idx_monitoring_gas_emission ON volcanic.monitoring (gas_emission_rate, time DESC) WHERE gas_emission_rate IS NOT NULL;
+    CREATE INDEX idx_monitoring_thermal ON volcanic.monitoring (thermal_anomaly, time DESC) WHERE thermal_anomaly IS NOT NULL;
+
+  04-policies.sql: |
+    -- Set up compression policies
+    SELECT add_compression_policy('sensors.readings', INTERVAL '7 days');
+    SELECT add_compression_policy('seismic.events', INTERVAL '30 days');
+    SELECT add_compression_policy('volcanic.monitoring', INTERVAL '14 days');
+
+    -- Set up retention policies
+    SELECT add_retention_policy('sensors.readings', INTERVAL '5 years');
+    SELECT add_retention_policy('seismic.events', INTERVAL '10 years');
+    SELECT add_retention_policy('volcanic.monitoring', INTERVAL '7 years');
+
+  05-continuous-aggregates.sql: |
+    -- Create continuous aggregates for real-time monitoring
+    CREATE MATERIALIZED VIEW analytics.sensor_readings_hourly
+    WITH (timescaledb.continuous) AS
+    SELECT 
+        time_bucket('1 hour', time) AS bucket,
+        sensor_id,
+        measurement_type,
+        AVG(value) AS avg_value,
+        MIN(value) AS min_value,
+        MAX(value) AS max_value,
+        STDDEV(value) AS stddev_value,
+        COUNT(*) AS reading_count,
+        COUNT(*) FILTER (WHERE quality_flag = 'good') AS good_readings
+    FROM sensors.readings
+    GROUP BY bucket, sensor_id, measurement_type;
+
+    CREATE MATERIALIZED VIEW analytics.volcanic_activity_hourly
+    WITH (timescaledb.continuous) AS
+    SELECT 
+        time_bucket('1 hour', time) AS bucket,
+        volcano_id,
+        AVG(CASE WHEN alert_level = 'green' THEN 1 
+                 WHEN alert_level = 'yellow' THEN 2 
+                 WHEN alert_level = 'orange' THEN 3 
+                 WHEN alert_level = 'red' THEN 4 END) AS avg_alert_level,
+        AVG(deformation_rate) AS avg_deformation_rate,
+        AVG(gas_emission_rate) AS avg_gas_emission_rate,
+        AVG(thermal_anomaly) AS avg_thermal_anomaly,
+        SUM(seismic_activity_count) AS total_seismic_events
+    FROM volcanic.monitoring
+    GROUP BY bucket, volcano_id;
+
+    -- Set up refresh policies for continuous aggregates
+    SELECT add_continuous_aggregate_policy('analytics.sensor_readings_hourly',
+        start_offset => INTERVAL '3 hours',
+        end_offset => INTERVAL '1 hour',
+        schedule_interval => INTERVAL '1 hour');
+
+    SELECT add_continuous_aggregate_policy('analytics.volcanic_activity_hourly',
+        start_offset => INTERVAL '3 hours',
+        end_offset => INTERVAL '1 hour',
+        schedule_interval => INTERVAL '1 hour');
+
+  06-functions.sql: |
+    -- Create functions for geological trend analysis
+    CREATE OR REPLACE FUNCTION analytics.calculate_trend_statistics(
+        p_sensor_id TEXT,
+        p_measurement_type TEXT,
+        p_start_time TIMESTAMPTZ,
+        p_end_time TIMESTAMPTZ
+    )
+    RETURNS TABLE (
+        slope DOUBLE PRECISION,
+        intercept DOUBLE PRECISION,
+        r_squared DOUBLE PRECISION,
+        data_points BIGINT,
+        mean_value DOUBLE PRECISION,
+        stddev_value DOUBLE PRECISION
+    ) AS $$
+    BEGIN
+        RETURN QUERY
+        WITH trend_data AS (
+            SELECT 
+                time,
+                value,
+                EXTRACT(EPOCH FROM time) AS time_epoch
+            FROM sensors.readings
+            WHERE sensor_id = p_sensor_id 
+                AND measurement_type = p_measurement_type
+                AND time >= p_start_time 
+                AND time <= p_end_time
+                AND quality_flag = 'good'
+            ORDER BY time
+        )
+        SELECT 
+            regr_slope(value, time_epoch) AS slope,
+            regr_intercept(value, time_epoch) AS intercept,
+            regr_r2(value, time_epoch) AS r_squared,
+            COUNT(*) AS data_points,
+            AVG(value) AS mean_value,
+            STDDEV(value) AS stddev_value
+        FROM trend_data;
+    END;
+    $$ LANGUAGE plpgsql;
+
+  07-permissions.sql: |
+    -- Grant permissions
+    GRANT USAGE ON SCHEMA sensors, seismic, volcanic, analytics TO prometheus;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA sensors, seismic, volcanic, analytics TO prometheus;
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA analytics TO prometheus;

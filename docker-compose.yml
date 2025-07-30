@@ -124,6 +124,21 @@ services:
     networks:
       - prometheus-network
 
+  # TimescaleDB Service
+  timescale-db-service:
+    build:
+      context: ./services/timescale-db
+      dockerfile: Dockerfile
+    environment:
+      - PYTHONPATH=/app
+      - TIMESCALE_DATABASE_URL=postgresql://prometheus:prometheus123@timescaledb:5432/prometheus_timeseries
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+    depends_on:
+      - timescaledb
+    networks:
+      - prometheus-network
+
   # Databases
   influxdb:
     image: influxdb:2.7
@@ -151,6 +166,24 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - prometheus-network
+
+  # TimescaleDB for time-series data
+  timescaledb:
+    image: timescale/timescaledb:2.12.1-pg15
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=prometheus_timeseries
+      - POSTGRES_USER=prometheus
+      - POSTGRES_PASSWORD=prometheus123
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - TS_TUNE_MEMORY=2GB
+      - TS_TUNE_NUM_CPUS=2
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+      - ./database/timescale/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - prometheus-network
 
@@ -206,6 +239,7 @@ volumes:
   consul-data:
   influxdb-data:
   postgres-data:
+  timescaledb-data:
   neo4j-data:
   neo4j-logs:
   redis-data:

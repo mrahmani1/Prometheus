@@ -17,6 +17,7 @@ tensorboard==2.14.0
 
 # Database connections
 psycopg2-binary==2.9.7
+asyncpg==0.28.0
 influxdb-client==1.37.0
 neo4j==5.12.0
 redis==4.6.0
