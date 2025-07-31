@@ -115,6 +115,10 @@ app.include_router(router, prefix="/api/v1")
 from api.hazard_mapping_api import router as hazard_mapping_router
 app.include_router(hazard_mapping_router)
 
+# Include geological network representation routes
+from api.geological_network_representation import router as network_representation_router
+app.include_router(network_representation_router)
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

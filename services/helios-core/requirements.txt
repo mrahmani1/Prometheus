@@ -79,3 +79,10 @@ torch-sparse==0.6.17
 torch-cluster==1.6.1
 torch-spline-conv==1.2.2
 dgl==1.1.2
+
+# Quantum Computing dependencies
+qiskit==0.44.1
+qiskit-aer==0.12.2
+qiskit-algorithms==0.2.1
+qiskit-optimization==0.6.0
+qiskit-machine-learning==0.7.1

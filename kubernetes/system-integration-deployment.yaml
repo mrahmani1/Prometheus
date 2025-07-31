@@ -1,0 +1,233 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: system-integration
+  namespace: prometheus-ai
+  labels:
+    app: system-integration
+    component: integration
+    version: v1.0.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: system-integration
+  template:
+    metadata:
+      labels:
+        app: system-integration
+        component: integration
+        version: v1.0.0
+    spec:
+      containers:
+      - name: system-integration
+        image: prometheus-ai/system-integration:latest
+        ports:
+        - containerPort: 8010
+          name: http
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENVIRONMENT
+          value: "production"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8010
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8010
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: config-volume
+        configMap:
+          name: system-integration-config
+      restartPolicy: Always
+      serviceAccountName: prometheus-ai-service-account
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: system-integration
+  namespace: prometheus-ai
+  labels:
+    app: system-integration
+    component: integration
+spec:
+  selector:
+    app: system-integration
+  ports:
+  - name: http
+    port: 8010
+    targetPort: 8010
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: system-integration-config
+  namespace: prometheus-ai
+data:
+  integration.yaml: |
+    system:
+      name: "Prometheus AI System Integration"
+      version: "1.0.0"
+      environment: "production"
+    
+    services:
+      helios-core:
+        url: "http://helios-core:8000"
+        timeout: 30
+        retry_attempts: 3
+      volcano-watchtower:
+        url: "http://volcano-watchtower:8001"
+        timeout: 30
+        retry_attempts: 3
+      data-ingestion:
+        url: "http://data-ingestion:8002"
+        timeout: 30
+        retry_attempts: 3
+      vulcan-ui:
+        url: "http://vulcan-ui:3000"
+        timeout: 30
+        retry_attempts: 3
+      nlp-service:
+        url: "http://nlp-service:8003"
+        timeout: 30
+        retry_attempts: 3
+      knowledge-graph:
+        url: "http://knowledge-graph:8004"
+        timeout: 30
+        retry_attempts: 3
+      anomaly-detection:
+        url: "http://anomaly-detection:8005"
+        timeout: 30
+        retry_attempts: 3
+      edge-device-manager:
+        url: "http://edge-device-manager:8006"
+        timeout: 30
+        retry_attempts: 3
+      system-monitor:
+        url: "http://system-monitor:8007"
+        timeout: 30
+        retry_attempts: 3
+      graph-database:
+        url: "http://graph-database:8008"
+        timeout: 30
+        retry_attempts: 3
+      timescale-db:
+        url: "http://timescale-db:8009"
+        timeout: 30
+        retry_attempts: 3
+    
+    cloud_resources:
+      tpu_pods:
+        enabled: true
+        monitoring_interval: 60
+        auto_scaling: true
+      gpu_clusters:
+        enabled: true
+        monitoring_interval: 30
+        auto_scaling: true
+      serverless:
+        enabled: true
+        monitoring_interval: 15
+        auto_scaling: true
+    
+    data_pipelines:
+      autonomous_discovery:
+        enabled: true
+        processing_interval: 300
+        batch_size: 1000
+      real_time_monitoring:
+        enabled: true
+        processing_interval: 15
+        batch_size: 100
+      geological_modeling:
+        enabled: true
+        processing_interval: 600
+        batch_size: 500
+    
+    integration_features:
+      magmatic_intrusion_analysis:
+        enabled: true
+        model_training: true
+        real_time_monitoring: true
+        ui_integration: true
+      asf_insar_pipeline:
+        enabled: true
+        real_time_processing: true
+        geological_modeling: true
+        ui_interface: true
+    
+    monitoring:
+      health_check_interval: 30
+      performance_metrics: true
+      error_tracking: true
+      log_level: "INFO"
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: system-integration-hpa
+  namespace: prometheus-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: system-integration
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
