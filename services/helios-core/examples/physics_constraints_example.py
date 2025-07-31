@@ -22,7 +22,165 @@ from core.physics_constraints import (
 from models.ai_models import PhysicsConstraint, PhysicsConstraintType
 
 
-def create_sample_data(batch_size: int = 100, spatial_dims: int = 3) -> tuple:
+def create_
+class AdvancedPhysicsSimulator:
+    """Physics-Informed Neural Network for geological simulations"""
+    
+    def __init__(self, domain_size: Tuple[int, int, int] = (100, 100, 100)):
+        self.domain_size = domain_size
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.pinn_model = self._build_pinn_model()
+        self.optimizer = torch.optim.Adam(self.pinn_model.parameters(), lr=1e-3)
+        
+    def _build_pinn_model(self) -> nn.Module:
+        """Build Physics-Informed Neural Network"""
+        class PINNModel(nn.Module):
+            def __init__(self, input_dim=4, hidden_dim=128, output_dim=4):
+                super().__init__()
+                self.layers = nn.ModuleList([
+                    nn.Linear(input_dim, hidden_dim),
+                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(hidden_dim, output_dim)
+                ])
+                self.activation = nn.Tanh()
+                
+            def forward(self, x):
+                for i, layer in enumerate(self.layers[:-1]):
+                    x = self.activation(layer(x))
+                return self.layers[-1](x)
+        
+        return PINNModel().to(self.device)
+    
+    def solve_heat_equation_3d(self, thermal_conductivity: float = 2.5,
+                              heat_capacity: float = 1000.0,
+                              density: float = 2700.0) -> Dict[str, np.ndarray]:
+        """Solve 3D heat equation with geological parameters"""
+        
+        # Generate spatial-temporal grid
+        x = torch.linspace(0, 1, self.domain_size[0])
+        y = torch.linspace(0, 1, self.domain_size[1])
+        z = torch.linspace(0, 1, self.domain_size[2])
+        t = torch.linspace(0, 1, 100)
+        
+        X, Y, Z, T = torch.meshgrid(x, y, z, t, indexing='ij')
+        coords = torch.stack([X.flatten(), Y.flatten(), Z.flatten(), T.flatten()], dim=1)
+        coords = coords.to(self.device)
+        
+        # Training loop
+        for epoch in range(1000):
+            self.optimizer.zero_grad()
+            
+            # Forward pass
+            u_pred = self.pinn_model(coords)
+            
+            # Physics loss (heat equation)
+            u_t = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 3]
+            u_x = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 0]
+            u_y = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 1]
+            u_z = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 2]
+            
+            u_xx = torch.autograd.grad(u_x.sum(), coords, create_graph=True)[0][:, 0]
+            u_yy = torch.autograd.grad(u_y.sum(), coords, create_graph=True)[0][:, 1]
+            u_zz = torch.autograd.grad(u_z.sum(), coords, create_graph=True)[0][:, 2]
+            
+            alpha = thermal_conductivity / (density * heat_capacity)
+            physics_loss = torch.mean((u_t - alpha * (u_xx + u_yy + u_zz))**2)
+            
+            # Boundary conditions loss
+            boundary_loss = self._compute_boundary_loss(coords, u_pred)
+            
+            total_loss = physics_loss + boundary_loss
+            total_loss.backward()
+            self.optimizer.step()
+            
+            if epoch % 100 == 0:
+                logger.info(f"Epoch {epoch}, Loss: {total_loss.item():.6f}")
+        
+        # Generate solution
+        with torch.no_grad():
+            solution = self.pinn_model(coords).cpu().numpy()
+            
+        return {
+            'temperature_field': solution[:, 0].reshape(self.domain_size + (100,)),
+            'heat_flux_x': solution[:, 1].reshape(self.domain_size + (100,)),
+            'heat_flux_y': solution[:, 2].reshape(self.domain_size + (100,)),
+            'heat_flux_z': solution[:, 3].reshape(self.domain_size + (100,)),
+            'thermal_conductivity': thermal_conductivity,
+            'convergence_history': {'final_loss': total_loss.item()}
+        }
+    
+    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:
+        """Compute boundary conditions loss"""
+        
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+
+        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \
+                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \
+                       (coords[:, 2] == 0) | (coords[:, 2] == 1)
+        
+        boundary_values = torch.zeros_like(u_pred[boundary_mask, 0])
+        return torch.mean((u_pred[boundary_mask, 0] - boundary_values)**2)
+ 3) -> tuple:
     """
     Create sample data for testing physics constraints
     
@@ -65,7 +223,301 @@ def demonstrate_navier_stokes_constraint():
     )
     
     # Generate sample data
-    inputs, outputs = create_sample_data(batch_size=50, spatial_dims=3)
+    inputs, outputs = create_
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def __init__(self):
+        self.processors = {
+            'time_series': TimeSeriesProcessor(),
+            'spatial': SpatialDataProcessor(),
+            'spectral': SpectralAnalysisProcessor(),
+            'statistical': StatisticalProcessor(),
+            'ml_preprocessing': MLPreprocessor()
+        }
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', str(uuid.uuid4())),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps based on configuration
+        for step_name, step_config in processing_config.items():
+            if step_name in self.processors:
+                try:
+                    processor = self.processors[step_name]
+                    processed_data, step_results = processor.process(data, step_config)
+                    
+                    data = processed_data
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'success',
+                        'results': step_results,
+                        'output_size': len(data) if isinstance(data, list) else 'N/A'
+                    })
+                    
+                except Exception as e:
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+
+class TimeSeriesProcessor:
+    """Advanced time series processing for geological data"""
+    
+    def process(self, data: Any, config: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Process time series data"""
+        
+        if not isinstance(data, (list, np.ndarray)):
+            return data, {'error': 'Invalid data type for time series processing'}
+        
+        data_array = np.array(data)
+        results = {}
+        
+        # Detrending
+        if config.get('detrend', False):
+            from scipy import signal
+            data_array = signal.detrend(data_array, type=config.get('detrend_type', 'linear'))
+            results['detrended'] = True
+        
+        # Filtering
+        if 'filter' in config:
+            filter_config = config['filter']
+            data_array = self._apply_filter(data_array, filter_config)
+            results['filtered'] = filter_config
+        
+        # Resampling
+        if 'resample' in config:
+            re
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+ config['resample']
+            data_array = self._resample_data(data_array, resample_config)
+            results['resampled'] = resample_config
+        
+        # Anomaly detection
+        if config.get('detect_anomalies', False):
+            anomalies = self._detect_anomalies(data_array, config.get('anomaly_config', {}))
+            results['anomalies'] = anomalies
+        
+        return data_array.tolist(), results
+    
+    def _apply_filter(self, data: np.ndarray, filter_config: Dict[str, Any]) -> np.ndarray:
+        """Apply digital filter to data"""
+        from scipy import signal
+        
+        filter_type = filter_config.get('type', 'bandpass')
+        sampling_rate = filter_config.get('sampling_rate', 100.0)
+        
+        if filter_type == 'bandpass':
+            low_freq = filter_config.get('low_freq', 1.0)
+            high_freq = filter_config.get('high_freq', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                [low_freq/nyquist, high_freq/nyquist],
+                btype='band'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        elif filter_type == 'lowpass':
+            cutoff = filter_config.get('cutoff', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                cutoff/nyquist,
+                btype='low'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        return data
+    
+    def _resample_data(self, data: np.ndarray, resample_config: Dict[str, Any]) -> np.ndarray:
+        """Resample data to different sampling rate"""
+        from scipy import signal
+        
+        original_rate = resample_config.get('original_rate', 100.0)
+        target_rate = resample_config.get('target_rate', 50.0)
+        
+        if original_rate != target_rate:
+            num_samples = int(len(data) * target_rate / original_rate)
+            return signal.resample(data, num_samples)
+        
+        return data
+    
+    def _detect_anomalies(self, data: np.ndarray, anomaly_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect anomalies in time series data"""
+        
+        method = anomaly_config.get('method', 'statistical')
+        
+        if method == 'statistical':
+            # Statistical outlier detection
+            mean_val = np.mean(data)
+            std_val = np.std(data)
+            threshold = anomaly_config.get('threshold', 3.0)
+            
+            anomaly_indices = np.where(np.abs(data - mean_val) > threshold * std_val)[0]
+            
+            return {
+                'method': 'statistical',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'threshold_used': threshold
+            }
+        
+        elif method == 'isolation_forest':
+            # Machine learning based anomaly detection
+            from sklearn.ensemble import IsolationForest
+            
+            contamination = anomaly_config.get('contamination', 0.1)
+            clf = IsolationForest(contamination=contamination, random_state=42)
+            
+            data_reshaped = data.reshape(-1, 1)
+            anomaly_labels = clf.fit_predict(data_reshaped)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            return {
+                'method': 'isolation_forest',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'contamination': contamination
+            }
+        
+        
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+
+3)
     
     print(f"Input shape: {inputs.shape} (x, y, z, t)")
     print(f"Output shape: {outputs.shape} (u, v, w, p)")
@@ -118,7 +570,301 @@ def demonstrate_heat_transfer_constraint():
     )
     
     # Generate sample data (temperature field)
-    inputs, _ = create_sample_data(batch_size=50, spatial_dims=3)
+    inputs, _ = create_
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def __init__(self):
+        self.processors = {
+            'time_series': TimeSeriesProcessor(),
+            'spatial': SpatialDataProcessor(),
+            'spectral': SpectralAnalysisProcessor(),
+            'statistical': StatisticalProcessor(),
+            'ml_preprocessing': MLPreprocessor()
+        }
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', str(uuid.uuid4())),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps based on configuration
+        for step_name, step_config in processing_config.items():
+            if step_name in self.processors:
+                try:
+                    processor = self.processors[step_name]
+                    processed_data, step_results = processor.process(data, step_config)
+                    
+                    data = processed_data
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'success',
+                        'results': step_results,
+                        'output_size': len(data) if isinstance(data, list) else 'N/A'
+                    })
+                    
+                except Exception as e:
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+
+class TimeSeriesProcessor:
+    """Advanced time series processing for geological data"""
+    
+    def process(self, data: Any, config: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Process time series data"""
+        
+        if not isinstance(data, (list, np.ndarray)):
+            return data, {'error': 'Invalid data type for time series processing'}
+        
+        data_array = np.array(data)
+        results = {}
+        
+        # Detrending
+        if config.get('detrend', False):
+            from scipy import signal
+            data_array = signal.detrend(data_array, type=config.get('detrend_type', 'linear'))
+            results['detrended'] = True
+        
+        # Filtering
+        if 'filter' in config:
+            filter_config = config['filter']
+            data_array = self._apply_filter(data_array, filter_config)
+            results['filtered'] = filter_config
+        
+        # Resampling
+        if 'resample' in config:
+            re
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+ config['resample']
+            data_array = self._resample_data(data_array, resample_config)
+            results['resampled'] = resample_config
+        
+        # Anomaly detection
+        if config.get('detect_anomalies', False):
+            anomalies = self._detect_anomalies(data_array, config.get('anomaly_config', {}))
+            results['anomalies'] = anomalies
+        
+        return data_array.tolist(), results
+    
+    def _apply_filter(self, data: np.ndarray, filter_config: Dict[str, Any]) -> np.ndarray:
+        """Apply digital filter to data"""
+        from scipy import signal
+        
+        filter_type = filter_config.get('type', 'bandpass')
+        sampling_rate = filter_config.get('sampling_rate', 100.0)
+        
+        if filter_type == 'bandpass':
+            low_freq = filter_config.get('low_freq', 1.0)
+            high_freq = filter_config.get('high_freq', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                [low_freq/nyquist, high_freq/nyquist],
+                btype='band'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        elif filter_type == 'lowpass':
+            cutoff = filter_config.get('cutoff', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                cutoff/nyquist,
+                btype='low'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        return data
+    
+    def _resample_data(self, data: np.ndarray, resample_config: Dict[str, Any]) -> np.ndarray:
+        """Resample data to different sampling rate"""
+        from scipy import signal
+        
+        original_rate = resample_config.get('original_rate', 100.0)
+        target_rate = resample_config.get('target_rate', 50.0)
+        
+        if original_rate != target_rate:
+            num_samples = int(len(data) * target_rate / original_rate)
+            return signal.resample(data, num_samples)
+        
+        return data
+    
+    def _detect_anomalies(self, data: np.ndarray, anomaly_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect anomalies in time series data"""
+        
+        method = anomaly_config.get('method', 'statistical')
+        
+        if method == 'statistical':
+            # Statistical outlier detection
+            mean_val = np.mean(data)
+            std_val = np.std(data)
+            threshold = anomaly_config.get('threshold', 3.0)
+            
+            anomaly_indices = np.where(np.abs(data - mean_val) > threshold * std_val)[0]
+            
+            return {
+                'method': 'statistical',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'threshold_used': threshold
+            }
+        
+        elif method == 'isolation_forest':
+            # Machine learning based anomaly detection
+            from sklearn.ensemble import IsolationForest
+            
+            contamination = anomaly_config.get('contamination', 0.1)
+            clf = IsolationForest(contamination=contamination, random_state=42)
+            
+            data_reshaped = data.reshape(-1, 1)
+            anomaly_labels = clf.fit_predict(data_reshaped)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            return {
+                'method': 'isolation_forest',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'contamination': contamination
+            }
+        
+        
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+
+3)
     temperature = torch.randn(50, 1, requires_grad=True)  # Temperature field
     
     print(f"Input shape: {inputs.shape} (x, y, z, t)")
@@ -217,7 +963,301 @@ def demonstrate_mass_conservation_constraint():
     )
     
     # Generate sample data (concentration and velocity field)
-    inputs, _ = create_sample_data(batch_size=50, spatial_dims=3)
+    inputs, _ = create_
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def __init__(self):
+        self.processors = {
+            'time_series': TimeSeriesProcessor(),
+            'spatial': SpatialDataProcessor(),
+            'spectral': SpectralAnalysisProcessor(),
+            'statistical': StatisticalProcessor(),
+            'ml_preprocessing': MLPreprocessor()
+        }
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', str(uuid.uuid4())),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps based on configuration
+        for step_name, step_config in processing_config.items():
+            if step_name in self.processors:
+                try:
+                    processor = self.processors[step_name]
+                    processed_data, step_results = processor.process(data, step_config)
+                    
+                    data = processed_data
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'success',
+                        'results': step_results,
+                        'output_size': len(data) if isinstance(data, list) else 'N/A'
+                    })
+                    
+                except Exception as e:
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+
+class TimeSeriesProcessor:
+    """Advanced time series processing for geological data"""
+    
+    def process(self, data: Any, config: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Process time series data"""
+        
+        if not isinstance(data, (list, np.ndarray)):
+            return data, {'error': 'Invalid data type for time series processing'}
+        
+        data_array = np.array(data)
+        results = {}
+        
+        # Detrending
+        if config.get('detrend', False):
+            from scipy import signal
+            data_array = signal.detrend(data_array, type=config.get('detrend_type', 'linear'))
+            results['detrended'] = True
+        
+        # Filtering
+        if 'filter' in config:
+            filter_config = config['filter']
+            data_array = self._apply_filter(data_array, filter_config)
+            results['filtered'] = filter_config
+        
+        # Resampling
+        if 'resample' in config:
+            re
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+ config['resample']
+            data_array = self._resample_data(data_array, resample_config)
+            results['resampled'] = resample_config
+        
+        # Anomaly detection
+        if config.get('detect_anomalies', False):
+            anomalies = self._detect_anomalies(data_array, config.get('anomaly_config', {}))
+            results['anomalies'] = anomalies
+        
+        return data_array.tolist(), results
+    
+    def _apply_filter(self, data: np.ndarray, filter_config: Dict[str, Any]) -> np.ndarray:
+        """Apply digital filter to data"""
+        from scipy import signal
+        
+        filter_type = filter_config.get('type', 'bandpass')
+        sampling_rate = filter_config.get('sampling_rate', 100.0)
+        
+        if filter_type == 'bandpass':
+            low_freq = filter_config.get('low_freq', 1.0)
+            high_freq = filter_config.get('high_freq', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                [low_freq/nyquist, high_freq/nyquist],
+                btype='band'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        elif filter_type == 'lowpass':
+            cutoff = filter_config.get('cutoff', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                cutoff/nyquist,
+                btype='low'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        return data
+    
+    def _resample_data(self, data: np.ndarray, resample_config: Dict[str, Any]) -> np.ndarray:
+        """Resample data to different sampling rate"""
+        from scipy import signal
+        
+        original_rate = resample_config.get('original_rate', 100.0)
+        target_rate = resample_config.get('target_rate', 50.0)
+        
+        if original_rate != target_rate:
+            num_samples = int(len(data) * target_rate / original_rate)
+            return signal.resample(data, num_samples)
+        
+        return data
+    
+    def _detect_anomalies(self, data: np.ndarray, anomaly_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect anomalies in time series data"""
+        
+        method = anomaly_config.get('method', 'statistical')
+        
+        if method == 'statistical':
+            # Statistical outlier detection
+            mean_val = np.mean(data)
+            std_val = np.std(data)
+            threshold = anomaly_config.get('threshold', 3.0)
+            
+            anomaly_indices = np.where(np.abs(data - mean_val) > threshold * std_val)[0]
+            
+            return {
+                'method': 'statistical',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'threshold_used': threshold
+            }
+        
+        elif method == 'isolation_forest':
+            # Machine learning based anomaly detection
+            from sklearn.ensemble import IsolationForest
+            
+            contamination = anomaly_config.get('contamination', 0.1)
+            clf = IsolationForest(contamination=contamination, random_state=42)
+            
+            data_reshaped = data.reshape(-1, 1)
+            anomaly_labels = clf.fit_predict(data_reshaped)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            return {
+                'method': 'isolation_forest',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'contamination': contamination
+            }
+        
+        
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+
+3)
     # Concentration and velocity: [c, v_x, v_y, v_z]
     concentration_velocity = torch.randn(50, 4, requires_grad=True)
     
@@ -263,7 +1303,301 @@ def demonstrate_multi_constraint_enforcement():
         print(f"  {i+1}. {constraint.constraint_type.value} (weight: {constraint.weight})")
     
     # Generate sample data
-    inputs, outputs = create_sample_data(batch_size=100, spatial_dims=3)
+    inputs, outputs = create_
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def __init__(self):
+        self.processors = {
+            'time_series': TimeSeriesProcessor(),
+            'spatial': SpatialDataProcessor(),
+            'spectral': SpectralAnalysisProcessor(),
+            'statistical': StatisticalProcessor(),
+            'ml_preprocessing': MLPreprocessor()
+        }
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', str(uuid.uuid4())),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps based on configuration
+        for step_name, step_config in processing_config.items():
+            if step_name in self.processors:
+                try:
+                    processor = self.processors[step_name]
+                    processed_data, step_results = processor.process(data, step_config)
+                    
+                    data = processed_data
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'success',
+                        'results': step_results,
+                        'output_size': len(data) if isinstance(data, list) else 'N/A'
+                    })
+                    
+                except Exception as e:
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+
+class TimeSeriesProcessor:
+    """Advanced time series processing for geological data"""
+    
+    def process(self, data: Any, config: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Process time series data"""
+        
+        if not isinstance(data, (list, np.ndarray)):
+            return data, {'error': 'Invalid data type for time series processing'}
+        
+        data_array = np.array(data)
+        results = {}
+        
+        # Detrending
+        if config.get('detrend', False):
+            from scipy import signal
+            data_array = signal.detrend(data_array, type=config.get('detrend_type', 'linear'))
+            results['detrended'] = True
+        
+        # Filtering
+        if 'filter' in config:
+            filter_config = config['filter']
+            data_array = self._apply_filter(data_array, filter_config)
+            results['filtered'] = filter_config
+        
+        # Resampling
+        if 'resample' in config:
+            re
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+ config['resample']
+            data_array = self._resample_data(data_array, resample_config)
+            results['resampled'] = resample_config
+        
+        # Anomaly detection
+        if config.get('detect_anomalies', False):
+            anomalies = self._detect_anomalies(data_array, config.get('anomaly_config', {}))
+            results['anomalies'] = anomalies
+        
+        return data_array.tolist(), results
+    
+    def _apply_filter(self, data: np.ndarray, filter_config: Dict[str, Any]) -> np.ndarray:
+        """Apply digital filter to data"""
+        from scipy import signal
+        
+        filter_type = filter_config.get('type', 'bandpass')
+        sampling_rate = filter_config.get('sampling_rate', 100.0)
+        
+        if filter_type == 'bandpass':
+            low_freq = filter_config.get('low_freq', 1.0)
+            high_freq = filter_config.get('high_freq', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                [low_freq/nyquist, high_freq/nyquist],
+                btype='band'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        elif filter_type == 'lowpass':
+            cutoff = filter_config.get('cutoff', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                cutoff/nyquist,
+                btype='low'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        return data
+    
+    def _resample_data(self, data: np.ndarray, resample_config: Dict[str, Any]) -> np.ndarray:
+        """Resample data to different sampling rate"""
+        from scipy import signal
+        
+        original_rate = resample_config.get('original_rate', 100.0)
+        target_rate = resample_config.get('target_rate', 50.0)
+        
+        if original_rate != target_rate:
+            num_samples = int(len(data) * target_rate / original_rate)
+            return signal.resample(data, num_samples)
+        
+        return data
+    
+    def _detect_anomalies(self, data: np.ndarray, anomaly_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect anomalies in time series data"""
+        
+        method = anomaly_config.get('method', 'statistical')
+        
+        if method == 'statistical':
+            # Statistical outlier detection
+            mean_val = np.mean(data)
+            std_val = np.std(data)
+            threshold = anomaly_config.get('threshold', 3.0)
+            
+            anomaly_indices = np.where(np.abs(data - mean_val) > threshold * std_val)[0]
+            
+            return {
+                'method': 'statistical',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'threshold_used': threshold
+            }
+        
+        elif method == 'isolation_forest':
+            # Machine learning based anomaly detection
+            from sklearn.ensemble import IsolationForest
+            
+            contamination = anomaly_config.get('contamination', 0.1)
+            clf = IsolationForest(contamination=contamination, random_state=42)
+            
+            data_reshaped = data.reshape(-1, 1)
+            anomaly_labels = clf.fit_predict(data_reshaped)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            return {
+                'method': 'isolation_forest',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'contamination': contamination
+            }
+        
+        
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+
+3)
     
     print(f"\nInput shape: {inputs.shape}")
     print(f"Output shape: {outputs.shape}")
@@ -317,7 +1651,301 @@ def demonstrate_constraint_diagnostics():
     constraint = create_heat_transfer_constraint(tolerance=1e-10)  # Very tight tolerance
     
     # Generate sample data
-    inputs, _ = create_sample_data(batch_size=30, spatial_dims=3)
+    inputs, _ = create_
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def __init__(self):
+        self.processors = {
+            'time_series': TimeSeriesProcessor(),
+            'spatial': SpatialDataProcessor(),
+            'spectral': SpectralAnalysisProcessor(),
+            'statistical': StatisticalProcessor(),
+            'ml_preprocessing': MLPreprocessor()
+        }
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', str(uuid.uuid4())),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps based on configuration
+        for step_name, step_config in processing_config.items():
+            if step_name in self.processors:
+                try:
+                    processor = self.processors[step_name]
+                    processed_data, step_results = processor.process(data, step_config)
+                    
+                    data = processed_data
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'success',
+                        'results': step_results,
+                        'output_size': len(data) if isinstance(data, list) else 'N/A'
+                    })
+                    
+                except Exception as e:
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+
+class TimeSeriesProcessor:
+    """Advanced time series processing for geological data"""
+    
+    def process(self, data: Any, config: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Process time series data"""
+        
+        if not isinstance(data, (list, np.ndarray)):
+            return data, {'error': 'Invalid data type for time series processing'}
+        
+        data_array = np.array(data)
+        results = {}
+        
+        # Detrending
+        if config.get('detrend', False):
+            from scipy import signal
+            data_array = signal.detrend(data_array, type=config.get('detrend_type', 'linear'))
+            results['detrended'] = True
+        
+        # Filtering
+        if 'filter' in config:
+            filter_config = config['filter']
+            data_array = self._apply_filter(data_array, filter_config)
+            results['filtered'] = filter_config
+        
+        # Resampling
+        if 'resample' in config:
+            re
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+ config['resample']
+            data_array = self._resample_data(data_array, resample_config)
+            results['resampled'] = resample_config
+        
+        # Anomaly detection
+        if config.get('detect_anomalies', False):
+            anomalies = self._detect_anomalies(data_array, config.get('anomaly_config', {}))
+            results['anomalies'] = anomalies
+        
+        return data_array.tolist(), results
+    
+    def _apply_filter(self, data: np.ndarray, filter_config: Dict[str, Any]) -> np.ndarray:
+        """Apply digital filter to data"""
+        from scipy import signal
+        
+        filter_type = filter_config.get('type', 'bandpass')
+        sampling_rate = filter_config.get('sampling_rate', 100.0)
+        
+        if filter_type == 'bandpass':
+            low_freq = filter_config.get('low_freq', 1.0)
+            high_freq = filter_config.get('high_freq', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                [low_freq/nyquist, high_freq/nyquist],
+                btype='band'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        elif filter_type == 'lowpass':
+            cutoff = filter_config.get('cutoff', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                cutoff/nyquist,
+                btype='low'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        return data
+    
+    def _resample_data(self, data: np.ndarray, resample_config: Dict[str, Any]) -> np.ndarray:
+        """Resample data to different sampling rate"""
+        from scipy import signal
+        
+        original_rate = resample_config.get('original_rate', 100.0)
+        target_rate = resample_config.get('target_rate', 50.0)
+        
+        if original_rate != target_rate:
+            num_samples = int(len(data) * target_rate / original_rate)
+            return signal.resample(data, num_samples)
+        
+        return data
+    
+    def _detect_anomalies(self, data: np.ndarray, anomaly_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect anomalies in time series data"""
+        
+        method = anomaly_config.get('method', 'statistical')
+        
+        if method == 'statistical':
+            # Statistical outlier detection
+            mean_val = np.mean(data)
+            std_val = np.std(data)
+            threshold = anomaly_config.get('threshold', 3.0)
+            
+            anomaly_indices = np.where(np.abs(data - mean_val) > threshold * std_val)[0]
+            
+            return {
+                'method': 'statistical',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'threshold_used': threshold
+            }
+        
+        elif method == 'isolation_forest':
+            # Machine learning based anomaly detection
+            from sklearn.ensemble import IsolationForest
+            
+            contamination = anomaly_config.get('contamination', 0.1)
+            clf = IsolationForest(contamination=contamination, random_state=42)
+            
+            data_reshaped = data.reshape(-1, 1)
+            anomaly_labels = clf.fit_predict(data_reshaped)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            return {
+                'method': 'isolation_forest',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'contamination': contamination
+            }
+        
+        
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps
+        for step_name, step_config in processing_config.items():
+            try:
+                if step_name == 'filter':
+                    data = self._apply_filter(data, step_config)
+                elif step_name == 'normalize':
+                    data = self._normalize_data(data, step_config)
+                elif step_name == 'detect_anomalies':
+                    anomalies = self._detect_anomalies(data, step_config)
+                    results['anomalies'] = anomalies
+                
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'success',
+                    'output_size': len(data) if isinstance(data, list) else 'N/A'
+                })
+                
+            except Exception as e:
+                results['processing_steps'].append({
+                    'step': step_name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+    
+    def _apply_filter(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Apply filtering to data"""
+        # Implement filtering logic
+        return data
+    
+    def _normalize_data(self, data: Any, config: Dict[str, Any]) -> Any:
+        """Normalize data"""
+        # Implement normalization logic
+        return data
+    
+    def _detect_anomalies(self, data: Any, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect anomalies in data"""
+        # Implement anomaly detection
+        return []
+
+3)
     temperature = torch.randn(30, 1, requires_grad=True)
     
     # Get detailed diagnostics

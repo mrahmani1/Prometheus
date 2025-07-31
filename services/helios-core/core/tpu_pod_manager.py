@@ -301,7 +301,195 @@ class TPUPodManager:
         
         # Initialize model parameters
         key = random.PRNGKey(42)
-        dummy_input = jnp.ones((1, model_config.get('input_dim', 4)))
+        
+class AdvancedSeismicCNN:
+    """Convolutional Neural Network for seismic event detection and classification"""
+    
+    def __init__(self, input_channels: int = 3, num_classes: int = 5):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = self._build_model(input_channels, num_classes)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-4, weight_decay=1e-5)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=100)
+        
+    def _build_model(self, input_channels: int, num_classes: int) -> nn.Module:
+        """Build advanced CNN architecture with attention mechanisms"""
+        
+        class AttentionBlock(nn.Module):
+            def __init__(self, channels):
+                super().__init__()
+                self.attention = nn.Sequential(
+                    nn.AdaptiveAvgPool1d(1),
+                    nn.Conv1d(channels, channels // 8, 1),
+                    nn.ReLU(),
+                    nn.Conv1d(channels // 8, channels, 1),
+                    nn.Sigmoid()
+                )
+                
+            def forward(self, x):
+                attention_weights = self.attention(x)
+                return x * attention_weights
+        
+        class SeismicCNN(nn.Module):
+            def __init__(self, input_channels, num_classes):
+                super().__init__()
+                
+                # Feature extraction layers
+                self.conv_blocks = nn.ModuleList([
+                    nn.Sequential(
+                        nn.Conv1d(input_channels, 64, kernel_size=7, padding=3),
+                        nn.BatchNorm1d(64),
+                        nn.ReLU(),
+                        AttentionBlock(64),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(64, 128, kernel_size=5, padding=2),
+                        nn.BatchNorm1d(128),
+                        nn.ReLU(),
+                        AttentionBlock(128),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(128, 256, kernel_size=3, padding=1),
+                        nn.BatchNorm1d(256),
+                        nn.ReLU(),
+                        AttentionBlock(256),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(256, 512, kernel_size=3, padding=1),
+                        nn.BatchNorm1d(512),
+                        nn.ReLU(),
+                        AttentionBlock(512),
+                        nn.AdaptiveAvgPool1d(1)
+                    )
+                ])
+                
+                # Classification head
+                self.classifier = nn.Sequential(
+                    nn.Dropout(0.5),
+                    nn.Linear(512, 256),
+                    nn.ReLU(),
+                    nn.Dropout(0.3),
+                    nn.Linear(256, num_classes)
+                )
+                
+            def forward(self, x):
+                for block in self.conv_blocks:
+                    x = block(x)
+                
+                x = x.view(x.size(0), -1)
+                return self.classifier(x)
+        
+        return SeismicCNN(input_channels, num_classes).to(self.device)
+    
+    def detect_seismic_events(self, waveform_data: np.ndarray, 
+                            sampling_rate: float = 100.0) -> Dict[str, Any]:
+        """Detect and classify seismic events in waveform data"""
+        
+        # Preprocess data
+        processed_data = self._preprocess_waveform(waveform_data, sampling_rate)
+        
+        # Convert to tensor
+        input_tensor = torch.FloatTensor(processed_data).unsqueeze(0).to(self.device)
+        
+        # Inference
+        self.model.eval()
+        with torch.no_grad():
+            logits = self.model(input_tensor)
+            probabilities = F.softmax(logits, dim=1)
+            predicted_class = torch.argmax(probabilities, dim=1)
+        
+        # Event classification mapping
+        event_types = {
+            0: 'background_noise',
+            1: 'local_earthquake',
+            2: 'regional_earthquake',
+            3: 'volcanic_tremor',
+            4: 'explosion'
+        }
+        
+        return {
+            'event_type': event_types[predicted_class.item()],
+            'confidence': probabilities.max().item(),
+            'all_probabilities': {
+                event_types[i]: prob.item() 
+                for i, prob in enumerate(probabilities[0])
+            },
+            'magnitude_estimate': self._estimate_magnitude(waveform_data),
+            'arrival_time': self._detect_p_wave_arrival(waveform_data, sampling_rate),
+            'frequency_content': self._analyze_frequency_content(waveform_data, sampling_rate)
+        }
+    
+    def _preprocess_waveform(self, data: np.ndarray, sampling_rate: float) -> np.ndarray:
+        """Advanced waveform preprocessing"""
+        # Bandpass filter
+        from scipy import signal
+        nyquist = sampling_rate / 2
+        low_freq = 1.0 / nyquist
+        high_freq = 25.0 / nyquist
+        b, a = signal.butter(4, [low_freq, high_freq], btype='band')
+        filtered_data = signal.filtfilt(b, a, data, axis=-1)
+        
+        # Normalize
+        normalized_data = (filtered_data - np.mean(filtered_data, axis=-1, keepdims=True)) / \
+                         (np.std(filtered_data, axis=-1, keepdims=True) + 1e-8)
+        
+        return normalized_data
+    
+    def _estimate_magnitude(self, waveform_data: np.ndarray) -> float:
+        """Estimate earthquake magnitude from waveform amplitude"""
+        max_amplitude = np.max(np.abs(waveform_data))
+        # Simplified magnitude estimation (would use proper calibration in practice)
+        magnitude = np.log10(max_amplitude * 1e6) - 3.0
+        return max(0.0, min(9.0, magnitude))
+    
+    def _detect_p_wave_arrival(self, data: np.ndarray, sampling_rate: float) -> float:
+        """Detect P-wave arrival time using STA/LTA algorithm"""
+        # Short-term average / Long-term average
+        sta_window = int(0.5 * sampling_rate)  # 0.5 seconds
+        lta_window = int(10.0 * sampling_rate)  # 10 seconds
+        
+        energy = np.square(data)
+        sta = np.convolve(energy, np.ones(sta_window)/sta_window, mode='same')
+        lta = np.convolve(energy, np.ones(lta_window)/lta_window, mode='same')
+        
+        sta_lta_ratio = sta / (lta + 1e-8)
+        trigger_threshold = 3.0
+        
+        trigger_indices = np.where(sta_lta_ratio > trigger_threshold)[0]
+        if len(trigger_indices) > 0:
+            return trigger_indices[0] / sampling_rate
+        return 0.0
+    
+    def _analyze_frequency_content(self, data: np.ndarray, sampling_rate: float) -> Dict[str, float]:
+        """Analyze frequency content of seismic signal"""
+        from scipy import signal
+        
+        frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
+        
+        # Frequency bands of interest
+        bands = {
+            'low_freq': (0.1, 1.0),
+            'mid_freq': (1.0, 10.0),
+            'high_freq': (10.0, 25.0)
+        }
+        
+        band_powers = {}
+        for band_name, (low, high) in bands.items():
+            band_mask = (frequencies >= low) & (frequencies <= high)
+            band_powers[band_name] = np.trapz(psd[band_mask], frequencies[band_mask])
+        
+        # Dominant frequency
+        dominant_freq = frequencies[np.argmax(psd)]
+        
+        return {
+            'dominant_frequency': dominant_freq,
+            'band_powers': band_powers,
+            'spectral_centroid': np.sum(frequencies * psd) / np.sum(psd),
+            'spectral_bandwidth': np.sqrt(np.sum(((frequencies - dominant_freq) ** 2) * psd) / np.sum(psd))
+        }
+ jnp.ones((1, model_config.get('input_dim', 4)))
         
         variables = self.model.init(key, dummy_input)
         

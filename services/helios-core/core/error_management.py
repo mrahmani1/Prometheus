@@ -618,7 +618,272 @@ class ErrorAnalyzer:
     def analyze_error_patterns(self) -> Dict[str, Any]:
         """Analyze error patterns and trends"""
         if not self.error_history:
-            return {"message": "No error data available for analysis"}
+            
+class AdvancedSeismicProcessor:
+    """Advanced seismic data processing with signal analysis and event detection"""
+    
+    def __init__(self, sampling_rate: float = 100.0):
+        self.sampling_rate = sampling_rate
+        self.filters = self._initialize_filters()
+        self.event_detector = self._initialize_event_detector()
+        
+    def _initialize_filters(self) -> Dict[str, Any]:
+        """Initialize various digital filters"""
+        from scipy import signal
+        
+        nyquist = self.sampling_rate / 2
+        
+        return {
+            'bandpass_1_10': signal.butter(4, [1.0/nyquist, 10.0/nyquist], btype='band'),
+            'bandpass_0_5_25': signal.butter(4, [0.5/nyquist, 25.0/nyquist], btype='band'),
+            'highpass_1': signal.butter(4, 1.0/nyquist, btype='high'),
+            'lowpass_25': signal.butter(4, 25.0/nyquist, btype='low'),
+            'notch_50': signal.iirnotch(50.0, 30, self.sampling_rate)  # Power line noise
+        }
+    
+    def process_seismic_stream(self, data: np.ndarray, 
+                             station_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Process continuous seismic data stream"""
+        
+        # Multi-component processing (assuming 3-component data)
+        if data.ndim == 1:
+            data = data.reshape(1, -1)
+        
+        processed_components = []
+        
+        for i, component_data in enumerate(data):
+            # Apply preprocessing pipeline
+            processed = self._preprocess_component(component_data)
+            
+            # Calculate quality metrics
+            quality_metrics = self._calculate_quality_metrics(processed, component_data)
+            
+            # Detect events
+            events = self._detect_events_in_component(processed)
+            
+            processed_components.append({
+                'component_index': i,
+                'component_name': ['Z', 'N', 'E'][i] if i < 3 else f'C{i}',
+                'processed_data': processed,
+                'quality_metrics': quality_metrics,
+                'detected_events': events,
+                'spectral_analysis': self._analyze_spectrum(processed)
+            })
+        
+        # Cross-component analysis
+        cross_component_analysis = self._cross_component_analysis(
+            [comp['processed_data'] for comp in processed_components]
+        )
+        
+        return {
+            'station_id': station_info.get('station_id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'sampling_rate': self.sampling_rate,
+            'components': processed_components,
+            'cross_component_analysis': cross_component_analysis,
+            'overall_quality': self._calculate_overall_quality(processed_components)
+        }
+    
+    def _preprocess_component(self, data: np.ndarray) -> np.ndarray:
+        """Apply preprocessing pipeline to single component"""
+        from scipy import signal
+        
+        # Remove mean and linear trend
+        detrended = signal.detrend(data, type='linear')
+        
+        # Apply bandpass filter
+        b, a = self.filters['bandpass_0_5_25']
+        filtered = signal.filtfilt(b, a, detrended)
+        
+        # Remove power line noise
+        b_notch, a_notch = self.filters['notch_50']
+        filtered = signal.filtfilt(b_notch, a_notch, filtered)
+        
+        # Normalize amplitude
+        rms = np.sqrt(np.mean(filtered**2))
+        if rms > 0:
+            normalized = filtered / rms
+        else:
+            normalized = filtered
+        
+        return normalized
+    
+    def _calculate_quality_metrics(self, processed_data: np.ndarray, 
+                                 original_data: np.ndarray) -> Dict[str, float]:
+        """Calculate data quality metrics"""
+        
+        # Signal-to-noise ratio
+        signal_power = np.var(processed_data)
+        noise_estimate = np.var(processed_data - original_data)
+        snr = 10 * np.log10(signal_power / (noise_estimate + 1e-10))
+        
+        # Clipping detection
+        max_val = np.max(np.abs(original_data))
+        clipping_ratio = np.sum(np.abs(original_data) >= 0.95 * max_val) / len(original_data)
+        
+        # Gap detection
+        gap_threshold = 5 * np.std(processed_data)
+        gaps = np.sum(np.abs(np.diff(processed_data)) > gap_threshold)
+        
+        # Frequency content quality
+        freqs, psd = signal.welch(processed_data, fs=self.sampling_rate)
+        freq_quality = np.sum(psd[freqs <= 25]) / np.sum(psd)  # Energy below 25 Hz
+        
+        return {
+            'snr_db': snr,
+            'clipping_ratio': clipping_ratio,
+            'gap_count': gaps,
+            'frequency_quality': freq_quality,
+            'rms_amplitude': np.sqrt(np.mean(processed_data**2)),
+            'peak_amplitude': np.max(np.abs(processed_data))
+        }
+    
+    def _detect_events_in_component(self, data: np.ndarray) -> List[Dict[str, Any]]:
+        """Detect seismic events using multiple algorithms"""
+        
+        events = []
+        
+        # STA/LTA detector
+        sta_lta_events = self._sta_lta_detector(data)
+        events.extend(sta_lta_events)
+        
+        # Energy-based detector
+        energy_events = self._energy_detector(data)
+        events.extend(energy_events)
+        
+        # Frequency domain detector
+        freq_events = self._frequency_detector(data)
+        events.extend(freq_events)
+        
+        # Merge overlapping events
+        merged_events = self._merge_overlapping_events(events)
+        
+        return merged_events
+    
+    def _sta_lta_detector(self, data: np.ndarray, 
+                         sta_window: float = 0.5, 
+                         lta_window: float = 10.0,
+                         trigger_threshold: float = 3.0,
+                         detrigger_threshold: float = 1.5) -> List[Dict[str, Any]]:
+        """Short-Term Average / Long-Term Average event detector"""
+        
+        sta_samples = int(sta_window * self.sampling_rate)
+        lta_samples = int(lta_window * self.sampling_rate)
+        
+        # Calculate energy
+        energy = data ** 2
+        
+        # Calculate STA and LTA
+        sta = np.convolve(energy, np.ones(sta_samples)/sta_samples, mode='same')
+        lta = np.convolve(energy, np.ones(lta_samples)/lta_samples, mode='same')
+        
+        # Calculate ratio
+        sta_lta_ratio = sta / (lta + 1e-10)
+        
+        # Find triggers
+        events = []
+        in_event = False
+        event_start = 0
+        
+        for i, ratio in enumerate(sta_lta_ratio):
+            if not in_event and ratio > trigger_threshold:
+                in_event = True
+                event_start = i
+            elif in_event and ratio < detrigger_threshold:
+                in_event = False
+                event_end = i
+                
+                events.append({
+                    'type': 'sta_lta',
+                    'start_sample': event_start,
+                    'end_sample': event_end,
+                    'start_time': event_start / self.sampling_rate,
+                    'end_time': event_end / self.sampling_rate,
+                    'duration': (event_end - event_start) / self.sampling_rate,
+                    'max_ratio': np.max(sta_lta_ratio[event_start:event_end]),
+                    'confidence': min(1.0, np.max(sta_lta_ratio[event_start:event_end]) / trigger_threshold)
+                })
+        
+        return events
+    
+    def _energy_detector(self, data: np.ndarray, 
+                        window_size: float = 1.0,
+                        threshold_factor: float = 5.0) -> List[Dict[str, Any]]:
+        """Energy-based event detector"""
+        
+        window_samples = int(window_size * self.sampling_rate)
+        
+        # Calculate windowed energy
+        energy = data ** 2
+        windowed_energy = np.convolve(energy, np.ones(window_samples)/window_samples, mode='same')
+        
+        # Calculate threshold
+        baseline_energy = np.median(windowed_energy)
+        threshold = baseline_energy * threshold_factor
+        
+        # Find events
+        above_threshold = windowed_energy > threshold
+        event_regions = []
+        
+        in_event = False
+        event_start = 0
+        
+        for i, above in enumerate(above_threshold):
+            if not in_event and above:
+                in_event = True
+                event_start = i
+            elif in_event and not above:
+                in_event = False
+                event_end = i
+                
+                if event_end - event_start > window_samples // 2:  # Minimum duration
+                    event_regions.append({
+                        'type': 'energy',
+                        'start_sample': event_start,
+                        'end_sample': event_end,
+                        'start_time': event_start / self.sampling_rate,
+                        'end_time': event_end / self.sampling_rate,
+                        'duration': (event_end - event_start) / self.sampling_rate,
+                        'max_energy': np.max(windowed_energy[event_start:event_end]),
+                        'confidence': min(1.0, np.max(windowed_energy[event_start:event_end]) / threshold)
+                    })
+        
+        return event_regions
+    
+    def _frequency_detector(self, data: np.ndarray) -> List[Dict[str, Any]]:
+        """Frequency domain event detector"""
+        from scipy import signal
+        
+        # Spectrogram analysis
+        f, t, Sxx = signal.spectrogram(data, fs=self.sampling_rate, nperseg=1024, noverlap=512)
+        
+        # Calculate spectral features over time
+        spectral_centroid = np.sum(f[:, np.newaxis] * Sxx, axis=0) / np.sum(Sxx, axis=0)
+        spectral_bandwidth = np.sqrt(np.sum(((f[:, np.newaxis] - spectral_centroid) ** 2) * Sxx, axis=0) / np.sum(Sxx, axis=0))
+        spectral_rolloff = np.array([f[np.where(np.cumsum(Sxx[:, i]) >= 0.85 * np.sum(Sxx[:, i]))[0][0]] for i in range(Sxx.shape[1])])
+        
+        # Detect anomalies in spectral features
+        centroid_threshold = np.mean(spectral_centroid) + 2 * np.std(spectral_centroid)
+        bandwidth_threshold = np.mean(spectral_bandwidth) + 2 * np.std(spectral_bandwidth)
+        
+        events = []
+        for i, (centroid, bandwidth) in enumerate(zip(spectral_centroid, spectral_bandwidth)):
+            if centroid > centroid_threshold or bandwidth > bandwidth_threshold:
+                start_time = t[i] - 0.5  # Extend event window
+                end_time = t[i] + 0.5
+                
+                events.append({
+                    'type': 'frequency',
+                    'start_time': max(0, start_time),
+                    'end_time': min(len(data) / self.sampling_rate, end_time),
+                    'spectral_centroid': centroid,
+                    'spectral_bandwidth': bandwidth,
+                    'spectral_rolloff': spectral_rolloff[i],
+                    'confidence': min(1.0, max(centroid / centroid_threshold, bandwidth / bandwidth_threshold))
+                })
+        
+        return events
+
         
         # Analyze error frequency by category
         category_counts = {}

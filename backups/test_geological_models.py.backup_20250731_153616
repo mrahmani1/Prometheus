@@ -1,0 +1,4468 @@
+"""
+Unit tests for geological data models
+
+Tests all geological data structures, validation, and serialization/deserialization.
+"""
+
+import pytest
+import numpy as np
+from datetime import datetime, timedelta
+from typing import Dict, Any
+
+from models.geological import (
+    GeologicalLocation, SeismicEvent, DeformationMeasurement,
+    GeochemicalSample, ThermalMeasurement, MagmaReservoir,
+    CoordinateSystem, EventType, MeasurementType, SampleType, ThermalMethod
+)
+from models.validation import (
+    GeologicalDataValidator, ValidationError, ValidationLevel, ValidationCategory
+)
+
+
+class TestGeologicalLocation:
+    """Test GeologicalLocation data model"""
+    
+    def test_valid_location_creation(self):
+        """Test creating a valid geological location"""
+        location = GeologicalLocation(
+            latitude=45.5,
+            longitude=-122.3,
+            elevation=1000.0,
+            depth=500.0,
+            coordinate_system=CoordinateSystem.WGS84
+        )
+        
+        assert location.latitude == 45.5
+        assert location.longitude == -122.3
+        assert location.elevation == 1000.0
+        assert location.depth == 500.0
+        assert location.coordinate_system == CoordinateSystem.WGS84
+    
+    def test_invalid_latitude(self):
+        """Test validation of invalid latitude"""
+        with pytest.raises(ValueError, match="Latitude must be between -90 and 90"):
+            GeologicalLocation(latitude=95.0, longitude=0.0, elevation=0.0)
+    
+    def test_invalid_longitude(self):
+        """Test validation of invalid longitude"""
+        with pytest.raises(ValueError, match="Longitude must be between -180 and 180"):
+            GeologicalLocation(latitude=0.0, longitude=185.0, elevation=0.0)
+    
+    def test_negative_depth(self):
+        """Test validation of negative depth"""
+        with pytest.raises(ValueError, match="Depth must be positive"):
+            GeologicalLocation(latitude=0.0, longitude=0.0, elevation=0.0, depth=-100.0)
+    
+    def test_serialization(self):
+        """Test to_dict and from_dict methods"""
+        location = GeologicalLocation(
+            latitude=45.5,
+            longitude=-122.3,
+            elevation=1000.0,
+            depth=500.0,
+            uncertainty_horizontal=10.0,
+            uncertainty_vertical=5.0
+        )
+        
+        # Test serialization
+        data = location.to_dict()
+        expected_keys = {
+            'latitude', 'longitude', 'elevation', 'depth', 
+            'coordinate_system', 'uncertainty_horizontal', 'uncertainty_vertical'
+        }
+        assert set(data.keys()) == expected_keys
+        
+        # Test deserialization
+        restored_location = GeologicalLocation.from_dict(data)
+        assert restored_location.latitude == location.latitude
+        assert restored_location.longitude == location.longitude
+        assert restored_location.elevation == location.elevation
+        assert restored_location.depth == location.depth
+
+
+class TestSeismicEvent:
+    """Test SeismicEvent data model"""
+    
+    def create_valid_location(self) -> GeologicalLocation:
+        """Helper to create valid location"""
+        return GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0)
+    
+    def test_valid_seismic_event(self):
+        """Test creating a valid seismic event"""
+        location = self.create_valid_location()
+        event = SeismicEvent(
+            timestamp=datetime.utcnow(),
+            location=location,
+            magnitude=5.5,
+            depth=10.0,
+            event_type=EventType.EARTHQUAKE,
+            confidence=0.95
+        )
+        
+        assert event.magnitude == 5.5
+        assert event.depth == 10.0
+        assert event.event_type == EventType.EARTHQUAKE
+        assert event.confidence == 0.95
+    
+    def test_invalid_magnitude(self):
+        """Test validation of invalid magnitude"""
+        location = self.create_valid_location()
+        with pytest.raises(ValueError, match="Magnitude must be between -5.0 and 12.0"):
+            SeismicEvent(
+                timestamp=datetime.utcnow(),
+                location=location,
+                magnitude=15.0,
+                depth=10.0
+            )
+    
+    def test_invalid_depth(self):
+        """Test validation of invalid depth"""
+        location = self.create_valid_location()
+        with pytest.raises(ValueError, match="Depth must be between 0 and 800"):
+            SeismicEvent(
+                timestamp=datetime.utcnow(),
+                location=location,
+                magnitude=5.0,
+                depth=1000.0
+            )
+    
+    def test_invalid_confidence(self):
+        """Test validation of invalid confidence"""
+        location = self.create_valid_location()
+        with pytest.raises(ValueError, match="Confidence must be between 0 and 1"):
+            SeismicEvent(
+                timestamp=datetime.utcnow(),
+                location=location,
+                magnitude=5.0,
+                depth=10.0,
+                confidence=1.5
+            )
+    
+    def test_waveform_data_validation(self):
+        """Test waveform data validation"""
+        location = self.create_valid_location()
+        
+        # Valid 1D waveform
+        waveform = np.random.randn(1000)
+        event = SeismicEvent(
+            timestamp=datetime.utcnow(),
+            location=location,
+            magnitude=5.0,
+            depth=10.0,
+            waveform_data=waveform
+        )
+        assert event.waveform_data is not None
+        
+        # Invalid 2D waveform
+        with pytest.raises(ValueError, match="Waveform data must be 1-dimensional"):
+            SeismicEvent(
+                timestamp=datetime.utcnow(),
+                location=location,
+                magnitude=5.0,
+                depth=10.0,
+                waveform_
+class AdvancedPhysicsSimulator:
+    """Physics-Informed Neural Network for geological simulations"""
+    
+    def __init__(self, domain_size: Tuple[int, int, int] = (100, 100, 100)):
+        self.domain_size = domain_size
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.pinn_model = self._build_pinn_model()
+        self.optimizer = torch.optim.Adam(self.pinn_model.parameters(), lr=1e-3)
+        
+    def _build_pinn_model(self) -> nn.Module:
+        """Build Physics-Informed Neural Network"""
+        class PINNModel(nn.Module):
+            def __init__(self, input_dim=4, hidden_dim=128, output_dim=4):
+                super().__init__()
+                self.layers = nn.ModuleList([
+                    nn.Linear(input_dim, hidden_dim),
+                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(hidden_dim, output_dim)
+                ])
+                self.activation = nn.Tanh()
+                
+            def forward(self, x):
+                for i, layer in enumerate(self.layers[:-1]):
+                    x = self.activation(layer(x))
+                return self.layers[-1](x)
+        
+        return PINNModel().to(self.device)
+    
+    def solve_heat_equation_3d(self, thermal_conductivity: float = 2.5,
+                              heat_capacity: float = 1000.0,
+                              density: float = 2700.0) -> Dict[str, np.ndarray]:
+        """Solve 3D heat equation with geological parameters"""
+        
+        # Generate spatial-temporal grid
+        x = torch.linspace(0, 1, self.domain_size[0])
+        y = torch.linspace(0, 1, self.domain_size[1])
+        z = torch.linspace(0, 1, self.domain_size[2])
+        t = torch.linspace(0, 1, 100)
+        
+        X, Y, Z, T = torch.meshgrid(x, y, z, t, indexing='ij')
+        coords = torch.stack([X.flatten(), Y.flatten(), Z.flatten(), T.flatten()], dim=1)
+        coords = coords.to(self.device)
+        
+        # Training loop
+        for epoch in range(1000):
+            self.optimizer.zero_grad()
+            
+            # Forward pass
+            u_pred = self.pinn_model(coords)
+            
+            # Physics loss (heat equation)
+            u_t = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 3]
+            u_x = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 0]
+            u_y = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 1]
+            u_z = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 2]
+            
+            u_xx = torch.autograd.grad(u_x.sum(), coords, create_graph=True)[0][:, 0]
+            u_yy = torch.autograd.grad(u_y.sum(), coords, create_graph=True)[0][:, 1]
+            u_zz = torch.autograd.grad(u_z.sum(), coords, create_graph=True)[0][:, 2]
+            
+            alpha = thermal_conductivity / (density * heat_capacity)
+            physics_loss = torch.mean((u_t - alpha * (u_xx + u_yy + u_zz))**2)
+            
+            # Boundary conditions loss
+            boundary_loss = self._compute_boundary_loss(coords, u_pred)
+            
+            total_loss = physics_loss + boundary_loss
+            total_loss.backward()
+            self.optimizer.step()
+            
+            if epoch % 100 == 0:
+                logger.info(f"Epoch {epoch}, Loss: {total_loss.item():.6f}")
+        
+        # Generate solution
+        with torch.no_grad():
+            solution = self.pinn_model(coords).cpu().numpy()
+            
+        return {
+            'temperature_field': solution[:, 0].reshape(self.domain_size + (100,)),
+            'heat_flux_x': solution[:, 1].reshape(self.domain_size + (100,)),
+            'heat_flux_y': solution[:, 2].reshape(self.domain_size + (100,)),
+            'heat_flux_z': solution[:, 3].reshape(self.domain_size + (100,)),
+            'thermal_conductivity': thermal_conductivity,
+            'convergence_history': {'final_loss': total_loss.item()}
+        }
+    
+    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:
+        """Compute boundary conditions loss"""
+        # Simplified boundary conditions - can be extended
+        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \
+                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \
+                       (coords[:, 2] == 0) | (coords[:, 2] == 1)
+        
+        boundary_values = torch.zeros_like(u_pred[boundary_mask, 0])
+        return torch.mean((u_pred[boundary_mask, 0] - boundary_values)**2)
+randn(100, 3)
+            )
+    
+    def test_serialization_with_waveform(self):
+        """Test serialization with waveform data"""
+        location = self.create_valid_location()
+        waveform = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        
+        event = SeismicEvent(
+            timestamp=datetime(2023, 1, 1, 12, 0, 0),
+            location=location,
+            magnitude=5.0,
+            depth=10.0,
+            waveform_data=waveform,
+            event_id="test_event_001"
+        )
+        
+        # Test serialization
+        data = event.to_dict()
+        assert 'waveform_data' in data
+        assert data['waveform_data'] == [1.0, 2.0, 3.0, 4.0, 5.0]
+        
+        # Test deserialization
+        restored_event = SeismicEvent.from_dict(data)
+        assert np.array_equal(restored_event.waveform_data, waveform)
+        assert restored_event.event_id == "test_event_001"
+
+
+class TestDeformationMeasurement:
+    """Test DeformationMeasurement data model"""
+    
+    def create_valid_location(self) -> GeologicalLocation:
+        """Helper to create valid location"""
+        return GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0)
+    
+    def test_valid_deformation_measurement(self):
+        """Test creating a valid deformation measurement"""
+        location = self.create_valid_location()
+        displacement = np.array([0.01, 0.02, -0.005])  # meters
+        uncertainty = np.array([0.001, 0.001, 0.002])  # meters
+        
+        measurement = DeformationMeasurement(
+            timestamp=datetime.utcnow(),
+            location=location,
+            displacement_vector=displacement,
+            measurement_type=MeasurementType.GPS,
+            uncertainty=uncertainty
+        )
+        
+        assert np.array_equal(measurement.displacement_vector, displacement)
+        assert np.array_equal(measurement.uncertainty, uncertainty)
+        assert measurement.measurement_type == MeasurementType.GPS
+    
+    def test_invalid_displacement_dimensions(self):
+        """Test validation of displacement vector dimensions"""
+        location = self.create_valid_location()
+        
+        with pytest.raises(ValueError, match="Displacement vector must be 3-dimensional"):
+            DeformationMeasurement(
+                timestamp=datetime.utcnow(),
+                location=location,
+                displacement_vector=np.array([0.01, 0.02]),  # Only 2D
+                measurement_type=MeasurementType.GPS,
+                uncertainty=np.array([0.001, 0.001, 0.002])
+            )
+    
+    def test_invalid_uncertainty_dimensions(self):
+        """Test validation of uncertainty dimensions"""
+        location = self.create_valid_location()
+        
+        with pytest.raises(ValueError, match="Uncertainty must be 3-dimensional"):
+            DeformationMeasurement(
+                timestamp=datetime.utcnow(),
+                location=location,
+                displacement_vector=np.array([0.01, 0.02, -0.005]),
+                measurement_type=MeasurementType.GPS,
+                uncertainty=np.array([0.001, 0.001])  # Only 2D
+            )
+    
+    def test_negative_uncertainty(self):
+        """Test validation of negative uncertainty"""
+        location = self.create_valid_location()
+        
+        with pytest.raises(ValueError, match="Uncertainty values must be non-negative"):
+            DeformationMeasurement(
+                timestamp=datetime.utcnow(),
+                location=location,
+                displacement_vector=np.array([0.01, 0.02, -0.005]),
+                measurement_type=MeasurementType.GPS,
+                uncertainty=np.array([0.001, -0.001, 0.002])  # Negative uncertainty
+            )
+    
+    def test_large_displacement_warning(self):
+        """Test warning for large displacements"""
+        location = self.create_valid_location()
+        large_displacement = np.array([150.0, 160.0, -130.0])  # Very large displacement (>100m)
+        
+        with pytest.warns(UserWarning, match="Large displacement detected"):
+            DeformationMeasurement(
+                timestamp=datetime.utcnow(),
+                location=location,
+                displacement_vector=large_displacement,
+                measurement_type=MeasurementType.GPS,
+                uncertainty=np.array([0.1, 0.1, 0.1])
+            )
+    
+    def test_serialization_with_velocity(self):
+        """Test serialization with velocity data"""
+        location = self.create_valid_location()
+        displacement = np.array([0.01, 0.02, -0.005])
+        uncertainty = np.array([0.001, 0.001, 0.002])
+        velocity = np.array([0.001, 0.002, -0.0005])  # m/year
+        
+        measurement = DeformationMeasurement(
+            timestamp=datetime(2023, 1, 1, 12, 0, 0),
+            location=location,
+            displacement_vector=displacement,
+            measurement_type=MeasurementType.INSAR,
+            uncertainty=uncertainty,
+            velocity_vector=velocity,
+            station_id="GPS001"
+        )
+        
+        # Test serialization
+        data = measurement.to_dict()
+        assert 'velocity_vector' in data
+        assert data['velocity_vector'] == velocity.tolist()
+        
+        # Test deserialization
+        restored_measurement = DeformationMeasurement.from_dict(data)
+        assert np.array_equal(restored_measurement.velocity_vector, velocity)
+        assert restored_measurement.station_id == "GPS001"
+
+
+class TestGeochemicalSample:
+    """Test GeochemicalSample data model"""
+    
+    def create_valid_location(self) -> GeologicalLocation:
+        """Helper to create valid location"""
+        return GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0)
+    
+    def create_valid_composition(self) -> Dict[str, float]:
+        """Helper to create valid rock composition"""
+        return {
+            "SiO2": 65.0,
+            "Al2O3": 15.0,
+            "Fe2O3": 3.0,
+            "FeO": 2.0,
+            "MgO": 2.5,
+            "CaO": 4.0,
+            "Na2O": 3.5,
+            "K2O": 2.0,
+            "TiO2": 0.8,
+            "P2O5": 0.2
+        }
+    
+    def test_valid_geochemical_sample(self):
+        """Test creating a valid geochemical sample"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        sample = GeochemicalSample(
+            timestamp=datetime.utcnow(),
+            location=location,
+            
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.ROCK,
+            composition=composition,
+            temperature=25.0,
+            ph=7.0
+        )
+        
+        assert sample.
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+ SampleType.ROCK
+        assert sample.composition == composition
+        assert sample.temperature == 25.0
+        assert sample.ph == 7.0
+    
+    def test_negative_concentration(self):
+        """Test validation of negative concentrations"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        composition["SiO2"] = -10.0  # Invalid negative concentration
+        
+        with pytest.raises(ValueError, match="Concentration for SiO2 must be non-negative"):
+            GeochemicalSample(
+                timestamp=datetime.utcnow(),
+                location=location,
+                
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.ROCK,
+                composition=composition
+            )
+    
+    def test_invalid_temperature(self):
+        """Test validation of invalid temperature"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        with pytest.raises(ValueError, match="Temperature must be between -273.15°C and 2000°C"):
+            GeochemicalSample(
+                timestamp=datetime.utcnow(),
+                location=location,
+                
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.ROCK,
+                composition=composition,
+                temperature=-300.0  # Below absolute zero
+            )
+    
+    def test_invalid_ph(self):
+        """Test validation of invalid pH"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        with pytest.raises(ValueError, match="pH must be between 0 and 14"):
+            GeochemicalSample(
+                timestamp=datetime.utcnow(),
+                location=location,
+                
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.WATER,
+                composition=composition,
+                ph=15.0  # Invalid pH
+            )
+    
+    def test_invalid_isotope_ratio(self):
+        """Test validation of invalid isotope ratios"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        with pytest.raises(ValueError, match="Isotope ratio Sr87_Sr86 must be positive"):
+            GeochemicalSample(
+                timestamp=datetime.utcnow(),
+                location=location,
+                
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.ROCK,
+                composition=composition,
+                isotope_ratios={"Sr87_Sr86": -0.5}  # Invalid negative ratio
+            )
+    
+    def test_serialization_complete(self):
+        """Test complete serialization with all fields"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        isotope_ratios = {"Sr87_Sr86": 0.7045, "Nd143_Nd144": 0.5126}
+        
+        sample = GeochemicalSample(
+            timestamp=datetime(2023, 1, 1, 12, 0, 0),
+            location=location,
+            
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.LAVA,
+            composition=composition,
+            isotope_ratios=isotope_ratios,
+            temperature=1200.0,
+            pressure=1e5,
+            ph=None,
+            
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def __init__(self):
+        self.processors = {
+            'time_series': TimeSeriesProcessor(),
+            'spatial': SpatialDataProcessor(),
+            'spectral': SpectralAnalysisProcessor(),
+            'statistical': StatisticalProcessor(),
+            'ml_preprocessing': MLPreprocessor()
+        }
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', str(uuid.uuid4())),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps based on configuration
+        for step_name, step_config in processing_config.items():
+            if step_name in self.processors:
+                try:
+                    processor = self.processors[step_name]
+                    processed_data, step_results = processor.process(data, step_config)
+                    
+                    data = processed_data
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'success',
+                        'results': step_results,
+                        'output_size': len(data) if isinstance(data, list) else 'N/A'
+                    })
+                    
+                except Exception as e:
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+
+class TimeSeriesProcessor:
+    """Advanced time series processing for geological data"""
+    
+    def process(self, data: Any, config: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Process time series data"""
+        
+        if not isinstance(data, (list, np.ndarray)):
+            return data, {'error': 'Invalid data type for time series processing'}
+        
+        data_array = np.array(data)
+        results = {}
+        
+        # Detrending
+        if config.get('detrend', False):
+            from scipy import signal
+            data_array = signal.detrend(data_array, type=config.get('detrend_type', 'linear'))
+            results['detrended'] = True
+        
+        # Filtering
+        if 'filter' in config:
+            filter_config = config['filter']
+            data_array = self._apply_filter(data_array, filter_config)
+            results['filtered'] = filter_config
+        
+        # Resampling
+        if 'resample' in config:
+            resample_config = config['resample']
+            data_array = self._resample_data(data_array, resample_config)
+            results['resampled'] = resample_config
+        
+        # Anomaly detection
+        if config.get('detect_anomalies', False):
+            anomalies = self._detect_anomalies(data_array, config.get('anomaly_config', {}))
+            results['anomalies'] = anomalies
+        
+        return data_array.tolist(), results
+    
+    def _apply_filter(self, data: np.ndarray, filter_config: Dict[str, Any]) -> np.ndarray:
+        """Apply digital filter to data"""
+        from scipy import signal
+        
+        filter_type = filter_config.get('type', 'bandpass')
+        sampling_rate = filter_config.get('sampling_rate', 100.0)
+        
+        if filter_type == 'bandpass':
+            low_freq = filter_config.get('low_freq', 1.0)
+            high_freq = filter_config.get('high_freq', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                [low_freq/nyquist, high_freq/nyquist],
+                btype='band'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        elif filter_type == 'lowpass':
+            cutoff = filter_config.get('cutoff', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                cutoff/nyquist,
+                btype='low'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        return data
+    
+    def _resample_data(self, data: np.ndarray, resample_config: Dict[str, Any]) -> np.ndarray:
+        """Resample data to different sampling rate"""
+        from scipy import signal
+        
+        original_rate = resample_config.get('original_rate', 100.0)
+        target_rate = resample_config.get('target_rate', 50.0)
+        
+        if original_rate != target_rate:
+            num_samples = int(len(data) * target_rate / original_rate)
+            return signal.resample(data, num_samples)
+        
+        return data
+    
+    def _detect_anomalies(self, data: np.ndarray, anomaly_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect anomalies in time series data"""
+        
+        method = anomaly_config.get('method', 'statistical')
+        
+        if method == 'statistical':
+            # Statistical outlier detection
+            mean_val = np.mean(data)
+            std_val = np.std(data)
+            threshold = anomaly_config.get('threshold', 3.0)
+            
+            anomaly_indices = np.where(np.abs(data - mean_val) > threshold * std_val)[0]
+            
+            return {
+                'method': 'statistical',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'threshold_used': threshold
+            }
+        
+        elif method == 'isolation_forest':
+            # Machine learning based anomaly detection
+            from sklearn.ensemble import IsolationForest
+            
+            contamination = anomaly_config.get('contamination', 0.1)
+            clf = IsolationForest(contamination=contamination, random_state=42)
+            
+            data_reshaped = data.reshape(-1, 1)
+            anomaly_labels = clf.fit_predict(data_reshaped)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            return {
+                'method': 'isolation_forest',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'contamination': contamination
+            }
+        
+        return {'method': 'none', 'anomaly_count': 0}
+"SAMPLE_001",
+            collection_method="direct_sampling"
+        )
+        
+        # Test serialization
+        data = sample.to_dict()
+        assert data['
+class AdvancedDataProcessor:
+    """Advanced data processing pipeline for geological datasets"""
+    
+    def __init__(self):
+        self.processors = {
+            'time_series': TimeSeriesProcessor(),
+            'spatial': SpatialDataProcessor(),
+            'spectral': SpectralAnalysisProcessor(),
+            'statistical': StatisticalProcessor(),
+            'ml_preprocessing': MLPreprocessor()
+        }
+    
+    def process_geological_dataset(self, dataset: Dict[str, Any], 
+                                 processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process geological dataset with configurable pipeline"""
+        
+        results = {
+            'dataset_id': dataset.get('id', str(uuid.uuid4())),
+            'processing_timestamp': datetime.now().isoformat(),
+            'original_size': len(dataset.get('data', [])),
+            'processing_steps': []
+        }
+        
+        data = dataset['data']
+        
+        # Apply processing steps based on configuration
+        for step_name, step_config in processing_config.items():
+            if step_name in self.processors:
+                try:
+                    processor = self.processors[step_name]
+                    processed_data, step_results = processor.process(data, step_config)
+                    
+                    data = processed_data
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'success',
+                        'results': step_results,
+                        'output_size': len(data) if isinstance(data, list) else 'N/A'
+                    })
+                    
+                except Exception as e:
+                    results['processing_steps'].append({
+                        'step': step_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+        
+        results['processed_data'] = data
+        results['final_size'] = len(data) if isinstance(data, list) else 'N/A'
+        
+        return results
+
+class TimeSeriesProcessor:
+    """Advanced time series processing for geological data"""
+    
+    def process(self, data: Any, config: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Process time series data"""
+        
+        if not isinstance(data, (list, np.ndarray)):
+            return data, {'error': 'Invalid data type for time series processing'}
+        
+        data_array = np.array(data)
+        results = {}
+        
+        # Detrending
+        if config.get('detrend', False):
+            from scipy import signal
+            data_array = signal.detrend(data_array, type=config.get('detrend_type', 'linear'))
+            results['detrended'] = True
+        
+        # Filtering
+        if 'filter' in config:
+            filter_config = config['filter']
+            data_array = self._apply_filter(data_array, filter_config)
+            results['filtered'] = filter_config
+        
+        # Resampling
+        if 'resample' in config:
+            resample_config = config['resample']
+            data_array = self._resample_data(data_array, resample_config)
+            results['resampled'] = resample_config
+        
+        # Anomaly detection
+        if config.get('detect_anomalies', False):
+            anomalies = self._detect_anomalies(data_array, config.get('anomaly_config', {}))
+            results['anomalies'] = anomalies
+        
+        return data_array.tolist(), results
+    
+    def _apply_filter(self, data: np.ndarray, filter_config: Dict[str, Any]) -> np.ndarray:
+        """Apply digital filter to data"""
+        from scipy import signal
+        
+        filter_type = filter_config.get('type', 'bandpass')
+        sampling_rate = filter_config.get('sampling_rate', 100.0)
+        
+        if filter_type == 'bandpass':
+            low_freq = filter_config.get('low_freq', 1.0)
+            high_freq = filter_config.get('high_freq', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                [low_freq/nyquist, high_freq/nyquist],
+                btype='band'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        elif filter_type == 'lowpass':
+            cutoff = filter_config.get('cutoff', 25.0)
+            nyquist = sampling_rate / 2
+            
+            b, a = signal.butter(
+                filter_config.get('order', 4),
+                cutoff/nyquist,
+                btype='low'
+            )
+            return signal.filtfilt(b, a, data)
+        
+        return data
+    
+    def _resample_data(self, data: np.ndarray, resample_config: Dict[str, Any]) -> np.ndarray:
+        """Resample data to different sampling rate"""
+        from scipy import signal
+        
+        original_rate = resample_config.get('original_rate', 100.0)
+        target_rate = resample_config.get('target_rate', 50.0)
+        
+        if original_rate != target_rate:
+            num_samples = int(len(data) * target_rate / original_rate)
+            return signal.resample(data, num_samples)
+        
+        return data
+    
+    def _detect_anomalies(self, data: np.ndarray, anomaly_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect anomalies in time series data"""
+        
+        method = anomaly_config.get('method', 'statistical')
+        
+        if method == 'statistical':
+            # Statistical outlier detection
+            mean_val = np.mean(data)
+            std_val = np.std(data)
+            threshold = anomaly_config.get('threshold', 3.0)
+            
+            anomaly_indices = np.where(np.abs(data - mean_val) > threshold * std_val)[0]
+            
+            return {
+                'method': 'statistical',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'threshold_used': threshold
+            }
+        
+        elif method == 'isolation_forest':
+            # Machine learning based anomaly detection
+            from sklearn.ensemble import IsolationForest
+            
+            contamination = anomaly_config.get('contamination', 0.1)
+            clf = IsolationForest(contamination=contamination, random_state=42)
+            
+            data_reshaped = data.reshape(-1, 1)
+            anomaly_labels = clf.fit_predict(data_reshaped)
+            anomaly_indices = np.where(anomaly_labels == -1)[0]
+            
+            return {
+                'method': 'isolation_forest',
+                'anomaly_count': len(anomaly_indices),
+                'anomaly_indices': anomaly_indices.tolist(),
+                'contamination': contamination
+            }
+        
+        return {'method': 'none', 'anomaly_count': 0}
+ "SAMPLE_001"
+        assert data['isotope_ratios'] == isotope_ratios
+        
+        # Test deserialization
+        restored_sample = GeochemicalSample.from_dict(data)
+        assert restored_sample.
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+ "SAMPLE_001"
+        assert restored_sample.isotope_ratios == isotope_ratios
+        assert restored_sample.temperature == 1200.0
+
+
+class TestThermalMeasurement:
+    """Test ThermalMeasurement data model"""
+    
+    def create_valid_location(self) -> GeologicalLocation:
+        """Helper to create valid location"""
+        return GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0)
+    
+    def test_valid_thermal_measurement(self):
+        """Test creating a valid thermal measurement"""
+        location = self.create_valid_location()
+        
+        measurement = ThermalMeasurement(
+            timestamp=datetime.utcnow(),
+            location=location,
+            temperature=25.0,
+            measurement_method=ThermalMethod.SATELLITE,
+            spatial_resolution=30.0,
+            uncertainty=1.0
+        )
+        
+        assert measurement.temperature == 25.0
+        assert measurement.measurement_method == ThermalMethod.SATELLITE
+        assert measurement.spatial_resolution == 30.0
+        assert measurement.uncertainty == 1.0
+    
+    def test_invalid_temperature_range(self):
+        """Test validation of temperature range"""
+        location = self.create_valid_location()
+        
+        with pytest.raises(ValueError, match="Temperature must be between -273.15°C and 2000°C"):
+            ThermalMeasurement(
+                timestamp=datetime.utcnow(),
+                location=location,
+                temperature=-300.0,  # Below absolute zero
+                measurement_method=ThermalMethod.SATELLITE,
+                spatial_resolution=30.0,
+                uncertainty=1.0
+            )
+    
+    def test_invalid_spatial_resolution(self):
+        """Test validation of spatial resolution"""
+        location = self.create_valid_location()
+        
+        with pytest.raises(ValueError, match="Spatial resolution must be positive"):
+            ThermalMeasurement(
+                timestamp=datetime.utcnow(),
+                location=location,
+                temperature=25.0,
+                measurement_method=ThermalMethod.SATELLITE,
+                spatial_resolution=-10.0,  # Negative resolution
+                uncertainty=1.0
+            )
+    
+    def test_invalid_emissivity(self):
+        """Test validation of emissivity range"""
+        location = self.create_valid_location()
+        
+        with pytest.raises(ValueError, match="Emissivity must be between 0 and 1"):
+            ThermalMeasurement(
+                timestamp=datetime.utcnow(),
+                location=location,
+                temperature=25.0,
+                measurement_method=ThermalMethod.THERMAL_CAMERA,
+                spatial_resolution=1.0,
+                uncertainty=0.5,
+                emissivity=1.5  # Invalid emissivity
+            )
+
+
+class TestMagmaReservoir:
+    """Test MagmaReservoir data model"""
+    
+    def create_valid_location(self) -> GeologicalLocation:
+        """Helper to create valid location"""
+        return GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0, depth=5000.0)
+    
+    def create_valid_composition(self) -> GeochemicalSample:
+        """Helper to create valid magma composition"""
+        location = self.create_valid_location()
+        composition = {
+            "SiO2": 60.0,
+            "Al2O3": 18.0,
+            "Fe2O3": 2.0,
+            "FeO": 3.0,
+            "MgO": 3.0,
+            "CaO": 6.0,
+            "Na2O": 4.0,
+            "K2O": 2.5,
+            "TiO2": 1.0,
+            "P2O5": 0.5
+        }
+        
+        return GeochemicalSample(
+            timestamp=datetime.utcnow(),
+            location=location,
+            
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.LAVA,
+            composition=composition,
+            temperature=1000.0
+        )
+    
+    def test_valid_magma_reservoir(self):
+        """Test creating a valid magma reservoir"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        volatile_content = {"H2O": 3.0, "CO2": 0.5, "SO2": 0.1}
+        
+        reservoir = MagmaReservoir(
+            location=location,
+            volume=1e9,  # 1 km³
+            composition=composition,
+            temperature=1000.0,
+            pressure=2e8,  # 200 MPa
+            crystallinity=0.3,
+            volatile_content=volatile_content
+        )
+        
+        assert reservoir.volume == 1e9
+        assert reservoir.temperature == 1000.0
+        assert reservoir.crystallinity == 0.3
+        assert reservoir.volatile_content == volatile_content
+    
+    def test_invalid_volume(self):
+        """Test validation of invalid volume"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        with pytest.raises(ValueError, match="Volume must be positive"):
+            MagmaReservoir(
+                location=location,
+                volume=-1e6,  # Negative volume
+                composition=composition,
+                temperature=1000.0,
+                pressure=2e8,
+                crystallinity=0.3,
+                volatile_content={"H2O": 3.0}
+            )
+    
+    def test_invalid_temperature_range(self):
+        """Test validation of magma temperature range"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        with pytest.raises(ValueError, match="Magma temperature must be between 600°C and 1400°C"):
+            MagmaReservoir(
+                location=location,
+                volume=1e9,
+                composition=composition,
+                temperature=500.0,  # Too cold for magma
+                pressure=2e8,
+                crystallinity=0.3,
+                volatile_content={"H2O": 3.0}
+            )
+    
+    def test_invalid_crystallinity(self):
+        """Test validation of crystallinity range"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        with pytest.raises(ValueError, match="Crystallinity must be between 0 and 1"):
+            MagmaReservoir(
+                location=location,
+                volume=1e9,
+                composition=composition,
+                temperature=1000.0,
+                pressure=2e8,
+                crystallinity=1.5,  # Invalid crystallinity
+                volatile_content={"H2O": 3.0}
+            )
+    
+    def test_invalid_depth_range(self):
+        """Test validation of depth range"""
+        location = self.create_valid_location()
+        composition = self.create_valid_composition()
+        
+        with pytest.raises(ValueError, match="Minimum depth must be less than maximum depth"):
+            MagmaReservoir(
+                location=location,
+                volume=1e9,
+                composition=composition,
+                temperature=1000.0,
+                pressure=2e8,
+                crystallinity=0.3,
+                volatile_content={"H2O": 3.0},
+                depth_range=[10000.0, 5000.0]  # Min > Max
+            )
+
+
+class TestGeologicalDataValidator:
+    """Test GeologicalDataValidator"""
+    
+    def setup_method(self):
+        """Set up validator for each test"""
+        self.validator = GeologicalDataValidator()
+    
+    def create_valid_location(self) -> GeologicalLocation:
+        """Helper to create valid location"""
+        return GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0)
+    
+    def test_validate_valid_location(self):
+        """Test validation of valid location"""
+        location = self.create_valid_location()
+        result = self.validator.validate_geological_location(location)
+        
+        assert result.is_valid
+        assert result.errors_count == 0
+    
+    def test_validate_invalid_location(self):
+        """Test validation of invalid location"""
+        # Test that invalid coordinates are caught during creation
+        with pytest.raises(ValueError, match="Latitude must be between -90 and 90"):
+            GeologicalLocation(latitude=95.0, longitude=0.0, elevation=0.0)
+        
+        with pytest.raises(ValueError, match="Longitude must be between -180 and 180"):
+            GeologicalLocation(latitude=0.0, longitude=185.0, elevation=0.0)
+    
+    def test_validate_seismic_event_warnings(self):
+        """Test seismic event validation with warnings"""
+        location = self.create_valid_location()
+        
+        # Create event with unusual magnitude for type
+        event = SeismicEvent(
+            timestamp=datetime.utcnow(),
+            location=location,
+            magnitude=9.0,  # Very large for volcanic event
+            depth=5.0,
+            event_type=EventType.VOLCANIC
+        )
+        
+        result = self.validator.validate_seismic_event(event)
+        
+        # Should be valid but have warnings
+        assert result.is_valid
+        assert result.warnings_count > 0
+        
+        # Check for magnitude warning
+        magnitude_warnings = [
+            issue for issue in result.issues 
+            if issue.field == "magnitude" and issue.level == ValidationLevel.WARNING
+        ]
+        assert len(magnitude_warnings) > 0
+    
+    def test_validate_geochemical_sample_closure(self):
+        """Test geochemical sample validation with closure check"""
+        location = self.create_valid_location()
+        
+        # Create composition that doesn't sum to 100%
+        composition = {
+            "SiO2": 50.0,
+            "Al2O3": 15.0,
+            "Fe2O3": 5.0,
+            "MgO": 10.0,
+            "CaO": 8.0,
+            "Na2O": 3.0,
+            "K2O": 2.0
+            # Total = 93%, should trigger warning
+        }
+        
+        sample = GeochemicalSample(
+            timestamp=datetime.utcnow(),
+            location=location,
+            
+class AdvancedGeochemicalAnalyzer:
+    """Advanced geochemical analysis with machine learning and thermodynamic modeling"""
+    
+    def __init__(self):
+        self.element_database = self._load_element_database()
+        self.mineral_database = self._load_mineral_database()
+        self.ml_models = self._initialize_ml_models()
+        
+    def _load_element_database(self) -> Dict[str, Dict[str, float]]:
+        """Load comprehensive element property database"""
+        return {
+            'Si': {'atomic_mass': 28.0855, 'ionic_radius': 0.40, 'electronegativity': 1.90, 'oxidation_states': [4, -4]},
+            'Al': {'atomic_mass': 26.9815, 'ionic_radius': 0.535, 'electronegativity': 1.61, 'oxidation_states': [3]},
+            'Fe': {'atomic_mass': 55.845, 'ionic_radius': 0.645, 'electronegativity': 1.83, 'oxidation_states': [2, 3]},
+            'Mg': {'atomic_mass': 24.305, 'ionic_radius': 0.72, 'electronegativity': 1.31, 'oxidation_states': [2]},
+            'Ca': {'atomic_mass': 40.078, 'ionic_radius': 1.00, 'electronegativity': 1.00, 'oxidation_states': [2]},
+            'Na': {'atomic_mass': 22.990, 'ionic_radius': 1.02, 'electronegativity': 0.93, 'oxidation_states': [1]},
+            'K': {'atomic_mass': 39.098, 'ionic_radius': 1.38, 'electronegativity': 0.82, 'oxidation_states': [1]},
+            'Ti': {'atomic_mass': 47.867, 'ionic_radius': 0.605, 'electronegativity': 1.54, 'oxidation_states': [4, 3]},
+            'Mn': {'atomic_mass': 54.938, 'ionic_radius': 0.67, 'electronegativity': 1.55, 'oxidation_states': [2, 3, 4, 7]},
+            'P': {'atomic_mass': 30.974, 'ionic_radius': 0.44, 'electronegativity': 2.19, 'oxidation_states': [5, 3, -3]}
+        }
+    
+    def _load_mineral_database(self) -> Dict[str, Dict[str, Any]]:
+        """Load mineral composition and stability database"""
+        return {
+            'quartz': {
+                'formula': 'SiO2',
+                'composition': {'Si': 1, 'O': 2},
+                'density': 2.65,
+                'hardness': 7,
+                'stability_temp': 573.0,  # Alpha-beta transition
+                'formation_pressure': 1.0
+            },
+            'feldspar': {
+                'formula': 'KAlSi3O8',
+                'composition': {'K': 1, 'Al': 1, 'Si': 3, 'O': 8},
+                'density': 2.56,
+                'hardness': 6,
+                'stability_temp': 1150.0,
+                'formation_pressure': 1.0
+            },
+            'olivine': {
+                'formula': '(Mg,Fe)2SiO4',
+                'composition': {'Mg': 1.5, 'Fe': 0.5, 'Si': 1, 'O': 4},
+                'density': 3.3,
+                'hardness': 6.5,
+                'stability_temp': 1890.0,
+                'formation_pressure': 1.0
+            },
+            'pyroxene': {
+                'formula': '(Ca,Mg,Fe)SiO3',
+                'composition': {'Ca': 0.5, 'Mg': 0.8, 'Fe': 0.7, 'Si': 1, 'O': 3},
+                'density': 3.4,
+                'hardness': 6,
+                'stability_temp': 1200.0,
+                'formation_pressure': 1.0
+            }
+        }
+    
+    def _initialize_ml_models(self) -> Dict[str, Any]:
+        """Initialize machine learning models for geochemical analysis"""
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
+        from sklearn.neural_network import MLPRegressor
+        
+        return {
+            'composition_predictor': RandomForestRegressor(n_estimators=100, random_state=42),
+            'rock_classifier': GradientBoostingClassifier(n_estimators=100, random_state=42),
+            'temperature_estimator': MLPRegressor(hidden_layer_sizes=(100, 50), random_state=42),
+            'pressure_estimator': RandomForestRegressor(n_estimators=100, random_state=42)
+        }
+    
+    def analyze_rock_composition(self, composition: Dict[str, float], 
+                               temperature: float = 1200.0,
+                               pressure: float = 1.0) -> Dict[str, Any]:
+        """Comprehensive rock composition analysis"""
+        
+        # Normalize composition to 100%
+        total = sum(composition.values())
+        normalized_comp = {element: (value/total)*100 for element, value in composition.items()}
+        
+        # Calculate derived parameters
+        analysis_results = {
+            'normalized_composition': normalized_comp,
+            'rock_classification': self._classify_rock_type(normalized_comp),
+            'mineral_assemblage': self._predict_mineral_assemblage(normalized_comp, temperature, pressure),
+            'geochemical_indices': self._calculate_geochemical_indices(normalized_comp),
+            'thermodynamic_properties': self._calculate_thermodynamic_properties(normalized_comp, temperature, pressure),
+            'trace_element_patterns': self._analyze_trace_elements(composition),
+            'alteration_assessment': self._assess_alteration(normalized_comp),
+            'petrogenetic_indicators': self._calculate_petrogenetic_indicators(normalized_comp)
+        }
+        
+        return analysis_results
+    
+    def _classify_rock_type(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Classify rock type based on composition"""
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        
+        # Total alkalis
+        alkalis = na2o + k2o
+        
+        # Classification logic
+        if sio2 > 63:
+            if alkalis > 7:
+                rock_type = 'alkaline_felsic'
+            else:
+                rock_type = 'calc_alkaline_felsic'
+        elif sio2 > 52:
+            if mgo > 6:
+                rock_type = 'intermediate_mafic'
+            else:
+                rock_type = 'intermediate'
+        else:
+            if mgo > 12:
+                rock_type = 'ultramafic'
+            else:
+                rock_type = 'mafic'
+        
+        # Tectonic setting inference
+        if (k2o/na2o) > 0.5 and sio2 > 60:
+            tectonic_setting = 'continental_arc'
+        elif alkalis < 3 and mgo > 8:
+            tectonic_setting = 'mid_ocean_ridge'
+        elif alkalis > 5:
+            tectonic_setting = 'within_plate'
+        else:
+            tectonic_setting = 'island_arc'
+        
+        return {
+            'primary_type': rock_type,
+            'silica_content': sio2,
+            'alkali_content': alkalis,
+            'mg_number': (mgo / (mgo + fe2o3 + 0.1)) * 100,
+            'tectonic_setting': tectonic_setting,
+            'confidence': 0.85  # Would be calculated from model uncertainty
+        }
+    
+    def _predict_mineral_assemblage(self, composition: Dict[str, float], 
+                                  temperature: float, pressure: float) -> Dict[str, Any]:
+        """Predict stable mineral assemblage using thermodynamic modeling"""
+        
+        # Simplified thermodynamic calculation
+        stable_minerals = []
+        mineral_proportions = {}
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        
+        # Quartz stability
+        if sio2 > 60:
+            stable_minerals.append('quartz')
+            mineral_proportions['quartz'] = min(40, (sio2 - 60) * 2)
+        
+        # Feldspar stability
+        if al2o3 > 10:
+            stable_minerals.append('feldspar')
+            mineral_proportions['feldspar'] = min(50, al2o3 * 3)
+        
+        # Olivine stability (high temperature, low silica)
+        if temperature > 1000 and sio2 < 50 and mgo > 5:
+            stable_minerals.append('olivine')
+            mineral_proportions['olivine'] = min(30, mgo * 4)
+        
+        # Pyroxene stability
+        if temperature > 800 and (cao > 5 or mgo > 3):
+            stable_minerals.append('pyroxene')
+            mineral_proportions['pyroxene'] = min(35, (cao + mgo) * 2)
+        
+        # Normalize proportions
+        total_prop = sum(mineral_proportions.values())
+        if total_prop > 0:
+            mineral_proportions = {k: (v/total_prop)*100 for k, v in mineral_proportions.items()}
+        
+        return {
+            'stable_minerals': stable_minerals,
+            'mineral_proportions': mineral_proportions,
+            'crystallization_sequence': self._determine_crystallization_sequence(temperature, composition),
+            'phase_diagram_position': {
+                'temperature': temperature,
+                'pressure': pressure,
+                'stability_field': 'intermediate' if 800 < temperature < 1200 else 'extreme'
+            }
+        }
+    
+    def _calculate_geochemical_indices(self, composition: Dict[str, float]) -> Dict[str, float]:
+        """Calculate various geochemical indices"""
+        
+        sio2 = composition.get('SiO2', 0)
+        al2o3 = composition.get('Al2O3', 0)
+        fe2o3 = composition.get('Fe2O3', 0) + composition.get('FeO', 0)
+        mgo = composition.get('MgO', 0)
+        cao = composition.get('CaO', 0)
+        na2o = composition.get('Na2O', 0)
+        k2o = composition.get('K2O', 0)
+        tio2 = composition.get('TiO2', 0)
+        
+        indices = {}
+        
+        # Differentiation index
+        indices['differentiation_index'] = sio2 + na2o + k2o
+        
+        # Solidification index
+        indices['solidification_index'] = 100 * mgo / (mgo + fe2o3 + na2o + k2o)
+        
+        # Alumina saturation index
+        molecular_al2o3 = al2o3 / 101.96
+        molecular_cao = cao / 56.08
+        molecular_na2o = na2o / 61.98
+        molecular_k2o = k2o / 94.20
+        
+        indices['alumina_saturation'] = molecular_al2o3 / (molecular_cao + molecular_na2o + molecular_k2o)
+        
+        # Alkali-lime index
+        indices['alkali_lime_index'] = (na2o + k2o) - cao
+        
+        # Iron enrichment index
+        indices['iron_enrichment'] = fe2o3 / (fe2o3 + mgo)
+        
+        # Titanium enrichment
+        indices['titanium_enrichment'] = tio2
+        
+        return indices
+    
+    def _calculate_thermodynamic_properties(self, composition: Dict[str, float],
+                                          temperature: float, pressure: float) -> Dict[str, float]:
+        """Calculate thermodynamic properties"""
+        
+        # Simplified thermodynamic calculations
+        # In practice, would use MELTS or similar thermodynamic software
+        
+        properties = {}
+        
+        # Estimate viscosity (simplified Arrhenius model)
+        sio2 = composition.get('SiO2', 50)
+        al2o3 = composition.get('Al2O3', 15)
+        
+        # Viscosity increases with SiO2 and Al2O3, decreases with temperature
+        log_viscosity = (sio2 * 0.1 + al2o3 * 0.05) - (temperature - 1000) * 0.001
+        properties['viscosity_log_pa_s'] = log_viscosity
+        
+        # Estimate density (simplified mixing model)
+        density_components = {
+            'SiO2': 2.65, 'Al2O3': 3.95, 'Fe2O3': 5.24, 'FeO': 5.87,
+            'MgO': 3.58, 'CaO': 3.34, 'Na2O': 2.27, 'K2O': 2.32, 'TiO2': 4.23
+        }
+        
+        total_density = 0
+        total_weight = 0
+        for oxide, weight in composition.items():
+            if oxide in density_components:
+                total_density += weight * density_components[oxide]
+                total_weight += weight
+        
+        properties['density_g_cm3'] = total_density / (total_weight + 1e-8)
+        
+        # Estimate liquidus temperature
+        # Simplified model based on composition
+        base_liquidus = 1200  # Base temperature in Celsius
+        sio2_effect = (sio2 - 50) * 5  # SiO2 increases liquidus
+        mgo_effect = composition.get('MgO', 0) * 10  # MgO increases liquidus
+        alkali_effect = -(composition.get('Na2O', 0) + composition.get('K2O', 0)) * 8  # Alkalis decrease liquidus
+        
+        properties['liquidus_temperature_c'] = base_liquidus + sio2_effect + mgo_effect + alkali_effect
+        
+        # Heat capacity (simplified)
+        properties['heat_capacity_j_mol_k'] = 80 + 0.02 * temperature  # Simplified Cp model
+        
+        return properties
+    
+    def _analyze_trace_elements(self, composition: Dict[str, float]) -> Dict[str, Any]:
+        """Analyze trace element patterns"""
+        
+        # Extract trace elements (typically < 1000 ppm)
+        trace_elements = {}
+        for element, concentration in composition.items():
+            if concentration < 0.1:  # Less than 0.1 wt% = trace element
+                trace_elements[element] = concentration * 10000  # Convert to ppm
+        
+        # Calculate trace element ratios
+        ratios = {}
+        if 'Rb' in trace_elements and 'Sr' in trace_elements:
+            ratios['Rb_Sr'] = trace_elements['Rb'] / (trace_elements['Sr'] + 1e-8)
+        
+        if 'Ba' in trace_elements and 'Rb' in trace_elements:
+            ratios['Ba_Rb'] = trace_elements['Ba'] / (trace_elements['Rb'] + 1e-8)
+        
+        if 'Zr' in trace_elements and 'Hf' in trace_elements:
+            ratios['Zr_Hf'] = trace_elements['Zr'] / (trace_elements['Hf'] + 1e-8)
+        
+        # REE pattern analysis (if REE data available)
+        ree_elements = ['La', 'Ce', 'Pr', 'Nd', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu']
+        ree_pattern = {element: trace_elements.get(element, 0) for element in ree_elements}
+        
+        return {
+            'trace_elements_ppm': trace_elements,
+            'trace_element_ratios': ratios,
+            'ree_pattern': ree_pattern,
+            'enrichment_factors': self._calculate_enrichment_factors(trace_elements)
+        }
+    
+    def _calculate_enrichment_factors(self, trace_elements: Dict[str, float]) -> Dict[str, float]:
+        """Calculate enrichment factors relative to primitive mantle"""
+        
+        # Primitive mantle values (McDonough & Sun, 1995)
+        primitive_mantle = {
+            'Rb': 0.635, 'Ba': 6.989, 'Th': 0.085, 'U': 0.021, 'Nb': 0.713,
+            'Ta': 0.041, 'La': 0.687, 'Ce': 1.775, 'Pb': 0.185, 'Pr': 0.276,
+            'Sr': 21.1, 'Nd': 1.354, 'Sm': 0.444, 'Zr': 11.2, 'Hf': 0.309,
+            'Eu': 0.168, 'Gd': 0.596, 'Tb': 0.108, 'Dy': 0.737, 'Y': 4.55,
+            'Ho': 0.164, 'Er': 0.480, 'Tm': 0.074, 'Yb': 0.493, 'Lu': 0.074
+        }
+        
+        enrichment_factors = {}
+        for element, concentration in trace_elements.items():
+            if element in primitive_mantle:
+                enrichment_factors[element] = concentration / primitive_mantle[element]
+        
+        return enrichment_factors
+SampleType.ROCK,
+            composition=composition
+        )
+        
+        result = self.validator.validate_geochemical_sample(sample)
+        
+        # Should be valid but have warnings about closure
+        assert result.is_valid
+        assert result.warnings_count > 0
+    
+    def test_validate_and_raise_with_errors(self):
+        """Test validate_and_raise method with errors"""
+        # Create location with invalid coordinates (this will fail in __post_init__)
+        with pytest.raises(ValueError):
+            location = GeologicalLocation(latitude=95.0, longitude=0.0, elevation=0.0)
+    
+    def test_validate_data_consistency(self):
+        """Test consistency validation across multiple data points"""
+        location1 = GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0)
+        location2 = GeologicalLocation(latitude=45.0, longitude=-122.0, elevation=1000.0)  # Same location
+        
+        event1 = SeismicEvent(
+            timestamp=datetime(2023, 1, 1, 12, 0, 0),
+            location=location1,
+            magnitude=5.0,
+            depth=10.0
+        )
+        
+        event2 = SeismicEvent(
+            timestamp=datetime(2023, 1, 1, 13, 0, 0),
+            location=location2,
+            magnitude=5.2,
+            depth=12.0
+        )
+        
+        result = self.validator.validate_data_consistency([event1, event2])
+        
+        # Should detect duplicate locations
+        assert result.is_valid  # No errors, just info
+        location_issues = [
+            issue for issue in result.issues 
+            if issue.category == ValidationCategory.SPATIAL
+        ]
+        assert len(location_issues) > 0
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

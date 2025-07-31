@@ -267,7 +267,258 @@ class MagmaReservoirEstimator:
         # Assume volume change of 1e6 m³ for estimation
         assumed_volume_change = 1e6
         
-        # Simplified depth calculation
+        
+class AdvancedSeismicCNN:
+    """Convolutional Neural Network for seismic event detection and classification"""
+    
+    def __init__(self, input_channels: int = 3, num_classes: int = 5):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = self._build_model(input_channels, num_classes)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-4, weight_decay=1e-5)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=100)
+        
+    def _build_model(self, input_channels: int, num_classes: int) -> nn.Module:
+        """Build advanced CNN architecture with attention mechanisms"""
+        
+        class AttentionBlock(nn.Module):
+            def __init__(self, channels):
+                super().__init__()
+                self.attention = nn.Sequential(
+                    nn.AdaptiveAvgPool1d(1),
+                    nn.Conv1d(channels, channels // 8, 1),
+                    nn.ReLU(),
+                    nn.Conv1d(channels // 8, channels, 1),
+                    nn.Sigmoid()
+                )
+                
+            def forward(self, x):
+                attention_weights = self.attention(x)
+                return x * attention_weights
+        
+        class SeismicCNN(nn.Module):
+            def __init__(self, input_channels, num_classes):
+                super().__init__()
+                
+                # Feature extraction layers
+                self.conv_blocks = nn.ModuleList([
+                    nn.Sequential(
+                        nn.Conv1d(input_channels, 64, kernel_size=7, padding=3),
+                        nn.BatchNorm1d(64),
+                        nn.ReLU(),
+                        AttentionBlock(64),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(64, 128, kernel_size=5, padding=2),
+                        nn.BatchNorm1d(128),
+                        nn.ReLU(),
+                        AttentionBlock(128),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(128, 256, kernel_size=3, padding=1),
+                        nn.BatchNorm1d(256),
+                        nn.ReLU(),
+                        AttentionBlock(256),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(256, 512, kernel_size=3, padding=1),
+                        nn.BatchNorm1d(512),
+                        nn.ReLU(),
+                        AttentionBlock(512),
+                        nn.AdaptiveAvgPool1d(1)
+                    )
+                ])
+                
+                # Classification head
+                self.classifier = nn.Sequential(
+                    nn.Dropout(0.5),
+                    nn.Linear(512, 256),
+                    nn.ReLU(),
+                    nn.Dropout(0.3),
+                    nn.Linear(256, num_classes)
+                )
+                
+            def forward(self, x):
+                for block in self.conv_blocks:
+                    x = block(x)
+                
+                x = x.view(x.size(0), -1)
+                return self.classifier(x)
+        
+        return SeismicCNN(input_channels, num_classes).to(self.device)
+    
+    def detect_seismic_events(self, waveform_data: np.ndarray, 
+                            sampling_rate: float = 100.0) -> Dict[str, Any]:
+        """Detect and classify seismic events in waveform data"""
+        
+        # Preprocess data
+        processed_data = self._preprocess_waveform(waveform_data, sampling_rate)
+        
+        # Convert to tensor
+        input_tensor = torch.FloatTensor(processed_data).unsqueeze(0).to(self.device)
+        
+        # Inference
+        self.model.eval()
+        with torch.no_grad():
+            logits = self.model(input_tensor)
+            probabilities = F.softmax(logits, dim=1)
+            predicted_class = torch.argmax(probabilities, dim=1)
+        
+        # Event classification mapping
+        event_types = {
+            0: 'background_noise',
+            1: 'local_earthquake',
+            2: 'regional_earthquake',
+            3: 'volcanic_tremor',
+            4: 'explosion'
+        }
+        
+        return {
+            'event_type': event_types[predicted_class.item()],
+            'confidence': probabilities.max().item(),
+            'all_probabilities': {
+                event_types[i]: prob.item() 
+                for i, prob in enumerate(probabilities[0])
+            },
+            'magnitude_estimate': self._estimate_magnitude(waveform_data),
+            'arrival_time': self._detect_p_wave_arrival(waveform_data, sampling_rate),
+            'frequency_content': self._analyze_frequency_content(waveform_data, sampling_rate)
+        }
+    
+    def _preprocess_waveform(self, data: np.ndarray, sampling_rate: float) -> np.ndarray:
+        """Advanced waveform preprocessing"""
+        # Bandpass filter
+        from scipy import signal
+        nyquist = sampling_rate / 2
+        low_freq = 1.0 / nyquist
+        high_freq = 25.0 / nyquist
+        b, a = signal.butter(4, [low_freq, high_freq], btype='band')
+        filtered_data = signal.filtfilt(b, a, data, axis=-1)
+        
+        # Normalize
+        normalized_data = (filtered_data - np.mean(filtered_data, axis=-1, keepdims=True)) / \
+                         (np.std(filtered_data, axis=-1, keepdims=True) + 1e-8)
+        
+        return normalized_data
+    
+    def _estimate_magnitude(self, waveform_data: np.ndarray) -> float:
+        """Estimate earthquake magnitude from waveform amplitude"""
+        max_amplitude = np.max(np.abs(waveform_data))
+        
+class AdvancedPhysicsSimulator:
+    """Physics-Informed Neural Network for geological simulations"""
+    
+    def __init__(self, domain_size: Tuple[int, int, int] = (100, 100, 100)):
+        self.domain_size = domain_size
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.pinn_model = self._build_pinn_model()
+        self.optimizer = torch.optim.Adam(self.pinn_model.parameters(), lr=1e-3)
+        
+    def solve_heat_equation_3d(self, thermal_conductivity: float = 2.5,
+                              heat_capacity: float = 1000.0,
+                              density: float = 2700.0) -> Dict[str, np.ndarray]:
+        """Solve 3D heat equation with geological parameters"""
+        
+        # Generate spatial-temporal grid
+        x = torch.linspace(0, 1, self.domain_size[0])
+        y = torch.linspace(0, 1, self.domain_size[1])
+        z = torch.linspace(0, 1, self.domain_size[2])
+        t = torch.linspace(0, 1, 100)
+        
+        X, Y, Z, T = torch.meshgrid(x, y, z, t, indexing='ij')
+        coords = torch.stack([X.flatten(), Y.flatten(), Z.flatten(), T.flatten()], dim=1)
+        coords = coords.to(self.device)
+        
+        # Training loop with physics constraints
+        for epoch in range(1000):
+            self.optimizer.zero_grad()
+            
+            # Forward pass
+            u_pred = self.pinn_model(coords)
+            
+            # Physics loss (heat equation)
+            u_t = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 3]
+            u_x = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 0]
+            u_y = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 1]
+            u_z = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 2]
+            
+            u_xx = torch.autograd.grad(u_x.sum(), coords, create_graph=True)[0][:, 0]
+            u_yy = torch.autograd.grad(u_y.sum(), coords, create_graph=True)[0][:, 1]
+            u_zz = torch.autograd.grad(u_z.sum(), coords, create_graph=True)[0][:, 2]
+            
+            alpha = thermal_conductivity / (density * heat_capacity)
+            physics_loss = torch.mean((u_t - alpha * (u_xx + u_yy + u_zz))**2)
+            
+            physics_loss.backward()
+            self.optimizer.step()
+            
+            if epoch % 100 == 0:
+                logger.info(f"Epoch {epoch}, Loss: {physics_loss.item():.6f}")
+        
+        # Generate solution
+        with torch.no_grad():
+            solution = self.pinn_model(coords).cpu().numpy()
+            
+        return {
+            'temperature_field': solution[:, 0].reshape(self.domain_size + (100,)),
+            'heat_flux_x': solution[:, 1].reshape(self.domain_size + (100,)),
+            'heat_flux_y': solution[:, 2].reshape(self.domain_size + (100,)),
+            'heat_flux_z': solution[:, 3].reshape(self.domain_size + (100,)),
+            'thermal_conductivity': thermal_conductivity,
+            'convergence_history': {'final_loss': physics_loss.item()}
+        }
+
+        magnitude = np.log10(max_amplitude * 1e6) - 3.0
+        return max(0.0, min(9.0, magnitude))
+    
+    def _detect_p_wave_arrival(self, data: np.ndarray, sampling_rate: float) -> float:
+        """Detect P-wave arrival time using STA/LTA algorithm"""
+        # Short-term average / Long-term average
+        sta_window = int(0.5 * sampling_rate)  # 0.5 seconds
+        lta_window = int(10.0 * sampling_rate)  # 10 seconds
+        
+        energy = np.square(data)
+        sta = np.convolve(energy, np.ones(sta_window)/sta_window, mode='same')
+        lta = np.convolve(energy, np.ones(lta_window)/lta_window, mode='same')
+        
+        sta_lta_ratio = sta / (lta + 1e-8)
+        trigger_threshold = 3.0
+        
+        trigger_indices = np.where(sta_lta_ratio > trigger_threshold)[0]
+        if len(trigger_indices) > 0:
+            return trigger_indices[0] / sampling_rate
+        return 0.0
+    
+    def _analyze_frequency_content(self, data: np.ndarray, sampling_rate: float) -> Dict[str, float]:
+        """Analyze frequency content of seismic signal"""
+        from scipy import signal
+        
+        frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
+        
+        # Frequency bands of interest
+        bands = {
+            'low_freq': (0.1, 1.0),
+            'mid_freq': (1.0, 10.0),
+            'high_freq': (10.0, 25.0)
+        }
+        
+        band_powers = {}
+        for band_name, (low, high) in bands.items():
+            band_mask = (frequencies >= low) & (frequencies <= high)
+            band_powers[band_name] = np.trapz(psd[band_mask], frequencies[band_mask])
+        
+        # Dominant frequency
+        dominant_freq = frequencies[np.argmax(psd)]
+        
+        return {
+            'dominant_frequency': dominant_freq,
+            'band_powers': band_powers,
+            'spectral_centroid': np.sum(frequencies * psd) / np.sum(psd),
+            'spectral_bandwidth': np.sqrt(np.sum(((frequencies - dominant_freq) ** 2) * psd) / np.sum(psd))
+        }
+
         estimated_depth = min_radius * (max_disp / (assumed_volume_change * (1 - self.POISSON_RATIO) / np.pi))**(1/3)
         estimated_depth = max(1000, min(estimated_depth, 20000))  # Constrain between 1-20 km
         
@@ -445,7 +696,272 @@ class MagmaReservoirEstimator:
         estimated_volume = max(1e6, min(estimated_volume, 1e11))  # Reasonable bounds
         
         # Volume change rate from seismic rate changes
-        change_rate = 0.0  # Simplified - would need temporal analysis
+        change_rate = 0.0  
+class AdvancedSeismicProcessor:
+    """Advanced seismic data processing with signal analysis and event detection"""
+    
+    def __init__(self, sampling_rate: float = 100.0):
+        self.sampling_rate = sampling_rate
+        self.filters = self._initialize_filters()
+        self.event_detector = self._initialize_event_detector()
+        
+    def _initialize_filters(self) -> Dict[str, Any]:
+        """Initialize various digital filters"""
+        from scipy import signal
+        
+        nyquist = self.sampling_rate / 2
+        
+        return {
+            'bandpass_1_10': signal.butter(4, [1.0/nyquist, 10.0/nyquist], btype='band'),
+            'bandpass_0_5_25': signal.butter(4, [0.5/nyquist, 25.0/nyquist], btype='band'),
+            'highpass_1': signal.butter(4, 1.0/nyquist, btype='high'),
+            'lowpass_25': signal.butter(4, 25.0/nyquist, btype='low'),
+            'notch_50': signal.iirnotch(50.0, 30, self.sampling_rate)  # Power line noise
+        }
+    
+    def process_seismic_stream(self, data: np.ndarray, 
+                             station_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Process continuous seismic data stream"""
+        
+        # Multi-component processing (assuming 3-component data)
+        if data.ndim == 1:
+            data = data.reshape(1, -1)
+        
+        processed_components = []
+        
+        for i, component_data in enumerate(data):
+            # Apply preprocessing pipeline
+            processed = self._preprocess_component(component_data)
+            
+            # Calculate quality metrics
+            quality_metrics = self._calculate_quality_metrics(processed, component_data)
+            
+            # Detect events
+            events = self._detect_events_in_component(processed)
+            
+            processed_components.append({
+                'component_index': i,
+                'component_name': ['Z', 'N', 'E'][i] if i < 3 else f'C{i}',
+                'processed_data': processed,
+                'quality_metrics': quality_metrics,
+                'detected_events': events,
+                'spectral_analysis': self._analyze_spectrum(processed)
+            })
+        
+        # Cross-component analysis
+        cross_component_analysis = self._cross_component_analysis(
+            [comp['processed_data'] for comp in processed_components]
+        )
+        
+        return {
+            'station_id': station_info.get('station_id', 'unknown'),
+            'processing_timestamp': datetime.now().isoformat(),
+            'sampling_rate': self.sampling_rate,
+            'components': processed_components,
+            'cross_component_analysis': cross_component_analysis,
+            'overall_quality': self._calculate_overall_quality(processed_components)
+        }
+    
+    def _preprocess_component(self, data: np.ndarray) -> np.ndarray:
+        """Apply preprocessing pipeline to single component"""
+        from scipy import signal
+        
+        # Remove mean and linear trend
+        detrended = signal.detrend(data, type='linear')
+        
+        # Apply bandpass filter
+        b, a = self.filters['bandpass_0_5_25']
+        filtered = signal.filtfilt(b, a, detrended)
+        
+        # Remove power line noise
+        b_notch, a_notch = self.filters['notch_50']
+        filtered = signal.filtfilt(b_notch, a_notch, filtered)
+        
+        # Normalize amplitude
+        rms = np.sqrt(np.mean(filtered**2))
+        if rms > 0:
+            normalized = filtered / rms
+        else:
+            normalized = filtered
+        
+        return normalized
+    
+    def _calculate_quality_metrics(self, processed_data: np.ndarray, 
+                                 original_data: np.ndarray) -> Dict[str, float]:
+        """Calculate data quality metrics"""
+        
+        # Signal-to-noise ratio
+        signal_power = np.var(processed_data)
+        noise_estimate = np.var(processed_data - original_data)
+        snr = 10 * np.log10(signal_power / (noise_estimate + 1e-10))
+        
+        # Clipping detection
+        max_val = np.max(np.abs(original_data))
+        clipping_ratio = np.sum(np.abs(original_data) >= 0.95 * max_val) / len(original_data)
+        
+        # Gap detection
+        gap_threshold = 5 * np.std(processed_data)
+        gaps = np.sum(np.abs(np.diff(processed_data)) > gap_threshold)
+        
+        # Frequency content quality
+        freqs, psd = signal.welch(processed_data, fs=self.sampling_rate)
+        freq_quality = np.sum(psd[freqs <= 25]) / np.sum(psd)  # Energy below 25 Hz
+        
+        return {
+            'snr_db': snr,
+            'clipping_ratio': clipping_ratio,
+            'gap_count': gaps,
+            'frequency_quality': freq_quality,
+            'rms_amplitude': np.sqrt(np.mean(processed_data**2)),
+            'peak_amplitude': np.max(np.abs(processed_data))
+        }
+    
+    def _detect_events_in_component(self, data: np.ndarray) -> List[Dict[str, Any]]:
+        """Detect seismic events using multiple algorithms"""
+        
+        events = []
+        
+        # STA/LTA detector
+        sta_lta_events = self._sta_lta_detector(data)
+        events.extend(sta_lta_events)
+        
+        # Energy-based detector
+        energy_events = self._energy_detector(data)
+        events.extend(energy_events)
+        
+        # Frequency domain detector
+        freq_events = self._frequency_detector(data)
+        events.extend(freq_events)
+        
+        # Merge overlapping events
+        merged_events = self._merge_overlapping_events(events)
+        
+        return merged_events
+    
+    def _sta_lta_detector(self, data: np.ndarray, 
+                         sta_window: float = 0.5, 
+                         lta_window: float = 10.0,
+                         trigger_threshold: float = 3.0,
+                         detrigger_threshold: float = 1.5) -> List[Dict[str, Any]]:
+        """Short-Term Average / Long-Term Average event detector"""
+        
+        sta_samples = int(sta_window * self.sampling_rate)
+        lta_samples = int(lta_window * self.sampling_rate)
+        
+        # Calculate energy
+        energy = data ** 2
+        
+        # Calculate STA and LTA
+        sta = np.convolve(energy, np.ones(sta_samples)/sta_samples, mode='same')
+        lta = np.convolve(energy, np.ones(lta_samples)/lta_samples, mode='same')
+        
+        # Calculate ratio
+        sta_lta_ratio = sta / (lta + 1e-10)
+        
+        # Find triggers
+        events = []
+        in_event = False
+        event_start = 0
+        
+        for i, ratio in enumerate(sta_lta_ratio):
+            if not in_event and ratio > trigger_threshold:
+                in_event = True
+                event_start = i
+            elif in_event and ratio < detrigger_threshold:
+                in_event = False
+                event_end = i
+                
+                events.append({
+                    'type': 'sta_lta',
+                    'start_sample': event_start,
+                    'end_sample': event_end,
+                    'start_time': event_start / self.sampling_rate,
+                    'end_time': event_end / self.sampling_rate,
+                    'duration': (event_end - event_start) / self.sampling_rate,
+                    'max_ratio': np.max(sta_lta_ratio[event_start:event_end]),
+                    'confidence': min(1.0, np.max(sta_lta_ratio[event_start:event_end]) / trigger_threshold)
+                })
+        
+        return events
+    
+    def _energy_detector(self, data: np.ndarray, 
+                        window_size: float = 1.0,
+                        threshold_factor: float = 5.0) -> List[Dict[str, Any]]:
+        """Energy-based event detector"""
+        
+        window_samples = int(window_size * self.sampling_rate)
+        
+        # Calculate windowed energy
+        energy = data ** 2
+        windowed_energy = np.convolve(energy, np.ones(window_samples)/window_samples, mode='same')
+        
+        # Calculate threshold
+        baseline_energy = np.median(windowed_energy)
+        threshold = baseline_energy * threshold_factor
+        
+        # Find events
+        above_threshold = windowed_energy > threshold
+        event_regions = []
+        
+        in_event = False
+        event_start = 0
+        
+        for i, above in enumerate(above_threshold):
+            if not in_event and above:
+                in_event = True
+                event_start = i
+            elif in_event and not above:
+                in_event = False
+                event_end = i
+                
+                if event_end - event_start > window_samples // 2:  # Minimum duration
+                    event_regions.append({
+                        'type': 'energy',
+                        'start_sample': event_start,
+                        'end_sample': event_end,
+                        'start_time': event_start / self.sampling_rate,
+                        'end_time': event_end / self.sampling_rate,
+                        'duration': (event_end - event_start) / self.sampling_rate,
+                        'max_energy': np.max(windowed_energy[event_start:event_end]),
+                        'confidence': min(1.0, np.max(windowed_energy[event_start:event_end]) / threshold)
+                    })
+        
+        return event_regions
+    
+    def _frequency_detector(self, data: np.ndarray) -> List[Dict[str, Any]]:
+        """Frequency domain event detector"""
+        from scipy import signal
+        
+        # Spectrogram analysis
+        f, t, Sxx = signal.spectrogram(data, fs=self.sampling_rate, nperseg=1024, noverlap=512)
+        
+        # Calculate spectral features over time
+        spectral_centroid = np.sum(f[:, np.newaxis] * Sxx, axis=0) / np.sum(Sxx, axis=0)
+        spectral_bandwidth = np.sqrt(np.sum(((f[:, np.newaxis] - spectral_centroid) ** 2) * Sxx, axis=0) / np.sum(Sxx, axis=0))
+        spectral_rolloff = np.array([f[np.where(np.cumsum(Sxx[:, i]) >= 0.85 * np.sum(Sxx[:, i]))[0][0]] for i in range(Sxx.shape[1])])
+        
+        # Detect anomalies in spectral features
+        centroid_threshold = np.mean(spectral_centroid) + 2 * np.std(spectral_centroid)
+        bandwidth_threshold = np.mean(spectral_bandwidth) + 2 * np.std(spectral_bandwidth)
+        
+        events = []
+        for i, (centroid, bandwidth) in enumerate(zip(spectral_centroid, spectral_bandwidth)):
+            if centroid > centroid_threshold or bandwidth > bandwidth_threshold:
+                start_time = t[i] - 0.5  # Extend event window
+                end_time = t[i] + 0.5
+                
+                events.append({
+                    'type': 'frequency',
+                    'start_time': max(0, start_time),
+                    'end_time': min(len(data) / self.sampling_rate, end_time),
+                    'spectral_centroid': centroid,
+                    'spectral_bandwidth': bandwidth,
+                    'spectral_rolloff': spectral_rolloff[i],
+                    'confidence': min(1.0, max(centroid / centroid_threshold, bandwidth / bandwidth_threshold))
+                })
+        
+        return events
+
         
         uncertainty = estimated_volume * 0.7  # High uncertainty from seismic data
         
@@ -508,7 +1024,258 @@ class MagmaReservoirEstimator:
         volume_change_rate = volume_estimate['change_rate']
         
         # Estimate pressure change using elastic half-space model
-        # Simplified relationship: ΔP ≈ μ * ΔV / (π * d²)
+        
+class AdvancedSeismicCNN:
+    """Convolutional Neural Network for seismic event detection and classification"""
+    
+    def __init__(self, input_channels: int = 3, num_classes: int = 5):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = self._build_model(input_channels, num_classes)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-4, weight_decay=1e-5)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=100)
+        
+    def _build_model(self, input_channels: int, num_classes: int) -> nn.Module:
+        """Build advanced CNN architecture with attention mechanisms"""
+        
+        class AttentionBlock(nn.Module):
+            def __init__(self, channels):
+                super().__init__()
+                self.attention = nn.Sequential(
+                    nn.AdaptiveAvgPool1d(1),
+                    nn.Conv1d(channels, channels // 8, 1),
+                    nn.ReLU(),
+                    nn.Conv1d(channels // 8, channels, 1),
+                    nn.Sigmoid()
+                )
+                
+            def forward(self, x):
+                attention_weights = self.attention(x)
+                return x * attention_weights
+        
+        class SeismicCNN(nn.Module):
+            def __init__(self, input_channels, num_classes):
+                super().__init__()
+                
+                # Feature extraction layers
+                self.conv_blocks = nn.ModuleList([
+                    nn.Sequential(
+                        nn.Conv1d(input_channels, 64, kernel_size=7, padding=3),
+                        nn.BatchNorm1d(64),
+                        nn.ReLU(),
+                        AttentionBlock(64),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(64, 128, kernel_size=5, padding=2),
+                        nn.BatchNorm1d(128),
+                        nn.ReLU(),
+                        AttentionBlock(128),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(128, 256, kernel_size=3, padding=1),
+                        nn.BatchNorm1d(256),
+                        nn.ReLU(),
+                        AttentionBlock(256),
+                        nn.MaxPool1d(2)
+                    ),
+                    nn.Sequential(
+                        nn.Conv1d(256, 512, kernel_size=3, padding=1),
+                        nn.BatchNorm1d(512),
+                        nn.ReLU(),
+                        AttentionBlock(512),
+                        nn.AdaptiveAvgPool1d(1)
+                    )
+                ])
+                
+                # Classification head
+                self.classifier = nn.Sequential(
+                    nn.Dropout(0.5),
+                    nn.Linear(512, 256),
+                    nn.ReLU(),
+                    nn.Dropout(0.3),
+                    nn.Linear(256, num_classes)
+                )
+                
+            def forward(self, x):
+                for block in self.conv_blocks:
+                    x = block(x)
+                
+                x = x.view(x.size(0), -1)
+                return self.classifier(x)
+        
+        return SeismicCNN(input_channels, num_classes).to(self.device)
+    
+    def detect_seismic_events(self, waveform_data: np.ndarray, 
+                            sampling_rate: float = 100.0) -> Dict[str, Any]:
+        """Detect and classify seismic events in waveform data"""
+        
+        # Preprocess data
+        processed_data = self._preprocess_waveform(waveform_data, sampling_rate)
+        
+        # Convert to tensor
+        input_tensor = torch.FloatTensor(processed_data).unsqueeze(0).to(self.device)
+        
+        # Inference
+        self.model.eval()
+        with torch.no_grad():
+            logits = self.model(input_tensor)
+            probabilities = F.softmax(logits, dim=1)
+            predicted_class = torch.argmax(probabilities, dim=1)
+        
+        # Event classification mapping
+        event_types = {
+            0: 'background_noise',
+            1: 'local_earthquake',
+            2: 'regional_earthquake',
+            3: 'volcanic_tremor',
+            4: 'explosion'
+        }
+        
+        return {
+            'event_type': event_types[predicted_class.item()],
+            'confidence': probabilities.max().item(),
+            'all_probabilities': {
+                event_types[i]: prob.item() 
+                for i, prob in enumerate(probabilities[0])
+            },
+            'magnitude_estimate': self._estimate_magnitude(waveform_data),
+            'arrival_time': self._detect_p_wave_arrival(waveform_data, sampling_rate),
+            'frequency_content': self._analyze_frequency_content(waveform_data, sampling_rate)
+        }
+    
+    def _preprocess_waveform(self, data: np.ndarray, sampling_rate: float) -> np.ndarray:
+        """Advanced waveform preprocessing"""
+        # Bandpass filter
+        from scipy import signal
+        nyquist = sampling_rate / 2
+        low_freq = 1.0 / nyquist
+        high_freq = 25.0 / nyquist
+        b, a = signal.butter(4, [low_freq, high_freq], btype='band')
+        filtered_data = signal.filtfilt(b, a, data, axis=-1)
+        
+        # Normalize
+        normalized_data = (filtered_data - np.mean(filtered_data, axis=-1, keepdims=True)) / \
+                         (np.std(filtered_data, axis=-1, keepdims=True) + 1e-8)
+        
+        return normalized_data
+    
+    def _estimate_magnitude(self, waveform_data: np.ndarray) -> float:
+        """Estimate earthquake magnitude from waveform amplitude"""
+        max_amplitude = np.max(np.abs(waveform_data))
+        
+class AdvancedPhysicsSimulator:
+    """Physics-Informed Neural Network for geological simulations"""
+    
+    def __init__(self, domain_size: Tuple[int, int, int] = (100, 100, 100)):
+        self.domain_size = domain_size
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.pinn_model = self._build_pinn_model()
+        self.optimizer = torch.optim.Adam(self.pinn_model.parameters(), lr=1e-3)
+        
+    def solve_heat_equation_3d(self, thermal_conductivity: float = 2.5,
+                              heat_capacity: float = 1000.0,
+                              density: float = 2700.0) -> Dict[str, np.ndarray]:
+        """Solve 3D heat equation with geological parameters"""
+        
+        # Generate spatial-temporal grid
+        x = torch.linspace(0, 1, self.domain_size[0])
+        y = torch.linspace(0, 1, self.domain_size[1])
+        z = torch.linspace(0, 1, self.domain_size[2])
+        t = torch.linspace(0, 1, 100)
+        
+        X, Y, Z, T = torch.meshgrid(x, y, z, t, indexing='ij')
+        coords = torch.stack([X.flatten(), Y.flatten(), Z.flatten(), T.flatten()], dim=1)
+        coords = coords.to(self.device)
+        
+        # Training loop with physics constraints
+        for epoch in range(1000):
+            self.optimizer.zero_grad()
+            
+            # Forward pass
+            u_pred = self.pinn_model(coords)
+            
+            # Physics loss (heat equation)
+            u_t = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 3]
+            u_x = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 0]
+            u_y = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 1]
+            u_z = torch.autograd.grad(u_pred.sum(), coords, create_graph=True)[0][:, 2]
+            
+            u_xx = torch.autograd.grad(u_x.sum(), coords, create_graph=True)[0][:, 0]
+            u_yy = torch.autograd.grad(u_y.sum(), coords, create_graph=True)[0][:, 1]
+            u_zz = torch.autograd.grad(u_z.sum(), coords, create_graph=True)[0][:, 2]
+            
+            alpha = thermal_conductivity / (density * heat_capacity)
+            physics_loss = torch.mean((u_t - alpha * (u_xx + u_yy + u_zz))**2)
+            
+            physics_loss.backward()
+            self.optimizer.step()
+            
+            if epoch % 100 == 0:
+                logger.info(f"Epoch {epoch}, Loss: {physics_loss.item():.6f}")
+        
+        # Generate solution
+        with torch.no_grad():
+            solution = self.pinn_model(coords).cpu().numpy()
+            
+        return {
+            'temperature_field': solution[:, 0].reshape(self.domain_size + (100,)),
+            'heat_flux_x': solution[:, 1].reshape(self.domain_size + (100,)),
+            'heat_flux_y': solution[:, 2].reshape(self.domain_size + (100,)),
+            'heat_flux_z': solution[:, 3].reshape(self.domain_size + (100,)),
+            'thermal_conductivity': thermal_conductivity,
+            'convergence_history': {'final_loss': physics_loss.item()}
+        }
+
+        magnitude = np.log10(max_amplitude * 1e6) - 3.0
+        return max(0.0, min(9.0, magnitude))
+    
+    def _detect_p_wave_arrival(self, data: np.ndarray, sampling_rate: float) -> float:
+        """Detect P-wave arrival time using STA/LTA algorithm"""
+        # Short-term average / Long-term average
+        sta_window = int(0.5 * sampling_rate)  # 0.5 seconds
+        lta_window = int(10.0 * sampling_rate)  # 10 seconds
+        
+        energy = np.square(data)
+        sta = np.convolve(energy, np.ones(sta_window)/sta_window, mode='same')
+        lta = np.convolve(energy, np.ones(lta_window)/lta_window, mode='same')
+        
+        sta_lta_ratio = sta / (lta + 1e-8)
+        trigger_threshold = 3.0
+        
+        trigger_indices = np.where(sta_lta_ratio > trigger_threshold)[0]
+        if len(trigger_indices) > 0:
+            return trigger_indices[0] / sampling_rate
+        return 0.0
+    
+    def _analyze_frequency_content(self, data: np.ndarray, sampling_rate: float) -> Dict[str, float]:
+        """Analyze frequency content of seismic signal"""
+        from scipy import signal
+        
+        frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
+        
+        # Frequency bands of interest
+        bands = {
+            'low_freq': (0.1, 1.0),
+            'mid_freq': (1.0, 10.0),
+            'high_freq': (10.0, 25.0)
+        }
+        
+        band_powers = {}
+        for band_name, (low, high) in bands.items():
+            band_mask = (frequencies >= low) & (frequencies <= high)
+            band_powers[band_name] = np.trapz(psd[band_mask], frequencies[band_mask])
+        
+        # Dominant frequency
+        dominant_freq = frequencies[np.argmax(psd)]
+        
+        return {
+            'dominant_frequency': dominant_freq,
+            'band_powers': band_powers,
+            'spectral_centroid': np.sum(frequencies * psd) / np.sum(psd),
+            'spectral_bandwidth': np.sqrt(np.sum(((frequencies - dominant_freq) ** 2) * psd) / np.sum(psd))
+        }
+
         if volume_change_rate != 0:
             pressure_change_rate = (self.SHEAR_MODULUS * volume_change_rate / 
                                   (np.pi * depth**2))

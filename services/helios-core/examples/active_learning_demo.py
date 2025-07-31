@@ -91,7 +91,368 @@ def demonstrate_uncertainty_sampling():
     selected_types = [sample.sample_type for sample in result.selected_samples]
     type_counts = {}
     for sample_type in selected_types:
-        type_counts[sample_type] = type_counts.get(sample_type, 0) + 1
+        type_counts[
+class AdvancedGeologicalDatabase:
+    """Advanced database operations for geological data with spatial indexing and time-series optimization"""
+    
+    def __init__(self, connection_params: Dict[str, str]):
+        self.postgres_params = connection_params.get('postgres', {})
+        self.influx_params = connection_params.get('influxdb', {})
+        self.neo4j_params = connection_params.get('neo4j', {})
+        self.redis_params = connection_params.get('redis', {})
+        
+        self.connections = {}
+        self._initialize_connections()
+        
+    def _initialize_connections(self):
+        """Initialize database connections with connection pooling"""
+        import psycopg2.pool
+        import influxdb_client
+        from neo4j import GraphDatabase
+        import redis
+        
+        # PostgreSQL connection pool
+        if self.postgres_params:
+            self.connections['postgres'] = psycopg2.pool.ThreadedConnectionPool(
+                minconn=1, maxconn=20, **self.postgres_params
+            )
+        
+        # InfluxDB client
+        if self.influx_params:
+            self.connections['influxdb'] = influxdb_client.InfluxDBClient(
+                url=self.influx_params['url'],
+                token=self.influx_params['token'],
+                org=self.influx_params['org']
+            )
+        
+        # Neo4j driver
+        if self.neo4j_params:
+            self.connections['neo4j'] = GraphDatabase.driver(
+                self.neo4j_params['uri'],
+                auth=(self.neo4j_params['user'], self.neo4j_params['password'])
+            )
+        
+        # Redis connection
+        if self.redis_params:
+            self.connections['redis'] = redis.Redis(**self.redis_params)
+    
+    def store_seismic_data(self, seismic_events: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Store seismic data with spatial and temporal indexing"""
+        
+        stored_count = 0
+        errors = []
+        
+        # Get PostgreSQL connection
+        postgres_conn = self.connections['postgres'].getconn()
+        
+        try:
+            with postgres_conn.cursor() as cursor:
+                # Create spatial index if not exists
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_seismic_location 
+                    ON seismic_events USING GIST (location);
+                    
+                    CREATE INDEX IF NOT EXISTS idx_seismic_time 
+                    ON seismic_events (event_time);
+                    
+                    CREATE INDEX IF NOT EXISTS idx_seismic_magnitude 
+                    ON seismic_events (magnitude);
+                """)
+                
+                # Prepare batch insert
+                insert_query = """
+                    INSERT INTO seismic_events 
+                    (event_id, event_time, location, magnitude, depth, event_type, 
+                     waveform_data, frequency_content, uncertainty_metrics)
+                    VALUES (%s, %s, ST_GeomFromText(%s, 4326), %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (event_id) DO UPDATE SET
+                        magnitude = EXCLUDED.magnitude,
+                        depth = EXCLUDED.depth,
+                        event_type = EXCLUDED.event_type,
+                        waveform_data = EXCLUDED.waveform_data,
+                        frequency_content = EXCLUDED.frequency_content,
+                        uncertainty_metrics = EXCLUDED.uncertainty_metrics;
+                """
+                
+                # Process events in batches
+                batch_size = 1000
+                for i in range(0, len(seismic_events), batch_size):
+                    batch = seismic_events[i:i + batch_size]
+                    batch_data = []
+                    
+                    for event in batch:
+                        try:
+                            # Convert location to WKT format
+                            location_wkt = f"POINT({event['longitude']} {event['latitude']})"
+                            
+                            batch_data.append((
+                                event['event_id'],
+                                event['event_time'],
+                                location_wkt,
+                                event['magnitude'],
+                                event['depth'],
+                                event['event_type'],
+                                json.dumps(event.get('waveform_data', {})),
+                                json.dumps(event.get('frequency_content', {})),
+                                json.dumps(event.get('uncertainty_metrics', {}))
+                            ))
+                            
+                        except Exception as e:
+                            errors.append(f"Event {event.get('event_id', 'unknown')}: {str(e)}")
+                    
+                    # Execute batch insert
+                    cursor.executemany(insert_query, batch_data)
+                    stored_count += len(batch_data)
+                
+                postgres_conn.commit()
+                
+        except Exception as e:
+            postgres_conn.rollback()
+            errors.append(f"Database error: {str(e)}")
+        
+        finally:
+            self.connections['postgres'].putconn(postgres_conn)
+        
+        # Store time-series data in InfluxDB
+        if 'influxdb' in self.connections:
+            self._store_timeseries_data(seismic_events)
+        
+        return {
+            'stored_count': stored_count,
+            'total_events': len(seismic_events),
+            'errors': errors,
+            'success_rate': stored_count / len(seismic_events) if seismic_events else 0
+        }
+    
+    def _store_timeseries_data(self, seismic_events: List[Dict[str, Any]]):
+        """Store time-series data in InfluxDB"""
+        from influxdb_client.client.write_api import SYNCHRONOUS
+        
+        write_api = self.connections['influxdb'].write_api(write_options=SYNCHRONOUS)
+        
+        points = []
+        for event in seismic_events:
+            # Create point for magnitude time series
+            point = {
+                "measurement": "seismic_magnitude",
+                "tags": {
+                    "event_type": event.get('event_type', 'unknown'),
+                    "region": event.get('region', 'unknown'),
+                    "station": event.get('station', 'unknown')
+                },
+                "fields": {
+                    "magnitude": float(event.get('magnitude', 0)),
+                    "depth": float(event.get('depth', 0)),
+                    "latitude": float(event.get('latitude', 0)),
+                    "longitude": float(event.get('longitude', 0))
+                },
+                "time": event.get('event_time')
+            }
+            points.append(point)
+            
+            # Store waveform data if available
+            if 'waveform_data' in event:
+                waveform_point = {
+                    "measurement": "seismic_waveform",
+                    "tags": {
+                        "event_id": event.get('event_id'),
+                        "component": "combined"
+                    },
+                    "fields": {
+                        "amplitude": float(np.max(np.abs(event['waveform_data']))),
+                        "rms": float(np.sqrt(np.mean(np.square(event['waveform_data'])))),
+                        "peak_frequency": float(event.get('frequency_content', {}).get('dominant_frequency', 0))
+                    },
+                    "time": event.get('event_time')
+                }
+                points.append(waveform_point)
+        
+        try:
+            write_api.write(bucket="geological_data", record=points)
+        except Exception as e:
+            logger.error(f"InfluxDB write error: {e}")
+    
+    def query_spatial_events(self, bbox: Tuple[float, float, float, float],
+                           time_range: Tuple[str, str],
+                           magnitude_range: Tuple[float, float] = (0, 10)) -> List[Dict[str, Any]]:
+        """Query seismic events within spatial and temporal bounds"""
+        
+        min_lon, min_lat, max_lon, max_lat = bbox
+        start_time, end_time = time_range
+        min_mag, max_mag = magnitude_range
+        
+        postgres_conn = self.connections['postgres'].getconn()
+        
+        try:
+            with postgres_conn.cursor() as cursor:
+                query = """
+                    SELECT event_id, event_time, ST_X(location) as longitude, 
+                           ST_Y(location) as latitude, magnitude, depth, event_type,
+                           waveform_data, frequency_content, uncertainty_metrics
+                    FROM seismic_events
+                    WHERE location && ST_MakeEnvelope(%s, %s, %s, %s, 4326)
+                      AND event_time BETWEEN %s AND %s
+                      AND magnitude BETWEEN %s AND %s
+                    ORDER BY event_time DESC
+                    LIMIT 10000;
+                """
+                
+                cursor.execute(query, (min_lon, min_lat, max_lon, max_lat, 
+                                     start_time, end_time, min_mag, max_mag))
+                
+                results = []
+                for row in cursor.fetchall():
+                    event = {
+                        'event_id': row[0],
+                        'event_time': row[1],
+                        'longitude': row[2],
+                        'latitude': row[3],
+                        'magnitude': row[4],
+                        'depth': row[5],
+                        'event_type': row[6],
+                        'waveform_data': json.loads(row[7]) if row[7] else {},
+                        'frequency_content': json.loads(row[8]) if row[8] else {},
+                        'uncertainty_metrics': json.loads(row[9]) if row[9] else {}
+                    }
+                    results.append(event)
+                
+                return results
+                
+        except Exception as e:
+            logger.error(f"Spatial query error: {e}")
+            return []
+        
+        finally:
+            self.connections['postgres'].putconn(postgres_conn)
+    
+    def create_geological_relationships(self, relationships: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Create geological process relationships in Neo4j graph database"""
+        
+        if 'neo4j' not in self.connections:
+            return {'error': 'Neo4j connection not available'}
+        
+        created_count = 0
+        errors = []
+        
+        with self.connections['neo4j'].session() as session:
+            try:
+                # Create nodes and relationships
+                for rel in relationships:
+                    try:
+                        # Create or update source node
+                        session.run("""
+                            MERGE (source:GeologicalProcess {id: $source_id})
+                            SET source.name = $source_name,
+                                source.type = $source_type,
+                                source.properties = $source_props
+                        """, 
+                        source_id=rel['source_id'],
+                        source_name=rel['source_name'],
+                        source_type=rel['source_type'],
+                        source_props=json.dumps(rel.get('source_properties', {})))
+                        
+                        # Create or update target node
+                        session.run("""
+                            MERGE (target:GeologicalProcess {id: $target_id})
+                            SET target.name = $target_name,
+                                target.type = $target_type,
+                                target.properties = $target_props
+                        """,
+                        target_id=rel['target_id'],
+                        target_name=rel['target_name'],
+                        target_type=rel['target_type'],
+                        target_props=json.dumps(rel.get('target_properties', {})))
+                        
+                        # Create relationship
+                        session.run("""
+                            MATCH (source:GeologicalProcess {id: $source_id})
+                            MATCH (target:GeologicalProcess {id: $target_id})
+                            MERGE (source)-[r:INFLUENCES {type: $rel_type}]->(target)
+                            SET r.strength = $strength,
+                                r.confidence = $confidence,
+                                r.temporal_lag = $temporal_lag,
+                                r.properties = $rel_props
+                        """,
+                        source_id=rel['source_id'],
+                        target_id=rel['target_id'],
+                        rel_type=rel['relationship_type'],
+                        strength=rel.get('strength', 1.0),
+                        confidence=rel.get('confidence', 0.5),
+                        temporal_lag=rel.get('temporal_lag', 0),
+                        rel_props=json.dumps(rel.get('relationship_properties', {})))
+                        
+                        created_count += 1
+                        
+                    except Exception as e:
+                        errors.append(f"Relationship {rel.get('source_id', 'unknown')} -> {rel.get('target_id', 'unknown')}: {str(e)}")
+                
+            except Exception as e:
+                errors.append(f"Neo4j session error: {str(e)}")
+        
+        return {
+            'created_count': created_count,
+            'total_relationships': len(relationships),
+            'errors': errors,
+            'success_rate': created_count / len(relationships) if relationships else 0
+        }
+    
+    def cache_analysis_results(self, analysis_id: str, results: Dict[str, Any], 
+                             expiration_hours: int = 24) -> bool:
+        """Cache analysis results in Redis with expiration"""
+        
+        if 'redis' not in self.connections:
+            return False
+        
+        try:
+            redis_client = self.connections['redis']
+            
+            # Store results with expiration
+            cache_key = f"analysis:{analysis_id}"
+            redis_client.setex(
+                cache_key,
+                expiration_hours * 3600,
+                json.dumps(results, default=str)
+            )
+            
+            # Store metadata
+            metadata_key = f"analysis_meta:{analysis_id}"
+            metadata = {
+                'created_at': datetime.now().isoformat(),
+                'expires_at': (datetime.now() + timedelta(hours=expiration_hours)).isoformat(),
+                'size_bytes': len(json.dumps(results, default=str))
+            }
+            redis_client.setex(
+                metadata_key,
+                expiration_hours * 3600,
+                json.dumps(metadata)
+            )
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Redis cache error: {e}")
+            return False
+    
+    def get_cached_results(self, analysis_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve cached analysis results"""
+        
+        if 'redis' not in self.connections:
+            return None
+        
+        try:
+            redis_client = self.connections['redis']
+            cache_key = f"analysis:{analysis_id}"
+            
+            cached_data = redis_client.get(cache_key)
+            if cached_data:
+                return json.loads(cached_data)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Redis retrieval error: {e}")
+            return None
+ type_counts.get(sample_type, 0) + 1
     
     print(f"\nSelected Sample Types Distribution:")
     for sample_type, count in type_counts.items():

@@ -1,0 +1,2329 @@
+{
+  "analysis": {
+    "summary": {
+      "total_files_analyzed": 82,
+      "total_simplified_patterns": 214,
+      "high_priority_files": 4,
+      "medium_priority_files": 0,
+      "low_priority_files": 78,
+      "total_estimated_effort": 792
+    },
+    "analysis_results": [
+      {
+        "file_path": "services\\system-integration\\advanced_feature_replacement_clean.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# TODO.*",
+            "match": "# TODO.*',",
+            "line_number": 534,
+            "context": "        self.simplified_patterns = [\n            # Placeholder patterns\n            r'# TODO.*',\n            r'# PLACEHOLDER.*',\n            r'# SIMPLIFIED.*',"
+          },
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# Placeholder patterns",
+            "line_number": 533,
+            "context": "    def __init__(self):\n        self.simplified_patterns = [\n            # Placeholder patterns\n            r'# TODO.*',\n            r'# PLACEHOLDER.*',"
+          },
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# PLACEHOLDER.*',",
+            "line_number": 535,
+            "context": "            # Placeholder patterns\n            r'# TODO.*',\n            r'# PLACEHOLDER.*',\n            r'# SIMPLIFIED.*',\n            r'# MOCK.*',"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# SIMPLIFIED.*',",
+            "line_number": 536,
+            "context": "            r'# TODO.*',\n            r'# PLACEHOLDER.*',\n            r'# SIMPLIFIED.*',\n            r'# MOCK.*',\n            r'pass\\s*#.*simplified',"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified models",
+            "line_number": 550,
+            "context": "            r'data\\s*=\\s*np\\.random\\.',\n            \n            # Simplified models\n            r'class.*Model.*:\\s*pass',\n            r'def.*model.*:\\s*return.*random',"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# MOCK.*',",
+            "line_number": 537,
+            "context": "            r'# PLACEHOLDER.*',\n            r'# SIMPLIFIED.*',\n            r'# MOCK.*',\n            r'pass\\s*#.*simplified',\n            "
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock database.*',",
+            "line_number": 556,
+            "context": "            \n            # Database mocks\n            r'# Mock database.*',\n            r'fake_data\\s*=',\n            r'dummy_.*=',"
+          },
+          {
+            "pattern": "# Mock database.*",
+            "match": "# Mock database.*',",
+            "line_number": 556,
+            "context": "            \n            # Database mocks\n            r'# Mock database.*',\n            r'fake_data\\s*=',\n            r'dummy_.*=',"
+          },
+          {
+            "pattern": "dummy_.*=",
+            "match": "dummy_.*=",
+            "line_number": 558,
+            "context": "            r'# Mock database.*',\n            r'fake_data\\s*=',\n            r'dummy_.*=',\n            r'sample_.*=',\n        ]"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_.*=",
+            "line_number": 559,
+            "context": "            r'fake_data\\s*=',\n            r'dummy_.*=',\n            r'sample_.*=',\n        ]\n        "
+          }
+        ],
+        "complexity_score": 53,
+        "replacement_recommendations": [
+          {
+            "type": "complete_implementation",
+            "description": "Complete the TODO implementation",
+            "priority": "medium",
+            "effort": 6
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "high",
+        "estimated_effort": 46
+      },
+      {
+        "file_path": "services\\helios-core\\core\\neural_architecture_search.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# Placeholder for other layer types",
+            "line_number": 1019,
+            "context": "                    return nn.BatchNorm2d(config.get('num_features', 64))\n                else:\n                    # Placeholder for other layer types\n                    return nn.Identity()\n            "
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified training loop",
+            "line_number": 1060,
+            "context": "        \"\"\"Simplified model training for architecture evaluation\"\"\"\n        \n        # Simplified training loop\n        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)\n        criterion = nn.CrossEntropyLoss()"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified: 10 batches per epoch",
+            "line_number": 1076,
+            "context": "            \n            # Simulate training batches\n            for _ in range(10):  # Simplified: 10 batches per epoch\n                # Generate dummy data matching expected input shape\n                batch_size = 32"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified: 5 validation batches",
+            "line_number": 1106,
+            "context": "            \n            with torch.no_grad():\n                for _ in range(5):  # Simplified: 5 validation batches\n                    inputs = torch.randn(batch_size, *input_shape)\n                    targets = torch.randint(0, 10, (batch_size,))"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified FLOP estimation",
+            "line_number": 1135,
+            "context": "        \"\"\"Estimate FLOPs for the model\"\"\"\n        \n        # Simplified FLOP estimation\n        total_params = sum(p.numel() for p in model.parameters())\n        "
+          }
+        ],
+        "complexity_score": 59,
+        "replacement_recommendations": [],
+        "priority": "high",
+        "estimated_effort": 39
+      },
+      {
+        "file_path": "services\\helios-core\\core\\geological_network_representation.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# Placeholder",
+            "line_number": 1147,
+            "context": "            \n            # Location-based similarity (if coordinates available)\n            location_similarity = 1.0  # Placeholder\n            \n            # Overall similarity"
+          },
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# Placeholder",
+            "line_number": 1273,
+            "context": "            node_ids=torch.arange(graph_data.node_features.size(0), device=self.device),\n            entity_types=graph_data.node_types,\n            process_types=torch.zeros_like(graph_data.node_types),  # Placeholder\n            spatial_coords=graph_data.spatial_coords,\n            temporal_info=graph_data.temporal_info"
+          },
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# Placeholder - extract from data",
+            "line_number": 1336,
+            "context": "            caldera_system = {\n                'system_id': f'caldera_{caldera_node.item()}',\n                'magma_chamber_volume': 500.0,  # Placeholder - extract from data\n                'caldera_diameter': 25.0,  # Placeholder\n            }"
+          },
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# Placeholder",
+            "line_number": 1337,
+            "context": "                'system_id': f'caldera_{caldera_node.item()}',\n                'magma_chamber_volume': 500.0,  # Placeholder - extract from data\n                'caldera_diameter': 25.0,  # Placeholder\n            }\n            "
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock monitoring data (in practice, this would be real-time data)",
+            "line_number": 1340,
+            "context": "            }\n            \n            # Mock monitoring data (in practice, this would be real-time data)\n            monitoring_data = {\n                'deformation_rate': 10.0,  # mm/year"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock caldera system data",
+            "line_number": 1499,
+            "context": "    analyzer = SupereruptionAnalyzer()\n    \n    # Mock caldera system data\n    caldera_system = {\n        'system_id': 'yellowstone',"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_network =",
+            "line_number": 1651,
+            "context": "    \n    # Create and analyze sample volcanic network\n    sample_network = create_sample_volcanic_network()\n    print(f\"\\nSample volcanic network created with {sample_network.node_features.size(0)} nodes\")\n    "
+          }
+        ],
+        "complexity_score": 91,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "high",
+        "estimated_effort": 59
+      },
+      {
+        "file_path": "services\\helios-core\\core\\quantum_optimization.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified metric based on convergence speed and solution quality",
+            "line_number": 314,
+            "context": "    def _calculate_quantum_advantage(self, result: Dict) -> float:\n        \"\"\"Calculate quantum advantage metric\"\"\"\n        # Simplified metric based on convergence speed and solution quality\n        convergence_speed = len(result['history']) / 1000.0  # Normalized\n        solution_quality = result['confidence']"
+          },
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 1739,
+            "context": "    \n    # Problem 1: Seismic parameter optimization\n    seismic_data = np.random.normal(0, 1, 12) + np.sin(np.linspace(0, 4*np.pi, 12))\n    problems.append(GeologicalQuantumProblem(\n        problem_type='parameter_optimization',"
+          },
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 1749,
+            "context": "    \n    # Problem 2: Fault network analysis\n    fault_data = np.random.exponential(2.0, 8)\n    problems.append(GeologicalQuantumProblem(\n        problem_type='system_analysis',"
+          }
+        ],
+        "complexity_score": 137,
+        "replacement_recommendations": [
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          },
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          }
+        ],
+        "priority": "high",
+        "estimated_effort": 74
+      },
+      {
+        "file_path": "services\\anomaly-detection\\core\\causal_rl_agent.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 759,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            baseline_comparison={"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 665,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\anomaly-detection\\core\\contextual_detector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 1449,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Neo4j connection not available'}",
+            "line_number": 394,
+            "context": "        \n        if 'neo4j' not in self.connections:\n            return {'error': 'Neo4j connection not available'}\n        \n        created_count = 0"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 709,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            return 'tectonic_regions'"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 615,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 8
+      },
+      {
+        "file_path": "services\\anomaly-detection\\core\\continuous_learner.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 996,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            features = []"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 902,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\anomaly-detection\\core\\multiscale_analyzer.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 553,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            source_strength = np.mean([a.get('anomaly_strength', 0) for a in source_anomalies])"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 459,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\cloud-run-config\\cost-optimization.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 488,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\cloud-run-config\\multi-region-deployment.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 689,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            base_score = 0.9  # Assume healthy by default"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 595,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\data-ingestion\\connectors\\fiber_optic_connector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified magnitude estimation (would use proper calibration in practice)",
+            "line_number": 239,
+            "context": "        \"\"\"Estimate earthquake magnitude from waveform amplitude\"\"\"\n        max_amplitude = np.max(np.abs(waveform_data))\n        # Simplified magnitude estimation (would use proper calibration in practice)\n        magnitude = np.log10(max_amplitude * 1e6) - 3.0\n        return max(0.0, min(9.0, magnitude))"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\edge-device-manager\\core\\connectivity_manager.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 699,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 605,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\edge-device-manager\\core\\health_monitor.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 389,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 295,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\graph-database\\api\\routes.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 215,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n    except Exception as e:"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 450,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n    except Exception as e:"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Neo4j connection not available'}",
+            "line_number": 842,
+            "context": "        \n        if 'neo4j' not in self.connections:\n            return {'error': 'Neo4j connection not available'}\n        \n        created_count = 0"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 121,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 356,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 10
+      },
+      {
+        "file_path": "services\\helios-core\\api\\global_tectonic_api.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 533,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 634,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 735,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 853,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 8
+      },
+      {
+        "file_path": "services\\helios-core\\api\\gpu_cluster_api.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified magnitude estimation (would use proper calibration in practice)",
+            "line_number": 197,
+            "context": "        \"\"\"Estimate earthquake magnitude from waveform amplitude\"\"\"\n        max_amplitude = np.max(np.abs(waveform_data))\n        # Simplified magnitude estimation (would use proper calibration in practice)\n        magnitude = np.log10(max_amplitude * 1e6) - 3.0\n        return max(0.0, min(9.0, magnitude))"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 887,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n    "
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 1067,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 793,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 973,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 10
+      },
+      {
+        "file_path": "services\\helios-core\\api\\transfer_learning.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 403,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 934,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n    "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 840,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\helios-core\\core\\advanced_geochemistry_engine.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# PLACEHOLDER.*",
+            "match": "# Placeholder",
+            "line_number": 774,
+            "context": "            'discrimination_indices': discrimination_indices,\n            'ml_discrimination': ml_discrimination,\n            'confidence': 0.8  # Placeholder\n        }\n    "
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Cannot calculate AFM - zero total'}",
+            "line_number": 633,
+            "context": "        total_afm = (na2o + k2o) + feo + mgo\n        if total_afm == 0:\n            return {'error': 'Cannot calculate AFM - zero total'}\n        \n        a_norm = (na2o + k2o) / total_afm * 100"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Cannot calculate QAPF - no felsic minerals'}",
+            "line_number": 672,
+            "context": "        total_qapf = q + a + p + f\n        if total_qapf == 0:\n            return {'error': 'Cannot calculate QAPF - no felsic minerals'}\n        \n        q_norm = q / total_qapf * 100"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\helios-core\\core\\advanced_realtime_streaming.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Neo4j connection not available'}",
+            "line_number": 836,
+            "context": "        \n        if 'neo4j' not in self.connections:\n            return {'error': 'Neo4j connection not available'}\n        \n        created_count = 0"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\helios-core\\core\\earthquake_forecasting.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 709,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n        "
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 1115,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 615,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 1021,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 8
+      },
+      {
+        "file_path": "services\\helios-core\\core\\federated_geological_learning.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Neo4j connection not available'}",
+            "line_number": 1324,
+            "context": "        \n        if 'neo4j' not in self.connections:\n            return {'error': 'Neo4j connection not available'}\n        \n        created_count = 0"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 1658,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            'regional_variations': {"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 1564,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\helios-core\\core\\gan_engine.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 529,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n self.generator(noise).detach()\n        d_fake = self.discriminator(fake_data)"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 720,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n self.generator(noise)\n        d_fake = self.discriminator(fake_data)"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 435,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 626,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 8
+      },
+      {
+        "file_path": "services\\helios-core\\core\\insar_deformation_analyzer.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 934,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n                    magnitude=float(displacement_magnitude),"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 1127,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n max(height // 20, width // 20, 10)  # Adaptive sampling\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 840,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 1033,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 8
+      },
+      {
+        "file_path": "services\\helios-core\\core\\quantum_geological_core.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 910,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 364,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            'function_evaluations': 1024"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 726,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n        rho = np.outer(statevector.data, np.conj(statevector.data))"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 270,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 632,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 10
+      },
+      {
+        "file_path": "services\\helios-core\\core\\quantum_helios_integration.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified magnitude estimation (would use proper calibration in practice)",
+            "line_number": 510,
+            "context": "        \"\"\"Estimate earthquake magnitude from waveform amplitude\"\"\"\n        max_amplitude = np.max(np.abs(waveform_data))\n        # Simplified magnitude estimation (would use proper calibration in practice)\n        magnitude = np.log10(max_amplitude * 1e6) - 3.0\n        return max(0.0, min(9.0, magnitude))"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\helios-core\\core\\service_registry.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 330,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n            "
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 529,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n    "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 236,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 435,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 8
+      },
+      {
+        "file_path": "services\\helios-core\\core\\temporal_processing.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified magnitude estimation (would use proper calibration in practice)",
+            "line_number": 1042,
+            "context": "        \"\"\"Estimate earthquake magnitude from waveform amplitude\"\"\"\n        max_amplitude = np.max(np.abs(waveform_data))\n        # Simplified magnitude estimation (would use proper calibration in practice)\n        magnitude = np.log10(max_amplitude * 1e6) - 3.0\n        return max(0.0, min(9.0, magnitude))"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\helios-core\\core\\tpu_pod_manager.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified magnitude estimation (would use proper calibration in practice)",
+            "line_number": 443,
+            "context": "        \"\"\"Estimate earthquake magnitude from waveform amplitude\"\"\"\n        max_amplitude = np.max(np.abs(waveform_data))\n        # Simplified magnitude estimation (would use proper calibration in practice)\n        magnitude = np.log10(max_amplitude * 1e6) - 3.0\n        return max(0.0, min(9.0, magnitude))"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\helios-core\\core\\anomaly_detection\\multivariate_detector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 527,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n torch.FloatTensor(sample.reshape(1, -1)).to(self.device)\n            self.autoencoder.eval()"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 433,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\helios-core\\examples\\active_learning_demo.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Neo4j connection not available'}",
+            "line_number": 332,
+            "context": "        \n        if 'neo4j' not in self.connections:\n            return {'error': 'Neo4j connection not available'}\n        \n        created_count = 0"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\helios-core\\examples\\seismic_cnn_example.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 145,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 377,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified boundary conditions - can be extended",
+            "line_number": 607,
+            "context": "    def _compute_boundary_loss(self, coords: torch.Tensor, u_pred: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute boundary conditions loss\"\"\"\n        # Simplified boundary conditions - can be extended\n        boundary_mask = (coords[:, 0] == 0) | (coords[:, 0] == 1) | \\\n                       (coords[:, 1] == 0) | (coords[:, 1] == 1) | \\"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\knowledge-graph\\api\\routes.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 518,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\knowledge-graph\\core\\federated_discovery.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 512,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n                    supporting_evidence={"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 418,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\system-monitor\\hook_actions.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 1178,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\system-monitor\\main.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 895,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 391,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\n\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 297,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\timescale-db\\main.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 757,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Neo4j connection not available'}",
+            "line_number": 377,
+            "context": "        \n        if 'neo4j' not in self.connections:\n            return {'error': 'Neo4j connection not available'}\n        \n        created_count = 0"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'error': 'Neo4j connection not available'}",
+            "line_number": 1359,
+            "context": "        \n        if 'neo4j' not in self.connections:\n            return {'error': 'Neo4j connection not available'}\n        \n        created_count = 0"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\timescale-db\\examples\\usage_example.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified token validation - implement proper JWT validation",
+            "line_number": 256,
+            "context": "    async def _validate_token(self, token: str) -> str:\n        \"\"\"Validate JWT token and return user ID\"\"\"\n        # Simplified token validation - implement proper JWT validation\n        if not token or len(token) < 10:\n            raise HTTPException(status_code=401, detail=\"Invalid token\")"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 2
+      },
+      {
+        "file_path": "services\\volcano-watchtower\\api\\insar_endpoints.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {'method': 'none', 'anomaly_count': 0}",
+            "line_number": 653,
+            "context": "            }\n        \n        return {'method': 'none', 'anomaly_count': 0}\nrandn(64, 64)\n        _ = insar_analyzer._reduce_noise(test_data)"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_config =",
+            "line_number": 559,
+            "context": "        # Resampling\n        if 'resample' in config:\n            resample_config = config['resample']\n            data_array = self._resample_data(data_array, resample_config)\n            results['resampled'] = resample_config"
+          }
+        ],
+        "complexity_score": 1.0,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\system-integration\\tests\\test_comprehensive_integration.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock the integration manager methods",
+            "line_number": 58,
+            "context": "    def test_system_status_endpoint(self, mock_integration_manager):\n        \"\"\"Test comprehensive system status endpoint\"\"\"\n        # Mock the integration manager methods\n        mock_integration_manager.check_all_services_health = AsyncMock(\n            return_value=['helios-core', 'volcano-watchtower', 'data-ingestion']"
+          }
+        ],
+        "complexity_score": 2,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 3
+      },
+      {
+        "file_path": "services\\timescale-db\\tests\\test_timescale_service.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock query results",
+            "line_number": 142,
+            "context": "            mock_pool.acquire.return_value.__aenter__.return_value = mock_conn\n            \n            # Mock query results\n            mock_rows = [\n                {"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock trend analysis results",
+            "line_number": 175,
+            "context": "            mock_pool.acquire.return_value.__aenter__.return_value = mock_conn\n            \n            # Mock trend analysis results\n            trend_result = {\n                'slope': 0.001,"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock statistics results",
+            "line_number": 237,
+            "context": "            mock_pool.acquire.return_value.__aenter__.return_value = mock_conn\n            \n            # Mock statistics results\n            hypertable_stats = [\n                {"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock compression results",
+            "line_number": 287,
+            "context": "            mock_pool.acquire.return_value.__aenter__.return_value = mock_conn\n            \n            # Mock compression results\n            compression_results = [\n                {'compressed_chunk': 'chunk_1'},"
+          }
+        ],
+        "complexity_score": 2,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 9
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_geological_processes.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock the simulation to avoid long computation",
+            "line_number": 232,
+            "context": "        initial_conditions = {'ph': 7.0, 'temperature': 298.15}\n        \n        # Mock the simulation to avoid long computation\n        with patch.object(self.model, '_create_reaction_coordinates') as mock_coords:\n            mock_coords.return_value = torch.rand(100, 4)"
+          }
+        ],
+        "complexity_score": 3,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 3
+      },
+      {
+        "file_path": "services\\data-ingestion\\connectors\\atmospheric_connector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# TODO.*",
+            "match": "# TODO: Implement atmospheric data ingestion",
+            "line_number": 40,
+            "context": "        }\n        \n        # TODO: Implement atmospheric data ingestion\n        logger.info(\"Atmospheric data ingestion - placeholder implementation\")\n        "
+          }
+        ],
+        "complexity_score": 4,
+        "replacement_recommendations": [
+          {
+            "type": "complete_implementation",
+            "description": "Complete the TODO implementation",
+            "priority": "medium",
+            "effort": 6
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\data-ingestion\\connectors\\esa_connector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# TODO.*",
+            "match": "# TODO: Implement ESA data ingestion",
+            "line_number": 42,
+            "context": "        }\n        \n        # TODO: Implement ESA data ingestion\n        logger.info(\"ESA data ingestion - placeholder implementation\")\n        "
+          }
+        ],
+        "complexity_score": 4,
+        "replacement_recommendations": [
+          {
+            "type": "complete_implementation",
+            "description": "Complete the TODO implementation",
+            "priority": "medium",
+            "effort": 6
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\data-ingestion\\connectors\\hydroacoustic_connector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# TODO.*",
+            "match": "# TODO: Implement hydroacoustic data ingestion",
+            "line_number": 40,
+            "context": "        }\n        \n        # TODO: Implement hydroacoustic data ingestion\n        logger.info(\"Hydroacoustic data ingestion - placeholder implementation\")\n        "
+          }
+        ],
+        "complexity_score": 4,
+        "replacement_recommendations": [
+          {
+            "type": "complete_implementation",
+            "description": "Complete the TODO implementation",
+            "priority": "medium",
+            "effort": 6
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\data-ingestion\\connectors\\satellite_connector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# TODO.*",
+            "match": "# TODO: Implement commercial satellite data ingestion",
+            "line_number": 40,
+            "context": "        }\n        \n        # TODO: Implement commercial satellite data ingestion\n        logger.info(\"Commercial satellite data ingestion - placeholder implementation\")\n        "
+          }
+        ],
+        "complexity_score": 4,
+        "replacement_recommendations": [
+          {
+            "type": "complete_implementation",
+            "description": "Complete the TODO implementation",
+            "priority": "medium",
+            "effort": 6
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\data-ingestion\\connectors\\seismometer_connector.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# TODO.*",
+            "match": "# TODO: Implement seismometer data ingestion using ObsPy",
+            "line_number": 43,
+            "context": "        }\n        \n        # TODO: Implement seismometer data ingestion using ObsPy\n        logger.info(\"Seismometer data ingestion - placeholder implementation\")\n        "
+          }
+        ],
+        "complexity_score": 4,
+        "replacement_recommendations": [
+          {
+            "type": "complete_implementation",
+            "description": "Complete the TODO implementation",
+            "priority": "medium",
+            "effort": 6
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_active_learning_engine.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 43,
+            "context": "            features=features,\n            location=location,\n            sample_type=\"seismic\",\n            metadata={'test': True}\n        )"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type ==",
+            "line_number": 50,
+            "context": "        assert np.array_equal(sample.features, features)\n        assert sample.location == location\n        assert sample.sample_type == \"seismic\"\n        assert sample.metadata['test'] is True\n"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 133,
+            "context": "            features=np.random.normal(0, 1, 10),\n            location=(45.0, -120.0, 1000.0),\n            sample_type=\"seismic\"\n        )\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 181,
+            "context": "            features=np.random.normal(0, 1, 10),\n            location=(45.0, -120.0, 1000.0),\n            sample_type=\"seismic\"\n        )\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 241,
+            "context": "            features=np.random.normal(0, 1, 10),\n            location=(60.0, -100.0, 2000.0),\n            sample_type=\"new_type\"\n        )\n        "
+          }
+        ],
+        "complexity_score": 4,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 12
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_revolutionary_pinn_system.py",
+        "simplified_patterns": [
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 358,
+            "context": "    \n    # Generate test physics data\n    physics_data = np.random.randn(10)\n    \n    # Process with neuromorphic system"
+          }
+        ],
+        "complexity_score": 4,
+        "replacement_recommendations": [
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_quantum_optimization.py",
+        "simplified_patterns": [
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 33,
+            "context": "    def test_problem_creation(self):\n        \"\"\"Test creating a geological quantum problem\"\"\"\n        data = np.random.normal(0, 1, 10)\n        problem = GeologicalQuantumProblem(\n            problem_type='parameter_optimization',"
+          }
+        ],
+        "complexity_score": 5,
+        "replacement_recommendations": [
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\volcano-watchtower\\core\\advanced_seismic_analysis.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_entropy'] =",
+            "line_number": 411,
+            "context": "        \n        # Complexity features\n        features['sample_entropy'] = self._calculate_sample_entropy(waveform)\n        features['fractal_dimension'] = self._calculate_fractal_dimension(waveform)\n        "
+          }
+        ],
+        "complexity_score": 5,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 4
+      },
+      {
+        "file_path": "services\\edge-device-manager\\tests\\test_device_manager.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock Redis connection",
+            "line_number": 80,
+            "context": "    manager = EdgeDeviceManager(config)\n    \n    # Mock Redis connection\n    with patch('aioredis.from_url') as mock_redis:\n        mock_redis_instance = AsyncMock()"
+          }
+        ],
+        "complexity_score": 6,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 5
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_global_model_deployment.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_deployment_target.target_id] ==",
+            "line_number": 254,
+            "context": "        \n        assert sample_deployment_target.target_id in orchestrator.deployment_targets\n        assert orchestrator.deployment_targets[sample_deployment_target.target_id] == sample_deployment_target\n    \n    @pytest.mark.asyncio"
+          }
+        ],
+        "complexity_score": 6,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 5
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_mineral_resource_prediction.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 109,
+            "context": "                timestamp=datetime.utcnow(),\n                location=location,\n                sample_type='rock',\n                composition={\n                    'SiO2': 65.0, 'Al2O3': 15.0, 'Fe2O3': 5.0,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 120,
+            "context": "                timestamp=datetime.utcnow(),\n                location=location,\n                sample_type='rock',\n                composition={\n                    'SiO2': 70.0, 'Al2O3': 12.0, 'Fe2O3': 3.0,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 154,
+            "context": "                timestamp=datetime.utcnow(),\n                location=location,\n                sample_type='rock',\n                composition={\n                    'SiO2': 60.0 + i, 'Al2O3': 15.0,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 181,
+            "context": "                timestamp=datetime.utcnow(),\n                location=location,\n                sample_type='rock',\n                composition={\n                    'SiO2': 60.0 + i, 'Al2O3': 15.0,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 450,
+            "context": "                timestamp=datetime.utcnow(),\n                location=location,\n                sample_type='rock',\n                composition={'Cu': 1000 + i*100, 'Au': 1.0 + i*0.1, 'SiO2': 65.0}\n            )"
+          }
+        ],
+        "complexity_score": 6,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 13
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_geodynamic_modeling.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock the processors",
+            "line_number": 389,
+            "context": "                    with patch('core.geodynamic_modeling.GeochemicalAnalyzer') as mock_geochem:\n                        \n                        # Mock the processors\n                        mock_tomo.return_value.process_seismic_data.return_value = Mock(spec=SeismicTomographyResult)\n                        mock_deform.return_value.track_deformation.return_value = Mock(spec=DeformationField)"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock results",
+            "line_number": 424,
+            "context": "                        modeler = IntegratedGeodynamicModeler(mock_pinn_engine, device)\n                        \n                        # Mock results\n                        mock_results = {\n                            \"seismic_tomography\": Mock(spec=SeismicTomographyResult),"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock the analysis results with required attributes",
+            "line_number": 432,
+            "context": "                        }\n                        \n                        # Mock the analysis results with required attributes\n                        mock_results[\"earthquake_analysis\"].magma_movement_indicators = {\n                            \"volcanic_probability\": np.array([0.7]),"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 112,
+            "context": "                elevation=1000.0\n            ),\n            sample_type=SampleType.LAVA,\n            composition=composition,\n            temperature=1100.0 + i * 10,"
+          }
+        ],
+        "complexity_score": 7,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 11
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_hazard_mapping.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock assessment response",
+            "line_number": 305,
+            "context": "        engine.assess_multi_hazard_risk = AsyncMock()\n        \n        # Mock assessment response\n        mock_assessment = Mock(spec=MultiHazardAssessment)\n        mock_assessment.assessment_id = \"test_assessment_123\""
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock the update queue",
+            "line_number": 355,
+            "context": "        sample_monitoring_stream.value = 5.0  # Above 4.0 threshold\n        \n        # Mock the update queue\n        realtime_updater.update_queue = AsyncMock()\n        realtime_updater.update_queue.put = AsyncMock()"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock individual hazards",
+            "line_number": 462,
+            "context": "        assessment.economic_impact_estimate = 10000000\n        \n        # Mock individual hazards\n        volcanic_hazard = Mock(spec=HazardProbability)\n        volcanic_hazard.probability = 0.4"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_monitoring_stream.value =",
+            "line_number": 353,
+            "context": "        \"\"\"Test update trigger evaluation\"\"\"\n        # Modify stream to exceed trigger threshold\n        sample_monitoring_stream.value = 5.0  # Above 4.0 threshold\n        \n        # Mock the update queue"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_assessment.combined_risk_map =",
+            "line_number": 602,
+            "context": "        \n        # Test with high risk assessment\n        sample_assessment.combined_risk_map = np.full((10, 10), 0.8)  # High risk\n        urgency_high = communication_engine._calculate_urgency_level(sample_assessment, None)\n        assert urgency_high > urgency"
+          }
+        ],
+        "complexity_score": 7,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 13
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_model_complexity_manager.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock system information",
+            "line_number": 254,
+            "context": "                            mock_disk_usage, mock_virtual_memory, mock_cpu_count):\n        \"\"\"Test resource assessment with mocked system info\"\"\"\n        # Mock system information\n        mock_cpu_count.return_value = 8\n        mock_virtual_memory.return_value = Mock(total=16 * 1024**3)  # 16GB"
+          },
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock GPU properties",
+            "line_number": 261,
+            "context": "        mock_device_count.return_value = 2\n        \n        # Mock GPU properties\n        with patch('torch.cuda.get_device_properties') as mock_gpu_props:\n            mock_gpu_props.return_value = Mock(total_memory=8 * 1024**3)  # 8GB per GPU"
+          }
+        ],
+        "complexity_score": 7,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          },
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 7
+      },
+      {
+        "file_path": "services\\nlp-service\\main.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"healthy\", \"service\": \"nlp-service\"}",
+            "line_number": 88,
+            "context": "async def health_check():\n    \"\"\"Health check endpoint\"\"\"\n    return {\"status\": \"healthy\", \"service\": \"nlp-service\"}\n\n@app.get(\"/ready\")"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"not_ready\", \"service\": \"nlp-service\", \"missing_components\": missing_components}",
+            "line_number": 103,
+            "context": "        \n        if missing_components:\n            return {\"status\": \"not_ready\", \"service\": \"nlp-service\", \"missing_components\": missing_components}\n        \n        return {\"status\": \"ready\", \"service\": \"nlp-service\"}"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"ready\", \"service\": \"nlp-service\"}",
+            "line_number": 105,
+            "context": "            return {\"status\": \"not_ready\", \"service\": \"nlp-service\", \"missing_components\": missing_components}\n        \n        return {\"status\": \"ready\", \"service\": \"nlp-service\"}\n    except Exception as e:\n        logger.error(\"Readiness check failed\", error=str(e))"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"error\", \"service\": \"nlp-service\", \"error\": str(e)}",
+            "line_number": 108,
+            "context": "    except Exception as e:\n        logger.error(\"Readiness check failed\", error=str(e))\n        return {\"status\": \"error\", \"service\": \"nlp-service\", \"error\": str(e)}\n\nif __name__ == \"__main__\":"
+          }
+        ],
+        "complexity_score": 7,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 11
+      },
+      {
+        "file_path": "services\\volcano-watchtower\\tests\\test_risk_assessment.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock eruption forecast",
+            "line_number": 152,
+            "context": "    )\n    \n    # Mock eruption forecast\n    eruption_forecast = type('MockForecast', (), {\n        'probability_by_timeframe': {'24_hours': 0.3}"
+          }
+        ],
+        "complexity_score": 7,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 5
+      },
+      {
+        "file_path": "services\\data-ingestion\\core\\advanced_geochemical_processing.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\n            'La': {'atomic_number': 57, 'ionic_radius': 1.032, 'compatibility': 'incompatible', 'group': 'LREE'}",
+            "line_number": 132,
+            "context": "        \"\"\"Initialize element properties database\"\"\"\n        \n        return {\n            'La': {'atomic_number': 57, 'ionic_radius': 1.032, 'compatibility': 'incompatible', 'group': 'LREE'},\n            'Ce': {'atomic_number': 58, 'ionic_radius': 1.010, 'compatibility': 'incompatible', 'group': 'LREE'},"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_completeness = all_data.notna().sum(axis=",
+            "line_number": 368,
+            "context": "        # Sample-wise completeness\n        all_data = pd.concat([dataset.major_elements, dataset.trace_elements], axis=1)\n        sample_completeness = all_data.notna().sum(axis=1) / len(all_data.columns)\n        completeness['sample_wise_mean'] = sample_completeness.mean()\n        completeness['sample_wise_std'] = sample_completeness.std()"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_wise_mean'] =",
+            "line_number": 369,
+            "context": "        all_data = pd.concat([dataset.major_elements, dataset.trace_elements], axis=1)\n        sample_completeness = all_data.notna().sum(axis=1) / len(all_data.columns)\n        completeness['sample_wise_mean'] = sample_completeness.mean()\n        completeness['sample_wise_std'] = sample_completeness.std()\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_wise_std'] =",
+            "line_number": 370,
+            "context": "        sample_completeness = all_data.notna().sum(axis=1) / len(all_data.columns)\n        completeness['sample_wise_mean'] = sample_completeness.mean()\n        completeness['sample_wise_std'] = sample_completeness.std()\n        \n        return completeness"
+          }
+        ],
+        "complexity_score": 8,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 12
+      },
+      {
+        "file_path": "services\\helios-core\\core\\geological_processes\\mantle_convection.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified advection and diffusion terms",
+            "line_number": 266,
+            "context": "                                      create_graph=True)[0][:, 3:4]\n            \n            # Simplified advection and diffusion terms\n            advection = torch.zeros_like(comp)\n            diffusion = torch.zeros_like(comp)"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified buoyancy: \u03c1g(T - T_ref)",
+            "line_number": 309,
+            "context": "    def _compute_buoyancy(self, temperature: torch.Tensor, radius: torch.Tensor) -> torch.Tensor:\n        \"\"\"Compute buoyancy force\"\"\"\n        # Simplified buoyancy: \u03c1g(T - T_ref)\n        reference_temperature = 1600.0  # K\n        thermal_expansion = 3e-5  # 1/K"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified heat flow calculation",
+            "line_number": 381,
+            "context": "    def _compute_surface_heat_flow(self, predictions: Dict[str, torch.Tensor]) -> float:\n        \"\"\"Compute surface heat flow\"\"\"\n        # Simplified heat flow calculation\n        temperature = predictions['temperature']\n        mean_surface_temp = torch.mean(temperature).item()"
+          }
+        ],
+        "complexity_score": 8,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 10
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_transfer_learning.py",
+        "simplified_patterns": [
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 412,
+            "context": "        preprocessor = DomainDataPreprocessor()\n        \n        source_data = np.random.randn(100, 10)\n        target_data = np.random.randn(80, 10)\n        "
+          },
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 413,
+            "context": "        \n        source_data = np.random.randn(100, 10)\n        target_data = np.random.randn(80, 10)\n        \n        source_processed, target_processed = preprocessor.preprocess_for_adaptation("
+          },
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 427,
+            "context": "        preprocessor = DomainDataPreprocessor()\n        \n        data = np.random.randn(100, 20)\n        invariant_features = preprocessor.extract_domain_invariant_features(data, \"test_domain\")\n        "
+          },
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 438,
+            "context": "        preprocessor = DomainDataPreprocessor()\n        \n        source_data = np.random.randn(50, 10)\n        target_data = np.random.randn(50, 10) + 1  # Shifted distribution\n        "
+          },
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 439,
+            "context": "        \n        source_data = np.random.randn(50, 10)\n        target_data = np.random.randn(50, 10) + 1  # Shifted distribution\n        \n        # Should not raise an exception"
+          }
+        ],
+        "complexity_score": 8,
+        "replacement_recommendations": [
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          },
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          },
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          },
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          },
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 14
+      },
+      {
+        "file_path": "services\\helios-core\\core\\geological_processes\\crustal_deformation.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified thermal loss to avoid numerical issues",
+            "line_number": 348,
+            "context": "                                       create_graph=True, retain_graph=True)[0][:, 3:4]\n            \n            # Simplified thermal loss to avoid numerical issues\n            thermal_residual = dT_dt - self.params.thermal_diffusivity * temperature * 1e-6\n            "
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified stress resolution",
+            "line_number": 494,
+            "context": "    def _resolve_stress_on_fault(self, fault_geometry: Dict, stress_field: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:\n        \"\"\"Resolve stress tensor on fault plane\"\"\"\n        # Simplified stress resolution\n        # Full implementation would use fault orientation and stress tensor rotation\n        "
+          }
+        ],
+        "complexity_score": 9,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 8
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_causal_inference_engine.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_geological_data.sample(n=100, replace=",
+            "line_number": 274,
+            "context": "        # Create validation data (similar structure but different samples)\n        np.random.seed(123)  # Different seed for validation data\n        validation_data = sample_geological_data.sample(n=100, replace=True)\n        \n        # Validate relationships"
+          }
+        ],
+        "complexity_score": 9,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\timescale-db\\test_basic.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# MOCK.*",
+            "match": "# Mock the database pool to avoid connection issues",
+            "line_number": 25,
+            "context": "    \"\"\"Test that the FastAPI app can be created\"\"\"\n    try:\n        # Mock the database pool to avoid connection issues\n        import unittest.mock\n        "
+          }
+        ],
+        "complexity_score": 9,
+        "replacement_recommendations": [
+          {
+            "type": "implement_real_functionality",
+            "description": "Implement actual functionality instead of mock",
+            "priority": "high",
+            "effort": 12
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 6
+      },
+      {
+        "file_path": "services\\graph-database\\main.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"healthy\", \"database\": \"connected\"}",
+            "line_number": 85,
+            "context": "    try:\n        if db_manager and await db_manager.is_connected():\n            return {\"status\": \"healthy\", \"database\": \"connected\"}\n        else:\n            raise HTTPException(status_code=503, detail=\"Database not connected\")"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"ready\", \"database\": \"operational\"}",
+            "line_number": 98,
+            "context": "    try:\n        if db_manager and await db_manager.is_ready():\n            return {\"status\": \"ready\", \"database\": \"operational\"}\n        else:\n            raise HTTPException(status_code=503, detail=\"Service not ready\")"
+          }
+        ],
+        "complexity_score": 10,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 9
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_geological_simulation.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 50,
+            "context": "        timestamp=datetime.utcnow(),\n        location=location,\n        sample_type=SampleType.LAVA,\n        composition={\"SiO2\": 52.0, \"MgO\": 8.0, \"Al2O3\": 15.0}\n    )"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_volcanic_state.system_age =",
+            "line_number": 132,
+            "context": "        \n        for age, eruption_rate, expected_stage in test_cases:\n            sample_volcanic_state.system_age = age\n            sample_volcanic_state.eruption_rate = eruption_rate\n            "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_volcanic_state.eruption_rate =",
+            "line_number": 133,
+            "context": "        for age, eruption_rate, expected_stage in test_cases:\n            sample_volcanic_state.system_age = age\n            sample_volcanic_state.eruption_rate = eruption_rate\n            \n            stage = modeler._determine_volcanic_stage(sample_volcanic_state, age)"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_volcanic_state.eruption_rate =",
+            "line_number": 144,
+            "context": "        \n        initial_rate = 1e-3\n        sample_volcanic_state.eruption_rate = initial_rate\n        \n        # Test growth stage"
+          }
+        ],
+        "complexity_score": 10,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 13
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_geothermal_resource_assessment.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_reservoir, extraction_rate=50.0, reinjection_rate=",
+            "line_number": 193,
+            "context": "        \"\"\"Test sustainability assessment\"\"\"\n        sustainability_years, decline_rate = sustainability_modeler.assess_sustainability(\n            sample_reservoir, extraction_rate=50.0, reinjection_rate=45.0\n        )\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_reservoir, extraction_scenario, time_horizon_years=",
+            "line_number": 210,
+            "context": "        \n        thermal_decline = sustainability_modeler.model_thermal_decline(\n            sample_reservoir, extraction_scenario, time_horizon_years=30\n        )\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_reservoir, extraction_rate=50.0, reinjection_rate=",
+            "line_number": 222,
+            "context": "        # High reinjection rate\n        high_reinjection_years, _ = sustainability_modeler.assess_sustainability(\n            sample_reservoir, extraction_rate=50.0, reinjection_rate=48.0\n        )\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_reservoir, extraction_rate=50.0, reinjection_rate=",
+            "line_number": 227,
+            "context": "        # Low reinjection rate\n        low_reinjection_years, _ = sustainability_modeler.assess_sustainability(\n            sample_reservoir, extraction_rate=50.0, reinjection_rate=25.0\n        )\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_reservoir, power_potential_mw=10.0, sustainability_years=",
+            "line_number": 277,
+            "context": "        \"\"\"Test comprehensive economic viability assessment\"\"\"\n        metrics = economic_assessor.assess_economic_viability(\n            sample_reservoir, power_potential_mw=10.0, sustainability_years=30.0\n        )\n        "
+          }
+        ],
+        "complexity_score": 10,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 15
+      },
+      {
+        "file_path": "services\\knowledge-graph\\main.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"healthy\", \"service\": \"knowledge-graph\"}",
+            "line_number": 109,
+            "context": "        kg_manager = service_components.get(\"knowledge_graph_manager\")\n        if kg_manager and await kg_manager.is_healthy():\n            return {\"status\": \"healthy\", \"service\": \"knowledge-graph\"}\n        else:\n            raise HTTPException(status_code=503, detail=\"Service unhealthy\")"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"ready\", \"service\": \"knowledge-graph\"}",
+            "line_number": 133,
+            "context": "                )\n        \n        return {\"status\": \"ready\", \"service\": \"knowledge-graph\"}\n    except Exception as e:\n        logger.error(\"Readiness check failed\", error=str(e))"
+          }
+        ],
+        "complexity_score": 11,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 9
+      },
+      {
+        "file_path": "services\\helios-core\\examples\\mineral_resource_prediction_example.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 99,
+            "context": "            timestamp=datetime.utcnow(),\n            location=location,\n            sample_type='rock',\n            composition=geochemical_signature,\n            temperature=np.random.uniform(250, 400),"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 160,
+            "context": "            timestamp=datetime.utcnow(),\n            location=location,\n            sample_type='rock',\n            composition=geochemical_signature,\n            temperature=np.random.uniform(150, 300),"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 220,
+            "context": "            timestamp=datetime.utcnow(),\n            location=location,\n            sample_type='rock',\n            composition=geochemical_signature,\n            temperature=np.random.uniform(200, 350),"
+          }
+        ],
+        "complexity_score": 12,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 12
+      },
+      {
+        "file_path": "services\\volcano-watchtower\\models\\volcanic_data.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified VEI calculation based on eruption volume",
+            "line_number": 261,
+            "context": "                                       column_height: float) -> int:\n    \"\"\"Calculate Volcanic Explosivity Index (VEI) from eruption parameters\"\"\"\n    # Simplified VEI calculation based on eruption volume\n    if eruption_volume < 1e4:  # < 10,000 m\u00b3\n        return 0"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified ash fall area estimation",
+            "line_number": 283,
+            "context": "def estimate_ash_fall_area(vei: int, wind_speed: float = 10.0) -> float:\n    \"\"\"Estimate ash fall area in km\u00b2 based on VEI and wind conditions\"\"\"\n    # Simplified ash fall area estimation\n    base_areas = {\n        0: 1, 1: 10, 2: 100, 3: 1000, 4: 10000,"
+          },
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified evacuation time calculation",
+            "line_number": 298,
+            "context": "def calculate_evacuation_time(population: int, evacuation_routes: int = 1) -> timedelta:\n    \"\"\"Estimate evacuation time based on population and available routes\"\"\"\n    # Simplified evacuation time calculation\n    # Assume 1000 people per hour per route\n    evacuation_rate = 1000 * evacuation_routes  # people per hour"
+          }
+        ],
+        "complexity_score": 12,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 12
+      },
+      {
+        "file_path": "services\\data-ingestion\\core\\advanced_data_fusion.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_size =",
+            "line_number": 247,
+            "context": "                \n                # Resample if effective sample size is low\n                eff_sample_size = 1.0 / np.sum(self.weights**2)\n                if eff_sample_size < self.num_particles / 2:\n                    self._resample()"
+          }
+        ],
+        "complexity_score": 15,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 9
+      },
+      {
+        "file_path": "services\\data-ingestion\\examples\\mongodb_usage_examples.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 40,
+            "context": "            timestamp=datetime.utcnow(),\n            location=location,\n            sample_type=\"volcanic_rock\",\n            composition={\n                \"SiO2\": 58.2,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_id =",
+            "line_number": 62,
+            "context": "        )\n        \n        sample_id = await storage.store_geochemical_sample(geochemical_sample)\n        print(f\"Stored geochemical sample: {sample_id}\")\n        "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_data =",
+            "line_number": 99,
+            "context": "    try:\n        # Rock sample data\n        rock_sample_data = {\n            \"timestamp\": datetime.utcnow(),\n            \"location\": {"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 301,
+            "context": "        print(\"\\n--- Geochemical Composition Statistics ---\")\n        composition_stats = await storage.aggregate_geochemical_composition(\n            sample_type=\"volcanic_rock\"\n        )\n        "
+          }
+        ],
+        "complexity_score": 15,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 15
+      },
+      {
+        "file_path": "services\\helios-core\\api\\active_learning.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type: str =",
+            "line_number": 37,
+            "context": "    location: List[float] = Field(..., min_items=3, max_items=3)\n    timestamp: Optional[str] = None\n    sample_type: str = \"unknown\"\n    metadata: Optional[Dict[str, Any]] = None\n    label: Optional[List[float]] = None"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 109,
+            "context": "        location=tuple(sample_req.location),\n        timestamp=sample_req.timestamp,\n        sample_type=sample_req.sample_type,\n        metadata=sample_req.metadata or {},\n        label=np.array(sample_req.label) if sample_req.label else None,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 123,
+            "context": "        location=list(sample.location),\n        timestamp=sample.timestamp,\n        sample_type=sample.sample_type,\n        metadata=sample.metadata,\n        label=sample.label.tolist() if sample.label is not None else None,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_types: Optional[List[str]] =",
+            "line_number": 396,
+            "context": "async def generate_sample_data(\n    n_samples: int = 100,\n    sample_types: Optional[List[str]] = None\n):\n    \"\"\""
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_responses =",
+            "line_number": 409,
+            "context": "        \n        # Convert to response format\n        sample_responses = [\n            convert_geological_sample_to_response(sample)\n            for sample in samples"
+          }
+        ],
+        "complexity_score": 15,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 17
+      },
+      {
+        "file_path": "services\\helios-core\\core\\geological_processes\\geochemical_reactions.py",
+        "simplified_patterns": [
+          {
+            "pattern": "# SIMPLIFIED.*",
+            "match": "# Simplified kinetics loss for demonstration",
+            "line_number": 267,
+            "context": "        Compute reaction kinetics loss: dc/dt = \u03a3(\u03bd_i * r_j)\n        \"\"\"\n        # Simplified kinetics loss for demonstration\n        kinetics_loss = torch.tensor(0.0, device=concentrations.device)\n        return kinetics_loss"
+          }
+        ],
+        "complexity_score": 15,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 9
+      },
+      {
+        "file_path": "services\\data-ingestion\\validate_mongodb_implementation.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 35,
+            "context": "            timestamp=datetime.utcnow(),\n            location=location,\n            sample_type=\"rock\",\n            composition={\"SiO2\": 65.5, \"Al2O3\": 15.2},\n            temperature=1200.0,"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_id=",
+            "line_number": 61,
+            "context": "            timestamp=datetime.utcnow(),\n            location=location,\n            sample_id=\"TEST_001\",\n            rock_type=RockType.IGNEOUS,\n            formation=\"Test Formation\","
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_id=",
+            "line_number": 74,
+            "context": "            timestamp=datetime.utcnow(),\n            location=location,\n            sample_id=\"MIN_001\",\n            mineral_name=\"quartz\",\n            chemical_formula=\"SiO2\","
+          }
+        ],
+        "complexity_score": 16,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 14
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_earthquake_forecasting.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_events, target_region, forecast_period_days=",
+            "line_number": 225,
+            "context": "            \n            forecast = engine.generate_probabilistic_hazard_assessment(\n                sample_events, target_region, forecast_period_days=30\n            )\n            "
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_events =",
+            "line_number": 268,
+            "context": "        # Test invalid region\n        invalid_region = {\"lat_min\": 35.0}  # Missing required keys\n        sample_events = [few_events[0]] * 15  # Enough events\n        \n        with pytest.raises(ValueError, match=\"Target region must contain keys\"):"
+          }
+        ],
+        "complexity_score": 16,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 12
+      },
+      {
+        "file_path": "services\\knowledge-graph\\examples\\knowledge_graph_example.py",
+        "simplified_patterns": [
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 57,
+            "context": "    \n    # Generate synthetic seismic and deformation data with causal relationship\n    seismic_data = np.random.normal(0, 1, n_points)\n    # Deformation follows seismic with a lag of 5 time steps\n    deformation_data = np.zeros(n_points)"
+          }
+        ],
+        "complexity_score": 16,
+        "replacement_recommendations": [
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 10
+      },
+      {
+        "file_path": "services\\edge-device-manager\\api\\device_registration.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"success\", \"message\": \"Heartbeat updated\"}",
+            "line_number": 80,
+            "context": "    try:\n        await manager.update_device_heartbeat(device_id, metrics)\n        return {\"status\": \"success\", \"message\": \"Heartbeat updated\"}\n    except ValueError as e:\n        raise HTTPException(status_code=404, detail=str(e))"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"success\", \"message\": \"Device removal initiated\"}",
+            "line_number": 119,
+            "context": "        # Remove device in background to avoid blocking\n        background_tasks.add_task(manager.remove_device, device_id)\n        return {\"status\": \"success\", \"message\": \"Device removal initiated\"}\n    except ValueError as e:\n        raise HTTPException(status_code=404, detail=str(e))"
+          }
+        ],
+        "complexity_score": 17,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 12
+      },
+      {
+        "file_path": "services\\helios-core\\examples\\hypothesis_generation_example.py",
+        "simplified_patterns": [
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_rels =",
+            "line_number": 316,
+            "context": "    \n    generator = HypothesisGenerator()\n    sample_rels = create_sample_causal_relationships()[:2]\n    context = create_geological_context()\n    "
+          }
+        ],
+        "complexity_score": 17,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 10
+      },
+      {
+        "file_path": "services\\helios-core\\tests\\test_seismic_cnn_processor.py",
+        "simplified_patterns": [
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 323,
+            "context": "        \n        # 3-component waveform\n        waveform_data = np.random.randn(3, samples) * 0.1  # Low amplitude background\n        \n        # Add a synthetic event"
+          },
+          {
+            "pattern": "data\\s*=\\s*np\\.random\\.",
+            "match": "data = np.random.",
+            "line_number": 489,
+            "context": "        for station_id, location in self.sensor_locations.items():\n            # Create waveform with synthetic event\n            waveform_data = np.random.randn(3, samples) * 0.1\n            \n            # Add synthetic earthquake"
+          }
+        ],
+        "complexity_score": 17,
+        "replacement_recommendations": [
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          },
+          {
+            "type": "replace_random_with_physics",
+            "description": "Replace random data with physics-based simulation",
+            "priority": "high",
+            "effort": 8
+          }
+        ],
+        "priority": "low",
+        "estimated_effort": 12
+      },
+      {
+        "file_path": "services\\helios-core\\api\\tpu_pod_api.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"not_initialized\", \"message\": \"TPU Pod not initialized\"}",
+            "line_number": 406,
+            "context": "    \n    if tpu_manager is None:\n        return {\"status\": \"not_initialized\", \"message\": \"TPU Pod not initialized\"}\n    \n    try:"
+          },
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"error\", \"message\": f\"Health check failed: {str(e)}\"}",
+            "line_number": 412,
+            "context": "        return {\"status\": status, \"message\": f\"TPU Pod status: {status}\"}\n    except Exception as e:\n        return {\"status\": \"error\", \"message\": f\"Health check failed: {str(e)}\"}"
+          }
+        ],
+        "complexity_score": 18,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 13
+      },
+      {
+        "file_path": "services\\helios-core\\api\\mineral_resource_prediction.py",
+        "simplified_patterns": [
+          {
+            "pattern": "return\\s+\\{\\s*[\"\\'].*[\"\\']:\\s*[\"\\'].*[\"\\'].*\\}",
+            "match": "return {\"status\": \"success\", \"message\": \"All models and training data cleared\"}",
+            "line_number": 471,
+            "context": "        \n        logger.info(\"All models and training data cleared\")\n        return {\"status\": \"success\", \"message\": \"All models and training data cleared\"}\n        \n    except Exception as e:"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_location =",
+            "line_number": 291,
+            "context": "        for i, sample_req in enumerate(request.geochemical_samples):\n            # Use first deposit location as default for samples\n            sample_location = deposits[0].location if deposits else GeologicalLocation(\n                latitude=0.0, longitude=0.0, elevation=0.0\n            )"
+          },
+          {
+            "pattern": "sample_.*=",
+            "match": "sample_type=",
+            "line_number": 298,
+            "context": "                timestamp=datetime.utcnow(),\n                location=sample_location,\n                sample_type='rock',  # Default\n                composition=sample_req.composition,\n                isotope_ratios=sample_req.isotope_ratios,"
+          }
+        ],
+        "complexity_score": 20,
+        "replacement_recommendations": [],
+        "priority": "low",
+        "estimated_effort": 16
+      }
+    ],
+    "timestamp": "2025-07-31T18:38:51.243022"
+  },
+  "replacements": {
+    "summary": {
+      "total_replacements_attempted": 25,
+      "successful_replacements": 25,
+      "failed_replacements": 0,
+      "success_rate": 1.0,
+      "files_modified": 4,
+      "feature_types_implemented": 5
+    },
+    "feature_type_breakdown": {
+      "data_processing": 15,
+      "neural_network": 5,
+      "database_operations": 3,
+      "volcanic_monitoring": 1,
+      "seismic_processing": 1
+    },
+    "timestamp": "2025-07-31T18:38:51.243022"
+  },
+  "execution_summary": {
+    "files_analyzed": 82,
+    "files_modified": 4,
+    "patterns_replaced": 25,
+    "success_rate": 1.0
+  }
+}
