@@ -4,23 +4,20 @@ Neo4j Graph Database Service for Geological Relationships
 Main entry point for the graph database microservice
 """
 
-import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
 
+import torch.nn as nn
 import uvicorn
+from api.routes import router as api_router
+from core.database import GraphDatabaseManager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import router as api_router
-from core.database import GraphDatabaseManager
-from core.config import settings
-
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -32,20 +29,20 @@ db_manager = None
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     global db_manager
-    
+
     # Startup
     logger.info("Starting Graph Database Service...")
     try:
         db_manager = GraphDatabaseManager()
         await db_manager.connect()
         logger.info("Connected to Neo4j database")
-        
+
         # Initialize graph schema
         await db_manager.initialize_schema()
         logger.info("Graph schema initialized")
-        
+
         yield
-        
+
     except Exception as e:
         logger.error(f"Failed to start service: {e}")
         raise
@@ -61,7 +58,7 @@ app = FastAPI(
     title="Prometheus Graph Database Service",
     description="Neo4j graph database service for geological process relationships",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -106,7 +103,7 @@ async def readiness_check():
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
+        host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", 8000)),
-        reload=os.getenv("ENVIRONMENT") == "development"
+        reload=os.getenv("ENVIRONMENT") == "development",
     )

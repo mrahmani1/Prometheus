@@ -5,26 +5,29 @@ This module provides REST API endpoints for the comprehensive hazard mapping sys
 including multi-hazard risk assessment, real-time updates, and communication products.
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Query
+import asyncio
+import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
+from core.hazard_communication import (
+    AudienceType,
+    CommunicationFormat,
+    HazardCommunicationEngine,
+)
+from core.hazard_mapping import (
+    GeographicBounds,
+    HazardMappingEngine,
+    HazardType,
+    RiskLevel,
+)
+from core.realtime_hazard_updates import MonitoringDataStream, RealTimeHazardUpdater
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
-import logging
-import asyncio
-import json
-
-from core.hazard_mapping import (
-    HazardMappingEngine, GeographicBounds, HazardType, RiskLevel,
-    MultiHazardAssessment
-)
-from core.realtime_hazard_updates import (
-    RealTimeHazardUpdater, MonitoringDataStream, HazardAlert
-)
-from core.hazard_communication import (
-    HazardCommunicationEngine, AudienceType, CommunicationFormat,
-    CommunicationProduct
-)
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +38,15 @@ communication_engine = HazardCommunicationEngine()
 
 router = APIRouter(prefix="/api/v1/hazard-mapping", tags=["hazard-mapping"])
 
-
 # Pydantic models for API requests/responses
 class GeographicBoundsModel(BaseModel):
     min_lat: float = Field(..., ge=-90, le=90, description="Minimum latitude")
     max_lat: float = Field(..., ge=-90, le=90, description="Maximum latitude")
     min_lon: float = Field(..., ge=-180, le=180, description="Minimum longitude")
     max_lon: float = Field(..., ge=-180, le=180, description="Maximum longitude")
-    resolution: float = Field(0.01, gt=0, le=1, description="Grid resolution in degrees")
-
+    resolution: float = Field(
+        0.01, gt=0, le=1, description="Grid resolution in degrees"
+    )
 
 class MonitoringDataModel(BaseModel):
     stream_id: str
@@ -55,21 +58,26 @@ class MonitoringDataModel(BaseModel):
     quality_flag: str = Field(..., regex="^(good|questionable|bad)$")
     sensor_id: str
 
-
 class HazardAssessmentRequest(BaseModel):
     geographic_bounds: GeographicBoundsModel
     monitoring_data: Optional[Dict[str, Any]] = None
-    time_horizon_days: int = Field(30, ge=1, le=365, description="Assessment time horizon in days")
+    time_horizon_days: int = Field(
+        30, ge=1, le=365, description="Assessment time horizon in days"
+    )
     include_uncertainty: bool = True
     include_cascading_effects: bool = True
 
-
 class CommunicationRequest(BaseModel):
     assessment_id: str
-    audience_type: str = Field(..., regex="^(scientific|emergency_management|general_public|media|government|industry)$")
-    format_type: str = Field(..., regex="^(technical_report|executive_summary|public_advisory|emergency_alert|infographic|interactive_map|social_media)$")
+    audience_type: str = Field(
+        ...,
+        regex="^(scientific|emergency_management|general_public|media|government|industry)$",
+    )
+    format_type: str = Field(
+        ...,
+        regex="^(technical_report|executive_summary|public_advisory|emergency_alert|infographic|interactive_map|social_media)$",
+    )
     custom_config: Optional[Dict[str, Any]] = None
-
 
 class HazardAssessmentResponse(BaseModel):
     assessment_id: str
@@ -83,7 +91,6 @@ class HazardAssessmentResponse(BaseModel):
     economic_impact_estimate: float
     status: str
 
-
 class AlertResponse(BaseModel):
     alert_id: str
     timestamp: datetime
@@ -96,14 +103,12 @@ class AlertResponse(BaseModel):
     expires_at: datetime
     escalation_level: int
 
-
 async def get_hazard_engine():
     """Dependency to get initialized hazard engine"""
-    if not hasattr(hazard_engine, '_initialized'):
+    if not hasattr(hazard_engine, "_initialized"):
         await hazard_engine.initialize_hazard_models()
         hazard_engine._initialized = True
     return hazard_engine
-
 
 async def get_realtime_updater():
     """Dependency to get initialized real-time updater"""
@@ -115,7 +120,6 @@ async def get_realtime_updater():
         asyncio.create_task(realtime_updater.start_monitoring())
     return realtime_updater
 
-
 @router.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
@@ -123,7 +127,6 @@ async def startup_event():
     await get_hazard_engine()
     await get_realtime_updater()
     logger.info("Hazard mapping services initialized successfully")
-
 
 @router.on_event("shutdown")
 async def shutdown_event():
@@ -133,41 +136,42 @@ async def shutdown_event():
         await realtime_updater.stop_monitoring()
     logger.info("Hazard mapping services shut down")
 
-
 @router.post("/assess", response_model=HazardAssessmentResponse)
 async def assess_multi_hazard_risk(
     request: HazardAssessmentRequest,
     background_tasks: BackgroundTasks,
-    engine: HazardMappingEngine = Depends(get_hazard_engine)
+    engine: HazardMappingEngine = Depends(get_hazard_engine),
 ):
     """
     Perform comprehensive multi-hazard risk assessment
-    
+
     This endpoint analyzes multiple geological hazards simultaneously,
     providing probabilistic risk estimates with uncertainty quantification.
     """
     try:
-        logger.info(f"Starting multi-hazard assessment for bounds: {request.geographic_bounds}")
-        
+        logger.info(
+            f"Starting multi-hazard assessment for bounds: {request.geographic_bounds}"
+        )
+
         # Convert Pydantic model to internal format
         bounds = GeographicBounds(
             min_lat=request.geographic_bounds.min_lat,
             max_lat=request.geographic_bounds.max_lat,
             min_lon=request.geographic_bounds.min_lon,
             max_lon=request.geographic_bounds.max_lon,
-            resolution=request.geographic_bounds.resolution
+            resolution=request.geographic_bounds.resolution,
         )
-        
+
         # Prepare monitoring data
         monitoring_data = request.monitoring_data or {}
-        
+
         # Perform assessment
         assessment = await engine.assess_multi_hazard_risk(
             geographic_bounds=bounds,
             monitoring_data=monitoring_data,
-            time_horizon=timedelta(days=request.time_horizon_days)
+            time_horizon=timedelta(days=request.time_horizon_days),
         )
-        
+
         # Convert to response format
         response = HazardAssessmentResponse(
             assessment_id=assessment.assessment_id,
@@ -177,25 +181,27 @@ async def assess_multi_hazard_risk(
                 max_lat=assessment.geographic_bounds.max_lat,
                 min_lon=assessment.geographic_bounds.min_lon,
                 max_lon=assessment.geographic_bounds.max_lon,
-                resolution=assessment.geographic_bounds.resolution
+                resolution=assessment.geographic_bounds.resolution,
             ),
             individual_hazards={
                 hazard_type.value: {
                     "probability": hazard_prob.probability,
                     "confidence_interval": hazard_prob.confidence_interval,
                     "uncertainty": hazard_prob.uncertainty,
-                    "contributing_factors": hazard_prob.contributing_factors
+                    "contributing_factors": hazard_prob.contributing_factors,
                 }
                 for hazard_type, hazard_prob in assessment.individual_hazards.items()
             },
             combined_risk_summary={
                 "max_risk": float(assessment.combined_risk_map.max()),
                 "mean_risk": float(assessment.combined_risk_map.mean()),
-                "area_above_moderate_risk": int((assessment.combined_risk_map > 0.3).sum())
+                "area_above_moderate_risk": int(
+                    (assessment.combined_risk_map > 0.3).sum()
+                ),
             },
             uncertainty_summary={
                 "max_uncertainty": float(assessment.uncertainty_map.max()),
-                "mean_uncertainty": float(assessment.uncertainty_map.mean())
+                "mean_uncertainty": float(assessment.uncertainty_map.mean()),
             },
             cascading_effects={
                 primary.value: [secondary.value for secondary in secondaries]
@@ -203,31 +209,29 @@ async def assess_multi_hazard_risk(
             },
             population_at_risk=assessment.total_population_at_risk,
             economic_impact_estimate=assessment.economic_impact_estimate,
-            status="completed"
+            status="completed",
         )
-        
+
         logger.info(f"Multi-hazard assessment completed: {assessment.assessment_id}")
         return response
-        
+
     except Exception as e:
         logger.error(f"Error in multi-hazard assessment: {e}")
         raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
 
-
 @router.get("/assessments/{assessment_id}")
 async def get_assessment(
-    assessment_id: str,
-    updater: RealTimeHazardUpdater = Depends(get_realtime_updater)
+    assessment_id: str, updater: RealTimeHazardUpdater = Depends(get_realtime_updater)
 ):
     """Get details of a specific hazard assessment"""
     try:
         assessments = updater.get_active_assessments()
-        
+
         if assessment_id not in assessments:
             raise HTTPException(status_code=404, detail="Assessment not found")
-        
+
         assessment = assessments[assessment_id]
-        
+
         return {
             "assessment_id": assessment.assessment_id,
             "timestamp": assessment.timestamp,
@@ -236,7 +240,7 @@ async def get_assessment(
                 "max_lat": assessment.geographic_bounds.max_lat,
                 "min_lon": assessment.geographic_bounds.min_lon,
                 "max_lon": assessment.geographic_bounds.max_lon,
-                "resolution": assessment.geographic_bounds.resolution
+                "resolution": assessment.geographic_bounds.resolution,
             },
             "combined_risk_map": assessment.combined_risk_map.tolist(),
             "uncertainty_map": assessment.uncertainty_map.tolist(),
@@ -246,7 +250,7 @@ async def get_assessment(
                     "confidence_interval": hazard_prob.confidence_interval,
                     "uncertainty": hazard_prob.uncertainty,
                     "time_window_days": hazard_prob.time_window.days,
-                    "contributing_factors": hazard_prob.contributing_factors
+                    "contributing_factors": hazard_prob.contributing_factors,
                 }
                 for hazard_type, hazard_prob in assessment.individual_hazards.items()
             },
@@ -255,24 +259,25 @@ async def get_assessment(
                 for primary, secondaries in assessment.cascading_effects.items()
             },
             "population_at_risk": assessment.total_population_at_risk,
-            "economic_impact_estimate": assessment.economic_impact_estimate
+            "economic_impact_estimate": assessment.economic_impact_estimate,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error retrieving assessment {assessment_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve assessment: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve assessment: {str(e)}"
+        )
 
 @router.post("/monitoring-data")
 async def ingest_monitoring_data(
     data: MonitoringDataModel,
-    updater: RealTimeHazardUpdater = Depends(get_realtime_updater)
+    updater: RealTimeHazardUpdater = Depends(get_realtime_updater),
 ):
     """
     Ingest real-time monitoring data
-    
+
     This endpoint accepts monitoring data from various sensors and triggers
     hazard map updates when significant changes are detected.
     """
@@ -286,73 +291,74 @@ async def ingest_monitoring_data(
             value=data.value,
             unit=data.unit,
             quality_flag=data.quality_flag,
-            sensor_id=data.sensor_id
+            sensor_id=data.sensor_id,
         )
-        
+
         # Ingest data and check for triggers
         await updater.ingest_monitoring_data(data_stream)
-        
+
         return {
             "status": "success",
             "message": "Monitoring data ingested successfully",
             "stream_id": data.stream_id,
-            "timestamp": data.timestamp
+            "timestamp": data.timestamp,
         }
-        
+
     except Exception as e:
         logger.error(f"Error ingesting monitoring data: {e}")
         raise HTTPException(status_code=500, detail=f"Data ingestion failed: {str(e)}")
 
-
 @router.get("/monitoring-status")
 async def get_monitoring_status(
-    updater: RealTimeHazardUpdater = Depends(get_realtime_updater)
+    updater: RealTimeHazardUpdater = Depends(get_realtime_updater),
 ):
     """Get current monitoring system status"""
     try:
         active_assessments = updater.get_active_assessments()
         monitoring_summary = updater.get_monitoring_data_summary()
-        
+
         return {
             "status": "operational" if updater.is_running else "stopped",
             "active_assessments": len(active_assessments),
             "monitoring_streams": len(monitoring_summary),
             "data_streams": monitoring_summary,
-            "last_update": datetime.now()
+            "last_update": datetime.now(),
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting monitoring status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
 
-
 @router.get("/alerts", response_model=List[AlertResponse])
 async def get_active_alerts(
-    risk_level: Optional[str] = Query(None, regex="^(VERY_LOW|LOW|MODERATE|HIGH|VERY_HIGH|EXTREME)$"),
+    risk_level: Optional[str] = Query(
+        None, regex="^(VERY_LOW|LOW|MODERATE|HIGH|VERY_HIGH|EXTREME)$"
+    ),
     hazard_type: Optional[str] = Query(None),
-    limit: int = Query(50, ge=1, le=100)
+    limit: int = Query(50, ge=1, le=100),
 ):
     """Get active hazard alerts"""
     try:
         # In a real implementation, this would query a database of active alerts
         # For now, return empty list as placeholder
         alerts = []
-        
+
         return alerts
-        
+
     except Exception as e:
         logger.error(f"Error retrieving alerts: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve alerts: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve alerts: {str(e)}"
+        )
 
 @router.post("/communication")
 async def generate_communication_product(
     request: CommunicationRequest,
-    updater: RealTimeHazardUpdater = Depends(get_realtime_updater)
+    updater: RealTimeHazardUpdater = Depends(get_realtime_updater),
 ):
     """
     Generate hazard communication product for specific audience
-    
+
     This endpoint creates tailored communication products (reports, advisories,
     alerts) for different audiences including scientists, emergency managers,
     and the general public.
@@ -362,25 +368,27 @@ async def generate_communication_product(
         assessments = updater.get_active_assessments()
         if request.assessment_id not in assessments:
             raise HTTPException(status_code=404, detail="Assessment not found")
-        
+
         assessment = assessments[request.assessment_id]
-        
+
         # Convert string enums
         try:
             audience_type = AudienceType(request.audience_type)
             format_type = CommunicationFormat(request.format_type)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid audience or format type: {e}")
-        
+            raise HTTPException(
+                status_code=400, detail=f"Invalid audience or format type: {e}"
+            )
+
         # Generate communication product
         product = await communication_engine.generate_communication_product(
             assessment=assessment,
             audience_type=audience_type,
             format_type=format_type,
             alert=None,  # Could be enhanced to include active alerts
-            custom_config=request.custom_config
+            custom_config=request.custom_config,
         )
-        
+
         return {
             "product_id": product.product_id,
             "timestamp": product.timestamp,
@@ -391,15 +399,16 @@ async def generate_communication_product(
             "visual_elements": product.visual_elements,
             "urgency_level": product.urgency_level,
             "distribution_channels": product.distribution_channels,
-            "language": product.language
+            "language": product.language,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error generating communication product: {e}")
-        raise HTTPException(status_code=500, detail=f"Communication generation failed: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Communication generation failed: {str(e)}"
+        )
 
 @router.get("/hazard-types")
 async def get_supported_hazard_types():
@@ -408,13 +417,12 @@ async def get_supported_hazard_types():
         "hazard_types": [
             {
                 "type": hazard_type.value,
-                "name": hazard_type.value.replace('_', ' ').title(),
-                "description": _get_hazard_description(hazard_type)
+                "name": hazard_type.value.replace("_", " ").title(),
+                "description": _get_hazard_description(hazard_type),
             }
             for hazard_type in HazardType
         ]
     }
-
 
 @router.get("/risk-levels")
 async def get_risk_levels():
@@ -424,12 +432,11 @@ async def get_risk_levels():
             {
                 "level": risk_level.value,
                 "name": risk_level.name,
-                "description": _get_risk_level_description(risk_level)
+                "description": _get_risk_level_description(risk_level),
             }
             for risk_level in RiskLevel
         ]
     }
-
 
 @router.get("/audience-types")
 async def get_audience_types():
@@ -438,13 +445,12 @@ async def get_audience_types():
         "audience_types": [
             {
                 "type": audience_type.value,
-                "name": audience_type.value.replace('_', ' ').title(),
-                "description": _get_audience_description(audience_type)
+                "name": audience_type.value.replace("_", " ").title(),
+                "description": _get_audience_description(audience_type),
             }
             for audience_type in AudienceType
         ]
     }
-
 
 @router.get("/communication-formats")
 async def get_communication_formats():
@@ -453,32 +459,31 @@ async def get_communication_formats():
         "communication_formats": [
             {
                 "format": format_type.value,
-                "name": format_type.value.replace('_', ' ').title(),
-                "description": _get_format_description(format_type)
+                "name": format_type.value.replace("_", " ").title(),
+                "description": _get_format_description(format_type),
             }
             for format_type in CommunicationFormat
         ]
     }
-
 
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
     try:
         # Check if services are initialized
-        engine_status = hasattr(hazard_engine, '_initialized')
+        engine_status = hasattr(hazard_engine, "_initialized")
         updater_status = realtime_updater is not None and realtime_updater.is_running
-        
+
         return {
             "status": "healthy" if engine_status and updater_status else "degraded",
             "timestamp": datetime.now(),
             "services": {
                 "hazard_engine": "initialized" if engine_status else "not_initialized",
                 "realtime_updater": "running" if updater_status else "stopped",
-                "communication_engine": "ready"
-            }
+                "communication_engine": "ready",
+            },
         }
-        
+
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return JSONResponse(
@@ -486,10 +491,9 @@ async def health_check():
             content={
                 "status": "unhealthy",
                 "timestamp": datetime.now(),
-                "error": str(e)
-            }
+                "error": str(e),
+            },
         )
-
 
 def _get_hazard_description(hazard_type: HazardType) -> str:
     """Get description for hazard type"""
@@ -503,10 +507,9 @@ def _get_hazard_description(hazard_type: HazardType) -> str:
         HazardType.ASH_FALL: "Airborne volcanic ash deposition",
         HazardType.LAVA_FLOW: "Molten rock flows from volcanic vents",
         HazardType.GROUND_DEFORMATION: "Surface displacement from subsurface processes",
-        HazardType.LIQUEFACTION: "Soil behavior change during seismic shaking"
+        HazardType.LIQUEFACTION: "Soil behavior change during seismic shaking",
     }
     return descriptions.get(hazard_type, "Geological hazard")
-
 
 def _get_risk_level_description(risk_level: RiskLevel) -> str:
     """Get description for risk level"""
@@ -516,10 +519,9 @@ def _get_risk_level_description(risk_level: RiskLevel) -> str:
         RiskLevel.MODERATE: "Moderate risk, precautionary measures advised",
         RiskLevel.HIGH: "High risk, protective actions recommended",
         RiskLevel.VERY_HIGH: "Very high risk, immediate action required",
-        RiskLevel.EXTREME: "Extreme risk, emergency response activated"
+        RiskLevel.EXTREME: "Extreme risk, emergency response activated",
     }
     return descriptions.get(risk_level, "Risk level")
-
 
 def _get_audience_description(audience_type: AudienceType) -> str:
     """Get description for audience type"""
@@ -529,10 +531,9 @@ def _get_audience_description(audience_type: AudienceType) -> str:
         AudienceType.GENERAL_PUBLIC: "General public requiring clear, actionable information",
         AudienceType.MEDIA: "News media and journalists",
         AudienceType.GOVERNMENT: "Government officials and policy makers",
-        AudienceType.INDUSTRY: "Industrial and commercial stakeholders"
+        AudienceType.INDUSTRY: "Industrial and commercial stakeholders",
     }
     return descriptions.get(audience_type, "Target audience")
-
 
 def _get_format_description(format_type: CommunicationFormat) -> str:
     """Get description for communication format"""
@@ -543,6 +544,6 @@ def _get_format_description(format_type: CommunicationFormat) -> str:
         CommunicationFormat.EMERGENCY_ALERT: "Urgent alert for immediate action",
         CommunicationFormat.INFOGRAPHIC: "Visual summary with key information",
         CommunicationFormat.INTERACTIVE_MAP: "Interactive visualization of hazard data",
-        CommunicationFormat.SOCIAL_MEDIA: "Brief update suitable for social media platforms"
+        CommunicationFormat.SOCIAL_MEDIA: "Brief update suitable for social media platforms",
     }
     return descriptions.get(format_type, "Communication format")

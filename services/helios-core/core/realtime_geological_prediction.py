@@ -3,7 +3,7 @@
 Real-Time Geological Event Prediction System
 
 Advanced system for real-time prediction of geological events:
-- Multi-Modal Sensor Fusion with Edge Computing
+    - Multi-Modal Sensor Fusion with Edge Computing
 - Streaming Analytics with Complex Event Processing
 - Ensemble Forecasting with Uncertainty Quantification
 - Adaptive Learning from Real-Time Events
@@ -12,25 +12,19 @@ Advanced system for real-time prediction of geological events:
 - Causal Real-Time Inference
 """
 
-import asyncio
 import logging
-import numpy as np
-import torch
-import torch.nn as nn
-from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-import pandas as pd
-from collections import deque
-import threading
-import queue
-import time
+from typing import Any, Dict, List, Optional, Tuple
+
+import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
 class GeologicalEventType(str, Enum):
     """Types of geological events to predict"""
+
     EARTHQUAKE = "earthquake"
     VOLCANIC_ERUPTION = "volcanic_eruption"
     LANDSLIDE = "landslide"
@@ -44,6 +38,7 @@ class GeologicalEventType(str, Enum):
 
 class PredictionHorizon(str, Enum):
     """Prediction time horizons"""
+
     IMMEDIATE = "immediate"  # 0-1 hours
     SHORT_TERM = "short_term"  # 1-24 hours
     MEDIUM_TERM = "medium_term"  # 1-7 days
@@ -53,6 +48,7 @@ class PredictionHorizon(str, Enum):
 @dataclass
 class SensorReading:
     """Real-time sensor reading"""
+
     sensor_id: str
     sensor_type: str
     timestamp: datetime
@@ -65,6 +61,7 @@ class SensorReading:
 @dataclass
 class GeologicalPrediction:
     """Geological event prediction"""
+
     prediction_id: str
     event_type: GeologicalEventType
     probability: float

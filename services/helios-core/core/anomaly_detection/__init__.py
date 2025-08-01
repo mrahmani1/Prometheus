@@ -5,22 +5,22 @@ This module implements comprehensive anomaly detection capabilities for discover
 new geological phenomena through multi-variate, contextual, and collective analysis.
 """
 
-from .multivariate_detector import MultivariateAnomalyDetector
-from .contextual_detector import ContextualAnomalyDetector
-from .collective_detector import CollectiveAnomalyDetector
+from .anomaly_manager import AnomalyDetectionManager
 from .causal_reinforcement import CausalReinforcementLearner
+from .collective_detector import CollectiveAnomalyDetector
+from .contextual_detector import ContextualAnomalyDetector
 from .continuous_learner import ContinuousAnomalyLearner
 from .explanation_engine import AnomalyExplanationEngine
+from .multivariate_detector import MultivariateAnomalyDetector
 from .significance_assessor import SignificanceAssessor
-from .anomaly_manager import AnomalyDetectionManager
 
 __all__ = [
-    'MultivariateAnomalyDetector',
-    'ContextualAnomalyDetector', 
-    'CollectiveAnomalyDetector',
-    'CausalReinforcementLearner',
-    'ContinuousAnomalyLearner',
-    'AnomalyExplanationEngine',
-    'SignificanceAssessor',
-    'AnomalyDetectionManager'
+    "MultivariateAnomalyDetector",
+    "ContextualAnomalyDetector",
+    "CollectiveAnomalyDetector",
+    "CausalReinforcementLearner",
+    "ContinuousAnomalyLearner",
+    "AnomalyExplanationEngine",
+    "SignificanceAssessor",
+    "AnomalyDetectionManager",
 ]

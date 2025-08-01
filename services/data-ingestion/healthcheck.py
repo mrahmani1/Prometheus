@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Health check script for data ingestion service"""
 
-import sys
-import httpx
 import asyncio
+import sys
+
+import httpx
+import torch.nn.functional as F
 
 async def check_health():
     """Check if the service is healthy"""

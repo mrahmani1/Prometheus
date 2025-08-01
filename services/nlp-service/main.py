@@ -3,20 +3,18 @@ Natural Language Processing Service for Prometheus AI Platform
 Handles geological query understanding and conversational responses
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Dict, List, Optional, Any
-import uvicorn
-import logging
-import structlog
+import os
 from contextlib import asynccontextmanager
 
+import structlog
+import uvicorn
 from api.nlp_routes import router as nlp_router
-from core.intent_classifier import IntentClassifier
 from core.entity_extractor import GeologicalEntityExtractor
+from core.intent_classifier import IntentClassifier
 from core.query_translator import QueryTranslator
 from core.response_generator import ConversationalResponseGenerator
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Configure structured logging
 structlog.configure(
@@ -29,7 +27,7 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
@@ -46,16 +44,16 @@ nlp_components = {}
 async def lifespan(app: FastAPI):
     """Initialize NLP components on startup"""
     logger.info("Initializing NLP service components")
-    
+
     try:
         nlp_components["intent_classifier"] = IntentClassifier()
         nlp_components["entity_extractor"] = GeologicalEntityExtractor()
         nlp_components["query_translator"] = QueryTranslator()
         nlp_components["response_generator"] = ConversationalResponseGenerator()
-        
+
         logger.info("NLP service components initialized successfully")
         yield
-        
+
     except Exception as e:
         logger.error("Failed to initialize NLP components", error=str(e))
         raise
@@ -67,7 +65,7 @@ app = FastAPI(
     title="Prometheus NLP Service",
     description="Natural Language Processing service for geological queries and conversational AI",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -92,16 +90,25 @@ async def readiness_check():
     """Readiness check endpoint"""
     try:
         # Check if all NLP components are initialized
-        required_components = ["intent_classifier", "entity_extractor", "query_translator", "response_generator"]
+        required_components = [
+            "intent_classifier",
+            "entity_extractor",
+            "query_translator",
+            "response_generator",
+        ]
         missing_components = []
-        
+
         for component in required_components:
             if component not in nlp_components:
                 missing_components.append(component)
-        
+
         if missing_components:
-            return {"status": "not_ready", "service": "nlp-service", "missing_components": missing_components}
-        
+            return {
+                "status": "not_ready",
+                "service": "nlp-service",
+                "missing_components": missing_components,
+            }
+
         return {"status": "ready", "service": "nlp-service"}
     except Exception as e:
         logger.error("Readiness check failed", error=str(e))
@@ -110,8 +117,8 @@ async def readiness_check():
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
+        host=os.getenv("HOST", "0.0.0.0"),
         port=8005,
         reload=True,
-        log_config=None  # Use structlog configuration
+        log_config=None,  # Use structlog configuration
     )

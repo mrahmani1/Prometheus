@@ -3,15 +3,20 @@ Volcanic Data Models
 Data structures for volcanic monitoring and risk assessment
 """
 
-import numpy as np
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 
 @dataclass
 class GeologicalLocation:
     """Geological location with coordinates and elevation"""
+
     latitude: float
     longitude: float
     elevation: float
@@ -21,6 +26,7 @@ class GeologicalLocation:
 @dataclass
 class SeismicEvent:
     """Seismic event data structure"""
+
     timestamp: datetime
     location: GeologicalLocation
     magnitude: float
@@ -33,6 +39,7 @@ class SeismicEvent:
 @dataclass
 class DeformationMeasurement:
     """Ground deformation measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     displacement_vector: np.ndarray  # [x, y, z] displacement in meters
@@ -44,6 +51,7 @@ class DeformationMeasurement:
 @dataclass
 class GeochemicalSample:
     """Geochemical sample data"""
+
     timestamp: datetime
     location: GeologicalLocation
     sample_type: str  # rock, gas, water, etc.
@@ -56,6 +64,7 @@ class GeochemicalSample:
 @dataclass
 class ThermalMeasurement:
     """Thermal measurement data"""
+
     timestamp: datetime
     location: GeologicalLocation
     temperature: float
@@ -67,6 +76,7 @@ class ThermalMeasurement:
 @dataclass
 class AlertLevel:
     """Volcanic alert level definition"""
+
     level: int  # 0-5 scale
     description: str
     recommended_actions: List[str]
@@ -76,6 +86,7 @@ class AlertLevel:
 @dataclass
 class EruptionForecast:
     """Probabilistic eruption forecast"""
+
     volcano_id: str
     timestamp: datetime
     probability_by_timeframe: Dict[str, float]  # timeframe -> probability
@@ -87,6 +98,7 @@ class EruptionForecast:
 @dataclass
 class MagmaReservoirParameters:
     """Magma reservoir parameter estimates"""
+
     volcano_id: str
     timestamp: datetime
     location: GeologicalLocation
@@ -108,6 +120,7 @@ class MagmaReservoirParameters:
 @dataclass
 class VolcanicRiskAssessment:
     """Comprehensive volcanic risk assessment"""
+
     volcano_id: str
     timestamp: datetime
     alert_level: AlertLevel
@@ -122,6 +135,7 @@ class VolcanicRiskAssessment:
 
 class NotificationChannel(Enum):
     """Notification delivery channels"""
+
     EMAIL = "email"
     SMS = "sms"
     PUSH = "push"
@@ -131,6 +145,7 @@ class NotificationChannel(Enum):
 @dataclass
 class NotificationTarget:
     """Notification target configuration"""
+
     target_id: str
     target_type: str  # person, organization, system
     channels: List[NotificationChannel]
@@ -142,6 +157,7 @@ class NotificationTarget:
 @dataclass
 class MonitoringStation:
     """Volcanic monitoring station"""
+
     station_id: str
     location: GeologicalLocation
     station_type: str  # seismic, GPS, gas, thermal, etc.
@@ -154,6 +170,7 @@ class MonitoringStation:
 @dataclass
 class VolcanicHazardZone:
     """Volcanic hazard zone definition"""
+
     hazard_type: str  # pyroclastic_flow, ash_fall, lahar, etc.
     geometry: np.ndarray  # polygon coordinates
     risk_level: str  # low, moderate, high, extreme
@@ -165,6 +182,7 @@ class VolcanicHazardZone:
 @dataclass
 class EmergencyResponse:
     """Emergency response configuration"""
+
     response_level: int  # 1-5 scale
     response_type: str  # evacuation, shelter, monitoring
     affected_areas: List[str]
@@ -177,6 +195,7 @@ class EmergencyResponse:
 @dataclass
 class DataQualityMetrics:
     """Data quality assessment metrics"""
+
     completeness: float  # 0-1 scale
     accuracy: float  # 0-1 scale
     timeliness: float  # 0-1 scale
@@ -189,6 +208,7 @@ class DataQualityMetrics:
 @dataclass
 class ModelPerformanceMetrics:
     """Model performance tracking"""
+
     model_name: str
     accuracy: float
     precision: float
@@ -203,6 +223,7 @@ class ModelPerformanceMetrics:
 @dataclass
 class SystemHealthMetrics:
     """System health monitoring"""
+
     component_name: str
     status: str  # healthy, warning, critical, offline
     cpu_usage: float
@@ -231,32 +252,35 @@ def calculate_distance(loc1: GeologicalLocation, loc2: GeologicalLocation) -> fl
     """Calculate distance between two geological locations in meters"""
     # Haversine formula for great circle distance
     R = 6371000  # Earth radius in meters
-    
+
     lat1_rad = np.radians(loc1.latitude)
     lat2_rad = np.radians(loc2.latitude)
     delta_lat = np.radians(loc2.latitude - loc1.latitude)
     delta_lon = np.radians(loc2.longitude - loc1.longitude)
-    
-    a = (np.sin(delta_lat/2)**2 + 
-         np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(delta_lon/2)**2)
-    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
-    
+
+    a = (
+        np.sin(delta_lat / 2) ** 2
+        + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(delta_lon / 2) ** 2
+    )
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+
     distance = R * c
-    
+
     # Add elevation difference if available
     if loc1.elevation is not None and loc2.elevation is not None:
         elevation_diff = abs(loc2.elevation - loc1.elevation)
         distance = np.sqrt(distance**2 + elevation_diff**2)
-    
+
     return distance
 
 def convert_magnitude_to_energy(magnitude: float) -> float:
     """Convert seismic magnitude to energy in Joules"""
     # Gutenberg-Richter relation: log10(E) = 1.5*M + 9.1
-    return 10**(1.5 * magnitude + 9.1)
+    return 10 ** (1.5 * magnitude + 9.1)
 
-def calculate_volcanic_explosivity_index(eruption_volume: float, 
-                                       column_height: float) -> int:
+def calculate_volcanic_explosivity_index(
+    eruption_volume: float, column_height: float
+) -> int:
     """Calculate Volcanic Explosivity Index (VEI) from eruption parameters"""
     # Simplified VEI calculation based on eruption volume
     if eruption_volume < 1e4:  # < 10,000 m³
@@ -282,15 +306,22 @@ def estimate_ash_fall_area(vei: int, wind_speed: float = 10.0) -> float:
     """Estimate ash fall area in km² based on VEI and wind conditions"""
     # Simplified ash fall area estimation
     base_areas = {
-        0: 1, 1: 10, 2: 100, 3: 1000, 4: 10000,
-        5: 100000, 6: 1000000, 7: 10000000, 8: 100000000
+        0: 1,
+        1: 10,
+        2: 100,
+        3: 1000,
+        4: 10000,
+        5: 100000,
+        6: 1000000,
+        7: 10000000,
+        8: 100000000,
     }
-    
+
     base_area = base_areas.get(vei, 1000)
-    
+
     # Adjust for wind speed (higher wind spreads ash further)
     wind_factor = 1 + (wind_speed - 10) * 0.1
-    
+
     return base_area * wind_factor
 
 def calculate_evacuation_time(population: int, evacuation_routes: int = 1) -> timedelta:
@@ -298,9 +329,9 @@ def calculate_evacuation_time(population: int, evacuation_routes: int = 1) -> ti
     # Simplified evacuation time calculation
     # Assume 1000 people per hour per route
     evacuation_rate = 1000 * evacuation_routes  # people per hour
-    
+
     hours_needed = max(1, population / evacuation_rate)
-    
+
     return timedelta(hours=hours_needed)
 
 # Data validation schemas for API endpoints
@@ -317,19 +348,28 @@ SEISMIC_EVENT_SCHEMA = {
                 "latitude": {"type": "number", "minimum": -90, "maximum": 90},
                 "longitude": {"type": "number", "minimum": -180, "maximum": 180},
                 "elevation": {"type": "number"},
-                "depth": {"type": "number", "minimum": 0}
-            }
+                "depth": {"type": "number", "minimum": 0},
+            },
         },
         "magnitude": {"type": "number", "minimum": 0, "maximum": 10},
         "depth": {"type": "number", "minimum": 0},
-        "event_type": {"type": "string", "enum": ["earthquake", "volcanic", "explosion", "landslide"]},
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
-    }
+        "event_type": {
+            "type": "string",
+            "enum": ["earthquake", "volcanic", "explosion", "landslide"],
+        },
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    },
 }
 
 ALERT_LEVEL_SCHEMA = {
     "type": "object",
-    "required": ["level", "description", "recommended_actions", "validity_period", "confidence"],
+    "required": [
+        "level",
+        "description",
+        "recommended_actions",
+        "validity_period",
+        "confidence",
+    ],
     "properties": {
         "level": {"type": "integer", "minimum": 0, "maximum": 5},
         "description": {"type": "string"},
@@ -339,9 +379,9 @@ ALERT_LEVEL_SCHEMA = {
             "required": ["start", "end"],
             "properties": {
                 "start": {"type": "string", "format": "date-time"},
-                "end": {"type": "string", "format": "date-time"}
-            }
+                "end": {"type": "string", "format": "date-time"},
+            },
         },
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
-    }
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    },
 }

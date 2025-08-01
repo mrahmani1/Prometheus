@@ -4,13 +4,14 @@ Health check script for System Integration Service
 """
 
 import sys
+
 import requests
-import logging
+import torch.nn.functional as F
 
 def check_health():
     """Check if the service is healthy"""
     try:
-        response = requests.get('http://localhost:8010/health', timeout=5)
+        response = requests.get("http://localhost:8010/health", timeout=5)
         if response.status_code == 200:
             print("System Integration Service is healthy")
             return True

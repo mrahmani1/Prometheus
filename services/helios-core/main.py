@@ -1,19 +1,16 @@
-import asyncio
-import logging
 import os
 from contextlib import asynccontextmanager
 
 import structlog
 import uvicorn
+from api.routes import router
+from core.config import settings
+from core.helios_engine import HeliosEngine
+from core.service_registry import ServiceRegistry
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_client import make_asgi_app
-
-from core.helios_engine import HeliosEngine
-from core.service_registry import ServiceRegistry
-from api.routes import router
-from core.config import settings
 
 # Configure structured logging
 structlog.configure(
@@ -26,7 +23,7 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
@@ -44,37 +41,33 @@ service_registry = None
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     global helios_engine, service_registry
-    
+
     logger.info("Starting Helios Core Service")
-    
+
     try:
         # Initialize service registry
         service_registry = ServiceRegistry(
-            consul_host=settings.consul_host,
-            consul_port=settings.consul_port
+            consul_host=settings.consul_host, consul_port=settings.consul_port
         )
         await service_registry.initialize()
-        
+
         # Initialize Helios engine
-        helios_engine = HeliosEngine(
-            config=settings,
-            service_registry=service_registry
-        )
+        helios_engine = HeliosEngine(config=settings, service_registry=service_registry)
         await helios_engine.initialize()
-        
+
         # Register service with Consul
         await service_registry.register_service(
             name="prometheus-helios-core",
             service_id="helios-core-1",
             address="helios-core",
             port=8000,
-            health_check_url="/health"
+            health_check_url="/health",
         )
-        
+
         logger.info("Helios Core Service initialized successfully")
-        
+
         yield
-        
+
     except Exception as e:
         logger.error("Failed to initialize Helios Core Service", error=str(e))
         raise
@@ -91,7 +84,7 @@ app = FastAPI(
     title="Helios AI Core Engine",
     description="Physics-Informed Neural Network engine for geodynamic simulations",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add middleware
@@ -113,10 +106,14 @@ app.include_router(router, prefix="/api/v1")
 
 # Include hazard mapping routes
 from api.hazard_mapping_api import router as hazard_mapping_router
+
 app.include_router(hazard_mapping_router)
 
 # Include geological network representation routes
-from api.geological_network_representation import router as network_representation_router
+from api.geological_network_representation import (
+    router as network_representation_router,
+)
+
 app.include_router(network_representation_router)
 
 @app.get("/health")
@@ -129,7 +126,7 @@ async def health_check():
                 "status": "healthy",
                 "service": "helios-core",
                 "version": "1.0.0",
-                "timestamp": structlog.processors.TimeStamper().now()
+                "timestamp": structlog.processors.TimeStamper().now(),
             }
         else:
             raise HTTPException(status_code=503, detail="Service not ready")
@@ -146,7 +143,7 @@ async def readiness_check():
                 "status": "ready",
                 "service": "helios-core",
                 "models_loaded": await helios_engine.get_loaded_models_count(),
-                "timestamp": structlog.processors.TimeStamper().now()
+                "timestamp": structlog.processors.TimeStamper().now(),
             }
         else:
             raise HTTPException(status_code=503, detail="Service not ready")
@@ -166,15 +163,15 @@ async def root():
             "ready": "/ready",
             "api": "/api/v1",
             "docs": "/docs",
-            "metrics": "/metrics"
-        }
+            "metrics": "/metrics",
+        },
     }
 
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
+        host=os.getenv("HOST", "0.0.0.0"),
         port=8000,
         log_level=settings.log_level.lower(),
-        reload=settings.debug
+        reload=settings.debug,
     )

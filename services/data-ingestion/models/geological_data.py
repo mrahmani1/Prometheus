@@ -2,9 +2,12 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-import numpy as np
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 
 class DataQuality(str, Enum):
     EXCELLENT = "excellent"
@@ -16,6 +19,7 @@ class DataQuality(str, Enum):
 @dataclass
 class GeologicalLocation:
     """Represents a geographical location with geological context"""
+
     latitude: float
     longitude: float
     elevation: float
@@ -26,6 +30,7 @@ class GeologicalLocation:
 @dataclass
 class SeismicEvent:
     """Represents a seismic event (earthquake, volcanic, etc.)"""
+
     timestamp: datetime
     location: GeologicalLocation
     magnitude: float
@@ -41,6 +46,7 @@ class SeismicEvent:
 @dataclass
 class VolcanicEvent:
     """Represents a volcanic event"""
+
     timestamp: datetime
     location: GeologicalLocation
     event_type: str  # eruption, gas_emission, thermal_anomaly, etc.
@@ -54,6 +60,7 @@ class VolcanicEvent:
 @dataclass
 class DeformationMeasurement:
     """Represents ground deformation measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     displacement_vector: np.ndarray  # [x, y, z] displacement in meters
@@ -66,6 +73,7 @@ class DeformationMeasurement:
 @dataclass
 class GeochemicalSample:
     """Represents a geochemical sample"""
+
     timestamp: datetime
     location: GeologicalLocation
     sample_type: str  # rock, gas, water, etc.
@@ -80,6 +88,7 @@ class GeochemicalSample:
 @dataclass
 class ThermalMeasurement:
     """Represents thermal measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     temperature: float  # Kelvin
@@ -94,6 +103,7 @@ class ThermalMeasurement:
 @dataclass
 class SatelliteObservation:
     """Represents satellite observation data"""
+
     timestamp: datetime
     location: GeologicalLocation
     satellite: str
@@ -108,6 +118,7 @@ class SatelliteObservation:
 @dataclass
 class FiberOpticMeasurement:
     """Represents fiber optic sensing measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     measurement_type: str  # das, dts
@@ -124,6 +135,7 @@ class FiberOpticMeasurement:
 @dataclass
 class StrainMeasurement:
     """Represents strain measurement from DAS"""
+
     timestamp: datetime
     location: GeologicalLocation
     strain_rate: float  # 1/s
@@ -139,6 +151,7 @@ class StrainMeasurement:
 @dataclass
 class AtmosphericMeasurement:
     """Represents atmospheric measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     pressure: Optional[float] = None  # Pa
@@ -153,6 +166,7 @@ class AtmosphericMeasurement:
 @dataclass
 class HydroacousticMeasurement:
     """Represents hydroacoustic measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     pressure: float  # Pa
@@ -166,6 +180,7 @@ class HydroacousticMeasurement:
 @dataclass
 class GravityMeasurement:
     """Represents gravity measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     gravity_value: float  # m/s²
@@ -178,6 +193,7 @@ class GravityMeasurement:
 @dataclass
 class MagneticMeasurement:
     """Represents magnetic field measurement"""
+
     timestamp: datetime
     location: GeologicalLocation
     total_field: float  # nT
@@ -192,6 +208,7 @@ class MagneticMeasurement:
 @dataclass
 class ProcessedDataBatch:
     """Represents a batch of processed geological data"""
+
     batch_id: str
     timestamp: datetime
     data_type: str

@@ -2,11 +2,12 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Union
-import numpy as np
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from .geological_data import GeologicalLocation, DataQuality
+import torch.nn.functional as F
+
+from .geological_data import DataQuality, GeologicalLocation
 
 class RockType(str, Enum):
     IGNEOUS = "igneous"
@@ -36,6 +37,7 @@ class CrystalSystem(str, Enum):
 @dataclass
 class RockSample:
     """Represents a rock sample with detailed geological information"""
+
     timestamp: datetime
     location: GeologicalLocation
     sample_id: str
@@ -64,6 +66,7 @@ class RockSample:
 @dataclass
 class MineralAnalysis:
     """Represents detailed mineral analysis data"""
+
     timestamp: datetime
     location: GeologicalLocation
     sample_id: str
@@ -94,6 +97,7 @@ class MineralAnalysis:
 @dataclass
 class FluidSample:
     """Represents fluid sample analysis (water, gas, etc.)"""
+
     timestamp: datetime
     location: GeologicalLocation
     sample_id: str
@@ -120,6 +124,7 @@ class FluidSample:
 @dataclass
 class CoreSample:
     """Represents drill core sample data"""
+
     timestamp: datetime
     location: GeologicalLocation
     core_id: str
@@ -150,6 +155,7 @@ class CoreSample:
 @dataclass
 class GeologicalSurvey:
     """Represents geological survey data"""
+
     timestamp: datetime
     location: GeologicalLocation
     survey_id: str
@@ -177,6 +183,7 @@ class GeologicalSurvey:
 @dataclass
 class FieldObservation:
     """Represents field geological observations"""
+
     timestamp: datetime
     location: GeologicalLocation
     observation_id: str
@@ -209,6 +216,7 @@ class FieldObservation:
 @dataclass
 class LaboratoryResult:
     """Represents laboratory analysis results"""
+
     timestamp: datetime
     sample_id: str
     laboratory: str
@@ -235,6 +243,7 @@ class LaboratoryResult:
 @dataclass
 class GeophysicalSurvey:
     """Represents geophysical survey data"""
+
     timestamp: datetime
     location: GeologicalLocation
     survey_id: str
@@ -260,6 +269,7 @@ class GeophysicalSurvey:
 @dataclass
 class BoreholeData:
     """Represents borehole/well data"""
+
     timestamp: datetime
     location: GeologicalLocation
     borehole_id: str

@@ -4,23 +4,24 @@ Quality Dashboard Generator for Prometheus AI Platform
 Generates HTML dashboard for QA metrics visualization
 """
 
+import base64
+import io
 import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-import matplotlib.pyplot as plt
+from typing import Any, Dict, List, Optional
+
 import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-import io
-import base64
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 class QualityDashboardGenerator:
     def __init__(self):
@@ -28,177 +29,198 @@ class QualityDashboardGenerator:
         self.reports_dir = self.project_root / "qa-reports"
         self.dashboard_dir = self.project_root / "dashboard"
         self.dashboard_dir.mkdir(exist_ok=True)
-        
+
     def load_historical_reports(self, days: int = 30) -> List[Dict[str, Any]]:
         """Load historical QA reports"""
         reports = []
         cutoff_date = datetime.now() - timedelta(days=days)
-        
+
         if not self.reports_dir.exists():
             return reports
-        
+
         for report_file in self.reports_dir.glob("qa_orchestration_*.json"):
             try:
                 # Extract timestamp from filename
                 timestamp_str = report_file.stem.split("_")[-2:]
                 timestamp_str = "_".join(timestamp_str)
                 report_date = datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
-                
+
                 if report_date >= cutoff_date:
-                    with open(report_file, 'r') as f:
+                    with open(report_file, "r") as f:
                         report_data = json.load(f)
-                        report_data['file_timestamp'] = report_date
+                        report_data["file_timestamp"] = report_date
                         reports.append(report_data)
             except Exception as e:
                 logger.warning(f"Could not load report {report_file}: {e}")
-        
+
         # Sort by timestamp
-        reports.sort(key=lambda x: x.get('file_timestamp', datetime.min))
+        reports.sort(key=lambda x: x.get("file_timestamp", datetime.min))
         return reports
-    
+
     def generate_score_trend_chart(self, reports: List[Dict[str, Any]]) -> str:
         """Generate overall score trend chart"""
         if not reports:
             return ""
-        
-        dates = [r['file_timestamp'] for r in reports]
-        scores = [r.get('overall_score', 0) for r in reports]
-        
+
+        dates = [r["file_timestamp"] for r in reports]
+        scores = [r.get("overall_score", 0) for r in reports]
+
         fig, ax = plt.subplots(figsize=(12, 6))
-        ax.plot(dates, scores, marker='o', linewidth=2, markersize=6)
-        ax.set_title('Overall QA Score Trend', fontsize=16, fontweight='bold')
-        ax.set_xlabel('Date', fontsize=12)
-        ax.set_ylabel('QA Score (0-10)', fontsize=12)
+        ax.plot(dates, scores, marker="o", linewidth=2, markersize=6)
+        ax.set_title("Overall QA Score Trend", fontsize=16, fontweight="bold")
+        ax.set_xlabel("Date", fontsize=12)
+        ax.set_ylabel("QA Score (0-10)", fontsize=12)
         ax.grid(True, alpha=0.3)
         ax.set_ylim(0, 10)
-        
+
         # Format x-axis
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates)//10)))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
         plt.xticks(rotation=45)
-        
+
         # Add trend line
         if len(scores) > 1:
             z = np.polyfit(range(len(scores)), scores, 1)
             p = np.poly1d(z)
-            ax.plot(dates, p(range(len(scores))), "--", alpha=0.7, color='red')
-        
+            ax.plot(dates, p(range(len(scores))), "--", alpha=0.7, color="red")
+
         plt.tight_layout()
-        
+
         # Convert to base64 string
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        plt.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
         buffer.seek(0)
         image_base64 = base64.b64encode(buffer.getvalue()).decode()
         plt.close()
-        
+
         return f"data:image/png;base64,{image_base64}"
-    
+
     def generate_component_scores_chart(self, reports: List[Dict[str, Any]]) -> str:
         """Generate component scores comparison chart"""
         if not reports:
             return ""
-        
+
         # Get latest report for component scores
         latest_report = reports[-1] if reports else {}
-        component_results = latest_report.get('component_results', [])
-        
+        component_results = latest_report.get("component_results", [])
+
         if not component_results:
             return ""
-        
-        components = [r['component'] for r in component_results]
-        scores = [r['score'] for r in component_results]
-        colors = ['green' if r['status'] == 'passed' else 'red' if r['status'] == 'failed' else 'orange' 
-                 for r in component_results]
-        
+
+        components = [r["component"] for r in component_results]
+        scores = [r["score"] for r in component_results]
+        colors = [
+            (
+                "green"
+                if r["status"] == "passed"
+                else "red" if r["status"] == "failed" else "orange"
+            )
+            for r in component_results
+        ]
+
         fig, ax = plt.subplots(figsize=(10, 6))
         bars = ax.bar(components, scores, color=colors, alpha=0.7)
-        ax.set_title('Component QA Scores (Latest)', fontsize=16, fontweight='bold')
-        ax.set_xlabel('Components', fontsize=12)
-        ax.set_ylabel('Score (0-10)', fontsize=12)
+        ax.set_title("Component QA Scores (Latest)", fontsize=16, fontweight="bold")
+        ax.set_xlabel("Components", fontsize=12)
+        ax.set_ylabel("Score (0-10)", fontsize=12)
         ax.set_ylim(0, 10)
-        ax.grid(True, alpha=0.3, axis='y')
-        
+        ax.grid(True, alpha=0.3, axis="y")
+
         # Add score labels on bars
         for bar, score in zip(bars, scores):
             height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                   f'{score:.1f}', ha='center', va='bottom', fontweight='bold')
-        
+            ax.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height + 0.1,
+                f"{score:.1f}",
+                ha="center",
+                va="bottom",
+                fontweight="bold",
+            )
+
         plt.xticks(rotation=45)
         plt.tight_layout()
-        
+
         # Convert to base64 string
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        plt.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
         buffer.seek(0)
         image_base64 = base64.b64encode(buffer.getvalue()).decode()
         plt.close()
-        
+
         return f"data:image/png;base64,{image_base64}"
-    
+
     def generate_issues_trend_chart(self, reports: List[Dict[str, Any]]) -> str:
         """Generate issues trend chart"""
         if not reports:
             return ""
-        
-        dates = [r['file_timestamp'] for r in reports]
-        total_issues = [r.get('summary', {}).get('total_issues', 0) for r in reports]
-        critical_issues = [r.get('summary', {}).get('critical_issues', 0) for r in reports]
-        
+
+        dates = [r["file_timestamp"] for r in reports]
+        total_issues = [r.get("summary", {}).get("total_issues", 0) for r in reports]
+        critical_issues = [
+            r.get("summary", {}).get("critical_issues", 0) for r in reports
+        ]
+
         fig, ax = plt.subplots(figsize=(12, 6))
-        ax.plot(dates, total_issues, marker='o', label='Total Issues', linewidth=2)
-        ax.plot(dates, critical_issues, marker='s', label='Critical Issues', linewidth=2, color='red')
-        ax.set_title('Issues Trend', fontsize=16, fontweight='bold')
-        ax.set_xlabel('Date', fontsize=12)
-        ax.set_ylabel('Number of Issues', fontsize=12)
+        ax.plot(dates, total_issues, marker="o", label="Total Issues", linewidth=2)
+        ax.plot(
+            dates,
+            critical_issues,
+            marker="s",
+            label="Critical Issues",
+            linewidth=2,
+            color="red",
+        )
+        ax.set_title("Issues Trend", fontsize=16, fontweight="bold")
+        ax.set_xlabel("Date", fontsize=12)
+        ax.set_ylabel("Number of Issues", fontsize=12)
         ax.grid(True, alpha=0.3)
         ax.legend()
-        
+
         # Format x-axis
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates)//10)))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, len(dates) // 10)))
         plt.xticks(rotation=45)
-        
+
         plt.tight_layout()
-        
+
         # Convert to base64 string
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        plt.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
         buffer.seek(0)
         image_base64 = base64.b64encode(buffer.getvalue()).decode()
         plt.close()
-        
+
         return f"data:image/png;base64,{image_base64}"
-    
+
     def get_latest_metrics(self, reports: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Get latest QA metrics"""
         if not reports:
             return {}
-        
+
         latest_report = reports[-1]
         return {
-            "overall_score": latest_report.get('overall_score', 0),
-            "overall_status": latest_report.get('overall_status', 'unknown'),
-            "total_duration": latest_report.get('total_duration', 0),
-            "timestamp": latest_report.get('timestamp', ''),
-            "summary": latest_report.get('summary', {}),
-            "component_results": latest_report.get('component_results', []),
-            "recommendations": latest_report.get('recommendations', [])
+            "overall_score": latest_report.get("overall_score", 0),
+            "overall_status": latest_report.get("overall_status", "unknown"),
+            "total_duration": latest_report.get("total_duration", 0),
+            "timestamp": latest_report.get("timestamp", ""),
+            "summary": latest_report.get("summary", {}),
+            "component_results": latest_report.get("component_results", []),
+            "recommendations": latest_report.get("recommendations", []),
         }
-    
+
     def generate_html_dashboard(self, reports: List[Dict[str, Any]]) -> str:
         """Generate HTML dashboard"""
         logger.info("Generating HTML dashboard")
-        
+
         # Generate charts
         score_trend_chart = self.generate_score_trend_chart(reports)
         component_scores_chart = self.generate_component_scores_chart(reports)
         issues_trend_chart = self.generate_issues_trend_chart(reports)
-        
+
         # Get latest metrics
         latest_metrics = self.get_latest_metrics(reports)
-        
+
         # Generate HTML
         html_content = f"""
 <!DOCTYPE html>
@@ -374,14 +396,18 @@ class QualityDashboardGenerator:
 </body>
 </html>
         """
-        
+
         return html_content
-    
-    def generate_component_cards_html(self, component_results: List[Dict[str, Any]]) -> str:
+
+    def generate_component_cards_html(
+        self, component_results: List[Dict[str, Any]]
+    ) -> str:
         """Generate HTML for component cards"""
         if not component_results:
-            return '<div class="component-card"><p>No component data available</p></div>'
-        
+            return (
+                '<div class="component-card"><p>No component data available</p></div>'
+            )
+
         cards_html = ""
         for component in component_results:
             status_class = f"status-{component.get('status', 'unknown')}"
@@ -398,39 +424,40 @@ class QualityDashboardGenerator:
                 </div>
             </div>
             """
-        
+
         return cards_html
-    
+
     def generate_recommendations_html(self, recommendations: List[str]) -> str:
         """Generate HTML for recommendations"""
         if not recommendations:
-            return '<p>No recommendations at this time. All systems are performing well! 🎉</p>'
-        
+            return "<p>No recommendations at this time. All systems are performing well! 🎉</p>"
+
         recommendations_html = "<ul>"
         for rec in recommendations:
             recommendations_html += f"<li>{rec}</li>"
         recommendations_html += "</ul>"
-        
+
         return recommendations_html
-    
+
     def generate_dashboard(self) -> str:
         """Generate complete QA dashboard"""
         logger.info("Starting dashboard generation")
-        
+
         # Load historical reports
         reports = self.load_historical_reports(days=30)
         logger.info(f"Loaded {len(reports)} historical reports")
-        
+
         # Generate HTML dashboard
         html_content = self.generate_html_dashboard(reports)
-        
+
         # Save dashboard
         dashboard_file = self.dashboard_dir / "qa_dashboard.html"
-        with open(dashboard_file, 'w', encoding='utf-8') as f:
+        with open(dashboard_file, "w", encoding="utf-8") as f:
             f.write(html_content)
-        
+
         logger.info(f"Dashboard generated: {dashboard_file}")
         return str(dashboard_file)
+
 
 def main():
     """Main execution function"""
@@ -441,14 +468,19 @@ def main():
     except ImportError:
         logger.warning("NumPy not available, trend analysis will be limited")
         import sys
+
         class MockNumPy:
-            def polyfit(self, x, y, deg): return [0, 0]
-            def poly1d(self, coeffs): return lambda x: [0] * len(x) if hasattr(x, '__len__') else 0
-        sys.modules['numpy'] = MockNumPy()
+            def polyfit(self, x, y, deg):
+                return [0, 0]
+
+            def poly1d(self, coeffs):
+                return lambda x: [0] * len(x) if hasattr(x, "__len__") else 0
+
+        sys.modules["numpy"] = MockNumPy()
         np = MockNumPy()
-    
+
     generator = QualityDashboardGenerator()
-    
+
     try:
         dashboard_file = generator.generate_dashboard()
         logger.info(f"QA Dashboard generated successfully: {dashboard_file}")
@@ -456,6 +488,7 @@ def main():
     except Exception as e:
         logger.error(f"Dashboard generation failed: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
