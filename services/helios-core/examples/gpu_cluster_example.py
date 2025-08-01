@@ -9,12 +9,13 @@ import asyncio
 import logging
 
 import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 
 from ..core.gpu_cluster_manager import (
     ClusterConfig,
     GPUClusterManager,
     create_gpu_cluster_manager,
-    import,
 )
 from ..core.gpu_cluster_manager import numpy as np
 from ..core.gpu_cluster_manager import torch.nn as nn

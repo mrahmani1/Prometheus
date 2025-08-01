@@ -364,10 +364,6 @@ class HealthChecker:
 
         try:
             import psutil
-
-import torch.nn as nn
-import torch.nn.functional as F
-
             memory = psutil.virtual_memory()
 
             if memory.percent > 90:

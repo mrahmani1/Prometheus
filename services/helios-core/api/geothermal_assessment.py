@@ -9,6 +9,9 @@ Requirements: 6.2, 6.3
 
 import json
 import logging
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -543,12 +546,6 @@ async def _generate_background_report(
     try:
         # Create reports directory if it doesn't exist
         import os
-
-from typing import Tuple
-
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
 
         os.makedirs("geothermal_reports", exist_ok=True)
 

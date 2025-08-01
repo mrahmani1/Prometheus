@@ -5,6 +5,7 @@ Simple test script for edge AI optimization functionality
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from core.edge_ai_optimizer import (
     EdgeAIOptimizer,
     HardwareConstraints,
@@ -12,10 +13,7 @@ from core.edge_ai_optimizer import (
     create_edge_server_constraints,
     create_embedded_constraints,
     create_mobile_constraints,
-    
 )
-from core.edge_ai_optimizer import torch.nn as nn
-from core.edge_ai_optimizer import torch.nn.functional as F
 
 def test_basic_optimization():
     """Test basic edge optimization functionality"""

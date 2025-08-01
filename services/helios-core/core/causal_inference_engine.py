@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import networkx as nx
 import numpy as np
 import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 from scipy import stats
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.preprocessing import StandardScaler
@@ -58,6 +60,8 @@ class CausalGraph:
     """Represents a causal graph with geological interpretations"""
 
     nodes: List[str]
+    edges: List[CausalEdge]
+    metadata: Dict[str, Any] = None
     edges: List[CausalEdge]
     algorithm_used: CausalAlgorithm
     confidence_threshold: float
@@ -930,15 +934,6 @@ class CausalInferenceEngine:
         se = np.sqrt(mse / np.sum(X_centered**2))
 
         # 95% confidence interval
-        from scipy import stats
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
         t_critical = stats.t.ppf(0.975, len(data) - 2)
         ci_lower = causal_effect - t_critical * se
         ci_upper = causal_effect + t_critical * se

@@ -8,7 +8,6 @@ import torch.nn as nn
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-
 class Settings(BaseSettings):
     """Application settings"""
 
@@ -52,7 +51,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
-
 
 # Global settings instance
 settings = Settings()

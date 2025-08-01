@@ -26,10 +26,6 @@ async def get_sync_manager() -> DataSyncManager:
 async def get_device_manager() -> EdgeDeviceManager:
     from main import device_manager
 
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
     if not device_manager:
         raise HTTPException(status_code=503, detail="Device manager not available")
     return device_manager

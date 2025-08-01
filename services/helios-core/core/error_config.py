@@ -8,6 +8,9 @@ Requirements: 12.3, 12.4
 """
 
 import os
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -58,6 +61,7 @@ class ErrorHandlingConfig:
     alert_recovery_failures: bool = True
 
     # Service-specific settings
+    service_specific_configs: Dict[str, Any] = None
     service_configs: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
 @dataclass
@@ -199,10 +203,6 @@ class ErrorConfigManager:
         """Save current configuration to file"""
         import json
         from dataclasses import asdict
-
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 
         save_path = file_path or self.config_file
 

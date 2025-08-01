@@ -755,11 +755,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-        with open(checkpoint_path, "rb") as f:
-            checkpoint_data = pickle.load(f)
+with open(checkpoint_path, "rb") as f:
+    checkpoint_data = pickle.load(f)
 
-        # Restore training state
-        self.train_state = self.train_state.replace(
+# Restore training state
+self.train_state = self.train_state.replace(
             params=checkpoint_data["params"],
             opt_state=checkpoint_data["opt_state"],
             step=checkpoint_data["step"],

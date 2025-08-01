@@ -586,11 +586,11 @@ async def test_run_quantum_optimization_example():
 import numpy as np
 import torch.nn as nn
 
-    # Run the example (with reduced problem sizes for faster testing)
-    results = await run_quantum_optimization_example()
+# Run the example (with reduced problem sizes for faster testing)
+results = await run_quantum_optimization_example()
 
-    assert isinstance(results, dict)
-    assert len(results) == 3
+assert isinstance(results, dict)
+assert len(results) == 3
 
     for problem_key, result in results.items():
         assert isinstance(result, QuantumOptimizationResult)

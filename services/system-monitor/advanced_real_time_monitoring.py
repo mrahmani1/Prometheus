@@ -278,14 +278,6 @@ class AdvancedRealTimeMonitoring:
 
                 try:
                     import httpx
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
                     async with httpx.AsyncClient(timeout=10.0) as client:
                         response = await client.get(endpoint)
 

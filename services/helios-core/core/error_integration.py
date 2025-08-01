@@ -10,6 +10,9 @@ Requirements: 12.3, 12.4
 import asyncio
 import functools
 import logging
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Callable, Dict, Optional
 
@@ -24,13 +27,9 @@ except ImportError:
         PrometheusErrorHandler,
         create_error_context,
     )
-    from error_management import pandas as pd
     from error_management import (
-        prometheus_error_handler,
         rt,
     )
-    from error_management import torch.nn as nn
-    from error_management import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -59,67 +58,31 @@ def with_error_handling(
 
             for attempt in range(max_retries + 1):
                 try:
-                    # Create error context
-                    context = create_error_context(
-                        service_name=service_name,
-                        operation=op_name,
-                        retry_count=attempt,
-                        max_retries=max_retries,
-                        additional_context={
-                            "function_args": str(args)[:200],  # Truncate for logging
-                            "function_kwargs": str(kwargs)[:200],
-                        },
-                    )
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_retries:
+                        return fallback_result
+                    await asyncio.sleep(retry_delay)
 
-                    # Execute the function
-                    if asyncio.iscoroutinefunction(func):
-                        result = await func(*args, **kwargs)
-                    else:
-                        result = func(*args, **kwargs)
+        return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
 
-                    # Log successful execution after retries
-                    if attempt > 0:
-                        logger.info(
-                            f"Function {op_name} succeeded after {attempt} retries"
-                        )
+        def sync_wrapper(*args, **kwargs) -> Any:
+            op_name = operation or func.__name__
 
-                    return result
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_retries:
+                        return fallback_result
+                    time.sleep(retry_delay)
 
-                except Exception as error:
-                    logger.error(f"Error in {op_name} (attempt {attempt + 1}): {error}")
+        return sync_wrapper
 
-                    # Use error management system for recovery
-                    try:
-                        recovery_result = await prometheus_error_handler.handle_error(
-                            error, context
-                        )
-                        logger.info(f"Error recovery successful for {op_name}")
-                        return recovery_result
-                    except Exception as recovery_error:
-                        logger.error(
-                            f"Error recovery failed for {op_name}: {recovery_error}"
-                        )
+    return decorator
 
-                        # If not the last attempt, wait and retry
-                        if attempt < max_retries:
-                            await asyncio.sleep(
-                                retry_delay * (2**attempt)
-                            )  # Exponential backoff
-                            continue
-                        else:
-                            # All attempts failed, return fallback or re-raise
-                            if fallback_result is not None:
-                                logger.warning(
-                                    f"Returning fallback result for {op_name}"
-                                )
-                                return fallback_result
-                            else:
-                                logger.critical(
-                                    f"All recovery attempts failed for {op_name}"
-                                )
-                                raise recovery_error
 
-        @functools.wraps(func)
+@functools.wraps(func)
         def sync_wrapper(*args, **kwargs) -> Any:
             # For synchronous functions, run the async wrapper in an event loop
             try:

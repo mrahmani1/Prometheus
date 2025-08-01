@@ -7,7 +7,6 @@ import unittest
 
 logger = logging.getLogger(__name__)
 
-
 class TestTesttpupodmanager(unittest.TestCase):
     """Test cases for test tpu pod manager functionality."""
 
@@ -23,7 +22,6 @@ class TestTesttpupodmanager(unittest.TestCase):
         """Test error handling."""
         with self.assertRaises(Exception):
             raise Exception("Test exception")
-
 
 if __name__ == "__main__":
     unittest.main()

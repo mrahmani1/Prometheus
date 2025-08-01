@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-28T21:33:20.988537",
+  "timestamp": "2025-08-01T11:51:02.551464",
   "summary": {
     "total_issues": 0,
     "errors": 0,
@@ -7,16 +7,16 @@
     "info": 0,
     "security_vulnerabilities": 0,
     "high_severity_vulns": 0,
-    "files_scanned": 205
+    "files_scanned": 388
   },
   "quality_score": 10.0,
   "security_score": 10.0,
   "issues": [],
   "vulnerabilities": [],
   "metrics": {
-    "average_complexity": 2.737894407997501,
-    "max_complexity": 25,
-    "total_functions": 3201,
-    "complex_functions": 64
+    "average_complexity": 2.7856860419138,
+    "max_complexity": 30,
+    "total_functions": 2529,
+    "complex_functions": 63
   }
 }

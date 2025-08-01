@@ -9,11 +9,13 @@ import json
 from core.database import GraphDatabaseManager
 from core.graph_algorithms import GeologicalGraphAlgorithms
 from core.visualization import GraphVisualizationEngine
-from models.geological_models import (GeologicalProcess,
-                                      GeologicalRelationship,
-                                      GraphVisualizationConfig, ProcessType,
-                                      RelationshipType)
-
+from models.geological_models import (
+    GeologicalProcess,
+    GeologicalRelationship,
+    GraphVisualizationConfig,
+    ProcessType,
+    RelationshipType,
+)
 
 async def create_sample_geological_network():
     """Create a sample geological network for demonstration"""
@@ -485,10 +487,6 @@ async def main():
     except Exception as e:
         print(f"\nError during demonstration: {e}")
         import traceback
-
-import torch.nn as nn
-import torch.nn.functional as F
-
         traceback.print_exc()
 
 if __name__ == "__main__":

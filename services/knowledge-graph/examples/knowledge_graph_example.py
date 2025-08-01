@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 
-
 async def example_knowledge_extraction():
     """Example of extracting knowledge from a scientific paper"""
 
@@ -50,7 +49,6 @@ async def example_knowledge_extraction():
                 print(f"- Processing Time: {result['processing_time']:.2f}s")
             else:
                 print(f"Error: {response.status} - {await response.text()}")
-
 
 async def example_temporal_causal_discovery():
     """Example of temporal causal discovery"""
@@ -112,7 +110,6 @@ async def example_temporal_causal_discovery():
             else:
                 print(f"Error: {response.status} - {await response.text()}")
 
-
 async def example_semantic_reasoning():
     """Example of semantic reasoning"""
 
@@ -142,7 +139,6 @@ async def example_semantic_reasoning():
                 print(f"- Processing Time: {result['processing_time']:.2f}s")
             else:
                 print(f"Error: {response.status} - {await response.text()}")
-
 
 async def example_federated_dataset_registration():
     """Example of registering a dataset for federated discovery"""
@@ -180,7 +176,6 @@ async def example_federated_dataset_registration():
             else:
                 print(f"Error: {response.status} - {await response.text()}")
 
-
 async def example_knowledge_search():
     """Example of searching the knowledge graph"""
 
@@ -209,7 +204,6 @@ async def example_knowledge_search():
                 else:
                     print(f"Search Error: {response.status} - {await response.text()}")
 
-
 async def example_get_statistics():
     """Example of getting knowledge graph statistics"""
 
@@ -229,7 +223,6 @@ async def example_get_statistics():
                     print(f"  * {integration}: {'✓' if status else '✗'}")
             else:
                 print(f"Error: {response.status} - {await response.text()}")
-
 
 async def main():
     """Run all examples"""
@@ -253,7 +246,6 @@ async def main():
 
     except Exception as e:
         print(f"Example failed: {e}")
-
 
 if __name__ == "__main__":
     asyncio.run(main())

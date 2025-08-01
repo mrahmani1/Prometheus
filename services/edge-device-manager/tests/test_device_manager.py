@@ -6,7 +6,10 @@ import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
+import pandas as pd
 import pytest
+import torch.nn as nn
+import torch.nn.functional as F
 from core.device_manager import EdgeDeviceManager
 from models.config import DeviceCapabilities, DeviceLocation, EdgeManagerConfig
 from models.device import DeviceMetrics, DeviceRegistrationRequest, DeviceStatus
@@ -175,7 +178,7 @@ class TestEdgeDeviceManager:
 
         assert updated_device.config.max_cpu_usage == 90.0
         assert updated_device.config.max_memory_usage == 85.0
-        assert updated_device.config.data_collection_enabled  is False
+        assert updated_device.config.data_collection_enabled is False
 
     @pytest.mark.asyncio
     async def test_list_devices_with_filters(
@@ -307,10 +310,6 @@ class TestEdgeDeviceManager:
         await asyncio.sleep(2)
 
         # Manually trigger heartbeat monitor logic
-
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 
         current_time = datetime.utcnow()
         timeout_threshold = current_time - timedelta(

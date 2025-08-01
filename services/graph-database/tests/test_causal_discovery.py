@@ -7,7 +7,6 @@ import unittest
 
 logger = logging.getLogger(__name__)
 
-
 class TestTestcausaldiscovery(unittest.TestCase):
     """Test cases for test causal discovery functionality."""
 
@@ -23,7 +22,6 @@ class TestTestcausaldiscovery(unittest.TestCase):
         """Test error handling."""
         with self.assertRaises(Exception):
             raise Exception("Test exception")
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 
 from .hazard_mapping import (
     GeographicBounds,
@@ -20,12 +23,7 @@ from .hazard_mapping import (
     HazardType,
     MultiHazardAssessment,
     RiskLevel,
-    import,
 )
-from .hazard_mapping import numpy as np
-from .hazard_mapping import pandas as pd
-from .hazard_mapping import torch.nn as nn
-from .hazard_mapping import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -237,28 +235,36 @@ class RealTimeHazardUpdater:
         new_data: MonitoringDataStream,
     ) -> bool:
         """Evaluate if trigger condition is met"""
+        value = self._get_trigger_value(trigger, recent_data, new_data)
+        return self._compare_value_with_threshold(value, trigger.comparison_operator, trigger.threshold_value)
+
+    def _get_trigger_value(
+        self, 
+        trigger: UpdateTrigger, 
+        recent_data: List[MonitoringDataStream], 
+        new_data: MonitoringDataStream
+    ) -> float:
+        """Get the value to compare against the trigger threshold."""
         if trigger.data_type.endswith("_count"):
-            # Count-based trigger
-            value = len(recent_data)
+            return len(recent_data)
         else:
-            # Value-based trigger
-            value = new_data.value
+            return new_data.value
 
-        # Evaluate condition
-        if trigger.comparison_operator == ">=":
-            return value >= trigger.threshold_value
-        elif trigger.comparison_operator == ">":
-            return value > trigger.threshold_value
-        elif trigger.comparison_operator == "<=":
-            return value <= trigger.threshold_value
-        elif trigger.comparison_operator == "<":
-            return value < trigger.threshold_value
-        elif trigger.comparison_operator == "==":
-            return value == trigger.threshold_value
-        elif trigger.comparison_operator == "!=":
-            return value != trigger.threshold_value
-
-        return False
+    def _compare_value_with_threshold(
+        self, value: float, operator: str, threshold: float
+    ) -> bool:
+        """Compare value with threshold using the specified operator."""
+        comparisons = {
+            ">=": lambda v, t: v >= t,
+            ">": lambda v, t: v > t,
+            "<=": lambda v, t: v <= t,
+            "<": lambda v, t: v < t,
+            "==": lambda v, t: v == t,
+            "!=": lambda v, t: v != t,
+        }
+        
+        comparison_func = comparisons.get(operator)
+        return comparison_func(value, threshold) if comparison_func else False
 
     def _estimate_affected_area(
         self, data_stream: MonitoringDataStream, trigger: UpdateTrigger
@@ -369,108 +375,124 @@ class RealTimeHazardUpdater:
         self, bounds: GeographicBounds
     ) -> Dict[str, Any]:
         """Prepare monitoring data for hazard assessment within geographic bounds"""
-        monitoring_data = {}
-
         # Filter data by geographic bounds
-        for data_type, streams in self.monitoring_streams.items():
-            filtered_streams = []
-            for stream in streams:
-                lat = stream.location["lat"]
-                lon = stream.location["lon"]
-
-                if (
-                    bounds.min_lat <= lat <= bounds.max_lat
-                    and bounds.min_lon <= lon <= bounds.max_lon
-                ):
-                    filtered_streams.append(stream)
-
-            if filtered_streams:
-                monitoring_data[data_type] = filtered_streams
-
+        filtered_data = self._filter_data_by_bounds(bounds)
+        
         # Convert to format expected by hazard engine
+        return self._convert_to_hazard_engine_format(filtered_data)
+
+    def _filter_data_by_bounds(self, bounds: GeographicBounds) -> Dict[str, List]:
+        """Filter monitoring streams by geographic bounds."""
+        filtered_data = {}
+
+        for data_type, streams in self.monitoring_streams.items():
+            filtered_streams = [
+                stream for stream in streams 
+                if self._is_stream_within_bounds(stream, bounds)
+            ]
+            if filtered_streams:
+                filtered_data[data_type] = filtered_streams
+
+        return filtered_data
+
+    def _is_stream_within_bounds(self, stream, bounds: GeographicBounds) -> bool:
+        """Check if a stream is within geographic bounds."""
+        lat = stream.location["lat"]
+        lon = stream.location["lon"]
+        return (bounds.min_lat <= lat <= bounds.max_lat and 
+                bounds.min_lon <= lon <= bounds.max_lon)
+
+    def _convert_to_hazard_engine_format(self, monitoring_data: Dict[str, List]) -> Dict[str, Any]:
+        """Convert monitoring data to format expected by hazard engine."""
         processed_data = {}
 
-        # Process seismic data
-        if "seismic_event" in monitoring_data:
-            seismic_events = [
+        # Data type processors
+        processors = {
+            "seismic_event": self._process_seismic_data,
+            "insar_displacement": self._process_deformation_data,
+            "so2_flux": self._process_gas_emission_data,
+            "thermal_temperature": self._process_thermal_data,
+            "precipitation_rate": self._process_precipitation_data,
+            "slope_movement": self._process_slope_data,
+        }
+
+        for data_type, streams in monitoring_data.items():
+            processor = processors.get(data_type)
+            if processor:
+                processor(streams, processed_data)
+
+        return processed_data
+
+    def _process_seismic_data(self, streams: List, processed_data: Dict[str, Any]):
+        """Process seismic event data."""
+        seismic_events = [
+            {
+                "magnitude": stream.value,
+                "timestamp": stream.timestamp,
+                "location": stream.location,
+            }
+            for stream in streams
+        ]
+        processed_data["seismic_events"] = seismic_events
+        processed_data["recent_earthquakes"] = seismic_events
+
+    def _process_deformation_data(self, streams: List, processed_data: Dict[str, Any]):
+        """Process InSAR deformation data."""
+        deformation_data = {
+            "uplift_rate": max(stream.value for stream in streams),
+            "measurements": [
                 {
-                    "magnitude": stream.value,
+                    "displacement": stream.value,
                     "timestamp": stream.timestamp,
                     "location": stream.location,
                 }
-                for stream in monitoring_data["seismic_event"]
-            ]
-            processed_data["seismic_events"] = seismic_events
-            processed_data["recent_earthquakes"] = seismic_events
+                for stream in streams
+            ],
+        }
+        processed_data["ground_deformation"] = deformation_data
 
-        # Process deformation data
-        if "insar_displacement" in monitoring_data:
-            deformation_data = {
-                "uplift_rate": max(
-                    stream.value for stream in monitoring_data["insar_displacement"]
-                ),
-                "measurements": [
-                    {
-                        "displacement": stream.value,
-                        "timestamp": stream.timestamp,
-                        "location": stream.location,
-                    }
-                    for stream in monitoring_data["insar_displacement"]
-                ],
-            }
-            processed_data["ground_deformation"] = deformation_data
+    def _process_gas_emission_data(self, streams: List, processed_data: Dict[str, Any]):
+        """Process gas emission data."""
+        gas_data = {
+            "so2_flux": max(stream.value for stream in streams),
+            "measurements": [
+                {
+                    "flux": stream.value,
+                    "timestamp": stream.timestamp,
+                    "location": stream.location,
+                }
+                for stream in streams
+            ],
+        }
+        processed_data["gas_emissions"] = gas_data
 
-        # Process gas emission data
-        if "so2_flux" in monitoring_data:
-            gas_data = {
-                "so2_flux": max(stream.value for stream in monitoring_data["so2_flux"]),
-                "measurements": [
-                    {
-                        "flux": stream.value,
-                        "timestamp": stream.timestamp,
-                        "location": stream.location,
-                    }
-                    for stream in monitoring_data["so2_flux"]
-                ],
-            }
-            processed_data["gas_emissions"] = gas_data
+    def _process_thermal_data(self, streams: List, processed_data: Dict[str, Any]):
+        """Process thermal temperature data."""
+        thermal_data = {
+            "max_temperature": max(stream.value for stream in streams),
+            "measurements": [
+                {
+                    "temperature": stream.value,
+                    "timestamp": stream.timestamp,
+                    "location": stream.location,
+                }
+                for stream in streams
+            ],
+        }
+        processed_data["thermal_data"] = thermal_data
 
-        # Process thermal data
-        if "thermal_temperature" in monitoring_data:
-            thermal_data = {
-                "max_temperature": max(
-                    stream.value for stream in monitoring_data["thermal_temperature"]
-                ),
-                "measurements": [
-                    {
-                        "temperature": stream.value,
-                        "timestamp": stream.timestamp,
-                        "location": stream.location,
-                    }
-                    for stream in monitoring_data["thermal_temperature"]
-                ],
-            }
-            processed_data["thermal_data"] = thermal_data
+    def _process_precipitation_data(self, streams: List, processed_data: Dict[str, Any]):
+        """Process precipitation rate data."""
+        precip_data = max(stream.value for stream in streams)
+        processed_data["precipitation"] = precip_data
 
-        # Process precipitation data
-        if "precipitation_rate" in monitoring_data:
-            precip_data = max(
-                stream.value for stream in monitoring_data["precipitation_rate"]
-            )
-            processed_data["precipitation"] = precip_data
-
-        # Process slope movement data
-        if "slope_movement" in monitoring_data:
-            slope_data = {
-                "max_movement": max(
-                    stream.value for stream in monitoring_data["slope_movement"]
-                ),
-                "stability_factor": 1.0
-                - min(stream.value for stream in monitoring_data["slope_movement"]),
-            }
-            processed_data["slope_stability"] = slope_data["stability_factor"]
-
-        return processed_data
+    def _process_slope_data(self, streams: List, processed_data: Dict[str, Any]):
+        """Process slope movement data."""
+        slope_data = {
+            "max_movement": max(stream.value for stream in streams),
+            "stability_factor": 1.0 - min(stream.value for stream in streams),
+        }
+        processed_data["slope_stability"] = slope_data["stability_factor"]
 
     async def _check_alert_conditions(
         self, assessment: MultiHazardAssessment, update_request: Dict[str, Any]

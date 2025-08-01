@@ -8,6 +8,8 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+import torch.nn as nn
+import torch.nn.functional as F
 from models.ai_models import (
     ActivationFunction,
     ModelMetadata,
@@ -20,7 +22,6 @@ from models.ai_models import (
     SimulationParameters,
     UncertaintyMethod,
     UncertaintyQuantification,
-    import,
 )
 from models.ai_models import numpy as np
 from models.ai_models import torch.nn as nn

@@ -126,19 +126,28 @@ class QuantumAnnealingOptimizer(QuantumGeologicalOptimizer):
         - Volcanic hazard zone boundary optimization
         """
         start_time = datetime.now()
-
-        # Convert geological problem to QUBO (Quadratic Unconstrained Binary Optimization)
+        
+        # Convert and solve problem
         qubo_matrix = self._geological_to_qubo(problem)
+        result = self._execute_quantum_annealing(qubo_matrix, problem)
+        
+        # Create final result
+        return self._create_optimization_result(result, problem, start_time)
 
-        # Simulate quantum annealing process
+    def _execute_quantum_annealing(
+        self, qubo_matrix: np.ndarray, problem: GeologicalQuantumProblem
+    ) -> Dict:
+        """Execute quantum annealing using available backend."""
         if QISKIT_AVAILABLE:
-            result = self._quantum_annealing_qiskit(qubo_matrix, problem)
+            return self._quantum_annealing_qiskit(qubo_matrix, problem)
         else:
-            result = self._simulate_quantum_annealing(qubo_matrix, problem)
+            return self._simulate_quantum_annealing(qubo_matrix, problem)
 
+    def _create_optimization_result(
+        self, result: Dict, problem: GeologicalQuantumProblem, start_time: datetime
+    ) -> QuantumOptimizationResult:
+        """Create the final optimization result."""
         execution_time = (datetime.now() - start_time).total_seconds()
-
-        # Interpret results in geological context
         geological_interpretation = self._interpret_annealing_results(result, problem)
 
         return QuantumOptimizationResult(
@@ -157,33 +166,45 @@ class QuantumAnnealingOptimizer(QuantumGeologicalOptimizer):
         n = min(self.num_qubits, len(problem.geological_data))
         qubo = np.zeros((n, n))
 
-        if problem.problem_type == "parameter_optimization":
-            # For geological parameter optimization (e.g., fault plane parameters)
-            data = problem.geological_data[:n]
+        qubo_builders = {
+            "parameter_optimization": self._build_parameter_optimization_qubo,
+            "system_analysis": self._build_system_analysis_qubo,
+        }
 
-            # Diagonal terms: individual parameter costs
-            for i in range(n):
-                qubo[i, i] = -data[i]  # Negative for maximization
+        builder = qubo_builders.get(problem.problem_type)
+        if builder:
+            return builder(qubo, problem.geological_data[:n], n)
+        
+        return qubo
 
-            # Off-diagonal terms: parameter interactions
-            for i in range(n):
-                for j in range(i + 1, n):
-                    # Geological correlation penalty (simplified)
-                    correlation = np.exp(-abs(data[i] - data[j]) / np.std(data))
-                    qubo[i, j] = correlation * 0.5
+    def _build_parameter_optimization_qubo(
+        self, qubo: np.ndarray, data: np.ndarray, n: int
+    ) -> np.ndarray:
+        """Build QUBO matrix for geological parameter optimization."""
+        # Diagonal terms: individual parameter costs
+        for i in range(n):
+            qubo[i, i] = -data[i]  # Negative for maximization
 
-        elif problem.problem_type == "system_analysis":
-            # For geological system analysis (e.g., magma chamber connectivity)
-            # Create connectivity matrix based on geological relationships
-            for i in range(n):
-                for j in range(n):
-                    if i != j:
-                        distance = abs(
-                            problem.geological_data[i] - problem.geological_data[j]
-                        )
-                        qubo[i, j] = -1.0 / (
-                            1.0 + distance
-                        )  # Inverse distance weighting
+        # Off-diagonal terms: parameter interactions
+        data_std = np.std(data) if len(data) > 1 else 1.0
+        for i in range(n):
+            for j in range(i + 1, n):
+                # Geological correlation penalty (simplified)
+                correlation = np.exp(-abs(data[i] - data[j]) / data_std)
+                qubo[i, j] = correlation * 0.5
+
+        return qubo
+
+    def _build_system_analysis_qubo(
+        self, qubo: np.ndarray, data: np.ndarray, n: int
+    ) -> np.ndarray:
+        """Build QUBO matrix for geological system analysis."""
+        # Create connectivity matrix based on geological relationships
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    distance = abs(data[i] - data[j])
+                    qubo[i, j] = -1.0 / (1.0 + distance)  # Inverse distance weighting
 
         return qubo
 
@@ -2007,5 +2028,5 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
-    results = asyncio.run(run_quantum_optimization_example())
-    print("\nQuantum geological optimization completed successfully!")
+results = asyncio.run(run_quantum_optimization_example())
+print("\nQuantum geological optimization completed successfully!")

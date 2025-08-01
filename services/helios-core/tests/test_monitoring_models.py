@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
+import torch.nn as nn
+import torch.nn.functional as F
 from models.geological import GeologicalLocation
 from models.monitoring import (
     AlertEscalationManager,
@@ -23,7 +25,6 @@ from models.monitoring import (
     StreamingDataProcessor,
     TimeSeriesBuffer,
     VolcanicRiskAssessment,
-    import,
 )
 from models.monitoring import numpy as np
 from models.monitoring import torch.nn as nn

@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from core.config import Settings
 from core.database import DatabaseManager
 from models.schemas import (
@@ -401,8 +402,6 @@ class MultivariateAnomalyDetector:
     def _compute_statistical_scores(self, features_array: np.ndarray) -> np.ndarray:
         """Compute statistical anomaly scores using Mahalanobis distance"""
         try:
-    except Exception:
-        pass
             if len(self.baseline_statistics) == 0:
                 # Use current data to compute baseline if not available
                 mean = np.mean(features_array, axis=0)
@@ -413,18 +412,30 @@ class MultivariateAnomalyDetector:
 
             # Compute Mahalanobis distance
             try:
-    except Exception:
-        pass
+                cov_inv = np.linalg.pinv(cov)
+                diff = features_array - mean
+                mahalanobis_distances = np.sqrt(np.sum(diff @ cov_inv * diff, axis=1))
+
+                # Convert to anomaly scores (higher is more anomalous)
+                scores = mahalanobis_distances
+
+                return scores
+
+            except np.linalg.LinAlgError:
+                # Fallback to Euclidean distance if covariance is singular
+                diff = features_array - mean
+                scores = np.sqrt(np.sum(diff**2, axis=1))
+                return scores
+                mean = self.baseline_statistics["mean"]
+                cov = self.baseline_statistics["covariance"]
+
+            # Compute Mahalanobis distance
+            try:
                 cov_inv = np.linalg.pinv(cov)
                 diff = features_array - mean
                 mahal_dist = np.sqrt(np.sum(diff @ cov_inv * diff, axis=1))
 
                 # Convert to probabilities using chi-square distribution
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 
                 p_values = 1 - chi2.cdf(mahal_dist**2, df=features_array.shape[1])
 

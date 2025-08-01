@@ -11,20 +11,19 @@ from typing import Any, Dict, List
 import aioredis
 import asyncpg
 import numpy as np
-import pandas as pd
 import structlog
-import torch.nn as nn
-import torch.nn.functional as F
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from neo4j import AsyncGraphDatabase
 
 from .config import settings
 from .knowledge_extractor import ExtractedKnowledge
-from .semantic_reasoner import (InferredRelationship, SemanticReasoner,
-                                SemanticTriple)
+from .semantic_reasoner import (
+    InferredRelationship,
+    SemanticReasoner,
+    SemanticTriple,
+)
 
 logger = structlog.get_logger()
-
 
 @dataclass
 class KnowledgeUpdate:
@@ -38,7 +37,6 @@ class KnowledgeUpdate:
     timestamp: datetime
     metadata: Dict[str, Any]
 
-
 @dataclass
 class DiscoveryEvent:
     """New scientific discovery event"""
@@ -50,7 +48,6 @@ class DiscoveryEvent:
     confidence_score: float
     supporting_evidence: List[str]
     timestamp: datetime
-
 
 class KnowledgeGraphManager:
     """Manages the scientific knowledge graph with dynamic updates"""

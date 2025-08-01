@@ -527,8 +527,8 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-        traceback.print_exc()
-        return None
+    traceback.print_exc()
+    return None
 
 if __name__ == "__main__":
     results = main()

@@ -399,14 +399,6 @@ class AdvancedSeismicAnalysis:
         # This would use PyWavelets for actual implementation
         # For now, return a simple smoothed version
         from scipy.ndimage import gaussian_filter1d
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
         # Apply gentle smoothing
         denoised = gaussian_filter1d(waveform, sigma=1.0, axis=-1)
 

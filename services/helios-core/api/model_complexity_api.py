@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 import torch
+import torch.nn.functional as F
 from core.model_complexity_manager import ComplexityLevel, ModelComplexityManager
 from fastapi import APIRouter, HTTPException
 from models.ai_models import GeologicalProcess
@@ -298,8 +299,6 @@ async def get_complexity_recommendations(
     try:
         # Create synthetic data assessment
         from core.model_complexity_manager import DataAssessment
-
-import torch.nn.functional as F
 
         data_assessment = DataAssessment(
             total_data_points=data_size,

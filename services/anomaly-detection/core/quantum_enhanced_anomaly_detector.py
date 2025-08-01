@@ -26,9 +26,8 @@ from sklearn.preprocessing import StandardScaler
 
 # Quantum computing libraries
 try:
-    except Exception:
-        pass
-
+    from qiskit import QuantumCircuit
+    from qiskit.circuit.library import ZZFeatureMap
     QUANTUM_AVAILABLE = True
 except ImportError:
     QUANTUM_AVAILABLE = False
@@ -442,15 +441,12 @@ class QuantumApproximateOptimization:
 
     def _classical_feature_selection(self, X: np.ndarray, y: np.ndarray) -> List[int]:
         """Classical feature selection fallback"""
+        from sklearn.feature_selection import SelectKBest, f_classif
 
 import uuid
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
         k = min(self.num_features // 2, 10)  # Select top half or 10 features
         selector = SelectKBest(score_func=f_classif, k=k)
         selector.fit(X, y)

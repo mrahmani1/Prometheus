@@ -20,18 +20,9 @@ from torch_geometric.nn import (
     SAGEConv,
     SAGPooling,
     TopKPooling,
-    Tuple,
-    from,
     global_add_pool,
     global_max_pool,
     global_mean_pool,
-    import,
-)
-from torch_geometric.nn import numpy as np
-from torch_geometric.nn import torch.nn as nn
-from torch_geometric.nn import torch.nn.functional as F
-from torch_geometric.nn import (
-    typing,
 )
 
 logger = logging.getLogger(__name__)

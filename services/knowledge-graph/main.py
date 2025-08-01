@@ -44,7 +44,6 @@ logger = structlog.get_logger()
 # Global service components
 service_components = {}
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -75,7 +74,6 @@ async def lifespan(app: FastAPI):
                 await component.close()
         logger.info("Service components closed")
 
-
 # Create FastAPI application
 app = FastAPI(
     title="Prometheus Scientific Knowledge Graph Service",
@@ -96,7 +94,6 @@ app.add_middleware(
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
 
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -109,7 +106,6 @@ async def health_check():
     except Exception as e:
         logger.error("Health check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service unhealthy")
-
 
 @app.get("/ready")
 async def readiness_check():
@@ -134,7 +130,6 @@ async def readiness_check():
     except Exception as e:
         logger.error("Readiness check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service not ready")
-
 
 if __name__ == "__main__":
     uvicorn.run(

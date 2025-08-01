@@ -11,8 +11,13 @@ of massive geological AI models across TPU v4/v5/v6 pods with:
 """
 
 import logging
+import numpy as np
 import os
+import pandas as pd
+import signal
 import threading
+import torch.nn as nn
+import torch.nn.functional as F
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -44,14 +49,6 @@ try:
     from google.cloud import monitoring_v3
     from google.cloud import tpu_v2alpha1 as tpu
     from google.oauth2 import service_account
-
-import signal
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 
     GCP_AVAILABLE = True
 except ImportError:

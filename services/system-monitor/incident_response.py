@@ -22,14 +22,12 @@ from kubernetes import client
 
 logger = structlog.get_logger()
 
-
 class IncidentSeverity(Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
     EMERGENCY = "emergency"
-
 
 class ResponseAction(Enum):
     RESTART_SERVICE = "restart_service"
@@ -40,7 +38,6 @@ class ResponseAction(Enum):
     NOTIFY_ONCALL = "notify_oncall"
     ESCALATE = "escalate"
     RUN_DIAGNOSTIC = "run_diagnostic"
-
 
 @dataclass
 class IncidentResponse:
@@ -54,7 +51,6 @@ class IncidentResponse:
     last_action_at: Optional[datetime] = None
     resolved: bool = False
 
-
 @dataclass
 class AutomationRule:
     name: str
@@ -63,7 +59,6 @@ class AutomationRule:
     cooldown_minutes: int
     max_executions: int
     escalation_threshold: int
-
 
 class IncidentResponseSystem:
     def __init__(self, k8s_client: client.AppsV1Api, redis_client: redis.Redis):

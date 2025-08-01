@@ -1043,13 +1043,4 @@ async def get_asf_insar_status(integration_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
     uvicorn.run(app, host=os.getenv("HOST", "0.0.0.0"), port=8011)

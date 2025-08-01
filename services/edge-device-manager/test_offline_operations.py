@@ -5,9 +5,13 @@ Test script for offline operations functionality
 
 import asyncio
 import logging
+import pickle
 from datetime import datetime
 
+import torch.nn as nn
+import torch.nn.functional as F
 from core.offline_operations import OfflineOperationsCoordinator
+from core.offline_processor import OfflineDataProcessor
 from models.config import EdgeDeviceConfig
 from models.device import DeviceCapabilities, DeviceLocation
 
@@ -210,9 +214,6 @@ async def test_individual_components():
 
     # Store some test data
     test_data = {"test": "data", "value": 123}
-
-import torch.nn as nn
-import torch.nn.functional as F
 
     data_payload = pickle.dumps(test_data)
     metadata = {"type": "test", "timestamp": datetime.utcnow().isoformat()}

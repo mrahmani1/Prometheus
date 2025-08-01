@@ -141,10 +141,6 @@ async def test_composite_risk_calculation(risk_engine):
 async def test_hazard_zone_generation(risk_engine):
     """Test hazard zone generation"""
     from models.volcanic_data import AlertLevel
-
-import numpy as np
-import torch.nn.functional as F
-
     # Create test alert level
     alert_level = AlertLevel(
         level=3,

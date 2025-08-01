@@ -466,13 +466,6 @@ class InSARDeformationAnalyzer:
 
         # Find local maxima/minima for point sources
         from scipy.ndimage import maximum_filter, minimum_filter
-
-from typing import Tuple
-
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
         # Inflation centers (local maxima)
         local_maxima = maximum_filter(displacement_map, size=20) == displacement_map
         maxima_coords = np.where(

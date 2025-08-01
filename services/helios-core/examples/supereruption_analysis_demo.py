@@ -10,12 +10,15 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+import signal
+
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from core.geological_network_representation import (
     GeologicalGraphData,
     GeologicalNetworkRepresentationEngine,
     SupereruptionAnalyzer,
-    import,
     signal,
 )
 from core.geological_network_representation import torch.nn as nn

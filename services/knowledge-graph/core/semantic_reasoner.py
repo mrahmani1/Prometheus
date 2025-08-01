@@ -17,7 +17,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 logger = structlog.get_logger()
 
-
 @dataclass
 class SemanticTriple:
     """RDF triple with confidence score"""
@@ -29,7 +28,6 @@ class SemanticTriple:
     source: str
     timestamp: datetime
 
-
 @dataclass
 class InferredRelationship:
     """Inferred relationship with reasoning chain"""
@@ -40,7 +38,6 @@ class InferredRelationship:
     confidence: float
     reasoning_chain: List[str]
     supporting_evidence: List[str]
-
 
 class SemanticReasoner:
     """Semantic reasoning engine for geological knowledge"""

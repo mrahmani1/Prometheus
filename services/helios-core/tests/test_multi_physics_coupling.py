@@ -352,9 +352,13 @@ class TestMultiPhysicsCouplingEngine:
             ConvergenceResult,
             StabilityAnalysisResult,
         )
-        from core.multi_physics_coupling import orch.nn as nn
-        from core.multi_physics_coupling import orch.nn.functional as F
-        from core.multi_physics_coupling import umpy as np
+        from core.multi_physics_coupling import torch.nn as nn
+        from core.multi_physics_coupling import torch.nn.functional as F
+        from core.multi_physics_coupling import numpy as np
+
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 
         convergence_result = ConvergenceResult(
             status=ConvergenceStatus.CONVERGED,

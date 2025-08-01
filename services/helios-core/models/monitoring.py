@@ -356,7 +356,7 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
-            warnings.warn("Scenario probabilities do not sum to 1.0")
+        warnings.warn("Scenario probabilities do not sum to 1.0")
 
     def get_max_eruption_probability(self) -> Tuple[str, float]:
         """Get the timeframe with maximum eruption probability"""

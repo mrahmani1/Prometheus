@@ -14,6 +14,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from core.geological_processes.crustal_deformation import (
     CrustalDeformationModel,
     ViscoelasticParameters,
@@ -35,7 +37,6 @@ from core.geological_processes.mantle_convection import (
     ConvectionParameters,
     MantleConvectionModel,
     create_mantle_convection_model,
-    import,
 )
 from core.geological_processes.mantle_convection import numpy as np
 from core.geological_processes.mantle_convection import torch.nn as nn

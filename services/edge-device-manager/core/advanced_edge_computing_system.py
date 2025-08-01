@@ -56,14 +56,6 @@ try:
     import paho.mqtt.client as mqtt
     import zmq
 
-import signal
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
     COMMUNICATION_AVAILABLE = True
 except ImportError:
     COMMUNICATION_AVAILABLE = False

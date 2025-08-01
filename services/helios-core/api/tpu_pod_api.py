@@ -6,6 +6,9 @@ distributed training, and performance monitoring.
 """
 
 import logging
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -274,11 +277,6 @@ async def run_distributed_inference(
             manager.load_model(inference_request.model_checkpoint)
 
         # Convert input data to numpy array
-        import numpy as np
-
-import numpy as np
-import torch.nn.functional as F
-
         input_data = np.array(inference_request.input_data, dtype=np.float32)
 
         # Run distributed inference
@@ -308,6 +306,16 @@ async def save_model_checkpoint(
     """
     try:
         manager.save_model(checkpoint_path)
+
+        return {
+            "success": True,
+            "checkpoint_path": checkpoint_path,
+            "message": "Model checkpoint saved successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to save model checkpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Checkpoint save failed: {str(e)}")
 
         return {
             "status": "success",

@@ -11,6 +11,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 
@@ -19,12 +22,7 @@ from ..core.quantum_optimization import (
     QuantumGeologicalOptimizationManager,
     analyze_quantum_advantage,
     create_geological_quantum_problem,
-    import,
 )
-from ..core.quantum_optimization import numpy as np
-from ..core.quantum_optimization import pandas as pd
-from ..core.quantum_optimization import torch.nn as nn
-from ..core.quantum_optimization import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -308,8 +306,8 @@ async def benchmark_quantum_algorithms(request: BenchmarkRequest):
                 quantum_advantage_metric=result.quantum_advantage_metric,
                 confidence_score=result.confidence_score,
                 execution_time=result.execution_time,
-                geological_interpretation=result.geological_interpretation,
-                convergence_history=result.convergence_history,
+                geological_interpretation=getattr(result, 'geological_interpretation', {}),
+                metadata=getattr(result, 'metadata', {})
             )
 
         # Analyze performance

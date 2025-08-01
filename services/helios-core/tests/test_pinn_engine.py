@@ -4,8 +4,11 @@ Unit tests for Physics-Informed Neural Network (PINN) Engine
 
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from core.pinn_engine import (
     ActivationRegistry,
     ElasticDeformationConstraint,
@@ -25,7 +28,6 @@ from models.ai_models import (
     PhysicsConstraint,
     PhysicsConstraintType,
     PINNModelConfig,
-    import,
 )
 from models.ai_models import numpy as np
 from models.ai_models import torch.nn as nn

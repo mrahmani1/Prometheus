@@ -308,10 +308,6 @@ class KafkaDataConsumer:
         try:
             from kafka import TopicPartition
 
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
             tp = TopicPartition(topic, partition)
             self.consumer.seek_to_end(tp)
             logger.info(f"Seeked to end of {topic}:{partition}")

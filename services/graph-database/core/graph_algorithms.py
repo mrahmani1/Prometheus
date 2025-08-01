@@ -9,7 +9,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-
 class Graphalgorithms:
     """Main class for graph algorithms functionality."""
 
@@ -31,13 +30,11 @@ class Graphalgorithms:
         """Validate input data."""
         return data is not None
 
-
 def main():
     """Main function for testing."""
     instance = Graphalgorithms()
     result = instance.process("test_data")
     print(f"Result: {result}")
-
 
 if __name__ == "__main__":
     main()

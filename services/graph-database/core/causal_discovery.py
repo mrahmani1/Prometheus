@@ -13,7 +13,6 @@ from .database import GraphDatabaseManager
 
 logger = logging.getLogger(__name__)
 
-
 class CausalDiscoveryEngine:
     """Advanced causal relationship discovery for geological processes"""
 

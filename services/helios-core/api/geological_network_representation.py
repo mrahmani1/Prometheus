@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -19,11 +21,7 @@ from ..core.geological_network_representation import (
     GeologicalNetworkRepresentationEngine,
     SupereruptionAnalyzer,
     SupereruptionSignature,
-    import,
 )
-from ..core.geological_network_representation import numpy as np
-from ..core.geological_network_representation import torch.nn as nn
-from ..core.geological_network_representation import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 

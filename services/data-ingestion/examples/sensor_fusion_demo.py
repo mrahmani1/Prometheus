@@ -9,6 +9,7 @@ volcanic monitoring and analysis.
 
 import os
 import sys
+import traceback
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -16,6 +17,9 @@ import numpy as np
 # Add the parent directory to the path so we can import our modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 from models.geological_data import (
     DataQuality,
     DeformationMeasurement,
@@ -373,11 +377,6 @@ def main():
 
     except Exception as e:
         print(f"Error during demonstration: {e}")
-
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
         traceback.print_exc()
         return 1
 

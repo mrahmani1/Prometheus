@@ -1405,15 +1405,6 @@ class AdvancedPhysicsSimulator:
     ) -> Dict[str, float]:
         """Analyze frequency content of seismic signal"""
         from scipy import signal
-
-from typing import Any, Tuple
-
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
         frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
 
         # Frequency bands of interest

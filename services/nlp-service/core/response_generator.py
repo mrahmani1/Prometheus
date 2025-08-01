@@ -4,20 +4,20 @@ Generates natural language responses for geological queries and explanations
 """
 
 import random
+import signal
 import time
 from typing import Dict, List, Optional
 
 import structlog
+import torch.nn as nn
+import torch.nn.functional as F
 from models.nlp_models import (
     ConversationalResponse,
     EntityType,
     GeologicalEntity,
     QueryIntent,
-    import,
-    signal,
 )
-from models.nlp_models import torch.nn as nn
-from models.nlp_models import torch.nn.functional as F
+# Neural network imports handled in model files
 
 logger = structlog.get_logger()
 

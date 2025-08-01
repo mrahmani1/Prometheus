@@ -5,8 +5,11 @@ Tests the implementation of separate model branches for geological vs. real-time
 temporal attention mechanisms, adaptive time-stepping, and temporal interpolation/extrapolation.
 """
 
+import numpy as np
 import pytest
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from core.temporal_processing import (
     AdaptiveTimeStepConfig,
     AdaptiveTimeStepper,
@@ -19,7 +22,6 @@ from core.temporal_processing import (
     TemporalScale,
     TimeScale,
     create_default_temporal_scales,
-    import,
 )
 from core.temporal_processing import numpy as np
 from core.temporal_processing import torch.nn.functional as F

@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 # Global database manager instance
 db_manager = None
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -52,7 +51,6 @@ async def lifespan(app: FastAPI):
             await db_manager.close()
             logger.info("Database connections closed")
 
-
 # Create FastAPI application
 app = FastAPI(
     title="Prometheus Graph Database Service",
@@ -73,7 +71,6 @@ app.add_middleware(
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
 
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -86,7 +83,6 @@ async def health_check():
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unhealthy")
 
-
 @app.get("/ready")
 async def readiness_check():
     """Readiness check endpoint"""
@@ -98,7 +94,6 @@ async def readiness_check():
     except Exception as e:
         logger.error(f"Readiness check failed: {e}")
         raise HTTPException(status_code=503, detail="Service not ready")
-
 
 if __name__ == "__main__":
     uvicorn.run(

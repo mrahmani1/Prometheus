@@ -406,6 +406,8 @@ import torch.nn as nn
 import numpy as np
 import signal
 import torch
+import torch.nn as nn
+import numpy as np
 
 class AdvancedGeologicalAPI:
     """Advanced API endpoints for geological data and analysis"""

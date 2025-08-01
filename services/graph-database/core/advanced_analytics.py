@@ -320,11 +320,6 @@ class AdvancedGraphAnalytics:
         if not failure_scenarios:
             # Default failure scenarios: remove most critical processes
             from .graph_algorithms import GeologicalGraphAlgorithms
-
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
             algorithms = GeologicalGraphAlgorithms(self.db_manager)
             critical_processes = await algorithms.find_critical_processes(
                 process_ids, criteria="centrality"

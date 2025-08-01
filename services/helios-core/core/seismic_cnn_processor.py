@@ -519,6 +519,8 @@ class AdvancedDataProcessor:
 
         try:
             from scipy import signal
+        except ImportError:
+            signal = None
 
 from typing import Tuple
 

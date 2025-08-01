@@ -15,6 +15,8 @@ from typing import Any, Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 from core.quantum_helios_integration import QuantumHeliosIntegrator
 
 # Import quantum optimization components
@@ -22,11 +24,7 @@ from core.quantum_optimization import (
     QuantumGeologicalOptimizationManager,
     analyze_quantum_advantage,
     create_geological_quantum_problem,
-    
 )
-from core.quantum_optimization import numpy as np
-from core.quantum_optimization import torch.nn as nn
-from core.quantum_optimization import torch.nn.functional as F
 
 # Configure logging
 logging.basicConfig(

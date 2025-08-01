@@ -13,11 +13,7 @@ from models.geological_data import (
     SeismicEvent,
     StrainMeasurement,
     ThermalMeasurement,
-    
 )
-from models.geological_data import pandas as pd
-from models.geological_data import torch.nn as nn
-from models.geological_data import torch.nn.functional as F
 
 logger = structlog.get_logger()
 

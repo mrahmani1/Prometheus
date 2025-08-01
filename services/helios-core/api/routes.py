@@ -4,6 +4,8 @@ from typing import Any, Dict, List
 
 import numpy as np
 import structlog
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -2825,13 +2827,6 @@ async def get_infrastructure_model_info():
             TransportationType,
             UtilityType,
         )
-        from core.infrastructure_vulnerability import andas as pd
-        from core.infrastructure_vulnerability import (
-            orch,
-        )
-        from core.infrastructure_vulnerability import orch.nn as nn
-        from core.infrastructure_vulnerability import orch.nn.functional as F
-        from core.infrastructure_vulnerability import umpy as np
 
         return {
             "model_name": "Infrastructure Vulnerability Assessment System",

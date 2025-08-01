@@ -644,11 +644,6 @@ class NotificationSystem:
 
         # Emergency broadcasts have very high reliability
         import random
-
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
         success = random.random() < 0.99
 
         if success:

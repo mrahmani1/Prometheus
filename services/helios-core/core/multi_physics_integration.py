@@ -629,8 +629,8 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
-    # PINN configuration for crustal deformation
-    network_architecture = NetworkArchitecture(
+# PINN configuration for crustal deformation
+network_architecture = NetworkArchitecture(
         layer_sizes=[4, 64, 128, 64, 4],  # [x,y,z,t] -> [ux,uy,uz,T]
         activation_functions=[ActivationFunction.TANH] * 3,
         dropout_rates=[0.0] * 4,

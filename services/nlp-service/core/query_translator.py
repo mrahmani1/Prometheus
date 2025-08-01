@@ -8,15 +8,16 @@ import time
 from typing import Any, Dict, List, Optional
 
 import structlog
+import torch.nn as nn
+import torch.nn.functional as F
 from models.nlp_models import (
     EntityType,
     GeologicalEntity,
     QueryIntent,
     QueryTranslationResult,
     SystemParameter,
-    import,
 )
-from models.nlp_models import torch.nn.functional as F
+# Neural network imports handled in model files
 
 logger = structlog.get_logger()
 

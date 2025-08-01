@@ -8,7 +8,6 @@ import sys
 
 import aiohttp
 
-
 async def health_check():
     """Perform health check"""
     try:
@@ -30,7 +29,6 @@ async def health_check():
     except Exception as e:
         print(f"Health check failed: {e}")
         return 1
-
 
 if __name__ == "__main__":
     exit_code = asyncio.run(health_check())

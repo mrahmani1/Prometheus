@@ -13,8 +13,11 @@ import shutil
 import tempfile
 from datetime import datetime, timedelta
 
+import numpy as np
+import pandas as pd
 import pytest
 import torch.nn as nn
+import torch.nn.functional as F
 from core.global_model_deployment import (
     DeploymentOrchestrator,
     DeploymentStatus,
@@ -26,7 +29,6 @@ from core.global_model_deployment import (
     ModelVersionManager,
     PerformanceMetrics,
     PerformanceMonitor,
-    import,
 )
 from core.global_model_deployment import numpy as np
 from core.global_model_deployment import pandas as pd

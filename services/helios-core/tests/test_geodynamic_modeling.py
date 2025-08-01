@@ -11,6 +11,8 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from core.geodynamic_modeling import (
     DeformationField,
     DeformationTracker,
@@ -31,7 +33,6 @@ from models.geological import (
     MeasurementType,
     SampleType,
     SeismicEvent,
-    import,
 )
 from models.geological import numpy as np
 from models.geological import torch.nn as nn

@@ -292,12 +292,6 @@ def main():
     except Exception as e:
         print(f"\nDemo failed with error: {e}")
         import traceback
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
         traceback.print_exc()
         return 1
 

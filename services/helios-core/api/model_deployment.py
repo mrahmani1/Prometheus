@@ -9,6 +9,9 @@ Requirements addressed: 5.3, 5.4, 5.5
 """
 
 import logging
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -69,10 +72,6 @@ class PerformanceThresholdRequest(BaseModel):
 async def get_helios_engine():
     """Dependency to get the Helios engine instance"""
     from main import helios_engine
-
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 
     if not helios_engine or not await helios_engine.is_ready():
         raise HTTPException(status_code=503, detail="Helios engine not ready")

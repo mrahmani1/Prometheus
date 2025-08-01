@@ -429,7 +429,7 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
-    underwater_profile = EdgeDeploymentProfile(
+underwater_profile = EdgeDeploymentProfile(
         name="underwater_sensor",
         description="Underwater geological sensors with extreme power constraints",
         hardware_constraints=HardwareConstraints(

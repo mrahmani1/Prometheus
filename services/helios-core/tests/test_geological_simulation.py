@@ -9,8 +9,10 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
+import torch.nn as nn
 from core.geological_simulation import (
     GeologicalSimulationResult,
     HydrothermalSystemModeler,
@@ -31,7 +33,6 @@ from models.geological import (
     GeologicalLocation,
     MagmaReservoir,
     SampleType,
-    import,
 )
 from models.geological import numpy as np
 from models.geological import pandas as pd

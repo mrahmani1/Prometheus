@@ -10,7 +10,6 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
-
 class MainService:
     """Main service class."""
 
@@ -35,13 +34,11 @@ class MainService:
         """Perform health check."""
         return {"status": "healthy", "running": self.running}
 
-
 async def main():
     """Main function."""
     service = MainService()
     await service.start()
     logger.info("Service started successfully")
-
 
 if __name__ == "__main__":
     asyncio.run(main())

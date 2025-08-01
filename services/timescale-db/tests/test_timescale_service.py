@@ -381,10 +381,6 @@ class TestAsyncFunctions:
             mock_pool.acquire.return_value.__aenter__.return_value = mock_conn
 
             from main import setup_hypertables
-
-import torch.nn as nn
-import torch.nn.functional as F
-
             await setup_hypertables()
 
             # Verify that hypertables were created

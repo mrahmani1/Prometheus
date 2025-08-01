@@ -468,7 +468,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-    builder = GeologicalGraphBuilder()
+builder = GeologicalGraphBuilder()
 
     # Add volcanic systems
     builder.add_volcanic_system(

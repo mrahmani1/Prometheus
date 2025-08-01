@@ -17,7 +17,6 @@ from core.database import GraphDatabaseManager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 async def check_database_connection() -> Dict[str, Any]:
     """Check Neo4j database connection"""
     try:
@@ -41,7 +40,6 @@ async def check_database_connection() -> Dict[str, Any]:
             "message": f"Database connection failed: {str(e)}",
             "details": {"error": str(e)},
         }
-
 
 async def check_api_endpoints() -> Dict[str, Any]:
     """Check API endpoint availability"""
@@ -86,7 +84,6 @@ async def check_api_endpoints() -> Dict[str, Any]:
             "message": f"API endpoint check failed: {str(e)}",
             "details": {"error": str(e)},
         }
-
 
 async def check_graph_operations() -> Dict[str, Any]:
     """Check basic graph operations"""
@@ -150,7 +147,6 @@ async def check_graph_operations() -> Dict[str, Any]:
             "details": {"error": str(e)},
         }
 
-
 async def check_schema_integrity() -> Dict[str, Any]:
     """Check database schema integrity"""
     try:
@@ -207,7 +203,6 @@ async def check_schema_integrity() -> Dict[str, Any]:
             "details": {"error": str(e)},
         }
 
-
 async def run_comprehensive_health_check() -> Dict[str, Any]:
     """Run comprehensive health check"""
 
@@ -256,7 +251,6 @@ async def run_comprehensive_health_check() -> Dict[str, Any]:
         },
     }
 
-
 async def main():
     """Main health check function"""
 
@@ -290,7 +284,6 @@ async def main():
         logger.error(f"Health check failed with exception: {e}")
         print(f"✗ Health check failed: {e}")
         sys.exit(3)
-
 
 if __name__ == "__main__":
     asyncio.run(main())

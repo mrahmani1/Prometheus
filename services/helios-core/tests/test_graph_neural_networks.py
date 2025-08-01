@@ -10,6 +10,9 @@ import torch
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 from core.geological_graph_utils import (
     GeologicalGraphAnalyzer,
     GeologicalGraphBuilder,
@@ -23,7 +26,6 @@ from core.graph_neural_networks import (
     GeologicalGraphData,
     GeologicalGraphPooling,
     GeologicalGraphSAGE,
-    import,
 )
 from core.graph_neural_networks import numpy as np
 from core.graph_neural_networks import torch.nn as nn

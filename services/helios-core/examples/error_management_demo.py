@@ -291,12 +291,12 @@ async def demonstrate_configuration():
 import torch.nn as nn
 import torch.nn.functional as F
 
-    # Show global configuration
-    config = get_config()
-    print("\n🔧 Global Configuration:")
-    print(f"   Max Retries: {config.default_max_retries}")
-    print(f"   Critical Error Threshold: {config.critical_error_threshold}")
-    print(f"   Automatic Degradation: {config.enable_automatic_degradation}")
+# Show global configuration
+config = get_config()
+print("\n🔧 Global Configuration:")
+print(f"   Max Retries: {config.default_max_retries}")
+print(f"   Critical Error Threshold: {config.critical_error_threshold}")
+print(f"   Automatic Degradation: {config.enable_automatic_degradation}")
     print(f"   Error Alerts: {config.enable_error_alerts}")
 
     # Show service-specific configurations

@@ -7,7 +7,6 @@ import unittest
 
 logger = logging.getLogger(__name__)
 
-
 class TestTestknowledgeextractor(unittest.TestCase):
     """Test cases for test knowledge extractor functionality."""
 
@@ -23,7 +22,6 @@ class TestTestknowledgeextractor(unittest.TestCase):
         """Test error handling."""
         with self.assertRaises(Exception):
             raise Exception("Test exception")
-
 
 if __name__ == "__main__":
     unittest.main()

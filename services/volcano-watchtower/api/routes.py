@@ -547,11 +547,6 @@ async def _send_alert_notification(
     try:
         # Create a mock risk assessment for notification
         from models.volcanic_data import VolcanicRiskAssessment
-
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
         risk_assessment = VolcanicRiskAssessment(
             volcano_id=volcano_id,
             timestamp=datetime.utcnow(),

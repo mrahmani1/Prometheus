@@ -17,11 +17,7 @@ from models.device import (
     ModelDeploymentRequest,
     ModelDeploymentResponse,
     ModelStatus,
-    import,
 )
-from models.device import pandas as pd
-from models.device import torch.nn as nn
-from models.device import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 

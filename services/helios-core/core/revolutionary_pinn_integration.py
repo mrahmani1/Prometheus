@@ -20,7 +20,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 from .advanced_pinn_engine import (
     AdaptivePhysicsMode,
@@ -32,7 +35,6 @@ from .quantum_enhanced_pinn_trainer import (
     QuantumCircuitType,
     QuantumEnhancedPINNTrainer,
     QuantumTrainingConfig,
-    import,
 )
 from .quantum_enhanced_pinn_trainer import numpy as np
 from .quantum_enhanced_pinn_trainer import pandas as pd

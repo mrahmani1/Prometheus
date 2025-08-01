@@ -10,7 +10,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -434,11 +437,6 @@ async def run_strategy_comparison(n_samples: int = 500, batch_size: int = 20):
     """
     try:
         from ..core.active_learning_engine import create_sample_geological_data
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 
         # Generate test data
         all_samples = create_sample_geological_data(n_samples)

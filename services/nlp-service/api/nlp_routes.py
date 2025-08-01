@@ -23,9 +23,6 @@ router = APIRouter()
 def get_nlp_components():
     """Dependency to get NLP components from global state"""
     from main import nlp_components
-
-import torch.nn.functional as F
-
     return nlp_components
 
 @router.post("/classify-intent", response_model=IntentClassificationResult)

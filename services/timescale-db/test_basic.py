@@ -71,9 +71,6 @@ def test_geological_interpretation():
     """Test geological interpretation function"""
     try:
         from main import interpret_geological_trends
-
-import torch.nn as nn
-
         # Test with sample analysis data
         analysis = {
             "trend_analysis": {"slope": 0.005, "r_squared": 0.85},

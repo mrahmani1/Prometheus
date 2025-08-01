@@ -7,7 +7,10 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 import numpy as np
+import pandas as pd
 import structlog
+import torch.nn as nn
+import torch.nn.functional as F
 from core.eruption_forecasting import ProbabilisticEruptionForecaster
 from core.magma_reservoir import MagmaReservoirEstimator
 from models.volcanic_data import (
@@ -17,11 +20,7 @@ from models.volcanic_data import (
     SeismicEvent,
     ThermalMeasurement,
     VolcanicRiskAssessment,
-    import,
 )
-from models.volcanic_data import numpy as np
-from models.volcanic_data import pandas as pd
-from models.volcanic_data import torch.nn.functional as F
 
 logger = structlog.get_logger()
 
@@ -71,98 +70,99 @@ class VolcanicRiskAssessmentEngine:
         logger.info("Starting volcanic risk assessment", volcano_id=volcano_id)
 
         try:
-            # Gather multi-source monitoring data
+            # Gather monitoring data and assess risk components
             monitoring_data = await self._gather_monitoring_data(volcano_id)
-
-            # Calculate individual risk components
-            seismic_risk = await self._assess_seismic_risk(monitoring_data["seismic"])
-            deformation_risk = await self._assess_deformation_risk(
-                monitoring_data["deformation"]
-            )
-            geochemical_risk = await self._assess_geochemical_risk(
-                monitoring_data["geochemical"]
-            )
-            thermal_risk = await self._assess_thermal_risk(monitoring_data["thermal"])
-            historical_risk = await self._assess_historical_risk(volcano_id)
-
-            # Calculate weighted composite risk score
-            composite_risk = self._calculate_composite_risk(
-                {
-                    "seismic": seismic_risk,
-                    "deformation": deformation_risk,
-                    "geochemical": geochemical_risk,
-                    "thermal": thermal_risk,
-                    "historical": historical_risk,
-                }
-            )
-
-            # Determine alert level
+            risk_components = await self._assess_all_risk_components(monitoring_data, volcano_id)
+            
+            # Calculate composite risk and alert level
+            composite_risk = self._calculate_composite_risk(risk_components)
             alert_level = self._determine_alert_level(composite_risk)
 
-            # Generate eruption probability forecast
-            eruption_forecast = await self.forecaster.generate_probabilistic_forecast(
-                volcano_id, monitoring_data
+            # Generate advanced assessments
+            advanced_assessments = await self._generate_advanced_assessments(
+                volcano_id, monitoring_data, alert_level
             )
 
-            # Estimate magma reservoir parameters
-            reservoir_params = (
-                await self.reservoir_estimator.estimate_reservoir_parameters(
-                    volcano_id, monitoring_data
-                )
+            # Create and return final assessment
+            return self._create_final_risk_assessment(
+                volcano_id, alert_level, composite_risk, 
+                risk_components, monitoring_data, advanced_assessments
             )
-
-            # Identify contributing factors
-            contributing_factors = self._identify_contributing_factors(
-                {
-                    "seismic": seismic_risk,
-                    "deformation": deformation_risk,
-                    "geochemical": geochemical_risk,
-                    "thermal": thermal_risk,
-                    "historical": historical_risk,
-                }
-            )
-
-            # Calculate model ensemble agreement
-            ensemble_agreement = await self._calculate_ensemble_agreement(
-                volcano_id, monitoring_data
-            )
-
-            # Generate hazard zones
-            hazard_zones = await self._generate_hazard_zones(
-                volcano_id, alert_level, eruption_forecast
-            )
-
-            risk_assessment = VolcanicRiskAssessment(
-                volcano_id=volcano_id,
-                timestamp=datetime.utcnow(),
-                alert_level=alert_level,
-                eruption_probability=eruption_forecast.probability_by_timeframe,
-                hazard_zones=hazard_zones,
-                contributing_factors=contributing_factors,
-                model_ensemble_agreement=ensemble_agreement,
-                composite_risk_score=composite_risk,
-                reservoir_parameters=reservoir_params,
-                confidence_metrics={
-                    "data_quality": monitoring_data.get("quality_score", 0.8),
-                    "model_uncertainty": eruption_forecast.uncertainty,
-                    "ensemble_agreement": ensemble_agreement,
-                },
-            )
-
-            logger.info(
-                "Volcanic risk assessment completed",
-                volcano_id=volcano_id,
-                alert_level=alert_level.level,
-                risk_score=composite_risk,
-            )
-
-            return risk_assessment
 
         except Exception as e:
             logger.error(
                 "Error in volcanic risk assessment", volcano_id=volcano_id, error=str(e)
             )
             raise
+
+    async def _assess_all_risk_components(self, monitoring_data: Dict, volcano_id: str) -> Dict[str, float]:
+        """Assess all individual risk components."""
+        return {
+            "seismic": await self._assess_seismic_risk(monitoring_data["seismic"]),
+            "deformation": await self._assess_deformation_risk(monitoring_data["deformation"]),
+            "geochemical": await self._assess_geochemical_risk(monitoring_data["geochemical"]),
+            "thermal": await self._assess_thermal_risk(monitoring_data["thermal"]),
+            "historical": await self._assess_historical_risk(volcano_id),
+        }
+
+    async def _generate_advanced_assessments(
+        self, volcano_id: str, monitoring_data: Dict, alert_level: AlertLevel
+    ) -> Dict:
+        """Generate advanced assessment components."""
+        eruption_forecast = await self.forecaster.generate_probabilistic_forecast(
+            volcano_id, monitoring_data
+        )
+        reservoir_params = await self.reservoir_estimator.estimate_reservoir_parameters(
+            volcano_id, monitoring_data
+        )
+        ensemble_agreement = await self._calculate_ensemble_agreement(volcano_id, monitoring_data)
+        hazard_zones = await self._generate_hazard_zones(volcano_id, alert_level, eruption_forecast)
+
+        return {
+            "eruption_forecast": eruption_forecast,
+            "reservoir_params": reservoir_params,
+            "ensemble_agreement": ensemble_agreement,
+            "hazard_zones": hazard_zones,
+        }
+
+    def _create_final_risk_assessment(
+        self, 
+        volcano_id: str, 
+        alert_level: AlertLevel, 
+        composite_risk: float,
+        risk_components: Dict[str, float],
+        monitoring_data: Dict,
+        advanced_assessments: Dict
+    ) -> VolcanicRiskAssessment:
+        """Create the final volcanic risk assessment."""
+        contributing_factors = self._identify_contributing_factors(risk_components)
+        eruption_forecast = advanced_assessments["eruption_forecast"]
+
+        risk_assessment = VolcanicRiskAssessment(
+            volcano_id=volcano_id,
+            timestamp=datetime.utcnow(),
+            alert_level=alert_level,
+            eruption_probability=eruption_forecast.probability_by_timeframe,
+            hazard_zones=advanced_assessments["hazard_zones"],
+            contributing_factors=contributing_factors,
+            model_ensemble_agreement=advanced_assessments["ensemble_agreement"],
+            composite_risk_score=composite_risk,
+            reservoir_parameters=advanced_assessments["reservoir_params"],
+            confidence_metrics={
+                "data_quality": monitoring_data.get("quality_score", 0.8),
+                "model_uncertainty": eruption_forecast.uncertainty,
+                "ensemble_agreement": advanced_assessments["ensemble_agreement"],
+            },
+        )
+
+        logger.info(
+            "Volcanic risk assessment completed",
+            volcano_id=volcano_id,
+            alert_level=alert_level.level,
+            risk_score=composite_risk,
+        )
+
+        return risk_assessment
 
     async def _gather_monitoring_data(self, volcano_id: str) -> Dict:
         """Gather multi-source monitoring data for the volcano"""

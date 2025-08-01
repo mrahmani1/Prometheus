@@ -6,21 +6,20 @@ from datetime import datetime
 
 # Test imports
 try:
-    except Exception:
-        pass
+    from database.models.geological_data import (
         AtmosphericMeasurement,
         DataQuality,
         GeochemicalSample,
         GeologicalLocation,
     )
+    from database.models.rock_analysis import (
         CrystalSystem,
         MineralAnalysis,
         RockSample,
         RockType,
     )
-
-import torch.nn as nn
-import torch.nn.functional as F
+    from services.data_ingestion.core.mongodb_storage import MongoDBStorage
+    from services.data_ingestion.api.mongodb_api import router
 
     print("✓ All imports successful")
 except ImportError as e:

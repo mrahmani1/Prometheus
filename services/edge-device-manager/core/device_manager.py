@@ -262,10 +262,6 @@ class EdgeDeviceManager:
         import hashlib
         import time
 
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
         payload = f"{device_id}:{time.time()}:{self.config.jwt_secret}"
         return hashlib.sha256(payload.encode()).hexdigest()
 

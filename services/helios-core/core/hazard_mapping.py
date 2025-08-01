@@ -29,6 +29,7 @@ class HazardType(Enum):
     ASH_FALL = "ash_fall"
     LAVA_FLOW = "lava_flow"
     GROUND_DEFORMATION = "ground_deformation"
+    GROUND_DEFORMATION = "ground_deformation"
     LIQUEFACTION = "liquefaction"
 
 class RiskLevel(Enum):

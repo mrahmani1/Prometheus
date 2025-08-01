@@ -121,9 +121,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nDemo failed with error: {e}")
         import traceback
-
-import numpy as np
-import torch.nn.functional as F
-
         traceback.print_exc()
         exit(1)

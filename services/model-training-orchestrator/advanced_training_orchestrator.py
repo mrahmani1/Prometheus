@@ -791,15 +791,14 @@ class AdvancedTrainingOrchestrator:
     async def _train_eruption_forecasting(self) -> Dict[str, Any]:
         """Train eruption forecasting model"""
 
+        import signal
+        import numpy as np
+        import torch.nn as nn
+        import torch.nn.functional as F
+        
         from ..volcano_watchtower.core.advanced_volcanic_monitoring import (
             EruptionForecastModel,
-            ignal,
         )
-        from ..volcano_watchtower.core.advanced_volcanic_monitoring import orch.nn as nn
-        from ..volcano_watchtower.core.advanced_volcanic_monitoring import (
-            orch.nn.functional as F,
-        )
-        from ..volcano_watchtower.core.advanced_volcanic_monitoring import umpy as np
 
         # Create forecasting model
         model = EruptionForecastModel(input_features=20, hidden_size=128, num_layers=3)

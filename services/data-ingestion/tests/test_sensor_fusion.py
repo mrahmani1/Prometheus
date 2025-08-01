@@ -20,15 +20,10 @@ from processors.sensor_fusion import (
     MultiSensorDataFusion,
     SensorReading,
     WeightedSensorFusion,
-    
 )
-from processors.sensor_fusion import numpy as np
-from processors.sensor_fusion import pandas as pd
-from processors.sensor_fusion import (
-    signal,
-)
-from processors.sensor_fusion import torch.nn as nn
-from processors.sensor_fusion import torch.nn.functional as F
+import numpy as np
+import pandas as pd
+from scipy import signal
 
 class TestKalmanSensorFusion:
     """Test cases for Kalman filter-based sensor fusion"""

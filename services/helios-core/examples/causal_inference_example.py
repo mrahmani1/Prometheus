@@ -368,7 +368,7 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
-    def convert_numpy_types(obj):
+def convert_numpy_types(obj):
         """Convert numpy types to native Python types for JSON serialization"""
         if isinstance(obj, np.integer):
             return int(obj)

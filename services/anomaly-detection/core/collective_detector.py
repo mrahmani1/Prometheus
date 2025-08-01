@@ -433,8 +433,6 @@ class CollectiveAnomalyDetector:
         anomalies = []
 
         try:
-    except Exception:
-        pass
             if len(sequences) < 5:  # Need minimum sequences for clustering
                 return anomalies
 
@@ -445,62 +443,45 @@ class CollectiveAnomalyDetector:
                 # Normalize sequence length
                 if len(values) != self.sequence_length:
                     # Interpolate to standard length
+                    from scipy import interpolate
                     x_old = np.linspace(0, 1, len(values))
                     x_new = np.linspace(0, 1, self.sequence_length)
-                    values = np.interp(x_new, x_old, values)
+                    f = interpolate.interp1d(x_old, values, kind='linear')
+                    values = f(x_new)
                 time_series_data.append(values)
 
+            # Convert to numpy array
             time_series_array = np.array(time_series_data)
 
-            # Apply time series clustering
-            n_clusters = min(5, len(sequences) // 2)  # Adaptive number of clusters
-            if n_clusters < 2:
-                return anomalies
-
-            kmeans = TimeSeriesKMeans(
-                n_clusters=n_clusters,
-                metric="dtw",  # Dynamic Time Warping
-                random_state=42,
-            )
-
+            # Perform clustering
+            from sklearn.cluster import KMeans
+            
+            n_clusters = min(3, len(sequences) // 2)
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
             cluster_labels = kmeans.fit_predict(time_series_array)
 
-            # Calculate distances to cluster centers
-            distances = []
-            for i, ts in enumerate(time_series_array):
-                cluster_id = cluster_labels[i]
-                center = kmeans.cluster_centers_[cluster_id]
-                # Calculate DTW distance
+            # Identify anomalous clusters (small clusters)
+            cluster_counts = np.bincount(cluster_labels)
+            anomalous_clusters = np.where(cluster_counts < len(sequences) * 0.1)[0]
 
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
-                distance = dtw(ts, center.ravel())
-                distances.append(distance)
-
-            # Identify outliers based on distance
-            distances = np.array(distances)
-            threshold = np.percentile(distances, 95)  # Top 5% as anomalies
-
-            anomaly_indices = np.where(distances > threshold)[0]
-
-            for idx in anomaly_indices:
-                seq = sequences[idx]
-                # Normalize distance to [0, 1]
-                anomaly_score = min(1.0, distances[idx] / (np.max(distances) + 1e-8))
-
-                anomaly = self._create_collective_anomaly(
-                    seq, data_stream, anomaly_score, "clustering_outlier"
-                )
-                anomaly.geological_context += (
-                    f" (Cluster: {cluster_labels[idx]}, Distance: {distances[idx]:.3f})"
-                )
-                anomalies.append(anomaly)
+            # Create anomalies for sequences in anomalous clusters
+            for i, (seq, label) in enumerate(zip(sequences, cluster_labels)):
+                if label in anomalous_clusters:
+                    anomaly = DetectedAnomaly(
+                        id=f"collective_cluster_{i}_{int(time.time())}",
+                        timestamp=seq["timestamp"],
+                        location=seq["location"],
+                        anomaly_type="collective_clustering",
+                        severity=0.7,
+                        confidence=0.8,
+                        description=f"Sequence belongs to anomalous cluster {label}",
+                        features={"cluster_id": int(label), "cluster_size": int(cluster_counts[label])},
+                        context={"method": "time_series_clustering", "total_clusters": n_clusters}
+                    )
+                    anomalies.append(anomaly)
 
         except Exception as e:
-            logger.error(f"Clustering-based detection failed: {e}")
+            logger.error(f"Time series clustering detection failed: {e}")
 
         return anomalies
 

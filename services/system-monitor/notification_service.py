@@ -23,7 +23,6 @@ from jinja2 import Template
 
 logger = structlog.get_logger()
 
-
 class NotificationType(Enum):
     EMAIL = "email"
     SLACK = "slack"
@@ -31,13 +30,11 @@ class NotificationType(Enum):
     WEBHOOK = "webhook"
     SMS = "sms"
 
-
 class EscalationLevel(Enum):
     LEVEL_1 = 1  # Team notification
     LEVEL_2 = 2  # On-call notification
     LEVEL_3 = 3  # Management notification
     LEVEL_4 = 4  # Executive notification
-
 
 @dataclass
 class NotificationChannel:
@@ -47,7 +44,6 @@ class NotificationChannel:
     enabled: bool = True
     rate_limit_per_hour: int = 100
 
-
 @dataclass
 class EscalationRule:
     service: str
@@ -56,7 +52,6 @@ class EscalationRule:
     timeout_minutes: int
     channels: List[str]
     conditions: Dict[str, Any]
-
 
 @dataclass
 class NotificationRequest:
@@ -70,7 +65,6 @@ class NotificationRequest:
     channels: List[str]
     timestamp: datetime
     escalation_level: int = 1
-
 
 class NotificationService:
     def __init__(self, redis_client: redis.Redis):

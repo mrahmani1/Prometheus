@@ -181,43 +181,50 @@ class USGSEarthquakeClient:
         events = []
 
         for feature in geojson_data.get("features", []):
+            event = self._create_seismic_event_from_feature(feature)
+            if event:
+                events.append(event)
+
+        return events
+
+    def _create_seismic_event_from_feature(self, feature: Dict) -> Optional[SeismicEvent]:
+        """Create a SeismicEvent from a GeoJSON feature."""
+        try:
             props = feature["properties"]
             coords = feature["geometry"]["coordinates"]
 
-            try:
-                event = SeismicEvent(
-                    event_id=(
-                        props["ids"].split(",")[0]
-                        if props.get("ids")
-                        else props["code"]
-                    ),
-                    magnitude=props["mag"],
-                    magnitude_type=props["magType"],
-                    longitude=coords[0],
-                    latitude=coords[1],
-                    depth_km=coords[2],
-                    origin_time=datetime.fromtimestamp(props["time"] / 1000),
-                    location_name=props["place"],
-                    network=props["net"],
-                    station_count=props.get("nst", 0),
-                    gap=props.get("gap", 0.0),
-                    rms=props.get("rms", 0.0),
-                    horizontal_error=props.get("horizontalError", 0.0),
-                    depth_error=props.get("depthError", 0.0),
-                    event_type=props.get("type", "earthquake"),
-                    tsunami_flag=props.get("tsunami", 0) == 1,
-                    felt_reports=props.get("felt", 0),
-                    cdi=props.get("cdi"),
-                    mmi=props.get("mmi"),
-                    alert_level=props.get("alert"),
-                    significance=props.get("sig", 0),
-                )
-                events.append(event)
-            except (KeyError, TypeError) as e:
-                logger.warning(f"Failed to parse earthquake event: {e}")
-                continue
+            return SeismicEvent(
+                event_id=self._extract_event_id(props),
+                magnitude=props["mag"],
+                magnitude_type=props["magType"],
+                longitude=coords[0],
+                latitude=coords[1],
+                depth_km=coords[2],
+                origin_time=datetime.fromtimestamp(props["time"] / 1000),
+                location_name=props["place"],
+                network=props["net"],
+                station_count=props.get("nst", 0),
+                gap=props.get("gap", 0.0),
+                rms=props.get("rms", 0.0),
+                horizontal_error=props.get("horizontalError", 0.0),
+                depth_error=props.get("depthError", 0.0),
+                event_type=props.get("type", "earthquake"),
+                tsunami_flag=props.get("tsunami", 0) == 1,
+                felt_reports=props.get("felt", 0),
+                cdi=props.get("cdi"),
+                mmi=props.get("mmi"),
+                alert_level=props.get("alert"),
+                significance=props.get("sig", 0),
+            )
+        except (KeyError, TypeError) as e:
+            logger.warning(f"Failed to parse earthquake event: {e}")
+            return None
 
-        return events
+    def _extract_event_id(self, props: Dict) -> str:
+        """Extract event ID from properties."""
+        if props.get("ids"):
+            return props["ids"].split(",")[0]
+        return props["code"]
 
 class IRISSeismicClient:
     """Client for IRIS seismic data services"""
