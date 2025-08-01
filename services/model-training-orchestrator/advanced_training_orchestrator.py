@@ -567,7 +567,6 @@ class AdvancedTrainingOrchestrator:
         # Create mock geological graph data
         # In practice, this would be built from real geological relationships
 
-        import torch
         from torch_geometric.data import Data
 
         # Node features (geological processes/entities)
@@ -792,8 +791,6 @@ class AdvancedTrainingOrchestrator:
         """Train eruption forecasting model"""
 
         import signal
-        import numpy as np
-        import torch.nn as nn
         import torch.nn.functional as F
         
         from ..volcano_watchtower.core.advanced_volcanic_monitoring import (

@@ -297,16 +297,16 @@ print("\n🔧 Global Configuration:")
 print(f"   Max Retries: {config.default_max_retries}")
 print(f"   Critical Error Threshold: {config.critical_error_threshold}")
 print(f"   Automatic Degradation: {config.enable_automatic_degradation}")
-    print(f"   Error Alerts: {config.enable_error_alerts}")
+print(f"   Error Alerts: {config.enable_error_alerts}")
 
-    # Show service-specific configurations
-    print("\n🏢 Service-Specific Configurations:")
-    for service_name in ["helios_core", "volcano_watchtower"]:
-        service_config = get_service_config(service_name)
-        if service_config:
-            print(f"   {service_name}:")
-            for key, value in service_config.items():
-                print(f"     - {key}: {value}")
+# Show service-specific configurations
+print("\n🏢 Service-Specific Configurations:")
+for service_name in ["helios_core", "volcano_watchtower"]:
+    service_config = get_service_config(service_name)
+    if service_config:
+        print(f"   {service_name}:")
+        for key, value in service_config.items():
+            print(f"     - {key}: {value}")
 
 async def main():
     """Main demonstration function"""

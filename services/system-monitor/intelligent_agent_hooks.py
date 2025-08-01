@@ -538,7 +538,6 @@ class IntelligentAgentHookSystem:
                 # Check exclude patterns
                 exclude_patterns = conditions.get("exclude_patterns", [])
                 if exclude_patterns:
-                    import fnmatch
 
                     for file_path in event.affected_files:
                         for pattern in exclude_patterns:

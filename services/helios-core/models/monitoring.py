@@ -13,6 +13,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 
 from .geological import GeologicalLocation
 
@@ -347,16 +350,7 @@ class VolcanicRiskAssessment:
             self.scenario_probabilities
             and abs(sum(self.scenario_probabilities.values()) - 1.0) > 0.1
         ):
-            import warnings
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
-        warnings.warn("Scenario probabilities do not sum to 1.0")
+            warnings.warn("Scenario probabilities do not sum to 1.0")
 
     def get_max_eruption_probability(self) -> Tuple[str, float]:
         """Get the timeframe with maximum eruption probability"""

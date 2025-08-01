@@ -30,10 +30,6 @@ from core.global_model_deployment import (
     PerformanceMetrics,
     PerformanceMonitor,
 )
-from core.global_model_deployment import numpy as np
-from core.global_model_deployment import pandas as pd
-from core.global_model_deployment import torch.nn as nn
-from core.global_model_deployment import torch.nn.functional as F
 
 class SimpleTestModel(nn.Module):
     """Simple neural network for testing"""

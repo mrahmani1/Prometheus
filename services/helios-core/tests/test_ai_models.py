@@ -23,9 +23,6 @@ from models.ai_models import (
     UncertaintyMethod,
     UncertaintyQuantification,
 )
-from models.ai_models import numpy as np
-from models.ai_models import torch.nn as nn
-from models.ai_models import torch.nn.functional as F
 
 class TestNetworkArchitecture:
     """Test NetworkArchitecture data model"""

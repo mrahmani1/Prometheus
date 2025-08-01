@@ -10,6 +10,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 # Add the core modules to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -338,12 +340,7 @@ def main():
     except Exception as e:
         print(f"\nDemo execution failed: {e}")
         import traceback
-
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
-    traceback.print_exc()
+        traceback.print_exc()
     return None
 
 if __name__ == "__main__":

@@ -29,9 +29,6 @@ from models.ai_models import (
     PhysicsConstraintType,
     PINNModelConfig,
 )
-from models.ai_models import numpy as np
-from models.ai_models import torch.nn as nn
-from models.ai_models import torch.nn.functional as F
 
 class TestActivationRegistry:
     """Test activation function registry"""

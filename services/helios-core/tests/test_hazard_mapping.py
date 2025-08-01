@@ -31,9 +31,6 @@ from core.realtime_hazard_updates import (
     RealTimeHazardUpdater,
     UpdateTrigger,
 )
-from core.realtime_hazard_updates import numpy as np
-from core.realtime_hazard_updates import pandas as pd
-from core.realtime_hazard_updates import torch.nn.functional as F
 
 class TestHazardMappingEngine:
     """Test cases for HazardMappingEngine"""

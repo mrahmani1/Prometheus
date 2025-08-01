@@ -306,7 +306,6 @@ class KafkaDataConsumer:
             raise RuntimeError("Consumer not initialized")
 
         try:
-            from kafka import TopicPartition
 
             tp = TopicPartition(topic, partition)
             self.consumer.seek_to_end(tp)

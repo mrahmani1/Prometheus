@@ -81,26 +81,6 @@ def with_error_handling(
 
     return decorator
 
-
-@functools.wraps(func)
-        def sync_wrapper(*args, **kwargs) -> Any:
-            # For synchronous functions, run the async wrapper in an event loop
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            return loop.run_until_complete(async_wrapper(*args, **kwargs))
-
-        # Return appropriate wrapper based on function type
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        else:
-            return sync_wrapper
-
-    return decorator
-
 def with_geological_error_handling(operation: Optional[str] = None):
     """
     Specialized decorator for geological modeling operations

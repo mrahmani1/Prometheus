@@ -22,7 +22,6 @@ except ImportError:
 import signal
 from typing import Tuple
 
-import numpy as np
 import torch.nn.functional as F
 from models.nlp_models import AlternativeIntent, IntentClassificationResult, QueryIntent
 

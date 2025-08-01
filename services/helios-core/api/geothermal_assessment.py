@@ -277,7 +277,6 @@ async def perform_thermal_modeling(
         ]
 
         # Perform thermal modeling
-        import numpy as np
 
         depth_profile = np.array(request.depth_profile)
 

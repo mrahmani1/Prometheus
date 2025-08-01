@@ -532,7 +532,6 @@ class AdvancedPhysicsSimulator:
         self, data: np.ndarray, sampling_rate: float
     ) -> Dict[str, float]:
         """Analyze frequency content of seismic signal"""
-        from scipy import signal
 
         frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
 
@@ -770,7 +769,6 @@ class AdvancedSeismicProcessor:
 
     def _initialize_filters(self) -> Dict[str, Any]:
         """Initialize various digital filters"""
-        from scipy import signal
 
         nyquist = self.sampling_rate / 2
 
@@ -836,7 +834,6 @@ class AdvancedSeismicProcessor:
 
     def _preprocess_component(self, data: np.ndarray) -> np.ndarray:
         """Apply preprocessing pipeline to single component"""
-        from scipy import signal
 
         # Remove mean and linear trend
         detrended = signal.detrend(data, type="linear")
@@ -1024,7 +1021,6 @@ class AdvancedSeismicProcessor:
 
     def _frequency_detector(self, data: np.ndarray) -> List[Dict[str, Any]]:
         """Frequency domain event detector"""
-        from scipy import signal
 
         # Spectrogram analysis
         f, t, Sxx = signal.spectrogram(
@@ -1292,7 +1288,6 @@ class AdvancedSeismicCNN:
     ) -> np.ndarray:
         """Advanced waveform preprocessing"""
         # Bandpass filter
-        from scipy import signal
 
         nyquist = sampling_rate / 2
         low_freq = 1.0 / nyquist
@@ -1404,7 +1399,6 @@ class AdvancedPhysicsSimulator:
         self, data: np.ndarray, sampling_rate: float
     ) -> Dict[str, float]:
         """Analyze frequency content of seismic signal"""
-        from scipy import signal
         frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
 
         # Frequency bands of interest

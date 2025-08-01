@@ -13,7 +13,6 @@ import numpy as np
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
 import pandas as pd
 import torch.nn as nn
 from models.geological import GeologicalLocation
@@ -28,9 +27,6 @@ from models.monitoring import (
     StreamingDataProcessor,
     VolcanicRiskAssessment,
 )
-from models.monitoring import numpy as np
-from models.monitoring import pandas as pd
-from models.monitoring import torch.nn as nn
 
 def main():
     """Demonstrate real-time monitoring data models"""

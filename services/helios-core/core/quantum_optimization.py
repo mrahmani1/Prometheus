@@ -2019,14 +2019,5 @@ async def run_quantum_optimization_example():
 
 if __name__ == "__main__":
     # Run example
-    import asyncio
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
-results = asyncio.run(run_quantum_optimization_example())
+    results = asyncio.run(run_quantum_optimization_example())
 print("\nQuantum geological optimization completed successfully!")

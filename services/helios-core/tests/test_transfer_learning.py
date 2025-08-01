@@ -418,18 +418,14 @@ class TestGeologicalDomainRegistry:
         assert export_file.exists()
 
         # Verify export content
-        import json
+        import pandas as pd
+        import torch.nn.functional as F
 
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
+        with open(export_file, "r") as f:
+            export_data = json.load(f)
 
-    with open(export_file, "r") as f:
-        export_data = json.load(f)
-
-    assert len(export_data) == len(registry.domains)
-    assert "yellowstone_usa" in export_data
+        assert len(export_data) == len(registry.domains)
+        assert "yellowstone_usa" in export_data
 
 class TestDomainDataPreprocessor:
     """Test domain data preprocessing"""

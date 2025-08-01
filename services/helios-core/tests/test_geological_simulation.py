@@ -34,9 +34,6 @@ from models.geological import (
     MagmaReservoir,
     SampleType,
 )
-from models.geological import numpy as np
-from models.geological import pandas as pd
-from models.geological import torch.nn as nn
 
 @pytest.fixture
 def device():

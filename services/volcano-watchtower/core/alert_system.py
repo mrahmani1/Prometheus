@@ -643,7 +643,6 @@ class NotificationSystem:
         # For now, simulate emergency broadcast
 
         # Emergency broadcasts have very high reliability
-        import random
         success = random.random() < 0.99
 
         if success:

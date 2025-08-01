@@ -21,7 +21,6 @@ from processors.sensor_fusion import (
     SensorReading,
     WeightedSensorFusion,
 )
-import numpy as np
 import pandas as pd
 from scipy import signal
 

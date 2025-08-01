@@ -275,10 +275,6 @@ def plot_training_history(history):
     try:
         import matplotlib.pyplot as plt
 
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
         fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
         # Total loss

@@ -783,7 +783,6 @@ class AdvancedPhysicsSimulator:
         self, data: np.ndarray, sampling_rate: float
     ) -> Dict[str, float]:
         """Analyze frequency content of seismic signal"""
-        from scipy import signal
 
         frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
 
@@ -965,7 +964,6 @@ class AdvancedSeismicCNN:
     ) -> np.ndarray:
         """Advanced waveform preprocessing"""
         # Bandpass filter
-        from scipy import signal
 
         nyquist = sampling_rate / 2
         low_freq = 1.0 / nyquist
@@ -1077,15 +1075,6 @@ class AdvancedPhysicsSimulator:
         self, data: np.ndarray, sampling_rate: float
     ) -> Dict[str, float]:
         """Analyze frequency content of seismic signal"""
-        from scipy import signal
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
         frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
 

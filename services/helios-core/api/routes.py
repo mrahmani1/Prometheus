@@ -176,7 +176,6 @@ async def detect_seismic_events(
 ):
     """Detect and classify seismic events using CNN models"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -243,7 +242,6 @@ class SeismicEventListResponse(BaseModel):
 async def detect_continuous_seismic_events(request: ContinuousSeismicRequest):
     """Detect seismic events from continuous waveform data using CNN"""
     try:
-        import time
         from datetime import datetime
 
         from core.seismic_cnn_processor import SeismicCNNProcessor
@@ -334,14 +332,11 @@ async def detect_continuous_seismic_events(request: ContinuousSeismicRequest):
 async def detect_multi_station_seismic_events(request: MultiStationSeismicRequest):
     """Detect and locate seismic events using multiple stations"""
     try:
-        import time
-        from datetime import datetime
 
         from core.seismic_cnn_processor import (
             SeismicCNNProcessor,
             SeismicEventClassifier,
         )
-        from models.geological import GeologicalLocation
 
         start_time = time.time()
 
@@ -506,7 +501,6 @@ async def generate_uncertainty_scenarios(
 ):
     """Generate uncertainty scenarios using GAN models"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -720,7 +714,6 @@ async def process_integrated_geodynamic_data(
 ):
     """Process integrated geodynamic data from all sources"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -760,7 +753,6 @@ async def analyze_seismic_tomography(
 ):
     """Analyze seismic tomography data for structural model generation"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -796,7 +788,6 @@ async def track_deformation(
 ):
     """Track multi-source deformation with millimeter accuracy"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -828,7 +819,6 @@ async def analyze_earthquake_catalog(
 ):
     """Analyze earthquake catalog for stress and magma movement detection"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -865,7 +855,6 @@ async def analyze_geochemical_data(
 ):
     """Analyze geochemical data for magma composition determination"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -944,7 +933,6 @@ async def run_long_term_geological_simulation(
 ):
     """Run comprehensive long-term geological simulation"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -974,7 +962,6 @@ async def simulate_volcanic_evolution(
 ):
     """Simulate volcanic system evolution over geological timescales"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1006,7 +993,6 @@ async def track_magma_generation(
 ):
     """Track magma generation from mantle to surface systems"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1038,7 +1024,6 @@ async def simulate_hydrothermal_circulation(
 ):
     """Simulate hydrothermal system circulation"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1071,7 +1056,6 @@ async def reconstruct_tectonic_plates(
 ):
     """Reconstruct tectonic plate movements through deep time"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1167,7 +1151,6 @@ async def analyze_earthquake_patterns(
 ):
     """Analyze earthquake patterns using machine learning models"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1196,7 +1179,6 @@ async def create_statistical_seismicity_model(
 ):
     """Create statistical seismicity models with confidence intervals"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1225,7 +1207,6 @@ async def perform_temporal_clustering_analysis(
 ):
     """Perform temporal clustering analysis for earthquake sequences"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1257,7 +1238,6 @@ async def generate_probabilistic_hazard_assessment(
 ):
     """Generate probabilistic hazard assessment with uncertainty quantification"""
     try:
-        import time
 
         start_time = time.time()
 
@@ -1442,7 +1422,6 @@ async def generate_test_earthquake_data(
     try:
         from datetime import datetime, timedelta
 
-        import numpy as np
 
         logger.info(
             "Generating synthetic earthquake test data",
@@ -1567,8 +1546,6 @@ class EarthquakeImpactResponse(BaseModel):
 async def simulate_ground_shaking(request: GroundShakingRequest):
     """Simulate ground shaking using physics-based models"""
     try:
-        import time
-        from datetime import datetime
 
         from core.earthquake_impact_modeling import (
             EarthquakeImpactModelingEngine,
@@ -1689,13 +1666,11 @@ async def simulate_ground_shaking(request: GroundShakingRequest):
 async def assess_liquefaction_susceptibility(request: LiquefactionRequest):
     """Assess liquefaction susceptibility and probability"""
     try:
-        import time
 
         from core.earthquake_impact_modeling import (
             EarthquakeImpactModelingEngine,
             GroundMotionParameters,
         )
-        from models.geological import GeologicalLocation
 
         start_time = time.time()
 
@@ -1798,14 +1773,6 @@ async def assess_liquefaction_susceptibility(request: LiquefactionRequest):
 async def model_landslide_triggering(request: LandslideRequest):
     """Model landslide triggering and runout simulation"""
     try:
-        import time
-
-        from core.earthquake_impact_modeling import (
-            EarthquakeImpactModelingEngine,
-            GroundMotionParameters,
-        )
-        from models.geological import GeologicalLocation
-
         start_time = time.time()
 
         logger.info(
@@ -1927,11 +1894,8 @@ async def model_landslide_triggering(request: LandslideRequest):
 async def model_tsunami_generation(request: TsunamiRequest):
     """Model tsunami generation and propagation"""
     try:
-        import time
-        from datetime import datetime
 
         from core.earthquake_impact_modeling import EarthquakeImpactModelingEngine
-        from models.geological import EventType, GeologicalLocation, SeismicEvent
 
         start_time = time.time()
 
@@ -2202,7 +2166,6 @@ async def assess_infrastructure_vulnerability(
 ):
     """Comprehensive infrastructure vulnerability assessment"""
     try:
-        import time
 
         from core.infrastructure_vulnerability import (
             BuildingInventory,
@@ -2213,7 +2176,6 @@ async def assess_infrastructure_vulnerability(
             UtilitySystem,
             UtilityType,
         )
-        from models.geological import GeologicalLocation
 
         start_time = time.time()
 
@@ -2418,14 +2380,12 @@ async def assess_infrastructure_vulnerability(
 async def assess_building_damage(request: BuildingDamageRequest):
     """Assess building damage estimation models"""
     try:
-        import time
 
         from core.infrastructure_vulnerability import (
             BuildingInventory,
             BuildingType,
             InfrastructureVulnerabilityEngine,
         )
-        from models.geological import GeologicalLocation
 
         start_time = time.time()
 
@@ -2511,14 +2471,12 @@ async def assess_building_damage(request: BuildingDamageRequest):
 async def analyze_transportation_disruption(request: TransportationDisruptionRequest):
     """Analyze transportation network disruption"""
     try:
-        import time
 
         from core.infrastructure_vulnerability import (
             InfrastructureVulnerabilityEngine,
             TransportationNetwork,
             TransportationType,
         )
-        from models.geological import GeologicalLocation
 
         start_time = time.time()
 
@@ -2610,14 +2568,12 @@ async def analyze_transportation_disruption(request: TransportationDisruptionReq
 async def model_utility_failure_probability(request: UtilityFailureRequest):
     """Model utility system failure probability"""
     try:
-        import time
 
         from core.infrastructure_vulnerability import (
             InfrastructureVulnerabilityEngine,
             UtilitySystem,
             UtilityType,
         )
-        from models.geological import GeologicalLocation
 
         start_time = time.time()
 
@@ -2708,7 +2664,6 @@ async def model_utility_failure_probability(request: UtilityFailureRequest):
 async def analyze_cascading_failures(request: CascadingFailureRequest):
     """Analyze cascading failure effects across infrastructure systems"""
     try:
-        import time
 
         from core.infrastructure_vulnerability import (
             BuildingDamageAssessment,

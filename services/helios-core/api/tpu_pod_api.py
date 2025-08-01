@@ -214,7 +214,6 @@ async def start_distributed_training(
             manager.create_geological_model(training_request.model_config.dict())
 
         # Setup dataset (for demo, using synthetic data)
-        import numpy as np
 
         # Generate synthetic geological data
         num_samples = 10000

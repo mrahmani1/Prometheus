@@ -92,7 +92,6 @@ async def test_machine_learning_forecast(forecaster, sample_monitoring_data):
     """Test machine learning forecasting component"""
     volcano_id = "test_volcano"
 
-    from core.eruption_forecasting import ForecastTimeframe
 
     timeframe = ForecastTimeframe("24_hours", 24)
 
@@ -108,7 +107,6 @@ async def test_physics_informed_forecast(forecaster, sample_monitoring_data):
     """Test physics-informed forecasting component"""
     volcano_id = "test_volcano"
 
-    from core.eruption_forecasting import ForecastTimeframe
 
     timeframe = ForecastTimeframe("24_hours", 24)
 

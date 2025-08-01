@@ -432,7 +432,6 @@ class TestGeologicalNetworkRepresentationEngine:
 
     def test_save_and_load_model(self):
         """Test saving and loading the model."""
-        import os
         import tempfile
 
         # Create a temporary file
@@ -463,12 +462,10 @@ def test_integration():
 
     # Create a realistic geological network
     from geological_graph_utils import GeologicalGraphBuilder
+    import torch.nn as nn
+    import torch.nn.functional as F
 
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
-builder = GeologicalGraphBuilder()
+    builder = GeologicalGraphBuilder()
 
     # Add volcanic systems
     builder.add_volcanic_system(

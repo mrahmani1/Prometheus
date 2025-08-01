@@ -17,7 +17,7 @@ from typing import Any, Dict, List
 try:
     from .error_management import ErrorInfo, ServiceDegradationLevel
 except ImportError:
-    from error_management import ErrorInfo, ServiceDegradationLevel
+    pass
 
 import pandas as pd
 import torch.nn.functional as F

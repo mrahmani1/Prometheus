@@ -17,7 +17,6 @@ import numpy as np
 # Add the parent directory to the path so we can import our modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from models.geological_data import (

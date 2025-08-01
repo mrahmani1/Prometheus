@@ -201,7 +201,6 @@ class ErrorConfigManager:
 
     def save_config(self, file_path: Optional[str] = None):
         """Save current configuration to file"""
-        import json
         from dataclasses import asdict
 
         save_path = file_path or self.config_file

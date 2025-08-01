@@ -20,7 +20,6 @@ import torch
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-import numpy as np
 import torch.nn.functional as F
 from core.geological_processes.crustal_deformation import (
     create_crustal_deformation_model,

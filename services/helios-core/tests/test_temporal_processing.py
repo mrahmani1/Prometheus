@@ -23,8 +23,6 @@ from core.temporal_processing import (
     TimeScale,
     create_default_temporal_scales,
 )
-from core.temporal_processing import numpy as np
-from core.temporal_processing import torch.nn.functional as F
 
 class TestTemporalScale:
     """Test TemporalScale dataclass"""

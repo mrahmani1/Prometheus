@@ -710,11 +710,7 @@ def main():
     except Exception as e:
         print(f"Error during demonstration: {str(e)}")
         import traceback
-
-import numpy as np
-import torch.nn as nn
-
-    traceback.print_exc()
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()

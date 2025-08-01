@@ -458,7 +458,6 @@ class AdvancedPhysicsSimulator:
         self, data: np.ndarray, sampling_rate: float
     ) -> Dict[str, float]:
         """Analyze frequency content of seismic signal"""
-        from scipy import signal
 
         frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
 

@@ -472,13 +472,7 @@ async def main():
     except Exception as e:
         print(f"\n❌ DEMO FAILED: {e}")
         import traceback
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
-    traceback.print_exc()
+        traceback.print_exc()
 
     finally:
         # Cleanup

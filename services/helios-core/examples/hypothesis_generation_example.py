@@ -397,10 +397,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Error during demonstration: {str(e)}")
         import traceback
-
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
-    traceback.print_exc()
-    sys.exit(1)
+        traceback.print_exc()
+        sys.exit(1)

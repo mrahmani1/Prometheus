@@ -479,7 +479,6 @@ class AdvancedSeismicCNN:
         self, data: np.ndarray, sampling_rate: float
     ) -> Dict[str, float]:
         """Analyze frequency content of seismic signal"""
-        from scipy import signal
 
         frequencies, psd = signal.welch(data, fs=sampling_rate, nperseg=1024)
 
@@ -745,21 +744,12 @@ class AdvancedSeismicCNN:
 
     def load_model(self, checkpoint_path: str):
         """Load model checkpoint for TPU."""
-        import pickle
 
-from typing import Tuple
+        with open(checkpoint_path, "rb") as f:
+            checkpoint_data = pickle.load(f)
 
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-with open(checkpoint_path, "rb") as f:
-    checkpoint_data = pickle.load(f)
-
-# Restore training state
-self.train_state = self.train_state.replace(
+        # Restore training state
+        self.train_state = self.train_state.replace(
             params=checkpoint_data["params"],
             opt_state=checkpoint_data["opt_state"],
             step=checkpoint_data["step"],

@@ -340,7 +340,6 @@ class TestGeologicalInterpretation:
 
     def test_interpret_geological_trends_high_anomalies(self):
         """Test interpretation of high anomaly rate"""
-        from main import interpret_geological_trends
 
         analysis = {
             "trend_analysis": {"slope": 0.001, "r_squared": 0.3},

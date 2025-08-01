@@ -1,0 +1,31 @@
+{
+  "scan_summary": {
+    "files_processed": 392,
+    "files_with_duplicates": 1,
+    "total_duplicates_found": 1,
+    "total_duplicates_fixed": 0,
+    "errors": 2
+  },
+  "detailed_findings": [
+    {
+      "file_path": "services\\helios-core\\api\\routes.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 1670,
+            "statement": "from core.earthquake_impact_modeling import EarthquakeImpactModelingEngine, GroundMotionParameters"
+          },
+          "duplicate": {
+            "line": 1776,
+            "statement": "from core.earthquake_impact_modeling import EarthquakeImpactModelingEngine, GroundMotionParameters"
+          },
+          "import_type": "from_import",
+          "module": "core.earthquake_impact_modeling"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    }
+  ]
+}

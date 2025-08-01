@@ -65,8 +65,6 @@ def validate_data_models():
         from dataclasses import dataclass
         from typing import Any, Dict, List, Optional
 
-import torch.nn.functional as F
-
         @dataclass
         class GeologicalLocation:
             id: Optional[int]

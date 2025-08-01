@@ -20,7 +20,6 @@ import numpy as np
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from core.earthquake_impact_modeling import (

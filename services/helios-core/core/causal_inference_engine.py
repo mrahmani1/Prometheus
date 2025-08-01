@@ -582,7 +582,6 @@ class CausalInferenceEngine:
             else:
                 # Has parents - calculate conditional likelihood
                 try:
-                    from sklearn.linear_model import LinearRegression
 
                     X = data[[variables[j] for j in parents]].values
                     y = data[variables[i]].values
@@ -868,8 +867,6 @@ class CausalInferenceEngine:
         intervention_value: float,
     ) -> Tuple[float, Tuple[float, float], float]:
         """Estimate causal effect using backdoor adjustment"""
-        from scipy import stats
-        from sklearn.linear_model import LinearRegression
 
         # Prepare data
         X = data[confounders + [treatment]].values
@@ -918,7 +915,6 @@ class CausalInferenceEngine:
         X = data[treatment].values.reshape(-1, 1)
         y = data[outcome].values
 
-        from sklearn.linear_model import LinearRegression
 
         reg = LinearRegression().fit(X, y)
 

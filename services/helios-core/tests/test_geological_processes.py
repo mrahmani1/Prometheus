@@ -38,9 +38,6 @@ from core.geological_processes.mantle_convection import (
     MantleConvectionModel,
     create_mantle_convection_model,
 )
-from core.geological_processes.mantle_convection import numpy as np
-from core.geological_processes.mantle_convection import torch.nn as nn
-from core.geological_processes.mantle_convection import torch.nn.functional as F
 
 class TestMantleConvectionModel:
     """Test suite for mantle convection modeling"""

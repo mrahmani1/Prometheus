@@ -424,12 +424,7 @@ def demonstrate_custom_deployment_profile():
     # Define custom deployment profile for underwater sensors
     from ..core.automated_edge_generation import EdgeDeploymentProfile
 
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
-underwater_profile = EdgeDeploymentProfile(
+    underwater_profile = EdgeDeploymentProfile(
         name="underwater_sensor",
         description="Underwater geological sensors with extreme power constraints",
         hardware_constraints=HardwareConstraints(

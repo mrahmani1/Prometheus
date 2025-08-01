@@ -620,17 +620,9 @@ def create_crustal_deformation_system(
     device: torch.device = torch.device("cpu"),
 ) -> PINNMultiPhysicsIntegrator:
     """Create integrated system for crustal deformation modeling"""
-    from models.ai_models import ActivationFunction, NetworkArchitecture
 
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
-# PINN configuration for crustal deformation
-network_architecture = NetworkArchitecture(
+    # PINN configuration for crustal deformation
+    network_architecture = NetworkArchitecture(
         layer_sizes=[4, 64, 128, 64, 4],  # [x,y,z,t] -> [ux,uy,uz,T]
         activation_functions=[ActivationFunction.TANH] * 3,
         dropout_rates=[0.0] * 4,

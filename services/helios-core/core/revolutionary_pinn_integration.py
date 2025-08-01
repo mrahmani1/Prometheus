@@ -36,10 +36,6 @@ from .quantum_enhanced_pinn_trainer import (
     QuantumEnhancedPINNTrainer,
     QuantumTrainingConfig,
 )
-from .quantum_enhanced_pinn_trainer import numpy as np
-from .quantum_enhanced_pinn_trainer import pandas as pd
-from .quantum_enhanced_pinn_trainer import torch.nn as nn
-from .quantum_enhanced_pinn_trainer import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 

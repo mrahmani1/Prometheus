@@ -359,16 +359,8 @@ def visualize_causal_graph(causal_graph, title="Causal Graph"):
 
 def export_results(results, filename_prefix="causal_analysis"):
     """Export analysis results to JSON files"""
-    import numpy as np
-
-import signal
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
-def convert_numpy_types(obj):
+    
+    def convert_numpy_types(obj):
         """Convert numpy types to native Python types for JSON serialization"""
         if isinstance(obj, np.integer):
             return int(obj)

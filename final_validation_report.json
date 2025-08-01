@@ -1,0 +1,10 @@
+{
+  "scan_summary": {
+    "files_processed": 392,
+    "files_with_duplicates": 0,
+    "total_duplicates_found": 0,
+    "total_duplicates_fixed": 0,
+    "errors": 0
+  },
+  "detailed_findings": []
+}

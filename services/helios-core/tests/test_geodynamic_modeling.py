@@ -34,9 +34,6 @@ from models.geological import (
     SampleType,
     SeismicEvent,
 )
-from models.geological import numpy as np
-from models.geological import torch.nn as nn
-from models.geological import torch.nn.functional as F
 
 @pytest.fixture
 def device():

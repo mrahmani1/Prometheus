@@ -1,0 +1,2295 @@
+{
+  "scan_summary": {
+    "files_processed": 392,
+    "files_with_duplicates": 56,
+    "total_duplicates_found": 153,
+    "total_duplicates_fixed": 0,
+    "errors": 0
+  },
+  "detailed_findings": [
+    {
+      "file_path": "services\\model-training-orchestrator\\advanced_training_orchestrator.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 20,
+            "statement": "import torch"
+          },
+          "duplicate": {
+            "line": 570,
+            "statement": "import torch"
+          },
+          "import_type": "import",
+          "module": "torch"
+        },
+        {
+          "original": {
+            "line": 19,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 795,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 21,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 796,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\system-integration\\main.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 349,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 461,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\system-monitor\\advanced_real_time_monitoring.py",
+      "total_duplicates": 2,
+      "duplicates": [
+        {
+          "original": {
+            "line": 145,
+            "statement": "import psutil"
+          },
+          "duplicate": {
+            "line": 182,
+            "statement": "import psutil"
+          },
+          "import_type": "import",
+          "module": "psutil"
+        },
+        {
+          "original": {
+            "line": 13,
+            "statement": "import torch"
+          },
+          "duplicate": {
+            "line": 210,
+            "statement": "import torch"
+          },
+          "import_type": "import",
+          "module": "torch"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\system-monitor\\intelligent_agent_hooks.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 158,
+            "statement": "import fnmatch"
+          },
+          "duplicate": {
+            "line": 541,
+            "statement": "import fnmatch"
+          },
+          "import_type": "import",
+          "module": "fnmatch"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\data-ingestion\\examples\\sensor_fusion_demo.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 15,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 20,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\data-ingestion\\streaming\\kafka_consumer.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 289,
+            "statement": "from kafka import TopicPartition"
+          },
+          "duplicate": {
+            "line": 309,
+            "statement": "from kafka import TopicPartition"
+          },
+          "import_type": "from_import",
+          "module": "kafka"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\data-ingestion\\tests\\test_sensor_fusion.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 5,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 24,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\api\\active_learning.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 409,
+            "statement": "from core.active_learning_engine import create_sample_geological_data"
+          },
+          "duplicate": {
+            "line": 439,
+            "statement": "from core.active_learning_engine import create_sample_geological_data"
+          },
+          "import_type": "from_import",
+          "module": "core.active_learning_engine"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\api\\causal_inference.py",
+      "total_duplicates": 2,
+      "duplicates": [
+        {
+          "original": {
+            "line": 15,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 22,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 16,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 23,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\api\\geothermal_assessment.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 12,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 280,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\api\\routes.py",
+      "total_duplicates": 40,
+      "duplicates": [
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 179,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 246,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 337,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 247,
+            "statement": "from datetime import datetime"
+          },
+          "duplicate": {
+            "line": 338,
+            "statement": "from datetime import datetime"
+          },
+          "import_type": "from_import",
+          "module": "datetime"
+        },
+        {
+          "original": {
+            "line": 250,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 344,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 509,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 723,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 763,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 799,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 831,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 868,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 947,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 977,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1009,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1041,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1074,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1170,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1199,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1228,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1260,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 5,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 1445,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1570,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 247,
+            "statement": "from datetime import datetime"
+          },
+          "duplicate": {
+            "line": 1571,
+            "statement": "from datetime import datetime"
+          },
+          "import_type": "from_import",
+          "module": "datetime"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1692,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 250,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 1698,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1801,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 1694,
+            "statement": "from core.earthquake_impact_modeling import EarthquakeImpactModelingEngine, GroundMotionParameters"
+          },
+          "duplicate": {
+            "line": 1803,
+            "statement": "from core.earthquake_impact_modeling import EarthquakeImpactModelingEngine, GroundMotionParameters"
+          },
+          "import_type": "from_import",
+          "module": "core.earthquake_impact_modeling"
+        },
+        {
+          "original": {
+            "line": 250,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 1807,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 1930,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 247,
+            "statement": "from datetime import datetime"
+          },
+          "duplicate": {
+            "line": 1931,
+            "statement": "from datetime import datetime"
+          },
+          "import_type": "from_import",
+          "module": "datetime"
+        },
+        {
+          "original": {
+            "line": 1578,
+            "statement": "from models.geological import EventType, GeologicalLocation, SeismicEvent"
+          },
+          "duplicate": {
+            "line": 1934,
+            "statement": "from models.geological import EventType, GeologicalLocation, SeismicEvent"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 2205,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 250,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 2216,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 2421,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 250,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 2428,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 2514,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 250,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 2521,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 2613,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        },
+        {
+          "original": {
+            "line": 250,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 2620,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        },
+        {
+          "original": {
+            "line": 139,
+            "statement": "import time"
+          },
+          "duplicate": {
+            "line": 2711,
+            "statement": "import time"
+          },
+          "import_type": "import",
+          "module": "time"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\api\\tpu_pod_api.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 9,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 217,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\advanced_tpu_pod_manager.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 27,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\causal_inference_engine.py",
+      "total_duplicates": 4,
+      "duplicates": [
+        {
+          "original": {
+            "line": 433,
+            "statement": "from sklearn.linear_model import LinearRegression"
+          },
+          "duplicate": {
+            "line": 585,
+            "statement": "from sklearn.linear_model import LinearRegression"
+          },
+          "import_type": "from_import",
+          "module": "sklearn.linear_model"
+        },
+        {
+          "original": {
+            "line": 23,
+            "statement": "from scipy import stats"
+          },
+          "duplicate": {
+            "line": 871,
+            "statement": "from scipy import stats"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 433,
+            "statement": "from sklearn.linear_model import LinearRegression"
+          },
+          "duplicate": {
+            "line": 872,
+            "statement": "from sklearn.linear_model import LinearRegression"
+          },
+          "import_type": "from_import",
+          "module": "sklearn.linear_model"
+        },
+        {
+          "original": {
+            "line": 433,
+            "statement": "from sklearn.linear_model import LinearRegression"
+          },
+          "duplicate": {
+            "line": 921,
+            "statement": "from sklearn.linear_model import LinearRegression"
+          },
+          "import_type": "from_import",
+          "module": "sklearn.linear_model"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\error_config.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 124,
+            "statement": "import json"
+          },
+          "duplicate": {
+            "line": 204,
+            "statement": "import json"
+          },
+          "import_type": "import",
+          "module": "json"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\error_monitoring.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 18,
+            "statement": "from error_management import ErrorInfo, ServiceDegradationLevel"
+          },
+          "duplicate": {
+            "line": 20,
+            "statement": "from error_management import ErrorInfo, ServiceDegradationLevel"
+          },
+          "import_type": "from_import",
+          "module": "error_management"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\hazard_mapping.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 674,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 786,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 674,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 968,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 674,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 1080,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\multi_physics_integration.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 578,
+            "statement": "from models.ai_models import ActivationFunction, NetworkArchitecture"
+          },
+          "duplicate": {
+            "line": 623,
+            "statement": "from models.ai_models import ActivationFunction, NetworkArchitecture"
+          },
+          "import_type": "from_import",
+          "module": "models.ai_models"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\quantum_optimization.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 10,
+            "statement": "import asyncio"
+          },
+          "duplicate": {
+            "line": 2022,
+            "statement": "import asyncio"
+          },
+          "import_type": "import",
+          "module": "asyncio"
+        },
+        {
+          "original": {
+            "line": 18,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 2026,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 20,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 2028,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\revolutionary_pinn_integration.py",
+      "total_duplicates": 4,
+      "duplicates": [
+        {
+          "original": {
+            "line": 22,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 39,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 23,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 40,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 25,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 41,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 26,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 42,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\seismic_cnn_processor.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 21,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "duplicate": {
+            "line": 28,
+            "statement": "from models.geological import GeologicalLocation"
+          },
+          "import_type": "from_import",
+          "module": "models.geological"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\core\\tpu_pod_manager.py",
+      "total_duplicates": 2,
+      "duplicates": [
+        {
+          "original": {
+            "line": 438,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 482,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 739,
+            "statement": "import pickle"
+          },
+          "duplicate": {
+            "line": 748,
+            "statement": "import pickle"
+          },
+          "import_type": "import",
+          "module": "pickle"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\examples\\anomaly_detection_example.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 20,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\examples\\causal_inference_example.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 16,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 362,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\examples\\earthquake_forecasting_example.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 16,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 26,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\examples\\earthquake_impact_example.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 19,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 23,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\examples\\gpu_cluster_example.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 11,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 20,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 21,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 13,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 22,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\examples\\monitoring_example.py",
+      "total_duplicates": 4,
+      "duplicates": [
+        {
+          "original": {
+            "line": 12,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 16,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 31,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 17,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 32,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 18,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 33,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\examples\\sophisticated_geological_modeling.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 16,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 23,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\models\\monitoring.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 243,
+            "statement": "import warnings"
+          },
+          "duplicate": {
+            "line": 353,
+            "statement": "import warnings"
+          },
+          "import_type": "import",
+          "module": "warnings"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_active_learning_engine.py",
+      "total_duplicates": 5,
+      "duplicates": [
+        {
+          "original": {
+            "line": 12,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 20,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 22,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 33,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 21,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 34,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 35,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_ai_models.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 9,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 26,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 11,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 27,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 28,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_causal_inference_engine.py",
+      "total_duplicates": 5,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 20,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 21,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 33,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 34,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 23,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 35,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_earthquake_forecasting.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 19,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_error_management.py",
+      "total_duplicates": 2,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 37,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 38,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_geodynamic_modeling.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 11,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 37,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 14,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 38,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 39,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_geological_network_representation.py",
+      "total_duplicates": 2,
+      "duplicates": [
+        {
+          "original": {
+            "line": 9,
+            "statement": "import os"
+          },
+          "duplicate": {
+            "line": 435,
+            "statement": "import os"
+          },
+          "import_type": "import",
+          "module": "os"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 466,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_geological_processes.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 41,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 17,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 42,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 18,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 43,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_geological_simulation.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 11,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 37,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 38,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 39,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_global_model_deployment.py",
+      "total_duplicates": 4,
+      "duplicates": [
+        {
+          "original": {
+            "line": 16,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 33,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 17,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 34,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 19,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 35,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 20,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 36,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_graph_neural_networks.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 13,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 30,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 14,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 31,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 32,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_hazard_mapping.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 8,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 34,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 9,
+            "statement": "import pandas as pd"
+          },
+          "duplicate": {
+            "line": 35,
+            "statement": "import pandas as pd"
+          },
+          "import_type": "import",
+          "module": "pandas"
+        },
+        {
+          "original": {
+            "line": 13,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 36,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_monitoring_models.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 10,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 29,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 30,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 13,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 31,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_multi_physics_coupling.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 13,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 357,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_pinn_engine.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 7,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 32,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 10,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 33,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        },
+        {
+          "original": {
+            "line": 11,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 34,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_quantum_optimization.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 8,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 585,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_seismic_cnn_processor.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 22,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_temporal_processing.py",
+      "total_duplicates": 2,
+      "duplicates": [
+        {
+          "original": {
+            "line": 8,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 26,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import torch.nn.functional as F"
+          },
+          "duplicate": {
+            "line": 27,
+            "statement": "import torch.nn.functional as F"
+          },
+          "import_type": "import",
+          "module": "torch.nn.functional"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\helios-core\\tests\\test_transfer_learning.py",
+      "total_duplicates": 3,
+      "duplicates": [
+        {
+          "original": {
+            "line": 341,
+            "statement": "import json"
+          },
+          "duplicate": {
+            "line": 421,
+            "statement": "import json"
+          },
+          "import_type": "import",
+          "module": "json"
+        },
+        {
+          "original": {
+            "line": 12,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 422,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        },
+        {
+          "original": {
+            "line": 15,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 424,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\nlp-service\\core\\intent_classifier.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 10,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 25,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\timescale-db\\tests\\test_timescale_service.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 325,
+            "statement": "from main import interpret_geological_trends"
+          },
+          "duplicate": {
+            "line": 343,
+            "statement": "from main import interpret_geological_trends"
+          },
+          "import_type": "from_import",
+          "module": "main"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\volcano-watchtower\\core\\alert_system.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 621,
+            "statement": "import random"
+          },
+          "duplicate": {
+            "line": 646,
+            "statement": "import random"
+          },
+          "import_type": "import",
+          "module": "random"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\volcano-watchtower\\core\\magma_reservoir.py",
+      "total_duplicates": 6,
+      "duplicates": [
+        {
+          "original": {
+            "line": 423,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 535,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 423,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 773,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 423,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 839,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 423,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 1027,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 423,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 1295,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        },
+        {
+          "original": {
+            "line": 423,
+            "statement": "from scipy import signal"
+          },
+          "duplicate": {
+            "line": 1407,
+            "statement": "from scipy import signal"
+          },
+          "import_type": "from_import",
+          "module": "scipy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\volcano-watchtower\\tests\\test_eruption_forecasting.py",
+      "total_duplicates": 2,
+      "duplicates": [
+        {
+          "original": {
+            "line": 71,
+            "statement": "from core.eruption_forecasting import ForecastTimeframe"
+          },
+          "duplicate": {
+            "line": 95,
+            "statement": "from core.eruption_forecasting import ForecastTimeframe"
+          },
+          "import_type": "from_import",
+          "module": "core.eruption_forecasting"
+        },
+        {
+          "original": {
+            "line": 71,
+            "statement": "from core.eruption_forecasting import ForecastTimeframe"
+          },
+          "duplicate": {
+            "line": 111,
+            "statement": "from core.eruption_forecasting import ForecastTimeframe"
+          },
+          "import_type": "from_import",
+          "module": "core.eruption_forecasting"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "services\\volcano-watchtower\\tests\\test_insar_analysis.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 14,
+            "statement": "import numpy as np"
+          },
+          "duplicate": {
+            "line": 20,
+            "statement": "import numpy as np"
+          },
+          "import_type": "import",
+          "module": "numpy"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    },
+    {
+      "file_path": "tests\\performance\\test_scalability_performance.py",
+      "total_duplicates": 1,
+      "duplicates": [
+        {
+          "original": {
+            "line": 445,
+            "statement": "import torch.nn as nn"
+          },
+          "duplicate": {
+            "line": 465,
+            "statement": "import torch.nn as nn"
+          },
+          "import_type": "import",
+          "module": "torch.nn"
+        }
+      ],
+      "fixed": false,
+      "lines_removed": []
+    }
+  ]
+}

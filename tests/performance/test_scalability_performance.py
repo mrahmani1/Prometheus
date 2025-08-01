@@ -462,7 +462,6 @@ class TestAIModelPerformance:
     
     def _create_mock_model(self, layer_sizes):
         """Create mock model with specified layer sizes"""
-        import torch.nn as nn
         
         layers = []
         for i in range(len(layer_sizes) - 1):

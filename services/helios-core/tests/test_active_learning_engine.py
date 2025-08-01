@@ -17,9 +17,7 @@ import torch.nn as nn
 # Add the core module to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "core"))
 
-import numpy as np
 import pandas as pd
-import torch.nn as nn
 from active_learning_engine import (
     ActiveLearningConfig,
     ActiveLearningEngine,
@@ -30,9 +28,6 @@ from active_learning_engine import (
     UncertaintyBasedSampling,
     create_sample_geological_data,
 )
-from active_learning_engine import numpy as np
-from active_learning_engine import pandas as pd
-from active_learning_engine import torch.nn as nn
 
 class TestGeologicalSample:
     """Test GeologicalSample data structure"""

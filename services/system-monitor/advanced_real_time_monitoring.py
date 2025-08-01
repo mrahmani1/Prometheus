@@ -179,7 +179,6 @@ class AdvancedRealTimeMonitoring:
             async def _collect_memory_metrics(self) -> Dict[str, float]:
                 """Collect detailed memory metrics"""
                 try:
-                    import psutil
 
                     # Virtual memory
                     virtual_mem = psutil.virtual_memory()
@@ -207,7 +206,6 @@ class AdvancedRealTimeMonitoring:
             async def _collect_gpu_metrics(self) -> Dict[str, float]:
                 """Collect GPU metrics"""
                 try:
-                    import torch
 
                     if not torch.cuda.is_available():
                         return {"gpu_available": False}

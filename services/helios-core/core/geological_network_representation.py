@@ -544,13 +544,6 @@ class GeologicalGraphEmbedding(nn.Module):
             # Handle batched graphs
             from torch_geometric.nn import global_max_pool, global_mean_pool
 
-import signal
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
-
             node_global_mean = global_mean_pool(aggregated_nodes, batch)
             global_max_pool(aggregated_nodes, batch)
 

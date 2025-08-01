@@ -436,7 +436,6 @@ async def run_strategy_comparison(n_samples: int = 500, batch_size: int = 20):
     on synthetic geological data.
     """
     try:
-        from ..core.active_learning_engine import create_sample_geological_data
 
         # Generate test data
         all_samples = create_sample_geological_data(n_samples)

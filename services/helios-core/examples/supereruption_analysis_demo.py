@@ -21,8 +21,6 @@ from core.geological_network_representation import (
     SupereruptionAnalyzer,
     signal,
 )
-from core.geological_network_representation import torch.nn as nn
-from core.geological_network_representation import torch.nn.functional as F
 
 def create_yellowstone_like_system():
     """Create a Yellowstone-like caldera system for analysis."""

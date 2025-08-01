@@ -17,6 +17,8 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 # Add the parent directory to the path to import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -338,12 +340,7 @@ def main():
     except Exception as e:
         print(f"\nError during demonstration: {e}")
         import traceback
-
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-
-    traceback.print_exc()
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()

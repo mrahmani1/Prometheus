@@ -27,9 +27,6 @@ from core.graph_neural_networks import (
     GeologicalGraphPooling,
     GeologicalGraphSAGE,
 )
-from core.graph_neural_networks import numpy as np
-from core.graph_neural_networks import torch.nn as nn
-from core.graph_neural_networks import torch.nn.functional as F
 
 class TestGeologicalGraphData:
     """Test the GeologicalGraphData structure."""

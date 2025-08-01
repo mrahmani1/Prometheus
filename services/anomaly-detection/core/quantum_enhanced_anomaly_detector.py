@@ -443,10 +443,6 @@ class QuantumApproximateOptimization:
         """Classical feature selection fallback"""
         from sklearn.feature_selection import SelectKBest, f_classif
 
-import uuid
-from typing import Tuple
-
-import numpy as np
         k = min(self.num_features // 2, 10)  # Select top half or 10 features
         selector = SelectKBest(score_func=f_classif, k=k)
         selector.fit(X, y)

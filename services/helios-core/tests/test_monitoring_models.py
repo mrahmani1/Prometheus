@@ -26,9 +26,6 @@ from models.monitoring import (
     TimeSeriesBuffer,
     VolcanicRiskAssessment,
 )
-from models.monitoring import numpy as np
-from models.monitoring import torch.nn as nn
-from models.monitoring import torch.nn.functional as F
 
 class TestSensorReading:
     """Test SensorReading class"""

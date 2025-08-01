@@ -25,7 +25,6 @@ except ImportError:
     import sys
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from models.geological import GeologicalLocation
 
 logger = logging.getLogger(__name__)
 
@@ -521,13 +520,6 @@ class AdvancedDataProcessor:
             from scipy import signal
         except ImportError:
             signal = None
-
-from typing import Tuple
-
-import numpy as np
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 
             # Continuous wavelet transform approximation using spectrogram
             f, t, Sxx = signal.spectrogram(waveform, fs=self.sampling_rate, nperseg=256)
