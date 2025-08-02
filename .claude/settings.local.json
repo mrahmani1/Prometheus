@@ -7,7 +7,15 @@
       "Bash(do echo \"Checking $file:\")",
       "Bash(echo:*)",
       "Bash(done)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pip install black isort flake8)",
+      "Bash(black:*)",
+      "Bash(isort:*)",
+      "Bash(flake8:*)",
+      "Bash(pip install:*)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(find:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

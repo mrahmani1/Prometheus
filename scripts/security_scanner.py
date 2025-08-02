@@ -4,12 +4,12 @@ Comprehensive security scanner for the Prometheus AI platform.
 Uses Bandit and other security tools to identify vulnerabilities.
 """
 
-import subprocess
-import json
-import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+import json
 import os
+import subprocess
+import sys
 
 class SecurityScanner:
     """Comprehensive security scanning system."""
@@ -142,6 +142,7 @@ class SecurityScanner:
         ]
         
         import re
+
         secrets_found = []
         
         for root, dirs, files in os.walk("services"):

@@ -8,9 +8,9 @@ and generate testable hypotheses.
 
 import json
 import os
+import sys
 
 # Import the causal inference engine
-import sys
 from datetime import datetime
 
 import numpy as np
@@ -23,6 +23,7 @@ from core.causal_inference_engine import (
     CausalInferenceEngine,
     GeologicalDomainKnowledge,
 )
+
 
 def create_synthetic_volcanic_data(n_samples=500):
     """
@@ -93,6 +94,7 @@ def create_synthetic_volcanic_data(n_samples=500):
 
     return data
 
+
 def create_domain_knowledge():
     """Create geological domain knowledge for volcanic systems"""
     return GeologicalDomainKnowledge(
@@ -133,6 +135,7 @@ def create_domain_knowledge():
             "monitoring_signals": ["seismic", "deformation", "geochemical", "thermal"],
         },
     )
+
 
 def demonstrate_causal_discovery():
     """Demonstrate causal discovery with different algorithms"""
@@ -184,6 +187,7 @@ def demonstrate_causal_discovery():
             print(f"  Error with {algorithm.value}: {str(e)}\n")
 
     return results, data, engine
+
 
 def demonstrate_intervention_analysis(causal_graph, data, engine):
     """Demonstrate causal intervention analysis"""
@@ -240,6 +244,7 @@ def demonstrate_intervention_analysis(causal_graph, data, engine):
 
     print()
 
+
 def demonstrate_hypothesis_generation(causal_graph, engine):
     """Demonstrate hypothesis generation from causal graph"""
     print("=== Hypothesis Generation Demonstration ===\n")
@@ -260,6 +265,7 @@ def demonstrate_hypothesis_generation(causal_graph, engine):
 
     except Exception as e:
         print(f"Error in hypothesis generation: {str(e)}\n")
+
 
 def demonstrate_validation(causal_graph, original_data, engine):
     """Demonstrate causal graph validation with independent data"""
@@ -300,6 +306,7 @@ def demonstrate_validation(causal_graph, original_data, engine):
         print(f"Error in validation: {str(e)}")
 
     print()
+
 
 def visualize_causal_graph(causal_graph, title="Causal Graph"):
     """Visualize the discovered causal graph"""
@@ -357,9 +364,10 @@ def visualize_causal_graph(causal_graph, title="Causal Graph"):
     except Exception as e:
         print(f"Error in visualization: {str(e)}")
 
+
 def export_results(results, filename_prefix="causal_analysis"):
     """Export analysis results to JSON files"""
-    
+
     def convert_numpy_types(obj):
         """Convert numpy types to native Python types for JSON serialization"""
         if isinstance(obj, np.integer):
@@ -412,6 +420,7 @@ def export_results(results, filename_prefix="causal_analysis"):
         except Exception as e:
             print(f"Error exporting {algorithm} results: {str(e)}")
 
+
 def main():
     """Main demonstration function"""
     print("Geological Causal Inference Engine Demonstration")
@@ -449,6 +458,7 @@ def main():
 
     print("\nDemonstration completed successfully!")
     print("Check the generated files for detailed results and visualizations.")
+
 
 if __name__ == "__main__":
     main()

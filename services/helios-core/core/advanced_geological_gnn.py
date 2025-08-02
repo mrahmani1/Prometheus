@@ -17,6 +17,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GeologicalNode:
     """Advanced geological node representation"""
@@ -31,6 +32,7 @@ class GeologicalNode:
     geological_context: Dict[str, Any]
     multi_scale_features: Dict[str, np.ndarray]
     physics_constraints: Dict[str, Any]
+
 
 @dataclass
 class GeologicalEdge:
@@ -47,6 +49,7 @@ class GeologicalEdge:
     physics_relationship: Optional[str]
     multi_scale_weights: Dict[str, float]
 
+
 @dataclass
 class GeologicalGraph:
     """Advanced geological graph structure"""
@@ -62,6 +65,7 @@ class GeologicalGraph:
     geological_constraints: Dict[str, Any]
     uncertainty_graph: torch.Tensor
     multi_scale_representations: Dict[str, torch.Tensor]
+
 
 class AdvancedGeologicalGNN:
     """Advanced Graph Neural Network for geological modeling"""
@@ -882,7 +886,9 @@ class AdvancedGeologicalGNN:
             "final_loss": training_history["losses"][-1],
         }
 
+
 # Supporting classes for advanced GNN components
+
 
 class GeologicalGCNLayer(nn.Module):
     """Advanced GCN layer with geological-specific features"""
@@ -918,6 +924,7 @@ class GeologicalGCNLayer(nn.Module):
         out = self.layer_norm(out)
 
         return out
+
 
 class GeologicalAttentionLayer(nn.Module):
     """Geological-specific attention mechanism"""
@@ -971,8 +978,10 @@ class GeologicalAttentionLayer(nn.Module):
 
         return output, attention_weights
 
+
 # Additional supporting classes would be implemented here...
 # (PhysicsAwareFeatureEncoder, ConservationLawEnforcer, etc.)
+
 
 class SpatialAttentionLayer(nn.Module):
     """Spatial attention for geological features"""
@@ -990,6 +999,7 @@ class SpatialAttentionLayer(nn.Module):
         attention = torch.sigmoid(self.attention_weights(combined_features))
         return features * attention
 
+
 class TemporalAttentionLayer(nn.Module):
     """Temporal attention for geological time series"""
 
@@ -1004,6 +1014,7 @@ class TemporalAttentionLayer(nn.Module):
         temporal_encoded, _ = self.temporal_encoder(temporal_data)
         attention = F.softmax(self.attention_weights(temporal_encoded), dim=1)
         return torch.sum(features.unsqueeze(1) * attention, dim=1)
+
 
 # Example usage
 async def main():
@@ -1081,6 +1092,7 @@ async def main():
 
     print(f"Training completed: {training_result['model_id']}")
     print(f"Final loss: {training_result['final_loss']:.6f}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

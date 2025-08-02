@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Uncertaintyquantification:
     """Main class for uncertainty quantification functionality."""
 
@@ -30,11 +31,13 @@ class Uncertaintyquantification:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Uncertaintyquantification()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

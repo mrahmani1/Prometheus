@@ -10,12 +10,9 @@ Tests all components of the geothermal resource assessment system including:
 Requirements: 6.2, 6.3
 """
 
+import json
 import os
 import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import json
 import tempfile
 from datetime import datetime
 from unittest.mock import Mock, patch
@@ -24,6 +21,9 @@ import numpy as np
 import pytest
 import torch.nn as nn
 import torch.nn.functional as F
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from core.geothermal_resource_assessment import (
     EconomicParameters,
     EconomicViabilityAssessor,
@@ -36,6 +36,7 @@ from core.geothermal_resource_assessment import (
 )
 from core.physics_constraints import PhysicsConstraintEnforcer
 from models.geological import GeologicalLocation, ThermalMeasurement
+
 
 class TestThermalModelingEngine:
     """Test thermal modeling functionality"""
@@ -125,6 +126,7 @@ class TestThermalModelingEngine:
         # Should return reasonable geothermal gradient
         assert 15.0 <= gradient <= 50.0  # Typical range for geothermal gradients
 
+
 class TestPermeabilityEstimator:
     """Test permeability estimation functionality"""
 
@@ -175,6 +177,7 @@ class TestPermeabilityEstimator:
         # But this depends on fracturing and lithology
         assert isinstance(shallow_perm, float)
         assert isinstance(deep_perm, float)
+
 
 class TestGeothermalSustainabilityModeler:
     """Test sustainability modeling functionality"""
@@ -250,6 +253,7 @@ class TestGeothermalSustainabilityModeler:
 
         # Higher reinjection should lead to better sustainability
         assert high_reinjection_years >= low_reinjection_years
+
 
 class TestEconomicViabilityAssessor:
     """Test economic viability assessment functionality"""
@@ -367,6 +371,7 @@ class TestEconomicViabilityAssessor:
 
         # Score should be between 0 and 1
         assert 0 <= score <= 1
+
 
 class TestGeothermalResourceAssessmentSystem:
     """Test the complete geothermal resource assessment system"""
@@ -594,6 +599,7 @@ class TestGeothermalResourceAssessmentSystem:
         assert assessment_system._classify_viability(0.5) == "Marginal"
         assert assessment_system._classify_viability(0.2) == "Not Viable"
 
+
 class TestIntegration:
     """Integration tests for the complete system"""
 
@@ -665,6 +671,7 @@ class TestIntegration:
         # Should handle gracefully and return empty results
         assert isinstance(results, list)
         assert len(results) == 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -4,10 +4,10 @@ Security fixes script for Prometheus AI Platform
 Addresses critical security issues found by Bandit
 """
 
-import re
-import sys
 from pathlib import Path
 from typing import List
+import re
+import sys
 
 
 def fix_md5_usage(file_path: Path) -> bool:

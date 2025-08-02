@@ -24,6 +24,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 class EventType(Enum):
     FILE_CHANGE = "file_change"
     CODE_COMMIT = "code_commit"
@@ -33,12 +34,14 @@ class EventType(Enum):
     SCHEDULED = "scheduled"
     MANUAL_TRIGGER = "manual_trigger"
 
+
 class HookStatus(Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
+
 
 @dataclass
 class HookEvent:
@@ -49,6 +52,7 @@ class HookEvent:
     metadata: Dict[str, Any]
     affected_files: List[str] = None
     affected_components: List[str] = None
+
 
 @dataclass
 class HookExecution:
@@ -63,6 +67,7 @@ class HookExecution:
     exit_code: int = 0
     resource_usage: Dict[str, float] = None
 
+
 @dataclass
 class SmartTestSelection:
     selected_tests: List[str]
@@ -70,6 +75,7 @@ class SmartTestSelection:
     selection_reason: str
     estimated_duration: float
     confidence_score: float
+
 
 class ComponentMapper:
     """Maps file changes to affected components for smart test selection"""
@@ -159,6 +165,7 @@ class ComponentMapper:
 
         return fnmatch.fnmatch(file_path, pattern)
 
+
 class ModelRetrainingTrigger:
     """Intelligent model retraining decision engine"""
 
@@ -237,6 +244,7 @@ class ModelRetrainingTrigger:
     def mark_retraining_started(self, model_name: str):
         """Mark that retraining has started for a model"""
         self.last_retraining[model_name] = datetime.now()
+
 
 class ResourceScaler:
     """Intelligent resource scaling based on workload patterns"""
@@ -345,6 +353,7 @@ class ResourceScaler:
     def mark_scaling_action(self, service_name: str):
         """Mark that a scaling action has been taken"""
         self.last_scaling_action[service_name] = datetime.now()
+
 
 class IntelligentAgentHookSystem:
     """Main intelligent agent hook system"""
@@ -1096,10 +1105,12 @@ class IntelligentAgentHookSystem:
                 logger.error(f"Error in scheduled task monitoring: {e}")
                 await asyncio.sleep(60)
 
+
 # CLI interface
 async def main():
     """Main function for CLI usage"""
     import argparse
+
     parser = argparse.ArgumentParser(description="Intelligent Agent Hook System")
     parser.add_argument("--start", action="store_true", help="Start the hook system")
     parser.add_argument("--trigger", help="Manually trigger a hook")
@@ -1136,6 +1147,7 @@ async def main():
 
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

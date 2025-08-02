@@ -27,6 +27,7 @@ from ..core.service_registry import ServiceRegistry
 
 logger = structlog.get_logger()
 
+
 # Pydantic models for request/response
 class PhysicsConstraintSpec(BaseModel):
     """Physics constraint specification"""
@@ -67,6 +68,7 @@ class PhysicsConstraintSpec(BaseModel):
         default_factory=list, description="Causality constraints"
     )
 
+
 class PhysicsProblem(BaseModel):
     """Physics problem specification"""
 
@@ -86,6 +88,7 @@ class PhysicsProblem(BaseModel):
         None, description="Initial conditions"
     )
 
+
 class TrainingData(BaseModel):
     """Training data specification"""
 
@@ -94,6 +97,7 @@ class TrainingData(BaseModel):
     variable_names: Optional[List[str]] = Field(None, description="Variable names")
     data_quality: Optional[float] = Field(0.9, description="Data quality score")
     noise_level: Optional[float] = Field(0.01, description="Noise level")
+
 
 class TrainingConfig(BaseModel):
     """Training configuration"""
@@ -111,6 +115,7 @@ class TrainingConfig(BaseModel):
     enable_discovery: bool = Field(True, description="Enable physics discovery")
     enable_causal: bool = Field(True, description="Enable causal discovery")
 
+
 class PredictionRequest(BaseModel):
     """Prediction request"""
 
@@ -120,6 +125,7 @@ class PredictionRequest(BaseModel):
     include_neuromorphic: bool = Field(
         True, description="Include neuromorphic features"
     )
+
 
 class ContinualLearningTask(BaseModel):
     """Continual learning task"""
@@ -131,6 +137,7 @@ class ContinualLearningTask(BaseModel):
     )
     variables: List[str] = Field(..., description="Variable names")
     equations: Optional[List[str]] = Field(None, description="Known equations")
+
 
 class MetaLearningTask(BaseModel):
     """Meta-learning task"""
@@ -145,8 +152,10 @@ class MetaLearningTask(BaseModel):
     coupling_strength: float = Field(0.0, description="Coupling strength")
     training_data: TrainingData = Field(..., description="Training data")
 
+
 # Create router
 router = APIRouter(prefix="/revolutionary-pinn", tags=["Revolutionary PINN"])
+
 
 # Dependency to get Helios engine
 async def get_helios_engine() -> HeliosEngine:
@@ -156,6 +165,7 @@ async def get_helios_engine() -> HeliosEngine:
     settings = Settings()
     service_registry = ServiceRegistry()
     return HeliosEngine(settings, service_registry)
+
 
 @router.post("/models", response_model=Dict[str, Any])
 async def create_revolutionary_model(
@@ -200,6 +210,7 @@ async def create_revolutionary_model(
             "Failed to create revolutionary PINN model", model_id=model_id, error=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Failed to create model: {str(e)}")
+
 
 @router.post("/models/{model_id}/train", response_model=Dict[str, Any])
 async def train_revolutionary_model(
@@ -259,6 +270,7 @@ async def train_revolutionary_model(
         )
         raise HTTPException(status_code=500, detail=f"Failed to train model: {str(e)}")
 
+
 @router.post("/models/{model_id}/predict", response_model=Dict[str, Any])
 async def predict_with_revolutionary_model(
     model_id: str,
@@ -310,6 +322,7 @@ async def predict_with_revolutionary_model(
             status_code=500, detail=f"Failed to make predictions: {str(e)}"
         )
 
+
 @router.post("/models/{model_id}/discover-laws", response_model=Dict[str, Any])
 async def discover_physics_laws(
     model_id: str,
@@ -350,6 +363,7 @@ async def discover_physics_laws(
         raise HTTPException(
             status_code=500, detail=f"Failed to discover laws: {str(e)}"
         )
+
 
 @router.post("/models/{model_id}/continual-learn", response_model=Dict[str, Any])
 async def continual_learn_physics(
@@ -408,6 +422,7 @@ async def continual_learn_physics(
             status_code=500, detail=f"Failed continual learning: {str(e)}"
         )
 
+
 @router.post("/meta-learn", response_model=Dict[str, Any])
 async def meta_learn_physics_domain(
     domain_tasks: List[MetaLearningTask],
@@ -448,6 +463,7 @@ async def meta_learn_physics_domain(
         logger.error("Failed meta-learning", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed meta-learning: {str(e)}")
 
+
 @router.get("/system/status", response_model=Dict[str, Any])
 async def get_revolutionary_system_status(
     helios_engine: HeliosEngine = Depends(get_helios_engine),
@@ -474,6 +490,7 @@ async def get_revolutionary_system_status(
         logger.error("Failed to get system status", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
 
+
 @router.get("/models", response_model=Dict[str, Any])
 async def list_revolutionary_models(
     helios_engine: HeliosEngine = Depends(get_helios_engine),
@@ -499,6 +516,7 @@ async def list_revolutionary_models(
     except Exception as e:
         logger.error("Failed to list models", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to list models: {str(e)}")
+
 
 @router.get("/models/{model_id}", response_model=Dict[str, Any])
 async def get_revolutionary_model_info(
@@ -529,6 +547,7 @@ async def get_revolutionary_model_info(
             status_code=500, detail=f"Failed to get model info: {str(e)}"
         )
 
+
 @router.delete("/models/{model_id}", response_model=Dict[str, Any])
 async def delete_revolutionary_model(
     model_id: str, helios_engine: HeliosEngine = Depends(get_helios_engine)
@@ -557,6 +576,7 @@ async def delete_revolutionary_model(
         logger.error("Failed to delete model", model_id=model_id, error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to delete model: {str(e)}")
 
+
 @router.post("/system/save-state", response_model=Dict[str, Any])
 async def save_revolutionary_system_state(
     filepath: str, helios_engine: HeliosEngine = Depends(get_helios_engine)
@@ -584,6 +604,7 @@ async def save_revolutionary_system_state(
     except Exception as e:
         logger.error("Failed to save system state", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to save state: {str(e)}")
+
 
 @router.post("/system/load-state", response_model=Dict[str, Any])
 async def load_revolutionary_system_state(

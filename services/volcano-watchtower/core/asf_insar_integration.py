@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Asfinsarintegration:
     """Main class for asf insar integration functionality."""
 
@@ -30,11 +31,13 @@ class Asfinsarintegration:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Asfinsarintegration()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

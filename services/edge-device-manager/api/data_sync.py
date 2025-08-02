@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 # Dependencies
 async def get_sync_manager() -> DataSyncManager:
     from main import sync_manager
@@ -23,12 +24,14 @@ async def get_sync_manager() -> DataSyncManager:
         raise HTTPException(status_code=503, detail="Sync manager not available")
     return sync_manager
 
+
 async def get_device_manager() -> EdgeDeviceManager:
     from main import device_manager
 
     if not device_manager:
         raise HTTPException(status_code=503, detail="Device manager not available")
     return device_manager
+
 
 @router.post("/request", response_model=DataSyncResponse)
 async def request_sync(
@@ -45,6 +48,7 @@ async def request_sync(
         logger.error(f"Failed to request sync: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/status/{sync_id}")
 async def get_sync_status(
     sync_id: str, sync_manager: DataSyncManager = Depends(get_sync_manager)
@@ -54,6 +58,7 @@ async def get_sync_status(
     if not status:
         raise HTTPException(status_code=404, detail="Sync operation not found")
     return status
+
 
 @router.post("/cancel/{sync_id}")
 async def cancel_sync(
@@ -72,6 +77,7 @@ async def cancel_sync(
     except Exception as e:
         logger.error(f"Failed to cancel sync {sync_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/devices/{device_id}/sync")
 async def sync_device(
@@ -107,6 +113,7 @@ async def sync_device(
         logger.error(f"Failed to sync device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/devices/{device_id}/schedule")
 async def schedule_device_sync(
     device_id: str,
@@ -134,6 +141,7 @@ async def schedule_device_sync(
         logger.error(f"Failed to schedule sync for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/metrics")
 async def get_sync_metrics(sync_manager: DataSyncManager = Depends(get_sync_manager)):
     """Get sync metrics and statistics"""
@@ -143,6 +151,7 @@ async def get_sync_metrics(sync_manager: DataSyncManager = Depends(get_sync_mana
     except Exception as e:
         logger.error(f"Failed to get sync metrics: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/devices/{device_id}/sync-status")
 async def get_device_sync_status(
@@ -167,6 +176,7 @@ async def get_device_sync_status(
         logger.error(f"Failed to get sync status for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/active")
 async def get_active_syncs(sync_manager: DataSyncManager = Depends(get_sync_manager)):
     """Get currently active sync operations"""
@@ -185,6 +195,7 @@ async def get_active_syncs(sync_manager: DataSyncManager = Depends(get_sync_mana
     except Exception as e:
         logger.error(f"Failed to get active syncs: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/bulk-sync")
 async def bulk_sync_devices(
@@ -211,6 +222,7 @@ async def bulk_sync_devices(
         logger.error(f"Failed to initiate bulk sync: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/history")
 async def get_sync_history(
     device_id: Optional[str] = None,
@@ -236,6 +248,7 @@ async def get_sync_history(
     except Exception as e:
         logger.error(f"Failed to get sync history: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/configuration/update")
 async def update_sync_configuration(
@@ -274,6 +287,7 @@ async def update_sync_configuration(
     except Exception as e:
         logger.error(f"Failed to update sync configuration for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/status")
 async def get_sync_service_status(

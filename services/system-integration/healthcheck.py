@@ -8,6 +8,7 @@ import sys
 import requests
 import torch.nn.functional as F
 
+
 def check_health():
     """Check if the service is healthy"""
     try:
@@ -21,6 +22,7 @@ def check_health():
     except Exception as e:
         print(f"Health check failed: {e}")
         return False
+
 
 if __name__ == "__main__":
     if check_health():

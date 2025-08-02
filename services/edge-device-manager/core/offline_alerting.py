@@ -15,6 +15,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 class AlertSeverity(str, Enum):
     """Alert severity levels"""
 
@@ -23,6 +24,7 @@ class AlertSeverity(str, Enum):
     HIGH = "high"
     CRITICAL = "critical"
 
+
 class AlertStatus(str, Enum):
     """Alert status"""
 
@@ -30,6 +32,7 @@ class AlertStatus(str, Enum):
     ACKNOWLEDGED = "acknowledged"
     RESOLVED = "resolved"
     SUPPRESSED = "suppressed"
+
 
 @dataclass
 class AlertRule:
@@ -45,6 +48,7 @@ class AlertRule:
     cooldown_minutes: int = 15
     enabled: bool = True
     metadata: Dict[str, Any] = None
+
 
 @dataclass
 class Alert:
@@ -64,6 +68,7 @@ class Alert:
     metadata: Dict[str, Any] = None
     acknowledged_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
+
 
 class OfflineAlertGenerator:
     """Generates alerts using pre-computed thresholds for offline operation"""

@@ -8,6 +8,7 @@ import sys
 import aiohttp
 import torch.nn.functional as F
 
+
 async def check_health():
     """Check if the service is healthy"""
     try:
@@ -29,6 +30,7 @@ async def check_health():
     except Exception as e:
         print(f"Health check failed: {e}")
         return False
+
 
 if __name__ == "__main__":
     is_healthy = asyncio.run(check_health())

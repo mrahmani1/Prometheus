@@ -19,15 +19,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_data import (
-    DataQuality,
-    DeformationMeasurement,
-    GeologicalLocation,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
+from models.geological_data import (DataQuality, DeformationMeasurement,
+                                    GeologicalLocation, SeismicEvent,
+                                    StrainMeasurement, ThermalMeasurement)
 from processors.sensor_fusion import MultiSensorDataFusion
+
 
 def create_sample_volcanic_scenario():
     """
@@ -161,6 +157,7 @@ def create_sample_volcanic_scenario():
     print(f"Created {len(geological_data)} sensor measurements")
     return geological_data, volcano_location
 
+
 def demonstrate_kalman_fusion(geological_data, reference_location):
     """Demonstrate Kalman filter-based sensor fusion"""
     print("\n" + "=" * 60)
@@ -223,6 +220,7 @@ def demonstrate_kalman_fusion(geological_data, reference_location):
 
     return fusion_results
 
+
 def demonstrate_weighted_fusion(geological_data, reference_location):
     """Demonstrate weighted average sensor fusion"""
     print("\n" + "=" * 60)
@@ -269,6 +267,7 @@ def demonstrate_weighted_fusion(geological_data, reference_location):
         print("  Note: Weighted fusion provides simpler but faster processing")
 
     return fusion_results
+
 
 def analyze_sensor_contributions(geological_data):
     """Analyze the contribution of different sensor types"""
@@ -321,6 +320,7 @@ def analyze_sensor_contributions(geological_data):
     for sensor_type, span in temporal_span.items():
         duration = (span["max"] - span["min"]).total_seconds() / 60  # minutes
         print(f"  {sensor_type}: {duration:.1f} minutes")
+
 
 def main():
     """Main demonstration function"""
@@ -380,6 +380,7 @@ def main():
         return 1
 
     return 0
+
 
 if __name__ == "__main__":
     exit(main())

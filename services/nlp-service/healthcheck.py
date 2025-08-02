@@ -9,6 +9,7 @@ import sys
 import requests
 import torch.nn.functional as F
 
+
 def check_health():
     """Check if the NLP service is healthy"""
     try:
@@ -46,6 +47,7 @@ def check_health():
     except Exception as e:
         print(f"Unexpected error during health check: {e}")
         return False
+
 
 if __name__ == "__main__":
     if check_health():

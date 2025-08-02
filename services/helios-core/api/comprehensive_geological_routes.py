@@ -28,6 +28,7 @@ from ..core.service_registry import ServiceRegistry
 
 logger = structlog.get_logger()
 
+
 # Pydantic models for comprehensive geological analysis
 class GeologicalDataInput(BaseModel):
     """Geological data input specification"""
@@ -44,6 +45,7 @@ class GeologicalDataInput(BaseModel):
         default_factory=dict, description="Additional metadata"
     )
 
+
 class ComprehensiveAnalysisRequest(BaseModel):
     """Request for comprehensive geological analysis"""
 
@@ -58,6 +60,7 @@ class ComprehensiveAnalysisRequest(BaseModel):
         None, description="Resource allocation preferences"
     )
 
+
 class HypothesisGenerationRequest(BaseModel):
     """Request for autonomous hypothesis generation"""
 
@@ -68,6 +71,7 @@ class HypothesisGenerationRequest(BaseModel):
     max_hypotheses: int = Field(
         10, description="Maximum number of hypotheses to generate"
     )
+
 
 class DataSourceRegistration(BaseModel):
     """Data source registration request"""
@@ -88,6 +92,7 @@ class DataSourceRegistration(BaseModel):
         default_factory=dict, description="Source metadata"
     )
 
+
 class DataFusionRequest(BaseModel):
     """Data fusion request"""
 
@@ -99,6 +104,7 @@ class DataFusionRequest(BaseModel):
     quality_requirements: Dict[str, float] = Field(
         default_factory=dict, description="Quality requirements"
     )
+
 
 class NetworkOptimizationRequest(BaseModel):
     """Monitoring network optimization request"""
@@ -115,6 +121,7 @@ class NetworkOptimizationRequest(BaseModel):
         default_factory=dict, description="Performance targets"
     )
 
+
 class RiskAssessmentRequest(BaseModel):
     """Geological risk assessment request"""
 
@@ -124,10 +131,12 @@ class RiskAssessmentRequest(BaseModel):
     risk_factors: List[str] = Field(..., description="Risk factors to consider")
     confidence_level: float = Field(0.95, description="Confidence level for assessment")
 
+
 # Create router
 router = APIRouter(
     prefix="/comprehensive-geological", tags=["Comprehensive Geological Intelligence"]
 )
+
 
 # Dependency to get Helios engine
 async def get_helios_engine() -> HeliosEngine:
@@ -135,6 +144,7 @@ async def get_helios_engine() -> HeliosEngine:
     settings = Settings()
     service_registry = ServiceRegistry()
     return HeliosEngine(settings, service_registry)
+
 
 @router.post("/analysis/comprehensive", response_model=Dict[str, Any])
 async def perform_comprehensive_analysis(
@@ -198,6 +208,7 @@ async def perform_comprehensive_analysis(
         )
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 @router.post("/discovery/hypotheses", response_model=Dict[str, Any])
 async def generate_autonomous_hypotheses(
     request: HypothesisGenerationRequest,
@@ -260,6 +271,7 @@ async def generate_autonomous_hypotheses(
             status_code=500, detail=f"Hypothesis generation failed: {str(e)}"
         )
 
+
 @router.post("/data-sources/register", response_model=Dict[str, Any])
 async def register_data_source(
     request: DataSourceRegistration,
@@ -309,6 +321,7 @@ async def register_data_source(
         )
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
+
 @router.post("/data-fusion/fuse", response_model=Dict[str, Any])
 async def fuse_geological_data(
     request: DataFusionRequest, helios_engine: HeliosEngine = Depends(get_helios_engine)
@@ -346,6 +359,7 @@ async def fuse_geological_data(
     except Exception as e:
         logger.error("Data fusion failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Data fusion failed: {str(e)}")
+
 
 @router.post("/network/optimize", response_model=Dict[str, Any])
 async def optimize_monitoring_network(
@@ -391,6 +405,7 @@ async def optimize_monitoring_network(
             status_code=500, detail=f"Network optimization failed: {str(e)}"
         )
 
+
 @router.post("/risk-assessment/generate", response_model=Dict[str, Any])
 async def generate_risk_assessment(
     request: RiskAssessmentRequest,
@@ -433,6 +448,7 @@ async def generate_risk_assessment(
         logger.error("Risk assessment failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Risk assessment failed: {str(e)}")
 
+
 @router.get("/intelligence/status", response_model=Dict[str, Any])
 async def get_intelligence_status(
     helios_engine: HeliosEngine = Depends(get_helios_engine),
@@ -461,6 +477,7 @@ async def get_intelligence_status(
         raise HTTPException(
             status_code=500, detail=f"Status retrieval failed: {str(e)}"
         )
+
 
 @router.get("/analysis/{analysis_id}", response_model=Dict[str, Any])
 async def get_analysis_results(
@@ -499,6 +516,7 @@ async def get_analysis_results(
             status_code=500, detail=f"Results retrieval failed: {str(e)}"
         )
 
+
 @router.delete("/analysis/{analysis_id}", response_model=Dict[str, Any])
 async def delete_analysis(
     analysis_id: str, helios_engine: HeliosEngine = Depends(get_helios_engine)
@@ -523,6 +541,7 @@ async def delete_analysis(
     except Exception as e:
         logger.error("Failed to delete analysis", analysis_id=analysis_id, error=str(e))
         raise HTTPException(status_code=500, detail=f"Deletion failed: {str(e)}")
+
 
 @router.get("/capabilities", response_model=Dict[str, Any])
 async def get_system_capabilities(

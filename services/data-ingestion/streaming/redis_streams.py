@@ -11,6 +11,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Redisstreams:
     """Main class for redis streams functionality."""
 
@@ -28,11 +29,13 @@ class Redisstreams:
             self.logger.error(f"Error processing data: {e}")
             return {"status": "error", "message": str(e)}
 
+
 def main():
     """Main function for testing."""
     instance = Redisstreams()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

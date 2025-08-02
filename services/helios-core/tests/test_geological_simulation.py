@@ -35,10 +35,12 @@ from models.geological import (
     SampleType,
 )
 
+
 @pytest.fixture
 def device():
     """Test device fixture"""
     return torch.device("cpu")
+
 
 @pytest.fixture
 def mock_pinn_engine():
@@ -46,6 +48,7 @@ def mock_pinn_engine():
     engine = Mock(spec=PINNEngine)
     engine.create_temporal_model.return_value = Mock()
     return engine
+
 
 @pytest.fixture
 def sample_volcanic_state():
@@ -84,12 +87,14 @@ def sample_volcanic_state():
         system_age=50000.0,
     )
 
+
 @pytest.fixture
 def sample_time_span():
     """Sample time span for testing"""
     start_time = datetime(2000, 1, 1)
     end_time = datetime(2010, 1, 1)
     return (start_time, end_time)
+
 
 class TestVolcanicSystemEvolutionModeler:
     """Tests for volcanic system evolution modeler"""
@@ -188,6 +193,7 @@ class TestVolcanicSystemEvolutionModeler:
         assert "heat_flux" in new_thermal_state
         assert "geothermal_gradient" in new_thermal_state
         assert new_thermal_state["temperature"] > 0
+
 
 class TestMagmaGenerationTracker:
     """Tests for magma generation tracker"""
@@ -289,6 +295,7 @@ class TestMagmaGenerationTracker:
         assert generation_state.generation_rate > 0
         assert generation_state.mantle_temperature > 1000
 
+
 class TestHydrothermalSystemModeler:
     """Tests for hydrothermal system modeler"""
 
@@ -363,6 +370,7 @@ class TestHydrothermalSystemModeler:
         # Check that heat source creates thermal anomaly
         temperature = system_state["temperature"]
         assert np.max(temperature) > np.min(temperature)  # Should have thermal anomaly
+
 
 class TestTectonicPlateReconstructor:
     """Tests for tectonic plate reconstructor"""
@@ -446,6 +454,7 @@ class TestTectonicPlateReconstructor:
         assert "test_plate" in plate_state.plate_velocities
         assert "test_boundary" in plate_state.boundary_types
         assert "test_continent" in plate_state.continental_positions
+
 
 class TestLongTermGeologicalSimulator:
     """Tests for long-term geological simulator"""
@@ -552,6 +561,7 @@ class TestLongTermGeologicalSimulator:
         assert initial_state.thermal_state["temperature"] == 1000
         assert initial_state.crustal_thickness == 30000
 
+
 class TestDataStructures:
     """Tests for data structure classes"""
 
@@ -642,6 +652,7 @@ class TestDataStructures:
         assert result.time_range == sample_time_span
         assert result.time_scale == SimulationTimeScale.MILLIONS_YEARS
         assert isinstance(result.simulation_metadata, dict)
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

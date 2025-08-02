@@ -19,6 +19,7 @@ from torch.autograd import grad
 
 logger = structlog.get_logger()
 
+
 @dataclass
 class PhysicsConstraintResult:
     """Result of physics constraint evaluation"""
@@ -30,6 +31,7 @@ class PhysicsConstraintResult:
     mean_violation: float
     constraint_satisfied: bool
     tolerance: float
+
 
 class PhysicsConstraintSolver(ABC):
     """Abstract base class for physics constraint solvers"""
@@ -189,6 +191,7 @@ class PhysicsConstraintSolver(ABC):
 
         return laplacian
 
+
 class NavierStokesConstraint(PhysicsConstraintSolver):
     """
     Navier-Stokes equations for fluid dynamics
@@ -302,6 +305,7 @@ class NavierStokesConstraint(PhysicsConstraintSolver):
         """Get required derivatives for Navier-Stokes"""
         return ["first_order", "second_order"]
 
+
 class HeatTransferConstraint(PhysicsConstraintSolver):
     """
     Heat transfer equation constraint
@@ -372,6 +376,7 @@ class HeatTransferConstraint(PhysicsConstraintSolver):
     def get_required_derivatives(self) -> List[str]:
         """Get required derivatives for heat transfer"""
         return ["first_order", "second_order"]
+
 
 class ElasticDeformationConstraint(PhysicsConstraintSolver):
     """
@@ -470,6 +475,7 @@ class ElasticDeformationConstraint(PhysicsConstraintSolver):
         """Get required derivatives for elastic deformation"""
         return ["first_order", "second_order"]
 
+
 class MassConservationConstraint(PhysicsConstraintSolver):
     """
     Mass conservation constraint for geochemical processes
@@ -550,6 +556,7 @@ class MassConservationConstraint(PhysicsConstraintSolver):
     def get_required_derivatives(self) -> List[str]:
         """Get required derivatives for mass conservation"""
         return ["first_order", "second_order"]
+
 
 class PhysicsConstraintEnforcer:
     """
@@ -759,10 +766,12 @@ class PhysicsConstraintEnforcer:
 
         return diagnostics
 
+
 # Factory function for creating constraint enforcer
 def create_physics_constraint_enforcer() -> PhysicsConstraintEnforcer:
     """Create and return a physics constraint enforcer instance"""
     return PhysicsConstraintEnforcer()
+
 
 # Utility functions for creating common constraints
 def create_navier_stokes_constraint(
@@ -778,6 +787,7 @@ def create_navier_stokes_constraint(
         weight=weight,
         tolerance=tolerance,
     )
+
 
 def create_heat_transfer_constraint(
     thermal_conductivity: float = 1.0,
@@ -800,6 +810,7 @@ def create_heat_transfer_constraint(
         tolerance=tolerance,
     )
 
+
 def create_elastic_deformation_constraint(
     youngs_modulus: float = 70e9,
     poisson_ratio: float = 0.3,
@@ -816,6 +827,7 @@ def create_elastic_deformation_constraint(
         weight=weight,
         tolerance=tolerance,
     )
+
 
 def create_mass_conservation_constraint(
     diffusion_coefficient: float = 1e-9,

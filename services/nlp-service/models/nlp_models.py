@@ -11,6 +11,7 @@ import pandas as pd
 import torch.nn.functional as F
 from pydantic import BaseModel, Field
 
+
 class QueryIntent(str, Enum):
     """Supported query intents"""
 
@@ -23,6 +24,7 @@ class QueryIntent(str, Enum):
     COMPARISON_QUERY = "comparison_query"
     HISTORICAL_QUERY = "historical_query"
 
+
 class EntityType(str, Enum):
     """Types of geological entities"""
 
@@ -34,6 +36,7 @@ class EntityType(str, Enum):
     INSTRUMENT = "instrument"
     PARAMETER = "parameter"
 
+
 class NLPQuery(BaseModel):
     """Basic NLP query input"""
 
@@ -43,6 +46,7 @@ class NLPQuery(BaseModel):
     )
     user_id: Optional[str] = Field(default=None, description="User identifier")
     session_id: Optional[str] = Field(default=None, description="Session identifier")
+
 
 class GeologicalEntity(BaseModel):
     """Extracted geological entity"""
@@ -59,11 +63,13 @@ class GeologicalEntity(BaseModel):
         default=None, description="Additional entity metadata"
     )
 
+
 class AlternativeIntent(BaseModel):
     """Alternative intent with confidence score"""
 
     intent: str = Field(..., description="Intent name")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
+
 
 class IntentClassificationResult(BaseModel):
     """Result of intent classification"""
@@ -79,6 +85,7 @@ class IntentClassificationResult(BaseModel):
         ..., description="Processing time in milliseconds"
     )
 
+
 class EntityExtractionResult(BaseModel):
     """Result of entity extraction"""
 
@@ -89,6 +96,7 @@ class EntityExtractionResult(BaseModel):
         ..., description="Processing time in milliseconds"
     )
     total_entities: int = Field(..., description="Total number of entities found")
+
 
 class SystemParameter(BaseModel):
     """System parameter derived from natural language"""
@@ -104,6 +112,7 @@ class SystemParameter(BaseModel):
     source_text: Optional[str] = Field(
         default=None, description="Source text that generated this parameter"
     )
+
 
 class QueryTranslationResult(BaseModel):
     """Result of query translation to system parameters"""
@@ -123,6 +132,7 @@ class QueryTranslationResult(BaseModel):
     translation_confidence: float = Field(
         ..., ge=0.0, le=1.0, description="Overall translation confidence"
     )
+
 
 class ConversationalResponse(BaseModel):
     """Generated conversational response"""
@@ -144,6 +154,7 @@ class ConversationalResponse(BaseModel):
         ..., description="Processing time in milliseconds"
     )
 
+
 class GeologicalQueryRequest(BaseModel):
     """Complete geological query request"""
 
@@ -158,6 +169,7 @@ class GeologicalQueryRequest(BaseModel):
     correlation_id: Optional[str] = Field(
         default=None, description="Request correlation ID"
     )
+
 
 class GeologicalQueryResponse(BaseModel):
     """Complete geological query response"""
@@ -178,6 +190,7 @@ class GeologicalQueryResponse(BaseModel):
         default=None, description="Request correlation ID"
     )
 
+
 class GeologicalKnowledgeBase(BaseModel):
     """Geological knowledge base entry"""
 
@@ -187,6 +200,7 @@ class GeologicalKnowledgeBase(BaseModel):
     synonyms: List[str] = Field(default=[], description="Alternative terms")
     related_terms: List[str] = Field(default=[], description="Related geological terms")
     examples: List[str] = Field(default=[], description="Usage examples")
+
 
 class ConversationContext(BaseModel):
     """Context for maintaining conversation state"""
@@ -205,6 +219,7 @@ class ConversationContext(BaseModel):
     preferred_response_style: Optional[str] = Field(
         default="technical", description="Preferred response style"
     )
+
 
 class NLPServiceHealth(BaseModel):
     """NLP service health status"""

@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class SystemIntegrationManager:
     """Manages comprehensive integration between all system components"""
 
@@ -148,8 +149,10 @@ class SystemIntegrationManager:
         except Exception as e:
             logger.error(f"Data pipeline initialization failed: {e}")
 
+
 # Global integration manager instance
 integration_manager = SystemIntegrationManager()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -159,12 +162,14 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("System integration service shutting down")
 
+
 app = FastAPI(
     title="System Integration Service",
     description="Coordinates all advanced system components for Prometheus AI Platform",
     version="1.0.0",
     lifespan=lifespan,
 )
+
 
 # Request/Response models
 class MagmaticIntrusionRequest(BaseModel):
@@ -181,6 +186,7 @@ class MagmaticIntrusionRequest(BaseModel):
             "temporal_evolution_tracking": True,
         }
     )
+
 
 class ASFInSARRequest(BaseModel):
     region: Dict[str, float]  # lat/lon bounds
@@ -203,6 +209,7 @@ class ASFInSARRequest(BaseModel):
         }
     )
 
+
 class IntegrationStatus(BaseModel):
     timestamp: datetime
     healthy_services: List[str]
@@ -210,9 +217,11 @@ class IntegrationStatus(BaseModel):
     cloud_resources: Dict[str, Any]
     system_load: Dict[str, float]
 
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+
 
 class AdvancedSeismicCNN:
     """Convolutional Neural Network for seismic event detection and classification"""
@@ -365,6 +374,7 @@ class AdvancedSeismicCNN:
         """Estimate earthquake magnitude from waveform amplitude"""
         np.max(np.abs(waveform_data))
 
+
 class AdvancedPhysicsSimulator:
     """Physics-Informed Neural Network for geological simulations"""
 
@@ -485,6 +495,7 @@ class AdvancedPhysicsSimulator:
             ),
         }
 
+
 @app.get("/status", response_model=IntegrationStatus)
 async def get_system_status():
     """Get comprehensive system integration status"""
@@ -520,6 +531,7 @@ async def get_system_status():
     except Exception as e:
         logger.error(f"Status check failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/magmatic-intrusion/analyze")
 async def analyze_magmatic_intrusion(
@@ -563,6 +575,7 @@ async def analyze_magmatic_intrusion(
     except Exception as e:
         logger.error(f"Magmatic intrusion analysis initiation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 async def execute_magmatic_intrusion_analysis(analysis_config: Dict[str, Any]):
     """Execute comprehensive magmatic intrusion analysis"""
@@ -610,6 +623,7 @@ async def execute_magmatic_intrusion_analysis(analysis_config: Dict[str, Any]):
             f"magmatic_analysis:{analysis_id}", json.dumps(analysis_config)
         )
 
+
 async def collect_monitoring_data(analysis_config: Dict[str, Any]) -> Dict[str, Any]:
     """Collect comprehensive monitoring data for intrusion analysis"""
     monitoring_data = {}
@@ -642,6 +656,7 @@ async def collect_monitoring_data(analysis_config: Dict[str, Any]) -> Dict[str, 
 
     return monitoring_data
 
+
 async def train_geological_models(
     monitoring_data: Dict[str, Any], analysis_config: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -666,6 +681,7 @@ async def train_geological_models(
         logger.error(f"Geological model training failed: {e}")
 
     return {}
+
 
 async def analyze_intrusion_patterns(
     monitoring_data: Dict[str, Any],
@@ -692,6 +708,7 @@ async def analyze_intrusion_patterns(
         logger.error(f"Intrusion pattern analysis failed: {e}")
 
     return {}
+
 
 async def generate_intrusion_visualization(
     intrusion_analysis: Dict[str, Any], analysis_config: Dict[str, Any]
@@ -724,6 +741,7 @@ async def generate_intrusion_visualization(
 
     return visualization_data
 
+
 async def send_results_to_ui(visualization_data: Dict[str, Any], analysis_id: str):
     """Send analysis results to Vulcan UI for display"""
     try:
@@ -740,6 +758,7 @@ async def send_results_to_ui(visualization_data: Dict[str, Any], analysis_id: st
 
     except Exception as e:
         logger.error(f"Failed to send results to UI: {e}")
+
 
 @app.get("/magmatic-intrusion/status/{analysis_id}")
 async def get_magmatic_intrusion_status(analysis_id: str):
@@ -768,6 +787,7 @@ async def get_magmatic_intrusion_status(analysis_id: str):
     except Exception as e:
         logger.error(f"Failed to get analysis status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/insar/alaska-satellite-facility/integrate")
 async def integrate_asf_insar_pipeline(
@@ -818,6 +838,7 @@ async def integrate_asf_insar_pipeline(
         logger.error(f"ASF InSAR integration initiation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 async def execute_asf_insar_integration(integration_config: Dict[str, Any]):
     """Execute comprehensive Alaska Satellite Facility InSAR pipeline integration"""
     integration_id = integration_config["integration_id"]
@@ -860,6 +881,7 @@ async def execute_asf_insar_integration(integration_config: Dict[str, Any]):
             f"asf_integration:{integration_id}", json.dumps(integration_config)
         )
 
+
 async def setup_asf_data_connector(integration_config: Dict[str, Any]):
     """Setup Alaska Satellite Facility data connector"""
     try:
@@ -889,6 +911,7 @@ async def setup_asf_data_connector(integration_config: Dict[str, Any]):
 
     except Exception as e:
         logger.error(f"ASF data connector setup failed: {e}")
+
 
 async def configure_insar_pipeline(integration_config: Dict[str, Any]):
     """Configure InSAR processing pipeline"""
@@ -922,6 +945,7 @@ async def configure_insar_pipeline(integration_config: Dict[str, Any]):
     except Exception as e:
         logger.error(f"InSAR pipeline configuration failed: {e}")
 
+
 async def integrate_with_geological_models(integration_config: Dict[str, Any]):
     """Integrate InSAR data with geological model training"""
     try:
@@ -950,6 +974,7 @@ async def integrate_with_geological_models(integration_config: Dict[str, Any]):
 
     except Exception as e:
         logger.error(f"Geological model integration failed: {e}")
+
 
 async def setup_vulcan_ui_interface(integration_config: Dict[str, Any]):
     """Setup Vulcan UI interface for InSAR data visualization"""
@@ -984,6 +1009,7 @@ async def setup_vulcan_ui_interface(integration_config: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Vulcan UI interface setup failed: {e}")
 
+
 async def enable_real_time_insar_processing(integration_config: Dict[str, Any]):
     """Enable real-time InSAR processing"""
     try:
@@ -1010,6 +1036,7 @@ async def enable_real_time_insar_processing(integration_config: Dict[str, Any]):
 
     except Exception as e:
         logger.error(f"Real-time InSAR processing setup failed: {e}")
+
 
 @app.get("/insar/asf/status/{integration_id}")
 async def get_asf_insar_status(integration_id: str):
@@ -1040,6 +1067,8 @@ async def get_asf_insar_status(integration_id: str):
         logger.error(f"Failed to get ASF InSAR integration status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host=os.getenv("HOST", "0.0.0.0"), port=8011)

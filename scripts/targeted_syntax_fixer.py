@@ -3,11 +3,11 @@
 Targeted syntax error fixer for specific patterns found in the Prometheus AI platform.
 """
 
-import os
-import re
+from pathlib import Path
 import ast
 import logging
-from pathlib import Path
+import os
+import re
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -157,8 +157,8 @@ def create_minimal_test_file(module_name):
 Test module for {module_name.replace('_', ' ')}.
 """
 
-import unittest
 import logging
+import unittest
 
 logger = logging.getLogger(__name__)
 
@@ -188,9 +188,9 @@ def create_minimal_main_file(module_name):
 Main module for {module_name.replace('_', ' ')} service.
 """
 
-import logging
-import asyncio
 from typing import Dict, Any
+import asyncio
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -234,8 +234,8 @@ def create_minimal_healthcheck_file():
 Health check module.
 """
 
-import logging
 from typing import Dict, Any
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -269,8 +269,8 @@ def create_minimal_module_file(module_name):
 {module_name.replace('_', ' ').title()} module.
 """
 
-import logging
 from typing import Dict, List, Any, Optional
+import logging
 
 logger = logging.getLogger(__name__)
 

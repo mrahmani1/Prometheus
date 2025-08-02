@@ -4,11 +4,11 @@ CI/CD Pipeline Runner Script
 Executes the comprehensive CI/CD pipeline for Prometheus AI Platform
 """
 
+from pathlib import Path
 import argparse
 import asyncio
 import logging
 import sys
-from pathlib import Path
 
 import git
 

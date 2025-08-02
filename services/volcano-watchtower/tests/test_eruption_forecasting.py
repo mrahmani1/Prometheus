@@ -8,10 +8,12 @@ import pytest
 from core.eruption_forecasting import ProbabilisticEruptionForecaster
 from models.volcanic_data import EruptionForecast
 
+
 @pytest.fixture
 def forecaster():
     """Create eruption forecaster for testing"""
     return ProbabilisticEruptionForecaster()
+
 
 @pytest.fixture
 def sample_monitoring_data():
@@ -23,6 +25,7 @@ def sample_monitoring_data():
         "thermal": [],
         "quality_score": 0.8,
     }
+
 
 @pytest.mark.asyncio
 async def test_generate_probabilistic_forecast(forecaster, sample_monitoring_data):
@@ -56,6 +59,7 @@ async def test_generate_probabilistic_forecast(forecaster, sample_monitoring_dat
         probability = forecast.probability_by_timeframe[timeframe]
         assert 0.0 <= probability <= 1.0
 
+
 @pytest.mark.asyncio
 async def test_statistical_forecast(forecaster):
     """Test statistical forecasting component"""
@@ -87,11 +91,11 @@ async def test_statistical_forecast(forecaster):
     assert isinstance(empty_probability, float)
     assert 0.0 <= empty_probability <= 1.0
 
+
 @pytest.mark.asyncio
 async def test_machine_learning_forecast(forecaster, sample_monitoring_data):
     """Test machine learning forecasting component"""
     volcano_id = "test_volcano"
-
 
     timeframe = ForecastTimeframe("24_hours", 24)
 
@@ -102,11 +106,11 @@ async def test_machine_learning_forecast(forecaster, sample_monitoring_data):
     assert isinstance(probability, float)
     assert 0.0 <= probability <= 0.9  # Capped at 90%
 
+
 @pytest.mark.asyncio
 async def test_physics_informed_forecast(forecaster, sample_monitoring_data):
     """Test physics-informed forecasting component"""
     volcano_id = "test_volcano"
-
 
     timeframe = ForecastTimeframe("24_hours", 24)
 
@@ -116,6 +120,7 @@ async def test_physics_informed_forecast(forecaster, sample_monitoring_data):
 
     assert isinstance(probability, float)
     assert 0.0 <= probability <= 1.0
+
 
 def test_extract_ml_features(forecaster, sample_monitoring_data):
     """Test ML feature extraction"""
@@ -136,6 +141,7 @@ def test_extract_ml_features(forecaster, sample_monitoring_data):
         assert isinstance(features[feature], (int, float))
         assert features[feature] >= 0.0
 
+
 def test_combine_forecasts(forecaster):
     """Test forecast ensemble combination"""
     model_forecasts = {
@@ -155,6 +161,7 @@ def test_combine_forecasts(forecaster):
     expected = 0.3 * 0.1 + 0.4 * 0.2 + 0.3 * 0.15
     assert abs(ensemble_forecast - expected) < 0.001
 
+
 def test_calculate_forecast_confidence(forecaster, sample_monitoring_data):
     """Test forecast confidence calculation"""
     historical_data = [
@@ -170,6 +177,7 @@ def test_calculate_forecast_confidence(forecaster, sample_monitoring_data):
     assert isinstance(confidence, float)
     assert 0.0 <= confidence <= 0.95
 
+
 def test_identify_key_indicators(forecaster, sample_monitoring_data):
     """Test key indicator identification"""
     indicators = forecaster._identify_key_indicators(sample_monitoring_data)
@@ -180,6 +188,7 @@ def test_identify_key_indicators(forecaster, sample_monitoring_data):
     for indicator in indicators:
         assert isinstance(indicator, str)
         assert len(indicator) > 0
+
 
 @pytest.mark.asyncio
 async def test_volcano_type_mapping(forecaster):
@@ -194,6 +203,7 @@ async def test_volcano_type_mapping(forecaster):
     for volcano_id, expected_type in test_cases:
         volcano_type = await forecaster._get_volcano_type(volcano_id)
         assert volcano_type == expected_type
+
 
 @pytest.mark.asyncio
 async def test_historical_eruption_data(forecaster):
@@ -211,6 +221,7 @@ async def test_historical_eruption_data(forecaster):
         assert isinstance(eruption["date"], datetime)
         assert isinstance(eruption["vei"], int)
         assert 0 <= eruption["vei"] <= 8
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

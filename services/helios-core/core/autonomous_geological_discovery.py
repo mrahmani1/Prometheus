@@ -32,6 +32,7 @@ from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
+
 class DiscoveryType(str, Enum):
     """Types of geological discoveries"""
 
@@ -43,6 +44,7 @@ class DiscoveryType(str, Enum):
     HYPOTHESIS_GENERATION = "hypothesis_generation"
     EXPERIMENTAL_DESIGN = "experimental_design"
     THEORY_FORMATION = "theory_formation"
+
 
 class GeologicalDomain(str, Enum):
     """Geological domains for discovery"""
@@ -59,6 +61,7 @@ class GeologicalDomain(str, Enum):
     PALEONTOLOGY = "paleontology"
     TECTONICS = "tectonics"
     GEODYNAMICS = "geodynamics"
+
 
 @dataclass
 class GeologicalHypothesis:
@@ -85,6 +88,7 @@ class GeologicalHypothesis:
     limitations: List[str]
     future_work: List[str]
 
+
 @dataclass
 class ExperimentalDesign:
     """Experimental design for hypothesis testing"""
@@ -105,6 +109,7 @@ class ExperimentalDesign:
     alternative_hypotheses: List[str]
     control_variables: List[str]
     measurement_protocols: List[str]
+
 
 @dataclass
 class GeologicalDiscovery:
@@ -128,6 +133,7 @@ class GeologicalDiscovery:
     validation_status: str
     peer_review_feedback: List[str]
     publication_references: List[str]
+
 
 class AutonomousHypothesisGenerator:
     """Autonomous system for generating geological hypotheses"""

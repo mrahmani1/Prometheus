@@ -25,19 +25,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .advanced_pinn_engine import (
-    AdaptivePhysicsMode,
-    AdvancedPhysicsConstraint,
-    AdvancedPhysicsConstraintType,
-    AdvancedPINNEngine,
-)
-from .quantum_enhanced_pinn_trainer import (
-    QuantumCircuitType,
-    QuantumEnhancedPINNTrainer,
-    QuantumTrainingConfig,
-)
+from .advanced_pinn_engine import (AdaptivePhysicsMode,
+                                   AdvancedPhysicsConstraint,
+                                   AdvancedPhysicsConstraintType,
+                                   AdvancedPINNEngine)
+from .quantum_enhanced_pinn_trainer import (QuantumCircuitType,
+                                            QuantumEnhancedPINNTrainer,
+                                            QuantumTrainingConfig)
 
 logger = logging.getLogger(__name__)
+
 
 class RevolutionaryPINNSystem:
     """Revolutionary Physics-Informed Neural Network System"""

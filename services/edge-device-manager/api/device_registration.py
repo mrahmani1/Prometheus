@@ -7,17 +7,14 @@ from typing import List, Optional
 
 from core.device_manager import EdgeDeviceManager
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from models.device import (
-    DeviceMetrics,
-    DeviceRegistrationRequest,
-    DeviceRegistrationResponse,
-    DeviceStatus,
-    EdgeDevice,
-)
+from models.device import (DeviceMetrics, DeviceRegistrationRequest,
+                           DeviceRegistrationResponse, DeviceStatus,
+                           EdgeDevice)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 # Dependency to get device manager instance
 async def get_device_manager() -> EdgeDeviceManager:
@@ -26,6 +23,7 @@ async def get_device_manager() -> EdgeDeviceManager:
     if not device_manager:
         raise HTTPException(status_code=503, detail="Device manager not available")
     return device_manager
+
 
 @router.post("/register", response_model=DeviceRegistrationResponse)
 async def register_device(
@@ -43,6 +41,7 @@ async def register_device(
         logger.error(f"Failed to register device: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/{device_id}", response_model=EdgeDevice)
 async def get_device(
     device_id: str, manager: EdgeDeviceManager = Depends(get_device_manager)
@@ -52,6 +51,7 @@ async def get_device(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     return device
+
 
 @router.get("/", response_model=List[EdgeDevice])
 async def list_devices(
@@ -70,6 +70,7 @@ async def list_devices(
         logger.error(f"Failed to list devices: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/{device_id}/heartbeat")
 async def update_heartbeat(
     device_id: str,
@@ -85,6 +86,7 @@ async def update_heartbeat(
     except Exception as e:
         logger.error(f"Failed to update heartbeat for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.put("/{device_id}/config")
 async def update_device_config(
@@ -106,6 +108,7 @@ async def update_device_config(
         logger.error(f"Failed to update config for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.delete("/{device_id}")
 async def remove_device(
     device_id: str,
@@ -122,6 +125,7 @@ async def remove_device(
     except Exception as e:
         logger.error(f"Failed to remove device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/{device_id}/status")
 async def get_device_status(
@@ -143,6 +147,7 @@ async def get_device_status(
         "sync_status": device.sync_status,
     }
 
+
 @router.get("/{device_id}/metrics/history")
 async def get_device_metrics_history(
     device_id: str,
@@ -163,6 +168,7 @@ async def get_device_metrics_history(
         "message": "Historical metrics would be retrieved from time-series database",
     }
 
+
 @router.post("/{device_id}/reboot")
 async def reboot_device(
     device_id: str, manager: EdgeDeviceManager = Depends(get_device_manager)
@@ -179,6 +185,7 @@ async def reboot_device(
         "message": f"Reboot command sent to device {device_id}",
         "device_id": device_id,
     }
+
 
 @router.post("/{device_id}/maintenance")
 async def set_maintenance_mode(

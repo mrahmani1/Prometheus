@@ -13,10 +13,10 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
+import torch.nn.functional as F
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import torch.nn.functional as F
 from core.earthquake_forecasting import (
     EarthquakeCluster,
     EarthquakeForecastingEngine,
@@ -25,6 +25,7 @@ from core.earthquake_forecasting import (
     HazardLevel,
 )
 from models.geological import EventType, GeologicalLocation, SeismicEvent
+
 
 class TestEarthquakeForecastingEngine:
     """Test suite for EarthquakeForecastingEngine"""
@@ -546,6 +547,7 @@ class TestEarthquakeForecastingEngine:
         for prob in forecast.values():
             assert 0 <= prob <= 1
 
+
 class TestEarthquakeCluster:
     """Test suite for EarthquakeCluster class"""
 
@@ -627,6 +629,7 @@ class TestEarthquakeCluster:
                 magnitude_range=(4.0, 5.0),
             )
 
+
 class TestForecastResult:
     """Test suite for ForecastResult class"""
 
@@ -693,6 +696,7 @@ class TestForecastResult:
                 model_used=ForecastModel.STATISTICAL_SEISMICITY,
                 uncertainty_metrics={"overall_uncertainty": 0.02},
             )
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

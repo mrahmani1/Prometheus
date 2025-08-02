@@ -7,7 +7,6 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 
-import structlog
 import torch.nn as nn
 import torch.nn.functional as F
 from models.nlp_models import (
@@ -16,10 +15,13 @@ from models.nlp_models import (
     QueryIntent,
     QueryTranslationResult,
     SystemParameter,
+    structlog,
 )
+
 # Neural network imports handled in model files
 
 logger = structlog.get_logger()
+
 
 class QueryTranslator:
     """

@@ -8,7 +8,6 @@ import signal
 import time
 from typing import Dict, List, Optional
 
-import structlog
 import torch.nn as nn
 import torch.nn.functional as F
 from models.nlp_models import (
@@ -16,10 +15,13 @@ from models.nlp_models import (
     EntityType,
     GeologicalEntity,
     QueryIntent,
+    structlog,
 )
+
 # Neural network imports handled in model files
 
 logger = structlog.get_logger()
+
 
 class ConversationalResponseGenerator:
     """

@@ -9,12 +9,8 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import structlog
-from models.volcanic_data import (
-    DeformationMeasurement,
-    GeologicalLocation,
-    MagmaReservoirParameters,
-    SeismicEvent,
-)
+from models.volcanic_data import (DeformationMeasurement, GeologicalLocation,
+                                  MagmaReservoirParameters, SeismicEvent)
 
 logger = structlog.get_logger()
 

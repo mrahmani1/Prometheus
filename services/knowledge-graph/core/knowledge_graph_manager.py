@@ -17,13 +17,11 @@ from neo4j import AsyncGraphDatabase
 
 from .config import settings
 from .knowledge_extractor import ExtractedKnowledge
-from .semantic_reasoner import (
-    InferredRelationship,
-    SemanticReasoner,
-    SemanticTriple,
-)
+from .semantic_reasoner import (InferredRelationship, SemanticReasoner,
+                                SemanticTriple)
 
 logger = structlog.get_logger()
+
 
 @dataclass
 class KnowledgeUpdate:
@@ -37,6 +35,7 @@ class KnowledgeUpdate:
     timestamp: datetime
     metadata: Dict[str, Any]
 
+
 @dataclass
 class DiscoveryEvent:
     """New scientific discovery event"""
@@ -48,6 +47,7 @@ class DiscoveryEvent:
     confidence_score: float
     supporting_evidence: List[str]
     timestamp: datetime
+
 
 class KnowledgeGraphManager:
     """Manages the scientific knowledge graph with dynamic updates"""

@@ -11,18 +11,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from influxdb_client import Point
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
-from models.geological_data import (
-    AtmosphericMeasurement,
-    FiberOpticMeasurement,
-    GeochemicalSample,
-    SatelliteObservation,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
+from models.geological_data import (AtmosphericMeasurement,
+                                    FiberOpticMeasurement, GeochemicalSample,
+                                    SatelliteObservation, SeismicEvent,
+                                    StrainMeasurement, ThermalMeasurement)
 from storage.mongodb_storage import MongoDBStorage
 
 logger = structlog.get_logger()
+
 
 class DataStorage:
     """Data storage layer supporting multiple database backends"""

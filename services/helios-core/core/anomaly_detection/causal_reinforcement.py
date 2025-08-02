@@ -21,6 +21,7 @@ from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class CausalState:
     """State representation for causal reinforcement learning"""
@@ -32,6 +33,7 @@ class CausalState:
     anomaly_indicators: np.ndarray
     timestamp: float
 
+
 @dataclass
 class CausalAction:
     """Action in causal reinforcement learning"""
@@ -41,6 +43,7 @@ class CausalAction:
     investigation_depth: float
     confidence_threshold: float
     time_horizon: float
+
 
 @dataclass
 class CausalReward:
@@ -52,6 +55,7 @@ class CausalReward:
     temporal_efficiency: float
     causal_consistency: float
     total_reward: float
+
 
 class CausalGraph:
     """Dynamic causal graph for geological processes"""
@@ -193,6 +197,7 @@ class CausalGraph:
 
         return np.array(lagged_matrix)
 
+
 class CausalQNetwork(nn.Module):
     """Q-Network for causal reinforcement learning"""
 
@@ -251,6 +256,7 @@ class CausalQNetwork(nn.Module):
             "q_ignore": q_ignore,
             "state_value": state_value,
         }
+
 
 class CausalReinforcementLearner:
     """

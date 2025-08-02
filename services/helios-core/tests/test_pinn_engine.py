@@ -30,6 +30,7 @@ from models.ai_models import (
     PINNModelConfig,
 )
 
+
 class TestActivationRegistry:
     """Test activation function registry"""
 
@@ -44,6 +45,7 @@ class TestActivationRegistry:
     def test_get_activation_sigmoid(self):
         activation = ActivationRegistry.get_activation(ActivationFunction.SIGMOID)
         assert isinstance(activation, torch.nn.Sigmoid)
+
 
 class TestPhysicsConstraints:
     """Test physics constraint solvers"""
@@ -126,6 +128,7 @@ class TestPhysicsConstraints:
         assert residual.shape == (self.batch_size, 1)
         assert residual.requires_grad
 
+
 class TestPhysicsConstraintRegistry:
     """Test physics constraint registry"""
 
@@ -143,6 +146,7 @@ class TestPhysicsConstraintRegistry:
         registry = PhysicsConstraintRegistry()
         with pytest.raises(ValueError, match="Unsupported physics constraint type"):
             registry.get_solver("unsupported_type")
+
 
 class TestPINNNetwork:
     """Test PINN network architecture"""
@@ -201,6 +205,7 @@ class TestPINNNetwork:
 
         assert output.shape == (5, 3)
         assert output.requires_grad
+
 
 class TestPINNLoss:
     """Test PINN loss function"""
@@ -276,6 +281,7 @@ class TestPINNLoss:
         assert "total_loss" in loss_components
         assert total_loss.requires_grad
 
+
 class TestPINNTrainer:
     """Test PINN trainer"""
 
@@ -347,6 +353,7 @@ class TestPINNTrainer:
 
         trainer = PINNTrainer(self.network, config)
         assert isinstance(trainer.optimizer, torch.optim.SGD)
+
 
 class TestPINNEngine:
     """Test PINN engine"""
@@ -476,6 +483,7 @@ class TestPINNEngine:
         with pytest.raises(ValueError, match="Model non_existent not found"):
             self.engine.get_model_info("non_existent")
 
+
 class TestIntegration:
     """Integration tests for PINN engine components"""
 
@@ -604,6 +612,7 @@ class TestIntegration:
         assert "physics_navier_stokes" in loss_components
         assert "physics_heat_transfer" in loss_components
         assert "physics_loss_total" in loss_components
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

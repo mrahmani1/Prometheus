@@ -24,6 +24,7 @@ from core.physics_constraints import (
 )
 from models.ai_models import PhysicsConstraintType
 
+
 class TestPhysicsConstraintSolvers:
     """Test individual physics constraint solvers"""
 
@@ -206,6 +207,7 @@ class TestPhysicsConstraintSolvers:
         assert "first_order" in mass_conservation.get_required_derivatives()
         assert "second_order" in mass_conservation.get_required_derivatives()
 
+
 class TestPhysicsConstraintEnforcer:
     """Test the main physics constraint enforcer"""
 
@@ -365,6 +367,7 @@ class TestPhysicsConstraintEnforcer:
             fake_type = "fake_constraint_type"
             self.enforcer.get_solver(fake_type)
 
+
 class TestConstraintFactoryFunctions:
     """Test constraint factory functions"""
 
@@ -422,6 +425,7 @@ class TestConstraintFactoryFunctions:
         assert constraint.equation_parameters["source_term"] == 50.0
         assert constraint.weight == 0.8
         assert constraint.tolerance == 1e-3
+
 
 class TestGradientComputation:
     """Test gradient computation utilities"""
@@ -489,6 +493,7 @@ class TestGradientComputation:
         assert laplacian.shape == (self.batch_size, 1)
         # Note: Due to automatic differentiation complexities, we just check shape and finite values
         assert torch.all(torch.isfinite(laplacian))
+
 
 # Integration test removed due to PINN engine complexity
 

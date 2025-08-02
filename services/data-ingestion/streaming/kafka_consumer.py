@@ -10,6 +10,7 @@ from aiokafka import AIOKafkaConsumer
 
 logger = structlog.get_logger()
 
+
 class KafkaDataConsumer:
     """Kafka consumer for processing geological data streams"""
 

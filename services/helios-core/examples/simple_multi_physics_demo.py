@@ -29,6 +29,7 @@ from core.multi_physics_coupling import (
 )
 from core.pinn_engine import GeologicalProcess
 
+
 def simple_thermal_mechanical_demo():
     """
     Simple demonstration of thermal-mechanical coupling
@@ -136,6 +137,7 @@ def simple_thermal_mechanical_demo():
 
     return results
 
+
 def stability_analysis_demo():
     """
     Demonstration of stability analysis capabilities
@@ -240,6 +242,7 @@ def stability_analysis_demo():
         "final_time": current_time,
     }
 
+
 def multi_domain_demo():
     """
     Demonstration of multi-domain coupling
@@ -306,6 +309,7 @@ def multi_domain_demo():
         print(f"Multi-domain demo failed: {e}")
         return None
 
+
 def main():
     """
     Run all demonstrations
@@ -340,8 +344,10 @@ def main():
     except Exception as e:
         print(f"\nDemo execution failed: {e}")
         import traceback
+
         traceback.print_exc()
     return None
+
 
 if __name__ == "__main__":
     results = main()

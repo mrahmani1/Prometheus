@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi.testclient import TestClient
 from main import app
 
+
 def test_api_endpoints():
     """Test NLP API endpoints"""
 
@@ -115,6 +116,7 @@ def test_api_endpoints():
 
     print("\n" + "=" * 40)
     print("All API endpoint tests passed! ✓")
+
 
 if __name__ == "__main__":
     test_api_endpoints()

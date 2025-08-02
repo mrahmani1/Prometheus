@@ -17,15 +17,11 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .hazard_mapping import (
-    GeographicBounds,
-    HazardMappingEngine,
-    HazardType,
-    MultiHazardAssessment,
-    RiskLevel,
-)
+from .hazard_mapping import (GeographicBounds, HazardMappingEngine, HazardType,
+                             MultiHazardAssessment, RiskLevel)
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class MonitoringDataStream:
@@ -39,6 +35,7 @@ class MonitoringDataStream:
     unit: str
     quality_flag: str
     sensor_id: str
+
 
 @dataclass
 class HazardAlert:
@@ -55,6 +52,7 @@ class HazardAlert:
     expires_at: datetime
     escalation_level: int
 
+
 @dataclass
 class UpdateTrigger:
     """Conditions that trigger hazard map updates"""
@@ -65,6 +63,7 @@ class UpdateTrigger:
     comparison_operator: str  # '>', '<', '>=', '<=', '==', '!='
     time_window: timedelta
     geographic_bounds: Optional[GeographicBounds] = None
+
 
 class RealTimeHazardUpdater:
     """Manages real-time hazard map updates and alerting"""
@@ -236,13 +235,15 @@ class RealTimeHazardUpdater:
     ) -> bool:
         """Evaluate if trigger condition is met"""
         value = self._get_trigger_value(trigger, recent_data, new_data)
-        return self._compare_value_with_threshold(value, trigger.comparison_operator, trigger.threshold_value)
+        return self._compare_value_with_threshold(
+            value, trigger.comparison_operator, trigger.threshold_value
+        )
 
     def _get_trigger_value(
-        self, 
-        trigger: UpdateTrigger, 
-        recent_data: List[MonitoringDataStream], 
-        new_data: MonitoringDataStream
+        self,
+        trigger: UpdateTrigger,
+        recent_data: List[MonitoringDataStream],
+        new_data: MonitoringDataStream,
     ) -> float:
         """Get the value to compare against the trigger threshold."""
         if trigger.data_type.endswith("_count"):
@@ -262,7 +263,7 @@ class RealTimeHazardUpdater:
             "==": lambda v, t: v == t,
             "!=": lambda v, t: v != t,
         }
-        
+
         comparison_func = comparisons.get(operator)
         return comparison_func(value, threshold) if comparison_func else False
 
@@ -377,7 +378,7 @@ class RealTimeHazardUpdater:
         """Prepare monitoring data for hazard assessment within geographic bounds"""
         # Filter data by geographic bounds
         filtered_data = self._filter_data_by_bounds(bounds)
-        
+
         # Convert to format expected by hazard engine
         return self._convert_to_hazard_engine_format(filtered_data)
 
@@ -387,7 +388,8 @@ class RealTimeHazardUpdater:
 
         for data_type, streams in self.monitoring_streams.items():
             filtered_streams = [
-                stream for stream in streams 
+                stream
+                for stream in streams
                 if self._is_stream_within_bounds(stream, bounds)
             ]
             if filtered_streams:
@@ -399,10 +401,14 @@ class RealTimeHazardUpdater:
         """Check if a stream is within geographic bounds."""
         lat = stream.location["lat"]
         lon = stream.location["lon"]
-        return (bounds.min_lat <= lat <= bounds.max_lat and 
-                bounds.min_lon <= lon <= bounds.max_lon)
+        return (
+            bounds.min_lat <= lat <= bounds.max_lat
+            and bounds.min_lon <= lon <= bounds.max_lon
+        )
 
-    def _convert_to_hazard_engine_format(self, monitoring_data: Dict[str, List]) -> Dict[str, Any]:
+    def _convert_to_hazard_engine_format(
+        self, monitoring_data: Dict[str, List]
+    ) -> Dict[str, Any]:
         """Convert monitoring data to format expected by hazard engine."""
         processed_data = {}
 
@@ -481,7 +487,9 @@ class RealTimeHazardUpdater:
         }
         processed_data["thermal_data"] = thermal_data
 
-    def _process_precipitation_data(self, streams: List, processed_data: Dict[str, Any]):
+    def _process_precipitation_data(
+        self, streams: List, processed_data: Dict[str, Any]
+    ):
         """Process precipitation rate data."""
         precip_data = max(stream.value for stream in streams)
         processed_data["precipitation"] = precip_data

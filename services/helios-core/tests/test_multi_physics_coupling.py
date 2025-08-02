@@ -31,6 +31,7 @@ from core.multi_physics_coupling import (
 )
 from core.pinn_engine import GeologicalProcess
 
+
 class TestPhysicsDomainSolvers:
     """Test individual physics domain solvers"""
 
@@ -143,6 +144,7 @@ class TestPhysicsDomainSolvers:
         assert em_field_new.shape == em_field.shape
         assert torch.all(torch.isfinite(em_field_new))
 
+
 class TestCouplingTerms:
     """Test coupling term implementations"""
 
@@ -208,6 +210,7 @@ class TestCouplingTerms:
         assert coupling_terms[0].target_domain == PhysicsDomain.THERMAL
         assert coupling_terms[1].source_domain == PhysicsDomain.THERMAL
         assert coupling_terms[1].target_domain == PhysicsDomain.ELECTROMAGNETIC
+
 
 class TestMultiPhysicsCouplingEngine:
     """Test the main multi-physics coupling engine"""
@@ -348,12 +351,12 @@ class TestMultiPhysicsCouplingEngine:
         engine.initialize_states(initial_states)
 
         # Create mock convergence and stability results
+        import torch.nn as nn
+        import torch.nn.functional as F
         from core.multi_physics_coupling import (
             ConvergenceResult,
             StabilityAnalysisResult,
         )
-        import torch.nn as nn
-        import torch.nn.functional as F
 
         convergence_result = ConvergenceResult(
             status=ConvergenceStatus.CONVERGED,
@@ -462,6 +465,7 @@ class TestMultiPhysicsCouplingEngine:
         assert diagnostics["total_steps"] >= 0
         assert diagnostics["refinement_level"] >= 0
 
+
 class TestFactoryFunctions:
     """Test factory functions for creating multi-physics engines"""
 
@@ -508,6 +512,7 @@ class TestFactoryFunctions:
         assert mechanical_solver.youngs_modulus == 100e9
         assert mechanical_solver.poisson_ratio == 0.25
         assert mechanical_solver.density == 3000.0
+
 
 class TestErrorHandling:
     """Test error handling and edge cases"""
@@ -564,6 +569,7 @@ class TestErrorHandling:
             ConvergenceStatus.MAX_ITERATIONS,
         ]
         assert convergence_result.iterations <= engine.convergence_config.max_iterations
+
 
 if __name__ == "__main__":
     # Run tests

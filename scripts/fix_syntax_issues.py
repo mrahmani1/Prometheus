@@ -4,11 +4,11 @@ Comprehensive syntax error fixer for the Prometheus AI platform.
 This script addresses specific syntax issues found in the codebase.
 """
 
-import os
-import re
+from pathlib import Path
 import ast
 import logging
-from pathlib import Path
+import os
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -110,8 +110,8 @@ def fix_corrupted_file(filepath):
 This module was automatically regenerated due to corruption.
 """
 
-import logging
 from typing import Dict, List, Any, Optional
+import logging
 
 logger = logging.getLogger(__name__)
 

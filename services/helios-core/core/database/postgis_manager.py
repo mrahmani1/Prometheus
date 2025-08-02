@@ -19,6 +19,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GeologicalLocation:
     """Geological location with spatial coordinates"""
@@ -30,6 +31,7 @@ class GeologicalLocation:
     elevation: Optional[float] = None
     depth: Optional[float] = None
     coordinate_system: str = "WGS84"
+
 
 @dataclass
 class SeismicEvent:
@@ -44,6 +46,7 @@ class SeismicEvent:
     confidence: float = 1.0
     waveform_data: Optional[bytes] = None
     metadata: Optional[Dict[str, Any]] = None
+
 
 @dataclass
 class DeformationMeasurement:
@@ -61,6 +64,7 @@ class DeformationMeasurement:
     measurement_type: str = "GPS"
     reference_frame: str = "ITRF2014"
 
+
 @dataclass
 class SpatialTemporalQuery:
     """Parameters for spatial-temporal queries"""
@@ -71,6 +75,7 @@ class SpatialTemporalQuery:
     time_center: datetime
     time_window: timedelta
     event_types: List[str] = None
+
 
 class PostGISManager:
     """Advanced PostgreSQL with PostGIS manager for geological data"""
@@ -525,6 +530,7 @@ class PostGISManager:
 
             return stats
 
+
 # Example usage and testing functions
 async def example_usage():
     """Example usage of PostGIS manager"""
@@ -590,6 +596,7 @@ async def example_usage():
 
     finally:
         await manager.close()
+
 
 if __name__ == "__main__":
     asyncio.run(example_usage())

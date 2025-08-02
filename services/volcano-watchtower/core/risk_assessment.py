@@ -13,14 +13,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from core.eruption_forecasting import ProbabilisticEruptionForecaster
 from core.magma_reservoir import MagmaReservoirEstimator
-from models.volcanic_data import (
-    AlertLevel,
-    DeformationMeasurement,
-    GeochemicalSample,
-    SeismicEvent,
-    ThermalMeasurement,
-    VolcanicRiskAssessment,
-)
+from models.volcanic_data import (AlertLevel, DeformationMeasurement,
+                                  GeochemicalSample, SeismicEvent,
+                                  ThermalMeasurement, VolcanicRiskAssessment)
 
 logger = structlog.get_logger()
 

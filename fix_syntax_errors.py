@@ -3,9 +3,9 @@
 Script to fix critical syntax errors without breaking working code.
 """
 
+from pathlib import Path
 import os
 import re
-from pathlib import Path
 
 def fix_syntax_errors():
     """Fix critical syntax errors that prevent tests from running."""

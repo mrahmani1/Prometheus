@@ -9,11 +9,13 @@ from typing import Any, Dict, List, Optional
 
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_models import GraphVisualizationConfig, NetworkAnalysisResult
+from models.geological_models import (GraphVisualizationConfig,
+                                      NetworkAnalysisResult)
 
 from .database import GraphDatabaseManager
 
 logger = logging.getLogger(__name__)
+
 
 class GraphVisualizationEngine:
     """Engine for generating graph visualizations of geological processes"""

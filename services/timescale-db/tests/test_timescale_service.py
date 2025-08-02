@@ -4,9 +4,8 @@ Test suite for TimescaleDB service
 """
 
 import os
-
-# Import the main application
 import sys
+# Import the main application
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
@@ -17,10 +16,12 @@ from fastapi.testclient import TestClient
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import app
 
+
 @pytest.fixture
 def client():
     """Create test client"""
     return TestClient(app)
+
 
 @pytest.fixture
 async def db_pool():
@@ -34,6 +35,7 @@ async def db_pool():
     pool = await asyncpg.create_pool(test_db_url, min_size=1, max_size=5)
     yield pool
     await pool.close()
+
 
 @pytest.fixture
 async def setup_test_data(db_pool):
@@ -78,6 +80,7 @@ async def setup_test_data(db_pool):
     # Cleanup
     async with db_pool.acquire() as conn:
         await conn.execute("DELETE FROM sensor_readings WHERE sensor_id = 'TEMP_001'")
+
 
 class TestTimescaleService:
     """Test cases for TimescaleDB service"""
@@ -317,6 +320,7 @@ class TestTimescaleService:
             assert len(data["compressed_chunks"]) == 2
             assert data["count"] == 2
 
+
 class TestGeologicalInterpretation:
     """Test geological interpretation functions"""
 
@@ -353,6 +357,7 @@ class TestGeologicalInterpretation:
         assert "High anomaly rate" in interpretation["geological_implications"][0]
         assert "Increase monitoring frequency" in interpretation["recommendations"]
 
+
 @pytest.mark.asyncio
 class TestAsyncFunctions:
     """Test async database functions"""
@@ -380,12 +385,14 @@ class TestAsyncFunctions:
             mock_pool.acquire.return_value.__aenter__.return_value = mock_conn
 
             from main import setup_hypertables
+
             await setup_hypertables()
 
             # Verify that hypertables were created
             calls = [call[0][0] for call in mock_conn.execute.call_args_list]
             assert any("create_hypertable" in call for call in calls)
             assert any("sensor_readings" in call for call in calls)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

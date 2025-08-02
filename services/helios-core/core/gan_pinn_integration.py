@@ -22,6 +22,7 @@ from .pinn_engine import PINNEngine
 
 logger = structlog.get_logger()
 
+
 @dataclass
 class GANPINNConfig:
     """Configuration for GAN-PINN integration"""
@@ -46,6 +47,7 @@ class GANPINNConfig:
             raise ValueError("PINN model ID cannot be empty")
         if not 0 < self.confidence_level < 1:
             raise ValueError("Confidence level must be between 0 and 1")
+
 
 class ProbabilisticPINNPredictor:
     """
@@ -270,6 +272,7 @@ class ProbabilisticPINNPredictor:
 
         return epistemic_uncertainty, aleatoric_uncertainty
 
+
 class AdversarialPINNTrainer:
     """
     Adversarial training for PINN models using GAN feedback
@@ -424,6 +427,7 @@ class AdversarialPINNTrainer:
         adversarial_loss = nn.BCELoss()(plausibility_scores, target_scores)
 
         return adversarial_loss
+
 
 class EnsemblePredictionSystem:
     """
@@ -752,6 +756,7 @@ class EnsemblePredictionSystem:
     def list_ensemble_predictors(self) -> List[str]:
         """List all available ensemble predictors"""
         return list(self.ensemble_configs.keys())
+
 
 class GANPINNIntegrationEngine:
     """

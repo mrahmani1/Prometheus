@@ -28,6 +28,7 @@ import torch.nn.functional as F
 from core.earthquake_forecasting import EarthquakeForecastingEngine, HazardLevel
 from models.geological import EventType, GeologicalLocation, SeismicEvent
 
+
 def generate_synthetic_earthquake_catalog(n_events=100, region_bounds=None):
     """
     Generate synthetic earthquake catalog for demonstration.
@@ -121,6 +122,7 @@ def generate_synthetic_earthquake_catalog(n_events=100, region_bounds=None):
 
     return events
 
+
 def demonstrate_pattern_analysis(engine, events):
     """Demonstrate earthquake pattern analysis"""
     print("\n" + "=" * 60)
@@ -178,6 +180,7 @@ def demonstrate_pattern_analysis(engine, events):
         print(f"❌ Error in pattern analysis: {e}")
         return None
 
+
 def demonstrate_statistical_modeling(engine, events):
     """Demonstrate statistical seismicity modeling"""
     print("\n" + "=" * 60)
@@ -221,6 +224,7 @@ def demonstrate_statistical_modeling(engine, events):
         print(f"❌ Error in statistical modeling: {e}")
         return None
 
+
 def demonstrate_temporal_clustering(engine, events):
     """Demonstrate temporal clustering analysis"""
     print("\n" + "=" * 60)
@@ -262,6 +266,7 @@ def demonstrate_temporal_clustering(engine, events):
     except Exception as e:
         print(f"❌ Error in clustering analysis: {e}")
         return []
+
 
 def demonstrate_probabilistic_forecasting(engine, events, target_region):
     """Demonstrate probabilistic hazard assessment"""
@@ -323,6 +328,7 @@ def demonstrate_probabilistic_forecasting(engine, events, target_region):
     except Exception as e:
         print(f"❌ Error in probabilistic forecasting: {e}")
         return None
+
 
 def create_visualization_plots(events, pattern_results, clusters, forecast):
     """Create visualization plots for the analysis results"""
@@ -438,6 +444,7 @@ def create_visualization_plots(events, pattern_results, clusters, forecast):
     except Exception as e:
         print(f"❌ Error creating visualizations: {e}")
 
+
 def save_results_to_json(
     events,
     pattern_results,
@@ -499,6 +506,7 @@ def save_results_to_json(
 
     except Exception as e:
         print(f"❌ Error saving results: {e}")
+
 
 def main():
     """Main demonstration function"""
@@ -562,6 +570,7 @@ def main():
     print("✅ Multi-model ensemble forecasting")
     print("\nThis system provides comprehensive earthquake forecasting capabilities")
     print("for disaster preparedness and seismic hazard assessment.")
+
 
 if __name__ == "__main__":
     main()

@@ -19,6 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from google.cloud import monitoring_v3, run_v2
 
+
 class ScalingStrategy(Enum):
     """Scaling strategies for different workload patterns"""
 
@@ -26,6 +27,7 @@ class ScalingStrategy(Enum):
     PREDICTIVE = "predictive"  # Scale based on predicted demand
     HYBRID = "hybrid"  # Combine reactive and predictive
     COST_OPTIMIZED = "cost_optimized"  # Prioritize cost over performance
+
 
 @dataclass
 class ServiceMetrics:
@@ -42,6 +44,7 @@ class ServiceMetrics:
     cold_starts: int
     timestamp: datetime
 
+
 @dataclass
 class ScalingDecision:
     """Scaling decision for a service"""
@@ -57,6 +60,7 @@ class ScalingDecision:
     reasoning: str
     confidence: float
 
+
 @dataclass
 class CostOptimization:
     """Cost optimization configuration"""
@@ -66,6 +70,7 @@ class CostOptimization:
     scale_to_zero_timeout: int = 300  # seconds
     min_instances_override: Dict[str, int] = None
     cost_threshold_per_hour: float = 100.0
+
 
 class CloudRunOptimizer:
     """
@@ -186,12 +191,14 @@ class CloudRunOptimizer:
             # Process metrics (simplified for example)
             for result in results:
                 if (
-                    result.metric.type == "run.googleapis.com/container/cpu/utilizations"
+                    result.metric.type
+                    == "run.googleapis.com/container/cpu/utilizations"
                 ):
                     if result.points:
                         metrics["cpu_utilization"] = result.points[0].value.double_value
                 elif (
-                    result.metric.type == "run.googleapis.com/container/memory/utilizations"
+                    result.metric.type
+                    == "run.googleapis.com/container/memory/utilizations"
                 ):
                     if result.points:
                         metrics["memory_utilization"] = result.points[
@@ -474,6 +481,7 @@ class CloudRunOptimizer:
                 self.logger.error(f"Error in optimization cycle: {e}")
                 await asyncio.sleep(interval_seconds)
 
+
 async def main():
     """Main function for running the Cloud Run optimizer"""
     logging.basicConfig(level=logging.INFO)
@@ -485,6 +493,7 @@ async def main():
 
     # Run continuous optimization
     await optimizer.monitor_and_optimize(interval_seconds=30)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

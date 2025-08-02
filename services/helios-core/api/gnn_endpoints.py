@@ -10,25 +10,21 @@ import os
 import sys
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-from core.geological_graph_utils import (
-    GeologicalGraphAnalyzer,
-    GeologicalGraphBuilder,
-    create_volcanic_system_graph,
-)
-from core.gnn_training import (
-    GeologicalGNNTrainer,
-    create_geological_gnn_model,
-    save_training_results,
-)
+from core.geological_graph_utils import (GeologicalGraphAnalyzer,
+                                         GeologicalGraphBuilder,
+                                         create_volcanic_system_graph)
+from core.gnn_training import (GeologicalGNNTrainer,
+                               create_geological_gnn_model,
+                               save_training_results)
 from core.graph_neural_networks import GeologicalGAT, GeologicalGNNEnsemble
 
 logger = logging.getLogger(__name__)

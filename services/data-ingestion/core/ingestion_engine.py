@@ -22,6 +22,7 @@ from .service_registry import ServiceRegistry
 
 logger = structlog.get_logger()
 
+
 class DataIngestionEngine:
     """Main engine for coordinating multi-source data ingestion"""
 

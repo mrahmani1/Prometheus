@@ -28,12 +28,14 @@ from sklearn.preprocessing import StandardScaler
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class CausalAlgorithm(Enum):
     """Supported causal discovery algorithms"""
 
     PC = "pc"
     FCI = "fci"
     GES = "ges"
+
 
 class EdgeType(Enum):
     """Types of edges in causal graphs"""
@@ -42,6 +44,7 @@ class EdgeType(Enum):
     BIDIRECTED = "<->"
     UNDIRECTED = "--"
     CIRCLE = "o-o"
+
 
 @dataclass
 class CausalEdge:
@@ -54,6 +57,7 @@ class CausalEdge:
     confidence: float
     p_value: float
     geological_interpretation: Optional[str] = None
+
 
 @dataclass
 class CausalGraph:
@@ -86,6 +90,7 @@ class CausalGraph:
 
         return G
 
+
 @dataclass
 class InterventionResult:
     """Results of causal intervention analysis"""
@@ -96,6 +101,7 @@ class InterventionResult:
     confidence_intervals: Dict[str, Tuple[float, float]]
     geological_interpretation: str
     statistical_significance: Dict[str, float]
+
 
 @dataclass
 class GeologicalDomainKnowledge:
@@ -108,6 +114,7 @@ class GeologicalDomainKnowledge:
     ]  # variable -> {before/after: other_variable}
     physical_constraints: Dict[str, Dict[str, Any]]
     geological_process_hierarchies: Dict[str, List[str]]
+
 
 class CausalInferenceEngine:
     """
@@ -914,7 +921,6 @@ class CausalInferenceEngine:
         # Simple linear regression
         X = data[treatment].values.reshape(-1, 1)
         y = data[outcome].values
-
 
         reg = LinearRegression().fit(X, y)
 

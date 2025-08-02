@@ -31,6 +31,7 @@ from core.edge_ai_optimizer import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def create_sample_geological_model():
     """
     Create a sample geological neural network model
@@ -66,6 +67,7 @@ def create_sample_geological_model():
             return self.classifier(features)
 
     return GeologicalProcessModel()
+
 
 def create_sample_seismic_cnn():
     """
@@ -108,6 +110,7 @@ def create_sample_seismic_cnn():
 
     return SeismicCNN()
 
+
 def generate_synthetic_geological_data(num_samples=1000, num_features=20):
     """Generate synthetic geological data for testing"""
     # Simulate geological measurements (temperature, pressure, chemical composition, etc.)
@@ -140,6 +143,7 @@ def generate_synthetic_geological_data(num_samples=1000, num_features=20):
     labels[volcanic_indices] = 4  # Eruption precursor
 
     return data, labels
+
 
 def generate_synthetic_seismic_data(num_samples=500, sequence_length=1000):
     """Generate synthetic seismic waveform data"""
@@ -174,6 +178,7 @@ def generate_synthetic_seismic_data(num_samples=500, sequence_length=1000):
     labels = torch.tensor([i % 4 for i in range(num_samples)])
 
     return data, labels
+
 
 def demonstrate_basic_optimization():
     """Demonstrate basic edge optimization functionality"""
@@ -242,6 +247,7 @@ def demonstrate_basic_optimization():
 
     return results
 
+
 async def demonstrate_automated_generation():
     """Demonstrate automated edge model generation"""
     logger.info("\n=== Automated Edge Model Generation Demo ===")
@@ -302,6 +308,7 @@ async def demonstrate_automated_generation():
 
     return generated_models
 
+
 def demonstrate_seismic_cnn_optimization():
     """Demonstrate optimization of seismic CNN model"""
     logger.info("\n=== Seismic CNN Optimization Demo ===")
@@ -350,6 +357,7 @@ def demonstrate_seismic_cnn_optimization():
     logger.info(f"  Meets Field Station Constraints: {results.meets_constraints}")
 
     return optimized_model, results
+
 
 def visualize_optimization_results(results_dict):
     """Create visualizations of optimization results"""
@@ -403,6 +411,7 @@ def visualize_optimization_results(results_dict):
     )
 
     return fig
+
 
 def demonstrate_custom_deployment_profile():
     """Demonstrate creating custom deployment profiles"""
@@ -471,6 +480,7 @@ def demonstrate_custom_deployment_profile():
 
     return generator
 
+
 async def main():
     """Main demonstration function"""
     logger.info("Starting Edge AI Optimization Demonstration")
@@ -517,6 +527,7 @@ async def main():
     except Exception as e:
         logger.error(f"Demonstration failed: {e}")
         raise
+
 
 if __name__ == "__main__":
     # Run the demonstration

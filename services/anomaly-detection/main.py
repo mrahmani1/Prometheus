@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 anomaly_engine: Optional[AnomalyDetectionEngine] = None
 db_manager: Optional[DatabaseManager] = None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -61,6 +62,7 @@ async def lifespan(app: FastAPI):
     await anomaly_engine.shutdown()
     await db_manager.close()
     logger.info("Anomaly Detection Service shutdown complete")
+
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
@@ -90,7 +92,9 @@ def create_app() -> FastAPI:
 
     return app
 
+
 app = create_app()
+
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -99,6 +103,7 @@ async def health_check():
         status="healthy", service="anomaly-detection", version="1.0.0"
     )
 
+
 @app.get("/ready", response_model=HealthResponse)
 async def readiness_check():
     """Readiness check endpoint"""
@@ -106,6 +111,7 @@ async def readiness_check():
         raise HTTPException(status_code=503, detail="Service not ready")
 
     return HealthResponse(status="ready", service="anomaly-detection", version="1.0.0")
+
 
 if __name__ == "__main__":
     settings = get_settings()

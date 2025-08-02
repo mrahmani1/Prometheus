@@ -37,6 +37,7 @@ logger = structlog.get_logger()
 ingestion_engine = None
 service_registry = None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -84,6 +85,7 @@ async def lifespan(app: FastAPI):
             await ingestion_engine.cleanup()
         logger.info("Data Ingestion Service shutdown complete")
 
+
 # Create FastAPI application
 app = FastAPI(
     title="Prometheus Data Ingestion Service",
@@ -110,11 +112,11 @@ app.mount("/metrics", metrics_app)
 app.include_router(router, prefix="/api/v1")
 
 import torch.nn as nn
-
 # Include MongoDB API routes
 from api.mongodb_api import router as mongodb_router
 
 app.include_router(mongodb_router, prefix="/api/v1")
+
 
 @app.get("/health")
 async def health_check():
@@ -133,6 +135,7 @@ async def health_check():
         logger.error("Health check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service unhealthy")
 
+
 @app.get("/ready")
 async def readiness_check():
     """Readiness check endpoint"""
@@ -150,6 +153,7 @@ async def readiness_check():
         logger.error("Readiness check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service not ready")
 
+
 @app.get("/")
 async def root():
     """Root endpoint with service information"""
@@ -165,6 +169,7 @@ async def root():
             "metrics": "/metrics",
         },
     }
+
 
 if __name__ == "__main__":
     uvicorn.run(

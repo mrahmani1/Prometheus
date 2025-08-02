@@ -4,10 +4,10 @@ Demonstration of the Prometheus AI QA System
 Shows the automated QA and validation systems in action
 """
 
-import json
-import logging
 from datetime import datetime
 from pathlib import Path
+import json
+import logging
 
 # Configure logging
 logging.basicConfig(

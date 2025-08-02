@@ -6,25 +6,21 @@ from datetime import datetime
 
 # Test imports
 try:
-    from database.models.geological_data import (
-        AtmosphericMeasurement,
-        DataQuality,
-        GeochemicalSample,
-        GeologicalLocation,
-    )
-    from database.models.rock_analysis import (
-        CrystalSystem,
-        MineralAnalysis,
-        RockSample,
-        RockType,
-    )
-    from services.data_ingestion.core.mongodb_storage import MongoDBStorage
+    from database.models.geological_data import (AtmosphericMeasurement,
+                                                 DataQuality,
+                                                 GeochemicalSample,
+                                                 GeologicalLocation)
+    from database.models.rock_analysis import (CrystalSystem, MineralAnalysis,
+                                               RockSample, RockType)
+
     from services.data_ingestion.api.mongodb_api import router
+    from services.data_ingestion.core.mongodb_storage import MongoDBStorage
 
     print("✓ All imports successful")
 except ImportError as e:
     print(f"✗ Import error: {e}")
     sys.exit(1)
+
 
 def test_data_models():
     """Test data model creation"""
@@ -94,6 +90,7 @@ def test_data_models():
         traceback.print_exc()
         return False
 
+
 def test_mongodb_storage_class():
     """Test MongoDB storage class instantiation"""
     try:
@@ -130,6 +127,7 @@ def test_mongodb_storage_class():
         print(f"✗ MongoDB storage class error: {e}")
         traceback.print_exc()
         return False
+
 
 def test_validation_functions():
     """Test data validation functions"""
@@ -187,6 +185,7 @@ def test_validation_functions():
         traceback.print_exc()
         return False
 
+
 def test_api_router():
     """Test API router configuration"""
     try:
@@ -223,6 +222,7 @@ def test_api_router():
         print(f"✗ API router error: {e}")
         traceback.print_exc()
         return False
+
 
 def main():
     """Run all validation tests"""
@@ -262,6 +262,7 @@ def main():
         print("❌ Some validation tests failed.")
         print("Please fix the issues before proceeding.")
         return False
+
 
 if __name__ == "__main__":
     success = main()

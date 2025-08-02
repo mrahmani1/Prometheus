@@ -15,14 +15,12 @@ import structlog
 import torch
 from models.ai_models import PINNModelConfig
 
-from .multi_physics_coupling import (
-    MultiPhysicsCouplingEngine,
-    PhysicsDomain,
-    create_multi_physics_engine,
-)
+from .multi_physics_coupling import (MultiPhysicsCouplingEngine, PhysicsDomain,
+                                     create_multi_physics_engine)
 from .pinn_engine import GeologicalProcess, PINNEngine
 
 logger = structlog.get_logger()
+
 
 class IntegrationMode(str, Enum):
     """Integration modes between PINN and multi-physics"""
@@ -31,6 +29,7 @@ class IntegrationMode(str, Enum):
     PHYSICS_DRIVEN = "physics_driven"  # Multi-physics provides training data for PINN
     COUPLED = "coupled"  # Bidirectional coupling during simulation
     HYBRID = "hybrid"  # Switch between modes based on conditions
+
 
 @dataclass
 class IntegrationConfig:
@@ -45,6 +44,7 @@ class IntegrationConfig:
     use_adaptive_coupling: bool = True  # Use adaptive coupling strength
     physics_weight: float = 0.5  # Weight of physics vs PINN in hybrid mode
     pinn_weight: float = 0.5  # Weight of PINN vs physics in hybrid mode
+
 
 class PINNMultiPhysicsIntegrator:
     """
@@ -519,6 +519,7 @@ class PINNMultiPhysicsIntegrator:
 
         return diagnostics
 
+
 # Factory function for creating integrated systems
 def create_integrated_system(
     geological_process: GeologicalProcess,
@@ -570,6 +571,7 @@ def create_integrated_system(
 
     return integrator
 
+
 # Utility functions for common integration scenarios
 def create_magma_flow_system(
     device: torch.device = torch.device("cpu"),
@@ -615,6 +617,7 @@ def create_magma_flow_system(
         domain_configs=domain_configs,
         device=device,
     )
+
 
 def create_crustal_deformation_system(
     device: torch.device = torch.device("cpu"),

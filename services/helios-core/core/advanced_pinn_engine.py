@@ -24,6 +24,7 @@ warnings.filterwarnings("ignore")
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GeologicalParameters:
     """Physical parameters for geological processes"""
@@ -57,6 +58,7 @@ class GeologicalParameters:
     crystallinity: float = 0.3  # volume fraction
     temperature: float = 1200.0  # K
 
+
 class MultiScaleActivation(nn.Module):
     """Multi-scale activation function for geological processes"""
 
@@ -72,6 +74,7 @@ class MultiScaleActivation(nn.Module):
             scaled_input = self.scale_frequencies[i] * x
             output += self.scale_weights[i] * torch.tanh(scaled_input)
         return output / self.num_scales
+
 
 class AdaptiveWeightedLoss(nn.Module):
     """Adaptive loss weighting for multi-physics problems"""
@@ -89,6 +92,7 @@ class AdaptiveWeightedLoss(nn.Module):
             weighted_losses.append(weighted_loss)
 
         return torch.stack(weighted_losses).sum()
+
 
 class GeologicalPINN(nn.Module):
     """Advanced PINN for geological process simulation"""
@@ -149,6 +153,7 @@ class GeologicalPINN(nn.Module):
             "porosity": torch.sigmoid(output[:, 5:6]),  # Ensure 0 < phi < 1
         }
 
+
 class HeatEquationPINN(GeologicalPINN):
     """PINN for 3D transient heat equation with geological constraints"""
 
@@ -199,6 +204,7 @@ class HeatEquationPINN(GeologicalPINN):
         T_pred = fields["temperature"]
 
         return torch.mean((T_pred - initial_values) ** 2)
+
 
 class ElasticWavePINN(GeologicalPINN):
     """PINN for elastic wave propagation in geological media"""
@@ -293,6 +299,7 @@ class ElasticWavePINN(GeologicalPINN):
 
         return wave_loss
 
+
 class MagmaChamberPINN(GeologicalPINN):
     """PINN for magma chamber dynamics with gas exsolution"""
 
@@ -380,6 +387,7 @@ class MagmaChamberPINN(GeologicalPINN):
         eruption_prob = torch.sigmoid(10 * (gas_frac - self.critical_gas_fraction))
 
         return eruption_prob
+
 
 class BayesianPINN(GeologicalPINN):
     """Bayesian PINN for uncertainty quantification"""
@@ -513,6 +521,7 @@ class BayesianPINN(GeologicalPINN):
             }
 
         return {"mean": fields_mean, "std": fields_std}
+
 
 class AdvancedPINNEngine:
     """Advanced PINN engine for geological simulations"""

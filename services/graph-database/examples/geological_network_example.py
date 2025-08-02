@@ -9,13 +9,11 @@ import json
 from core.database import GraphDatabaseManager
 from core.graph_algorithms import GeologicalGraphAlgorithms
 from core.visualization import GraphVisualizationEngine
-from models.geological_models import (
-    GeologicalProcess,
-    GeologicalRelationship,
-    GraphVisualizationConfig,
-    ProcessType,
-    RelationshipType,
-)
+from models.geological_models import (GeologicalProcess,
+                                      GeologicalRelationship,
+                                      GraphVisualizationConfig, ProcessType,
+                                      RelationshipType)
+
 
 async def create_sample_geological_network():
     """Create a sample geological network for demonstration"""
@@ -171,6 +169,7 @@ async def create_sample_geological_network():
     await db_manager.close()
     return process_ids
 
+
 async def analyze_geological_network():
     """Analyze the geological network using graph algorithms"""
 
@@ -273,6 +272,7 @@ async def analyze_geological_network():
         print(f"  - {process_type}: {count} processes")
 
     await db_manager.close()
+
 
 async def create_visualization():
     """Create visualization of the geological network"""
@@ -382,6 +382,7 @@ async def create_visualization():
 
     await db_manager.close()
 
+
 async def demonstrate_search_capabilities():
     """Demonstrate search and query capabilities"""
 
@@ -448,6 +449,7 @@ async def demonstrate_search_capabilities():
 
     await db_manager.close()
 
+
 async def main():
     """Main demonstration function"""
 
@@ -487,7 +489,9 @@ async def main():
     except Exception as e:
         print(f"\nError during demonstration: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

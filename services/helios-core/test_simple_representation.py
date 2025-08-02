@@ -10,13 +10,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "core"))
 import numpy as np
 import torch
 import torch.nn.functional as F
-from core.geological_network_representation import (
-    GeologicalEdgeEmbedding,
-    GeologicalGraphEmbedding,
-    GeologicalNodeEmbedding,
-    GeologicalSimilaritySearch,
-    SupereruptionAnalyzer,
-)
+
+from core.geological_network_representation import (GeologicalEdgeEmbedding,
+                                                    GeologicalGraphEmbedding,
+                                                    GeologicalNodeEmbedding,
+                                                    GeologicalSimilaritySearch,
+                                                    SupereruptionAnalyzer)
+
 
 def test_basic_functionality():
     """Test basic functionality without torch-geometric dependencies."""

@@ -27,6 +27,7 @@ from shapely.geometry import Polygon
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class SeismicEvent:
     """Real seismic event data structure"""
@@ -61,6 +62,7 @@ class SeismicEvent:
     def is_significant(self) -> bool:
         return self.magnitude >= 5.0 or self.significance >= 600
 
+
 @dataclass
 class VolcanicEvent:
     """Real volcanic event data structure"""
@@ -89,6 +91,7 @@ class VolcanicEvent:
     def is_active(self) -> bool:
         return self.current_alert_level in ["WATCH", "WARNING", "ADVISORY"]
 
+
 @dataclass
 class InSARData:
     """InSAR displacement data structure"""
@@ -116,6 +119,7 @@ class InSARData:
     @property
     def mean_coherence(self) -> float:
         return np.nanmean(self.coherence)
+
 
 class USGSEarthquakeClient:
     """Client for USGS Earthquake Hazards Program API"""
@@ -187,7 +191,9 @@ class USGSEarthquakeClient:
 
         return events
 
-    def _create_seismic_event_from_feature(self, feature: Dict) -> Optional[SeismicEvent]:
+    def _create_seismic_event_from_feature(
+        self, feature: Dict
+    ) -> Optional[SeismicEvent]:
         """Create a SeismicEvent from a GeoJSON feature."""
         try:
             props = feature["properties"]
@@ -225,6 +231,7 @@ class USGSEarthquakeClient:
         if props.get("ids"):
             return props["ids"].split(",")[0]
         return props["code"]
+
 
 class IRISSeismicClient:
     """Client for IRIS seismic data services"""
@@ -335,6 +342,7 @@ class IRISSeismicClient:
             logger.error(f"Failed to fetch IRIS station metadata: {e}")
             return None
 
+
 class VolcanismClient:
     """Client for Global Volcanism Program data"""
 
@@ -427,6 +435,7 @@ class VolcanismClient:
 
         return volcanoes
 
+
 class SentinelInSARClient:
     """Client for Sentinel-1 InSAR data processing"""
 
@@ -511,6 +520,7 @@ class SentinelInSARClient:
                 continue
 
         return products
+
 
 class RealTimeGeologicalDataManager:
     """Main manager for real-time geological data integration"""

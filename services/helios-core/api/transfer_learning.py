@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Transferlearning:
     """Main class for transfer learning functionality."""
 
@@ -30,11 +31,13 @@ class Transferlearning:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Transferlearning()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

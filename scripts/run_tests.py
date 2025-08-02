@@ -3,10 +3,10 @@
 Comprehensive test runner for the Prometheus AI platform.
 """
 
+from pathlib import Path
+import os
 import subprocess
 import sys
-import os
-from pathlib import Path
 
 def run_tests():
     """Run all tests with comprehensive coverage."""

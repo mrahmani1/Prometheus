@@ -27,6 +27,7 @@ from models.monitoring import (
     VolcanicRiskAssessment,
 )
 
+
 class TestSensorReading:
     """Test SensorReading class"""
 
@@ -129,6 +130,7 @@ class TestSensorReading:
         assert np.array_equal(reconstructed.value, original.value)
         assert reconstructed.quality_flag == original.quality_flag
 
+
 class TestAlertLevel:
     """Test AlertLevel class"""
 
@@ -219,6 +221,7 @@ class TestAlertLevel:
         assert reconstructed.description == original.description
         assert reconstructed.confidence == original.confidence
         assert reconstructed.hazard_zones == original.hazard_zones
+
 
 class TestVolcanicRiskAssessment:
     """Test VolcanicRiskAssessment class"""
@@ -326,6 +329,7 @@ class TestVolcanicRiskAssessment:
         assert scenario == "explosive"
         assert prob == 0.6
 
+
 class TestTimeSeriesBuffer:
     """Test TimeSeriesBuffer class"""
 
@@ -423,6 +427,7 @@ class TestTimeSeriesBuffer:
         assert gaps[0][0] == base_time + timedelta(seconds=1)
         assert gaps[0][1] == base_time + timedelta(seconds=600)
 
+
 class TestStreamingDataProcessor:
     """Test StreamingDataProcessor class"""
 
@@ -510,6 +515,7 @@ class TestStreamingDataProcessor:
         processed = processor.process_reading(spike_reading)
         assert processed.quality_flag == QualityFlag.SPIKE_DETECTED
         assert "spike_detection" in processed.metadata
+
 
 class TestNotificationSystem:
     """Test notification system components"""
@@ -614,6 +620,7 @@ class TestNotificationSystem:
         assert notification.status == "delivered"
         assert NotificationChannel.EMAIL in notification.delivered_channels
 
+
 class TestAlertEscalationManager:
     """Test AlertEscalationManager class"""
 
@@ -658,6 +665,7 @@ class TestAlertEscalationManager:
         # Stop escalation
         manager.stop_escalation("VOLCANO001", assessment.assessment_id)
         assert len(manager.active_escalations) == 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

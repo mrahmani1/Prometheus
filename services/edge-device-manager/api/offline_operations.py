@@ -21,6 +21,7 @@ router = APIRouter()
 # Global offline operations coordinator (will be injected)
 offline_coordinator: Optional[OfflineOperationsCoordinator] = None
 
+
 class SensorDataRequest(BaseModel):
     """Request model for sensor data ingestion"""
 
@@ -33,6 +34,7 @@ class SensorDataRequest(BaseModel):
     )
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
+
 class AlertAcknowledgeRequest(BaseModel):
     """Request model for alert acknowledgment"""
 
@@ -40,6 +42,7 @@ class AlertAcknowledgeRequest(BaseModel):
     acknowledged_by: str = Field(
         default="api", description="Who acknowledged the alert"
     )
+
 
 class SyncConfigurationRequest(BaseModel):
     """Request model for sync configuration updates"""
@@ -55,10 +58,12 @@ class SyncConfigurationRequest(BaseModel):
         None, description="Connectivity check interval in seconds"
     )
 
+
 def set_offline_coordinator(coordinator: OfflineOperationsCoordinator):
     """Set the global offline operations coordinator"""
     global offline_coordinator
     offline_coordinator = coordinator
+
 
 @router.post("/ingest", response_model=Dict[str, str])
 async def ingest_sensor_data(request: SensorDataRequest):
@@ -82,6 +87,7 @@ async def ingest_sensor_data(request: SensorDataRequest):
     except Exception as e:
         logger.error(f"Error ingesting sensor data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/status", response_model=Dict[str, Any])
 async def get_offline_status():
@@ -116,6 +122,7 @@ async def get_offline_status():
         logger.error(f"Error getting offline status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/status/comprehensive", response_model=Dict[str, Any])
 async def get_comprehensive_status():
     """Get comprehensive status of all offline operations"""
@@ -130,6 +137,7 @@ async def get_comprehensive_status():
     except Exception as e:
         logger.error(f"Error getting comprehensive status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/alerts", response_model=List[Dict[str, Any]])
 async def get_active_alerts(
@@ -187,6 +195,7 @@ async def get_active_alerts(
         logger.error(f"Error getting active alerts: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/alerts/acknowledge", response_model=Dict[str, Any])
 async def acknowledge_alert(request: AlertAcknowledgeRequest):
     """Acknowledge an alert"""
@@ -214,6 +223,7 @@ async def acknowledge_alert(request: AlertAcknowledgeRequest):
         logger.error(f"Error acknowledging alert: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/alerts/{alert_id}/resolve", response_model=Dict[str, Any])
 async def resolve_alert(alert_id: str):
     """Resolve an alert"""
@@ -240,6 +250,7 @@ async def resolve_alert(alert_id: str):
         logger.error(f"Error resolving alert: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/connectivity", response_model=Dict[str, Any])
 async def get_connectivity_status():
     """Get connectivity status"""
@@ -255,6 +266,7 @@ async def get_connectivity_status():
         logger.error(f"Error getting connectivity status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/sync/status", response_model=Dict[str, Any])
 async def get_sync_status():
     """Get synchronization status"""
@@ -269,6 +281,7 @@ async def get_sync_status():
     except Exception as e:
         logger.error(f"Error getting sync status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/sync/force", response_model=Dict[str, Any])
 async def force_data_sync(background_tasks: BackgroundTasks):
@@ -291,6 +304,7 @@ async def force_data_sync(background_tasks: BackgroundTasks):
     except Exception as e:
         logger.error(f"Error forcing data sync: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.put("/sync/config", response_model=Dict[str, Any])
 async def update_sync_configuration(request: SyncConfigurationRequest):
@@ -325,6 +339,7 @@ async def update_sync_configuration(request: SyncConfigurationRequest):
         logger.error(f"Error updating sync configuration: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/sync/retry-failed", response_model=Dict[str, Any])
 async def retry_failed_syncs():
     """Retry failed synchronization tasks"""
@@ -346,6 +361,7 @@ async def retry_failed_syncs():
         logger.error(f"Error retrying failed syncs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.delete("/sync/queue", response_model=Dict[str, Any])
 async def clear_sync_queue():
     """Clear the synchronization queue"""
@@ -363,6 +379,7 @@ async def clear_sync_queue():
         logger.error(f"Error clearing sync queue: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/storage/statistics", response_model=Dict[str, Any])
 async def get_storage_statistics():
     """Get local storage statistics"""
@@ -377,6 +394,7 @@ async def get_storage_statistics():
     except Exception as e:
         logger.error(f"Error getting storage statistics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/storage/cleanup", response_model=Dict[str, Any])
 async def cleanup_storage():
@@ -401,6 +419,7 @@ async def cleanup_storage():
         logger.error(f"Error cleaning up storage: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/processing/statistics", response_model=Dict[str, Any])
 async def get_processing_statistics():
     """Get data processing statistics"""
@@ -415,6 +434,7 @@ async def get_processing_statistics():
     except Exception as e:
         logger.error(f"Error getting processing statistics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/alerts/history", response_model=List[Dict[str, Any]])
 async def get_alert_history(
@@ -474,6 +494,7 @@ async def get_alert_history(
     except Exception as e:
         logger.error(f"Error getting alert history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/health", response_model=Dict[str, Any])
 async def health_check():

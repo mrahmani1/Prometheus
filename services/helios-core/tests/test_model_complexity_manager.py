@@ -29,6 +29,7 @@ from core.model_complexity_manager import (
 )
 from models.ai_models import GeologicalProcess
 
+
 class TestComplexityMetrics:
     """Test ComplexityMetrics class"""
 
@@ -48,6 +49,7 @@ class TestComplexityMetrics:
         score = metrics.complexity_score()
         assert isinstance(score, float)
         assert score > 0
+
 
 class TestDataAssessment:
     """Test DataAssessment class"""
@@ -80,6 +82,7 @@ class TestDataAssessment:
 
         assert assessment.availability_level() == DataAvailability.EXCELLENT
 
+
 class TestResourceAssessment:
     """Test ResourceAssessment class"""
 
@@ -109,6 +112,7 @@ class TestResourceAssessment:
 
         assert assessment.resource_level() == ComputationalResource.EXTREME
 
+
 class TestModelConfiguration:
     """Test ModelConfiguration class"""
 
@@ -133,6 +137,7 @@ class TestModelConfiguration:
         assert config_dict["network_layers"] == [128, 64, 32]
         assert len(config_dict["physics_constraints"]) == 2
         assert config_dict["batch_size"] == 128
+
 
 class TestModelComplexityAssessor:
     """Test ModelComplexityAssessor class"""
@@ -178,6 +183,7 @@ class TestModelComplexityAssessor:
 
         assert memory > 0
         assert isinstance(memory, float)
+
 
 class TestDataAvailabilityAssessor:
     """Test DataAvailabilityAssessor class"""
@@ -229,6 +235,7 @@ class TestDataAvailabilityAssessor:
 
         assert abs(missing_fraction - 0.1) < 0.01  # Should be approximately 10%
 
+
 class TestResourceAssessor:
     """Test ResourceAssessor class"""
 
@@ -269,6 +276,7 @@ class TestResourceAssessor:
             assert assessment.gpu_count == 2
             assert assessment.gpu_memory_gb == 16.0  # 2 GPUs * 8GB each
 
+
 class TestModelHierarchy:
     """Test ModelHierarchy class"""
 
@@ -306,6 +314,7 @@ class TestModelHierarchy:
 
         # Full complexity should have more coupling terms
         assert len(full.coupling_terms) > len(minimal.coupling_terms)
+
 
 class TestComputationalCostEstimator:
     """Test ComputationalCostEstimator class"""
@@ -380,6 +389,7 @@ class TestComputationalCostEstimator:
 
         assert isinstance(optimal_config, ModelConfiguration)
         assert optimal_config in configs
+
 
 class TestModelComplexityManager:
     """Test ModelComplexityManager class"""
@@ -557,6 +567,7 @@ class TestModelComplexityManager:
         assert isinstance(serializable["numpy_array"], list)
         assert serializable["dict"]["nested"] == "full"
 
+
 class TestIntegration:
     """Integration tests for the complete system"""
 
@@ -606,6 +617,7 @@ class TestIntegration:
 
         # Should have some recommendations given the test setup
         assert len(recommendations) > 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

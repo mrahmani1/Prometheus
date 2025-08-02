@@ -24,6 +24,7 @@ from models.ai_models import (
     UncertaintyQuantification,
 )
 
+
 class TestNetworkArchitecture:
     """Test NetworkArchitecture data model"""
 
@@ -111,11 +112,14 @@ class TestNetworkArchitecture:
         restored_architecture = NetworkArchitecture.from_dict(data)
         assert restored_architecture.layer_sizes == architecture.layer_sizes
         assert (
-            restored_architecture.activation_functions == architecture.activation_functions
+            restored_architecture.activation_functions
+            == architecture.activation_functions
         )
         assert (
-            restored_architecture.batch_normalization == architecture.batch_normalization
+            restored_architecture.batch_normalization
+            == architecture.batch_normalization
         )
+
 
 class TestPhysicsConstraint:
     """Test PhysicsConstraint data model"""
@@ -196,6 +200,7 @@ class TestPhysicsConstraint:
         restored_constraint = PhysicsConstraint.from_dict(data)
         assert restored_constraint.constraint_type == constraint.constraint_type
         assert restored_constraint.equation_parameters == constraint.equation_parameters
+
 
 class TestPINNModelConfig:
     """Test PINNModelConfig data model"""
@@ -323,6 +328,7 @@ class TestPINNModelConfig:
                 },  # Invalid batch size
             )
 
+
 class TestSimulationParameters:
     """Test SimulationParameters data model"""
 
@@ -430,6 +436,7 @@ class TestSimulationParameters:
             initial_conditions["temperature"],
         )
 
+
 class TestUncertaintyQuantification:
     """Test UncertaintyQuantification data model"""
 
@@ -502,6 +509,7 @@ class TestUncertaintyQuantification:
         restored_uq = UncertaintyQuantification.from_dict(data)
         assert restored_uq.method == uq.method
         assert np.array_equal(restored_uq.epistemic_uncertainty, epistemic)
+
 
 class TestModelPrediction:
     """Test ModelPrediction data model"""
@@ -629,6 +637,7 @@ class TestModelPrediction:
         assert restored_prediction.timestamp == timestamp
         assert np.array_equal(restored_prediction.values, values)
 
+
 class TestModelMetadata:
     """Test ModelMetadata data model"""
 
@@ -684,6 +693,7 @@ class TestModelMetadata:
                 performance_metrics={"mse": -0.05},  # Negative metric
                 hyperparameters={"learning_rate": 0.001},
             )
+
 
 class TestModelRegistry:
     """Test ModelRegistry data model"""
@@ -800,6 +810,7 @@ class TestModelRegistry:
         assert restored_registry.registry_id == registry.registry_id
         assert restored_registry.default_model == registry.default_model
         assert len(restored_registry.models) == 1
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

@@ -10,28 +10,23 @@ Requirements: 12.3, 12.4
 import asyncio
 import functools
 import logging
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Callable, Dict, Optional
 
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
+
 try:
-    from .error_management import (
-        PrometheusErrorHandler,
-        create_error_context,
-        prometheus_error_handler,
-    )
+    from .error_management import (PrometheusErrorHandler,
+                                   create_error_context,
+                                   prometheus_error_handler)
 except ImportError:
-    from error_management import (
-        PrometheusErrorHandler,
-        create_error_context,
-    )
-    from error_management import (
-        rt,
-    )
+    from error_management import (PrometheusErrorHandler, create_error_context,
+                                  rt)
 
 logger = logging.getLogger(__name__)
+
 
 def with_error_handling(
     service_name: str,
@@ -81,6 +76,7 @@ def with_error_handling(
 
     return decorator
 
+
 def with_geological_error_handling(operation: Optional[str] = None):
     """
     Specialized decorator for geological modeling operations
@@ -121,6 +117,7 @@ def with_geological_error_handling(operation: Optional[str] = None):
 
     return decorator
 
+
 def with_realtime_monitoring_error_handling(operation: Optional[str] = None):
     """
     Specialized decorator for real-time monitoring operations
@@ -160,6 +157,7 @@ def with_realtime_monitoring_error_handling(operation: Optional[str] = None):
 
     return decorator
 
+
 class ErrorHandlingMixin:
     """
     Mixin class to add error handling capabilities to existing classes
@@ -188,6 +186,7 @@ class ErrorHandlingMixin:
     def get_error_health_status(self) -> Dict[str, Any]:
         """Get error management health status"""
         return self.error_handler.get_system_health_status()
+
 
 class GeologicalModelErrorHandler(ErrorHandlingMixin):
     """
@@ -224,6 +223,7 @@ class GeologicalModelErrorHandler(ErrorHandlingMixin):
             error, f"convergence_failure_{model_type}", context_data
         )
 
+
 class VolcanicMonitoringErrorHandler(ErrorHandlingMixin):
     """
     Specialized error handler for volcanic monitoring operations
@@ -259,6 +259,7 @@ class VolcanicMonitoringErrorHandler(ErrorHandlingMixin):
         return await self.handle_operation_error(
             error, f"alert_system_{alert_level}", context_data
         )
+
 
 # Example usage and integration patterns
 class ExampleGeologicalModel(GeologicalModelErrorHandler):
@@ -303,6 +304,7 @@ class ExampleGeologicalModel(GeologicalModelErrorHandler):
             "result": "convection_patterns_computed",
         }
 
+
 class ExampleVolcanicMonitor(VolcanicMonitoringErrorHandler):
     """Example volcanic monitor with integrated error handling"""
 
@@ -338,11 +340,13 @@ class ExampleVolcanicMonitor(VolcanicMonitoringErrorHandler):
             "timestamp": datetime.now(),
         }
 
+
 # Utility functions for error handling integration
 def setup_service_error_handling(service_name: str) -> PrometheusErrorHandler:
     """Set up error handling for a specific service"""
     logger.info(f"Setting up error handling for service: {service_name}")
     return prometheus_error_handler
+
 
 async def test_error_handling_integration():
     """Test the error handling integration"""
@@ -371,6 +375,7 @@ async def test_error_handling_integration():
     # Check system health
     health = prometheus_error_handler.get_system_health_status()
     logger.info(f"System health status: {health['system_status']}")
+
 
 if __name__ == "__main__":
     # Run integration test

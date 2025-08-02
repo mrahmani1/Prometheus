@@ -14,6 +14,7 @@ import torch
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class MonitoringAlert:
     """Comprehensive monitoring alert"""
@@ -31,6 +32,7 @@ class MonitoringAlert:
     auto_resolution: bool
     correlation_id: Optional[str]
 
+
 @dataclass
 class SystemMetrics:
     """Comprehensive system metrics"""
@@ -45,6 +47,7 @@ class SystemMetrics:
     custom_metrics: Dict[str, float]
     health_scores: Dict[str, float]
 
+
 @dataclass
 class PerformanceBaseline:
     """Performance baseline for anomaly detection"""
@@ -56,6 +59,7 @@ class PerformanceBaseline:
     trend_coefficient: float
     confidence_interval: Tuple[float, float]
     last_updated: datetime
+
 
 class AdvancedRealTimeMonitoring:
     """Advanced real-time monitoring system with ML-based analysis"""
@@ -276,6 +280,7 @@ class AdvancedRealTimeMonitoring:
 
                 try:
                     import httpx
+
                     async with httpx.AsyncClient(timeout=10.0) as client:
                         response = await client.get(endpoint)
 

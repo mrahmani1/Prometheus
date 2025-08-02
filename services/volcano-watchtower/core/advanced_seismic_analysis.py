@@ -18,6 +18,7 @@ from scipy.signal import butter, filtfilt
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class SeismicEvent:
     """Comprehensive seismic event characterization"""
@@ -34,6 +35,7 @@ class SeismicEvent:
     waveform_features: Dict[str, float]
     uncertainty: Dict[str, float]
 
+
 @dataclass
 class SeismicStation:
     """Seismic station configuration"""
@@ -45,6 +47,7 @@ class SeismicStation:
     channels: List[str]  # ['BHZ', 'BHN', 'BHE']
     noise_level: float
     calibration: Dict[str, float]
+
 
 class AdvancedSeismicAnalysis:
     """Advanced seismic analysis engine with comprehensive processing"""
@@ -399,6 +402,7 @@ class AdvancedSeismicAnalysis:
         # This would use PyWavelets for actual implementation
         # For now, return a simple smoothed version
         from scipy.ndimage import gaussian_filter1d
+
         # Apply gentle smoothing
         denoised = gaussian_filter1d(waveform, sigma=1.0, axis=-1)
 

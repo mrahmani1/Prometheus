@@ -37,6 +37,7 @@ logger = structlog.get_logger()
 helios_engine = None
 service_registry = None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -79,6 +80,7 @@ async def lifespan(app: FastAPI):
             await helios_engine.cleanup()
         logger.info("Helios Core Service shutdown complete")
 
+
 # Create FastAPI application
 app = FastAPI(
     title="Helios AI Core Engine",
@@ -110,11 +112,11 @@ from api.hazard_mapping_api import router as hazard_mapping_router
 app.include_router(hazard_mapping_router)
 
 # Include geological network representation routes
-from api.geological_network_representation import (
-    router as network_representation_router,
-)
+from api.geological_network_representation import \
+    router as network_representation_router
 
 app.include_router(network_representation_router)
+
 
 @app.get("/health")
 async def health_check():
@@ -134,6 +136,7 @@ async def health_check():
         logger.error("Health check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service unhealthy")
 
+
 @app.get("/ready")
 async def readiness_check():
     """Readiness check endpoint"""
@@ -151,6 +154,7 @@ async def readiness_check():
         logger.error("Readiness check failed", error=str(e))
         raise HTTPException(status_code=503, detail="Service not ready")
 
+
 @app.get("/")
 async def root():
     """Root endpoint with service information"""
@@ -166,6 +170,7 @@ async def root():
             "metrics": "/metrics",
         },
     }
+
 
 if __name__ == "__main__":
     uvicorn.run(

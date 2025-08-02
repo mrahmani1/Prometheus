@@ -11,6 +11,7 @@ from .base_connector import BaseConnector
 
 logger = structlog.get_logger()
 
+
 class HydroacousticConnector(BaseConnector):
     """Connector for hydroacoustic data"""
 

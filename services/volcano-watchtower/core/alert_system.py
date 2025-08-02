@@ -13,6 +13,7 @@ from models.volcanic_data import AlertLevel, VolcanicRiskAssessment
 
 logger = structlog.get_logger()
 
+
 class AlertPriority(Enum):
     """Alert priority levels"""
 
@@ -21,6 +22,7 @@ class AlertPriority(Enum):
     HIGH = "high"
     CRITICAL = "critical"
     EMERGENCY = "emergency"
+
 
 @dataclass
 class AlertHistory:
@@ -32,6 +34,7 @@ class AlertHistory:
     duration: timedelta
     escalated: bool = False
     acknowledged: bool = False
+
 
 class AlertLevelManager:
     """
@@ -354,6 +357,7 @@ class AlertLevelManager:
             5: 2,  # Emergency - 2 hours
         }
         return validity_hours.get(level, 6)
+
 
 class NotificationSystem:
     """

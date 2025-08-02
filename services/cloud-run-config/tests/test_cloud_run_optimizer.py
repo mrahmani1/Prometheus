@@ -7,6 +7,7 @@ import unittest
 
 logger = logging.getLogger(__name__)
 
+
 class TestTestcloudrunoptimizer(unittest.TestCase):
     """Test cases for test cloud run optimizer functionality."""
 
@@ -22,6 +23,7 @@ class TestTestcloudrunoptimizer(unittest.TestCase):
         """Test error handling."""
         with self.assertRaises(Exception):
             raise Exception("Test exception")
+
 
 if __name__ == "__main__":
     unittest.main()

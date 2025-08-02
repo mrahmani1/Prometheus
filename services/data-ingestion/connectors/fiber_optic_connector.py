@@ -11,6 +11,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 class Fiberopticconnector:
     """Main class for fiber optic connector functionality."""
 
@@ -32,11 +33,13 @@ class Fiberopticconnector:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Fiberopticconnector()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

@@ -4,14 +4,14 @@ Benchmark validation tests for geological models against known datasets
 Tests model accuracy against peer-reviewed geological studies and established benchmarks.
 """
 
-import pytest
-import numpy as np
-import torch
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Tuple, Any
 import json
+import numpy as np
 import os
-from pathlib import Path
+import pytest
+import torch
 
 # Benchmark test markers
 pytestmark = pytest.mark.benchmark

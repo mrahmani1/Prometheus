@@ -13,6 +13,7 @@ from typing import Dict, List
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 @dataclass
 class PostGISConfig:
     """Configuration for PostgreSQL with PostGIS operations"""
@@ -294,6 +295,7 @@ class PostGISConfig:
             errors.append("username cannot be empty")
 
         return errors
+
 
 # Global configuration instance
 postgis_config = PostGISConfig()

@@ -22,6 +22,7 @@ from ..core.gpu_cluster_manager import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def generate_synthetic_training_data(num_samples: int = 50000) -> tuple:
     """
     Generate synthetic geological training data for GPU cluster demonstration.
@@ -89,6 +90,7 @@ def generate_synthetic_training_data(num_samples: int = 50000) -> tuple:
 
     return input_data, target_data
 
+
 async def demonstrate_cluster_initialization():
     """Demonstrate GPU cluster initialization and configuration."""
     print("\n=== GPU Cluster Initialization Demo ===")
@@ -125,6 +127,7 @@ async def demonstrate_cluster_initialization():
         print(f"✗ GPU cluster initialization failed: {e}")
         print("  Note: This requires CUDA-capable GPUs")
         return None
+
 
 async def demonstrate_cluster_status(cluster_manager: GPUClusterManager):
     """Demonstrate cluster status monitoring."""
@@ -166,6 +169,7 @@ async def demonstrate_cluster_status(cluster_manager: GPUClusterManager):
 
     except Exception as e:
         print(f"✗ Cluster status monitoring failed: {e}")
+
 
 async def demonstrate_job_submission(cluster_manager: GPUClusterManager):
     """Demonstrate training job submission and management."""
@@ -228,6 +232,7 @@ async def demonstrate_job_submission(cluster_manager: GPUClusterManager):
         print(f"✗ Job submission failed: {e}")
         return []
 
+
 async def demonstrate_distributed_training(
     cluster_manager: GPUClusterManager, job_ids: list
 ):
@@ -282,6 +287,7 @@ async def demonstrate_distributed_training(
     except Exception as e:
         print(f"✗ Distributed training failed: {e}")
 
+
 async def demonstrate_batch_size_optimization(
     cluster_manager: GPUClusterManager, job_ids: list
 ):
@@ -314,6 +320,7 @@ async def demonstrate_batch_size_optimization(
 
     except Exception as e:
         print(f"✗ Batch size optimization failed: {e}")
+
 
 async def demonstrate_performance_monitoring(cluster_manager: GPUClusterManager):
     """Demonstrate cluster performance monitoring."""
@@ -358,6 +365,7 @@ async def demonstrate_performance_monitoring(cluster_manager: GPUClusterManager)
     except Exception as e:
         print(f"✗ Performance monitoring failed: {e}")
 
+
 async def demonstrate_auto_scaling(cluster_manager: GPUClusterManager):
     """Demonstrate automatic cluster scaling."""
     print("\n=== Auto-Scaling Demo ===")
@@ -391,6 +399,7 @@ async def demonstrate_auto_scaling(cluster_manager: GPUClusterManager):
 
     except Exception as e:
         print(f"✗ Auto-scaling failed: {e}")
+
 
 async def demonstrate_job_management(cluster_manager: GPUClusterManager):
     """Demonstrate comprehensive job management."""
@@ -436,6 +445,7 @@ async def demonstrate_job_management(cluster_manager: GPUClusterManager):
     except Exception as e:
         print(f"✗ Job management failed: {e}")
 
+
 async def main():
     """Main demonstration function."""
     print("🚀 GPU Cluster Management for Geological Modeling Demo")
@@ -477,6 +487,7 @@ async def main():
         print("   The implementation is ready for deployment on GPU clusters")
 
     print("\n🎉 GPU Cluster Management Demo Complete!")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

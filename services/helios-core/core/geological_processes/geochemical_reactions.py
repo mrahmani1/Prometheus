@@ -19,6 +19,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ReactionParameters:
     """Parameters for geochemical reaction networks"""
@@ -85,6 +86,7 @@ class ReactionParameters:
 
         if self.delta_h_reaction is None:
             self.delta_h_reaction = [-10000.0] * self.n_reactions  # Default ΔH_rxn
+
 
 class GeochemicalReactionNetwork(nn.Module):
     """
@@ -406,6 +408,7 @@ class GeochemicalReactionNetwork(nn.Module):
 
         return coords
 
+
 class IsotopeExchangeModel:
     """
     Specialized model for isotope fractionation and exchange reactions
@@ -448,6 +451,7 @@ class IsotopeExchangeModel:
 
         return fractionation_factors
 
+
 def create_geochemical_reaction_network(config: Dict) -> GeochemicalReactionNetwork:
     """
     Factory function to create geochemical reaction network
@@ -471,6 +475,7 @@ def create_geochemical_reaction_network(config: Dict) -> GeochemicalReactionNetw
     logger.info("Created comprehensive geochemical reaction network")
 
     return model
+
 
 class IsotopeExchangeModel:
     """

@@ -9,6 +9,7 @@ import sys
 
 import torch.nn.functional as F
 
+
 def test_python_syntax(filepath):
     """Test Python file syntax"""
     try:
@@ -25,6 +26,7 @@ def test_python_syntax(filepath):
     except Exception as e:
         print(f"✗ Error checking {filepath}: {e}")
         return False
+
 
 def test_file_structure():
     """Test that all required files exist"""
@@ -47,6 +49,7 @@ def test_file_structure():
     else:
         print("✓ All required files present")
         return True
+
 
 def test_docker_file():
     """Test Dockerfile structure"""
@@ -71,6 +74,7 @@ def test_docker_file():
         print(f"✗ Error checking Dockerfile: {e}")
         return False
 
+
 def test_requirements_file():
     """Test requirements.txt structure"""
     try:
@@ -94,6 +98,7 @@ def test_requirements_file():
         print(f"✗ Error checking requirements.txt: {e}")
         return False
 
+
 def test_sql_file_exists():
     """Test that SQL initialization file exists"""
     sql_file = "../../database/timescale/init.sql"
@@ -103,6 +108,7 @@ def test_sql_file_exists():
     else:
         print(f"✗ SQL file not found: {sql_file}")
         return False
+
 
 def main():
     """Run all structure tests"""
@@ -135,6 +141,7 @@ def main():
     else:
         print("✗ Some structure tests failed")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

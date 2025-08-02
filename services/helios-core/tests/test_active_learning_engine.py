@@ -29,6 +29,7 @@ from active_learning_engine import (
     create_sample_geological_data,
 )
 
+
 class TestGeologicalSample:
     """Test GeologicalSample data structure"""
 
@@ -50,6 +51,7 @@ class TestGeologicalSample:
         assert sample.location == location
         assert sample.sample_type == "seismic"
         assert sample.metadata["test"] is True
+
 
 class TestActiveLearningConfig:
     """Test ActiveLearningConfig"""
@@ -74,6 +76,7 @@ class TestActiveLearningConfig:
         assert config.batch_size == 20
         assert config.diversity_weight == 0.5
 
+
 class SimpleTestModel(nn.Module):
     """Simple model for testing"""
 
@@ -88,6 +91,7 @@ class SimpleTestModel(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)
         return x
+
 
 class TestUncertaintyBasedSampling:
     """Test uncertainty-based sampling strategy"""
@@ -143,6 +147,7 @@ class TestUncertaintyBasedSampling:
         )
         assert violation > 0.0
 
+
 class TestQueryByCommittee:
     """Test query-by-committee strategy"""
 
@@ -195,6 +200,7 @@ class TestQueryByCommittee:
             seismic_sample, predictions
         )
         assert disagreement > 0.0
+
 
 class TestDiversityBasedSampling:
     """Test diversity-based sampling strategy"""
@@ -249,6 +255,7 @@ class TestDiversityBasedSampling:
             new_sample, coverage
         )
         assert improvement > 0.0
+
 
 class TestActiveLearningEvaluator:
     """Test active learning evaluator"""
@@ -322,6 +329,7 @@ class TestActiveLearningEvaluator:
         assert "average_metrics" in summary
         assert "best_performing_strategy" in summary
         assert summary["total_evaluations"] == 2
+
 
 class TestActiveLearningEngine:
     """Test main active learning engine"""
@@ -452,6 +460,7 @@ class TestActiveLearningEngine:
         mock_open.assert_called_once_with("test_report.json", "w")
         mock_json_dump.assert_called_once()
 
+
 class TestIntegration:
     """Integration tests for the complete active learning system"""
 
@@ -524,6 +533,7 @@ class TestIntegration:
         # Verify final state
         assert len(labeled_data) == 100
         assert len(unlabeled_pool) == 900
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

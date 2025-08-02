@@ -3,8 +3,9 @@
 Check for potentially unused imports in Python files.
 """
 
-import ast
 import os
+
+import ast
 
 def find_unused_imports():
     unused_count = 0

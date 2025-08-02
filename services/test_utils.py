@@ -7,6 +7,7 @@ import json
 import os
 import unittest
 
+
 class TestUtils(unittest.TestCase):
     """Utility test class."""
 
@@ -65,6 +66,7 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(basename, "file.txt")
         self.assertTrue("test" in dirname)
+
 
 if __name__ == "__main__":
     unittest.main()

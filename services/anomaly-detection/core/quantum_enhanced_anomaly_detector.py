@@ -28,12 +28,14 @@ from sklearn.preprocessing import StandardScaler
 try:
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import ZZFeatureMap
+
     QUANTUM_AVAILABLE = True
 except ImportError:
     QUANTUM_AVAILABLE = False
     logging.warning("Qiskit not available. Quantum features will be disabled.")
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class QuantumAnomalyResult:
@@ -52,6 +54,7 @@ class QuantumAnomalyResult:
     recommended_actions: List[str]
     uncertainty_bounds: Tuple[float, float]
 
+
 @dataclass
 class QuantumCircuitConfig:
     """Configuration for quantum circuits"""
@@ -65,6 +68,7 @@ class QuantumCircuitConfig:
     shots: int = 1024
     backend: str = "aer_simulator"
     noise_model: Optional[str] = None
+
 
 class QuantumFeatureMap:
     """Advanced quantum feature mapping for geological data"""
@@ -123,6 +127,7 @@ class QuantumFeatureMap:
         circuit = circuit.compose(self.geological_circuit)
 
         return circuit
+
 
 class VariationalQuantumAnomalyDetector:
     """Variational Quantum Classifier for anomaly detection"""
@@ -298,6 +303,7 @@ class VariationalQuantumAnomalyDetector:
 
         raise RuntimeError("No trained model available")
 
+
 class QuantumNeuralNetwork:
     """Quantum Neural Network for complex geological pattern recognition"""
 
@@ -349,6 +355,7 @@ class QuantumNeuralNetwork:
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through hybrid network"""
         return self.hybrid_model(x)
+
 
 class QuantumApproximateOptimization:
     """QAOA for optimal feature selection in geological anomaly detection"""
@@ -448,6 +455,7 @@ class QuantumApproximateOptimization:
         selector.fit(X, y)
 
         return selector.get_support(indices=True).tolist()
+
 
 class QuantumEnhancedAnomalyDetector:
     """Main quantum-enhanced anomaly detection system"""
@@ -834,6 +842,7 @@ class QuantumEnhancedAnomalyDetector:
 
         plt.show()
 
+
 # Example usage and testing
 async def main():
     """Example usage of quantum-enhanced anomaly detection"""
@@ -917,6 +926,7 @@ async def main():
         detector.visualize_quantum_results(
             detected_anomalies, "quantum_anomaly_results.png"
         )
+
 
 if __name__ == "__main__":
     asyncio.run(main())

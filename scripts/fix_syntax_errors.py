@@ -3,11 +3,11 @@
 Comprehensive syntax error detection and fixing script for the Prometheus AI platform.
 """
 
+from pathlib import Path
 import ast
 import os
-import sys
-from pathlib import Path
 import re
+import sys
 
 def check_syntax_errors(file_path):
     """Check for syntax errors in a Python file."""

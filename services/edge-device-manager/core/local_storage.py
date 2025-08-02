@@ -20,6 +20,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 class StorageType(str, Enum):
     """Data storage types"""
 
@@ -30,12 +31,14 @@ class StorageType(str, Enum):
     ALERT_HISTORY = "alert_history"
     CONFIGURATION = "configuration"
 
+
 class CompressionType(str, Enum):
     """Data compression types"""
 
     NONE = "none"
     GZIP = "gzip"
     PICKLE = "pickle"
+
 
 @dataclass
 class StorageRecord:
@@ -52,6 +55,7 @@ class StorageRecord:
     file_path: Optional[str] = None
     sync_status: str = "pending"
     retention_date: Optional[datetime] = None
+
 
 class LocalStorageManager:
     """Manages local data storage for offline operation"""

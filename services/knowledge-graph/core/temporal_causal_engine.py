@@ -18,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 
 logger = structlog.get_logger()
 
+
 @dataclass
 class TemporalCausalRelationship:
     """Temporal causal relationship with time lag information"""
@@ -32,6 +33,7 @@ class TemporalCausalRelationship:
     temporal_window: Tuple[datetime, datetime]
     supporting_evidence: Dict[str, Any]
 
+
 @dataclass
 class CausalNetwork:
     """Causal network structure with temporal information"""
@@ -41,6 +43,7 @@ class CausalNetwork:
     network_confidence: float
     discovery_timestamp: datetime
     temporal_resolution: str  # "seconds", "minutes", "hours", "days"
+
 
 class TemporalCausalEngine:
     """Advanced temporal causal discovery for geological time-series data"""

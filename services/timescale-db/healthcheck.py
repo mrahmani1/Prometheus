@@ -12,6 +12,7 @@ import asyncpg
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 async def check_database_health():
     """Check database connectivity and TimescaleDB functionality"""
     try:
@@ -50,6 +51,7 @@ async def check_database_health():
     except Exception as e:
         return False, f"Health check failed: {str(e)}"
 
+
 async def main():
     """Main health check function"""
     is_healthy, message = await check_database_health()
@@ -60,6 +62,7 @@ async def main():
         sys.exit(0)
     else:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

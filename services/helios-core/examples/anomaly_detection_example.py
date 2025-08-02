@@ -26,6 +26,7 @@ from core.anomaly_detection.collective_detector import GeologicalEventSequence
 from core.anomaly_detection.contextual_detector import GeologicalContext
 from core.anomaly_detection.continuous_learner import LearningUpdate
 
+
 class GeologicalDataSimulator:
     """Simulate realistic geological data with embedded anomalies"""
 
@@ -199,6 +200,7 @@ class GeologicalDataSimulator:
             sequences.append(sequence)
 
         return sequences
+
 
 async def demonstrate_anomaly_detection():
     """Demonstrate comprehensive anomaly detection capabilities"""
@@ -451,6 +453,7 @@ async def demonstrate_anomaly_detection():
 
     logger.info("Anomaly detection demonstration completed successfully!")
 
+
 def visualize_results(data: np.ndarray, results: List, variable_names: List[str]):
     """Visualize anomaly detection results"""
 
@@ -520,6 +523,7 @@ def visualize_results(data: np.ndarray, results: List, variable_names: List[str]
     plt.show()
 
     print("Visualization saved as 'anomaly_detection_visualization.png'")
+
 
 if __name__ == "__main__":
     # Run the demonstration

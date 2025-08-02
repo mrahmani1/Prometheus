@@ -24,6 +24,7 @@ from core.hazard_communication import (
 from core.hazard_mapping import GeographicBounds, HazardMappingEngine
 from core.realtime_hazard_updates import MonitoringDataStream, RealTimeHazardUpdater
 
+
 async def demo_multi_hazard_assessment():
     """Demonstrate comprehensive multi-hazard risk assessment"""
     print("=" * 60)
@@ -145,6 +146,7 @@ async def demo_multi_hazard_assessment():
 
     return assessment
 
+
 async def demo_real_time_monitoring():
     """Demonstrate real-time monitoring and updates"""
     print("\n" + "=" * 60)
@@ -239,6 +241,7 @@ async def demo_real_time_monitoring():
 
     return realtime_updater
 
+
 async def demo_communication_products(assessment):
     """Demonstrate communication product generation for different audiences"""
     print("\n" + "=" * 60)
@@ -309,6 +312,7 @@ async def demo_communication_products(assessment):
 
     return communication_engine
 
+
 async def demo_uncertainty_analysis(assessment):
     """Demonstrate uncertainty analysis and visualization"""
     print("\n" + "=" * 60)
@@ -374,6 +378,7 @@ async def demo_uncertainty_analysis(assessment):
             )
     else:
         print("Weak correlation between risk and uncertainty")
+
 
 async def save_demo_results(assessment, output_dir="demo_output"):
     """Save demo results to files"""
@@ -441,6 +446,7 @@ async def save_demo_results(assessment, output_dir="demo_output"):
 
     print(f"\nAll demo results saved to: {output_path.absolute()}")
 
+
 async def main():
     """Main demo function"""
     print("🌋 PROMETHEUS AI HAZARD MAPPING SYSTEM DEMO 🌋")
@@ -472,12 +478,14 @@ async def main():
     except Exception as e:
         print(f"\n❌ DEMO FAILED: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:
         # Cleanup
         if "realtime_updater" in locals():
             await realtime_updater.stop_monitoring()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

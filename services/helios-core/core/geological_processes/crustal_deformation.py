@@ -20,6 +20,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ViscoelasticParameters:
     """Parameters for viscoelastic crustal deformation"""
@@ -61,6 +62,7 @@ class ViscoelasticParameters:
 
         if self.maxwell_time is None:
             self.maxwell_time = self.viscosity / self.shear_modulus
+
 
 class CrustalDeformationModel(nn.Module):
     """
@@ -554,6 +556,7 @@ class CrustalDeformationModel(nn.Module):
 
         return strain_rate
 
+
 class FaultMechanicsModel:
     """
     Specialized model for fault mechanics and earthquake processes
@@ -614,6 +617,7 @@ class FaultMechanicsModel:
         )  # Shear stress magnitude
 
         return normal_stress, shear_stress
+
 
 def create_crustal_deformation_model(config: Dict) -> CrustalDeformationModel:
     """

@@ -23,6 +23,7 @@ from core.hypothesis_generation_engine import (
     HypothesisValidationSystem,
 )
 
+
 def create_sample_causal_relationships():
     """Create sample causal relationships for demonstration"""
 
@@ -75,6 +76,7 @@ def create_sample_causal_relationships():
 
     return relationships
 
+
 def create_sample_geological_data():
     """Create sample geological data patterns"""
 
@@ -105,6 +107,7 @@ def create_sample_geological_data():
         "temporal_coverage": 0.85,
     }
 
+
 def create_geological_context():
     """Create geological context for the analysis"""
 
@@ -118,6 +121,7 @@ def create_geological_context():
         "monitoring_network": "comprehensive",
         "historical_activity": "frequent_unrest_episodes",
     }
+
 
 def create_available_resources():
     """Define available resources for validation experiments"""
@@ -139,6 +143,7 @@ def create_available_resources():
         "institutional_support": "university_volcano_observatory",
         "international_collaboration": True,
     }
+
 
 def demonstrate_hypothesis_generation():
     """Demonstrate the complete hypothesis generation workflow"""
@@ -319,6 +324,7 @@ def demonstrate_hypothesis_generation():
 
     return results
 
+
 def demonstrate_individual_components():
     """Demonstrate individual system components"""
 
@@ -381,6 +387,7 @@ def demonstrate_individual_components():
         if experiments:
             print(f"   Example: {experiments[0].get('title', 'No title')[:80]}...")
 
+
 if __name__ == "__main__":
     try:
         # Run the main demonstration
@@ -397,5 +404,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Error during demonstration: {str(e)}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

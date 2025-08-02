@@ -18,6 +18,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class NeuralArchitecture:
     """Neural architecture specification for geological modeling"""
@@ -36,6 +37,7 @@ class NeuralArchitecture:
     uncertainty_quantification: bool
     multi_scale_processing: bool
     temporal_modeling: bool
+
 
 @dataclass
 class SearchSpace:
@@ -56,6 +58,7 @@ class SearchSpace:
     uncertainty_layers: List[str]
     temporal_components: List[str]
 
+
 @dataclass
 class SearchResult:
     """Neural architecture search result"""
@@ -70,6 +73,7 @@ class SearchResult:
     search_efficiency: Dict[str, float]
     geological_performance: Dict[str, float]
     transferability_analysis: Dict[str, Any]
+
 
 class GeologicalNeuralArchitectureSearch:
     """Advanced neural architecture search for geological modeling"""
@@ -1406,6 +1410,7 @@ class GeologicalNeuralArchitectureSearch:
 
         return consistency_score
 
+
 # Example usage
 async def main():
     """Example usage of neural architecture search"""
@@ -1438,6 +1443,7 @@ async def main():
     print(f"Best architecture: {search_result.best_architecture.architecture_id}")
     print(f"Performance: {search_result.best_architecture.performance_metrics}")
     print(f"Search time: {search_result.search_time:.2f} seconds")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

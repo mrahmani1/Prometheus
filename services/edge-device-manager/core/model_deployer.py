@@ -12,12 +12,8 @@ from typing import Dict, List, Optional, Set
 import aioredis
 import httpx
 from models.config import EdgeManagerConfig, ModelDeploymentConfig
-from models.device import (
-    ModelDeployment,
-    ModelDeploymentRequest,
-    ModelDeploymentResponse,
-    ModelStatus,
-)
+from models.device import (ModelDeployment, ModelDeploymentRequest,
+                           ModelDeploymentResponse, ModelStatus)
 
 logger = logging.getLogger(__name__)
 

@@ -11,6 +11,7 @@ from .base_connector import BaseConnector
 
 logger = structlog.get_logger()
 
+
 class CommercialSatelliteConnector(BaseConnector):
     """Connector for commercial satellite data providers"""
 

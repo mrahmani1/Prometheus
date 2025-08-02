@@ -18,19 +18,17 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from core.quantum_helios_integration import QuantumHeliosIntegrator
-
 # Import quantum optimization components
-from core.quantum_optimization import (
-    QuantumGeologicalOptimizationManager,
-    analyze_quantum_advantage,
-    create_geological_quantum_problem,
-)
+from core.quantum_optimization import (QuantumGeologicalOptimizationManager,
+                                       analyze_quantum_advantage,
+                                       create_geological_quantum_problem)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 class QuantumGeologicalTestSuite:
     """Comprehensive test suite for quantum geological optimization"""
@@ -599,6 +597,7 @@ class QuantumGeologicalTestSuite:
         except Exception as e:
             logger.error(f"Failed to create visualization: {e}")
 
+
 async def main():
     """Main function to run the quantum optimization test suite"""
     print("Quantum Geological Optimization Test Suite")
@@ -622,6 +621,7 @@ async def main():
 
     # Return results for further analysis
     return results
+
 
 if __name__ == "__main__":
     # Run the test suite

@@ -11,6 +11,7 @@ from datetime import datetime
 
 import torch.nn.functional as F
 
+
 def check_implementation():
     """Check if all required components are implemented"""
     print("🚀 Cloud Run Serverless Scaling Implementation Check")
@@ -213,6 +214,7 @@ def check_implementation():
     print("\nValidation results saved to: validation_results.json")
 
     return status == "COMPLETE" or status == "MOSTLY_COMPLETE"
+
 
 if __name__ == "__main__":
     success = check_implementation()

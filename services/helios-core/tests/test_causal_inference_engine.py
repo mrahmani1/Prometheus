@@ -14,11 +14,11 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import pytest
+import torch.nn as nn
+import torch.nn.functional as F
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import torch.nn as nn
-import torch.nn.functional as F
 from core.causal_inference_engine import (
     CausalAlgorithm,
     CausalEdge,
@@ -28,6 +28,7 @@ from core.causal_inference_engine import (
     GeologicalDomainKnowledge,
     InterventionResult,
 )
+
 
 class TestCausalInferenceEngine:
     """Test suite for CausalInferenceEngine"""
@@ -232,19 +233,19 @@ class TestCausalInferenceEngine:
         is_valid = causal_engine._is_causal_direction_valid(
             "magma_pressure", "ground_deformation"
         )
-        assert is_valid  is True
+        assert is_valid is True
 
         # Test invalid causal direction
         is_invalid = causal_engine._is_causal_direction_valid(
             "ground_deformation", "magma_pressure"
         )
-        assert is_invalid  is False
+        assert is_invalid is False
 
         # Test unknown relationship (should be allowed)
         is_unknown = causal_engine._is_causal_direction_valid(
             "unknown_var1", "unknown_var2"
         )
-        assert is_unknown  is True
+        assert is_unknown is True
 
     def test_intervention_analysis(self, causal_engine, sample_geological_data):
         """Test causal intervention analysis"""
@@ -479,6 +480,7 @@ class TestCausalInferenceEngine:
         assert "A" not in descendants_b
         assert "D" not in descendants_b
 
+
 class TestCausalGraphDataStructures:
     """Test causal graph data structures"""
 
@@ -548,6 +550,7 @@ class TestCausalGraphDataStructures:
         assert len(result.statistical_significance) == 2
         assert isinstance(result.geological_interpretation, str)
 
+
 class TestGeologicalDomainKnowledge:
     """Test geological domain knowledge functionality"""
 
@@ -567,6 +570,7 @@ class TestGeologicalDomainKnowledge:
         assert "A" in knowledge.temporal_constraints
         assert "pressure" in knowledge.physical_constraints
         assert "volcanic" in knowledge.geological_process_hierarchies
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

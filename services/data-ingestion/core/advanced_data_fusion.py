@@ -17,6 +17,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class DataSource:
     """Comprehensive data source specification"""
@@ -33,6 +34,7 @@ class DataSource:
     coordinate_system: str
     units: Dict[str, str]
 
+
 @dataclass
 class FusionResult:
     """Comprehensive fusion result"""
@@ -45,6 +47,7 @@ class FusionResult:
     fusion_method: str
     processing_timestamp: datetime
     metadata: Dict[str, Any]
+
 
 class AdvancedDataFusion:
     """Advanced multi-source data fusion engine"""

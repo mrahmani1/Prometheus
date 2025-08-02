@@ -9,18 +9,16 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_models import (
-    CausalRelationship,
-    GeologicalProcess,
-    GeologicalRelationship,
-    NetworkAnalysisResult,
-)
+from models.geological_models import (CausalRelationship, GeologicalProcess,
+                                      GeologicalRelationship,
+                                      NetworkAnalysisResult)
 from neo4j import AsyncDriver, AsyncGraphDatabase
 from neo4j.exceptions import ServiceUnavailable, TransientError
 
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
 
 class GraphDatabaseManager:
     """Manages Neo4j database connections and operations"""

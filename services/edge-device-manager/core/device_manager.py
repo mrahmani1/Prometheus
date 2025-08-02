@@ -11,14 +11,9 @@ from typing import Dict, List, Optional
 
 import aioredis
 from models.config import EdgeManagerConfig
-from models.device import (
-    DeviceMetrics,
-    DeviceRegistrationRequest,
-    DeviceRegistrationResponse,
-    DeviceStatus,
-    EdgeDevice,
-    EdgeDeviceConfig,
-)
+from models.device import (DeviceMetrics, DeviceRegistrationRequest,
+                           DeviceRegistrationResponse, DeviceStatus,
+                           EdgeDevice, EdgeDeviceConfig)
 
 logger = logging.getLogger(__name__)
 

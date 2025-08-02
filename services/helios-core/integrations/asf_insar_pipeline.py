@@ -29,6 +29,7 @@ from shapely.geometry import Point, Polygon, box
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ASFSearchParameters:
     """Parameters for ASF data search"""
@@ -62,6 +63,7 @@ class ASFSearchParameters:
             self.start_date = datetime.utcnow() - timedelta(days=365)
         if self.end_date is None:
             self.end_date = datetime.utcnow()
+
 
 @dataclass
 class InSARProduct:
@@ -106,6 +108,7 @@ class InSARProduct:
         """Get product geometry as Shapely polygon"""
         min_lon, min_lat, max_lon, max_lat = self.bbox
         return box(min_lon, min_lat, max_lon, max_lat)
+
 
 @dataclass
 class DeformationTimeSeries:
@@ -154,6 +157,7 @@ class DeformationTimeSeries:
         total_vel = np.sqrt(east_vel**2 + north_vel**2 + up_vel**2)
 
         return (east_vel, north_vel, up_vel, total_vel)
+
 
 class ASFDataClient:
     """Client for Alaska Satellite Facility data access"""
@@ -324,6 +328,7 @@ class ASFDataClient:
             logger.error(f"Failed to download {product.granule_name}: {e}")
             return None
 
+
 class HyP3ProcessingClient:
     """Client for ASF HyP3 cloud processing service"""
 
@@ -430,6 +435,7 @@ class HyP3ProcessingClient:
                 logger.error(f"Error downloading {filename}: {e}")
 
         return downloaded_files
+
 
 class AdvancedInSARProcessor:
     """Advanced InSAR processing and analysis"""
@@ -708,6 +714,7 @@ class AdvancedInSARProcessor:
             reference_point=reference_point,
             processing_method="ASF_HyP3_SBAS",
         )
+
 
 class ASFInSARPipeline:
     """Complete ASF InSAR processing pipeline"""

@@ -8,15 +8,13 @@ from typing import List, Optional
 from core.device_manager import EdgeDeviceManager
 from core.model_deployer import ModelDeployer
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from models.device import (
-    ModelDeployment,
-    ModelDeploymentRequest,
-    ModelDeploymentResponse,
-)
+from models.device import (ModelDeployment, ModelDeploymentRequest,
+                           ModelDeploymentResponse)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 # Dependencies
 async def get_model_deployer() -> ModelDeployer:
@@ -26,12 +24,14 @@ async def get_model_deployer() -> ModelDeployer:
         raise HTTPException(status_code=503, detail="Model deployer not available")
     return model_deployer
 
+
 async def get_device_manager() -> EdgeDeviceManager:
     from main import device_manager
 
     if not device_manager:
         raise HTTPException(status_code=503, detail="Device manager not available")
     return device_manager
+
 
 @router.post("/deploy", response_model=ModelDeploymentResponse)
 async def deploy_model(
@@ -51,6 +51,7 @@ async def deploy_model(
         logger.error(f"Failed to deploy model: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/deployments/{deployment_id}")
 async def get_deployment_status(
     deployment_id: str, deployer: ModelDeployer = Depends(get_model_deployer)
@@ -60,6 +61,7 @@ async def get_deployment_status(
     if not status:
         raise HTTPException(status_code=404, detail="Deployment not found")
     return status
+
 
 @router.get("/deployments", response_model=List[ModelDeployment])
 async def list_deployments(
@@ -73,6 +75,7 @@ async def list_deployments(
     except Exception as e:
         logger.error(f"Failed to list deployments: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/deployments/{deployment_id}/devices/{device_id}/stop")
 async def stop_deployment(
@@ -97,6 +100,7 @@ async def stop_deployment(
         )
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.delete("/deployments/{deployment_id}/devices/{device_id}")
 async def remove_deployment(
     deployment_id: str,
@@ -120,6 +124,7 @@ async def remove_deployment(
         )
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/devices/{device_id}/deployments")
 async def get_device_deployments(
     device_id: str, deployer: ModelDeployer = Depends(get_model_deployer)
@@ -135,6 +140,7 @@ async def get_device_deployments(
     except Exception as e:
         logger.error(f"Failed to get deployments for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/devices/{device_id}/models/{model_id}/restart")
 async def restart_model(
@@ -172,6 +178,7 @@ async def restart_model(
         logger.error(f"Failed to restart model {model_id} on device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/models/{model_id}/deployments")
 async def get_model_deployments(
     model_id: str, deployer: ModelDeployer = Depends(get_model_deployer)
@@ -191,6 +198,7 @@ async def get_model_deployments(
         logger.error(f"Failed to get deployments for model {model_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/deployments/{deployment_id}/rollback")
 async def rollback_deployment(
     deployment_id: str, deployer: ModelDeployer = Depends(get_model_deployer)
@@ -207,6 +215,7 @@ async def rollback_deployment(
     except Exception as e:
         logger.error(f"Failed to rollback deployment {deployment_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/deployment-metrics")
 async def get_deployment_metrics(deployer: ModelDeployer = Depends(get_model_deployer)):

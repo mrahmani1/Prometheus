@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Hazardcommunication:
     """Main class for hazard communication functionality."""
 
@@ -30,11 +31,13 @@ class Hazardcommunication:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Hazardcommunication()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

@@ -17,12 +17,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from core.config import Settings
 from core.database import DatabaseManager
-from models.schemas import (
-    AnomalySeverity,
-    AnomalyType,
-    DetectedAnomaly,
-    GeologicalDataStream,
-)
+from models.schemas import (AnomalySeverity, AnomalyType, DetectedAnomaly,
+                            GeologicalDataStream)
 from pyod.models.copod import COPOD
 from pyod.models.deep_svdd import DeepSVDD
 from pyod.models.ecod import ECOD
@@ -32,6 +28,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import RobustScaler, StandardScaler
 
 logger = logging.getLogger(__name__)
+
 
 class GeologicalVAE(nn.Module):
     """Variational Autoencoder specifically designed for geological data"""
@@ -109,6 +106,7 @@ class GeologicalVAE(nn.Module):
             mse = torch.mean((x - recon_x) ** 2, dim=1)
             return mse.cpu().numpy()
 
+
 class EnsembleAnomalyDetector:
     """Ensemble of multiple anomaly detection algorithms"""
 
@@ -174,6 +172,7 @@ class EnsembleAnomalyDetector:
         # Ensemble voting (average)
         ensemble_probs = np.mean(predictions, axis=0)
         return ensemble_probs
+
 
 class MultivariateAnomalyDetector:
     """Advanced multivariate anomaly detector for geological data"""
@@ -426,27 +425,6 @@ class MultivariateAnomalyDetector:
                 diff = features_array - mean
                 scores = np.sqrt(np.sum(diff**2, axis=1))
                 return scores
-                mean = self.baseline_statistics["mean"]
-                cov = self.baseline_statistics["covariance"]
-
-            # Compute Mahalanobis distance
-            try:
-                cov_inv = np.linalg.pinv(cov)
-                diff = features_array - mean
-                mahal_dist = np.sqrt(np.sum(diff @ cov_inv * diff, axis=1))
-
-                # Convert to probabilities using chi-square distribution
-
-                p_values = 1 - chi2.cdf(mahal_dist**2, df=features_array.shape[1])
-
-                return p_values
-
-            except np.linalg.LinAlgError:
-                # Fallback to Euclidean distance if covariance is singular
-                diff = features_array - mean
-                euclidean_dist = np.sqrt(np.sum(diff**2, axis=1))
-                normalized_dist = euclidean_dist / (np.max(euclidean_dist) + 1e-8)
-                return normalized_dist
 
         except Exception as e:
             logger.error(f"Statistical scoring failed: {e}")

@@ -5,14 +5,14 @@ Comprehensive test runner for Prometheus AI platform
 Provides different test execution modes and reporting capabilities.
 """
 
-import argparse
-import subprocess
-import sys
-import os
-import time
 from pathlib import Path
 from typing import List, Dict, Any
+import argparse
 import json
+import os
+import subprocess
+import sys
+import time
 
 
 class TestRunner:

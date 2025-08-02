@@ -32,6 +32,7 @@ from core.realtime_hazard_updates import (
     UpdateTrigger,
 )
 
+
 class TestHazardMappingEngine:
     """Test cases for HazardMappingEngine"""
 
@@ -178,6 +179,7 @@ class TestHazardMappingEngine:
         assert isinstance(assessment, MultiHazardAssessment)
         assert len(assessment.individual_hazards) > 0
 
+
 class TestVolcanicHazardModel:
     """Test cases for VolcanicHazardModel"""
 
@@ -246,6 +248,7 @@ class TestVolcanicHazardModel:
         assert hazard_prob.probability <= 0.1  # Should be near baseline
         assert len(hazard_prob.contributing_factors) == 0  # No significant factors
 
+
 class TestSeismicHazardModel:
     """Test cases for SeismicHazardModel"""
 
@@ -302,6 +305,7 @@ class TestSeismicHazardModel:
         assert any(
             factor in hazard_prob.contributing_factors for factor in expected_factors
         )
+
 
 class TestRealTimeHazardUpdater:
     """Test cases for RealTimeHazardUpdater"""
@@ -445,6 +449,7 @@ class TestRealTimeHazardUpdater:
         assert bounds.min_lon < bounds.max_lon
         assert bounds.min_lat <= 45.5 <= bounds.max_lat
         assert bounds.min_lon <= -121.5 <= bounds.max_lon
+
 
 class TestHazardCommunicationEngine:
     """Test cases for HazardCommunicationEngine"""
@@ -640,6 +645,7 @@ class TestHazardCommunicationEngine:
             "monitor" not in simplified.lower() or "stay informed" in simplified.lower()
         )
 
+
 class TestIntegration:
     """Integration tests for the complete hazard mapping system"""
 
@@ -739,6 +745,7 @@ class TestIntegration:
         assert "seismic_event" in status
         assert status["seismic_event"]["count"] == 1
         assert status["seismic_event"]["latest_value"] == 5.2
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

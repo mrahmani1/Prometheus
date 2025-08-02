@@ -10,6 +10,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 
+
 def validate_imports():
     """Validate that all required modules can be imported"""
     print("Validating imports...")
@@ -52,6 +53,7 @@ def validate_imports():
     except Exception as e:
         print(f"✗ Import validation failed: {e}")
         return False
+
 
 def validate_data_models():
     """Validate data model structures"""
@@ -141,6 +143,7 @@ def validate_data_models():
         print(f"✗ Data model validation failed: {e}")
         return False
 
+
 def validate_sql_schema():
     """Validate SQL schema structure"""
     print("\nValidating SQL schema...")
@@ -198,6 +201,7 @@ def validate_sql_schema():
         print(f"✗ SQL schema validation failed: {e}")
         return False
 
+
 def validate_documentation():
     """Validate documentation completeness"""
     print("\nValidating documentation...")
@@ -250,6 +254,7 @@ def validate_documentation():
         print(f"✗ Documentation validation failed: {e}")
         return False
 
+
 def main():
     """Main validation function"""
     print("=" * 80)
@@ -291,6 +296,7 @@ def main():
     print("=" * 80)
 
     return 0 if all_passed else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

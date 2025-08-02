@@ -4,16 +4,16 @@ Continuous Model Validation Script for Prometheus AI Platform
 Validates AI models against scientific benchmarks and physics constraints
 """
 
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 import hashlib
 import json
 import logging
 import os
 import pickle
 import sys
-from dataclasses import asdict, dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch

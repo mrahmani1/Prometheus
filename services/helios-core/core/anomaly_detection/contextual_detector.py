@@ -21,6 +21,7 @@ from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GeologicalContext:
     """Geological context information"""
@@ -34,6 +35,7 @@ class GeologicalContext:
     weather_conditions: Dict[str, float]
     recent_events: List[str]  # Recent geological events
     monitoring_network_status: Dict[str, str]
+
 
 @dataclass
 class ContextualAnomalyResult:
@@ -50,6 +52,7 @@ class ContextualAnomalyResult:
     geological_significance: str
     confidence: float
     explanation: str
+
 
 class ContextualEmbeddingNetwork(nn.Module):
     """Neural network for learning contextual embeddings"""
@@ -95,6 +98,7 @@ class ContextualEmbeddingNetwork(nn.Module):
         normality_score = self.fusion_layer(combined)
 
         return normality_score, context_emb, data_emb
+
 
 class GeologicalKnowledgeBase:
     """Knowledge base for geological domain expertise"""
@@ -249,6 +253,7 @@ class GeologicalKnowledgeBase:
             return "medium"
         else:
             return "low"
+
 
 class ContextualAnomalyDetector:
     """

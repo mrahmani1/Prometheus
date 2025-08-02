@@ -18,11 +18,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 
 from ..core.quantum_helios_integration import QuantumHeliosIntegrator
-from ..core.quantum_optimization import (
-    QuantumGeologicalOptimizationManager,
-    analyze_quantum_advantage,
-    create_geological_quantum_problem,
-)
+from ..core.quantum_optimization import (QuantumGeologicalOptimizationManager,
+                                         analyze_quantum_advantage,
+                                         create_geological_quantum_problem)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +33,7 @@ helios_integrator = QuantumHeliosIntegrator()
 
 # Pydantic models for API
 
+
 class GeologicalDataInput(BaseModel):
     """Input model for geological data"""
 
@@ -42,6 +41,7 @@ class GeologicalDataInput(BaseModel):
     data_type: str = Field("generic", description="Type of geological data")
     units: Optional[str] = Field(None, description="Data units")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+
 
 class QuantumProblemRequest(BaseModel):
     """Request model for quantum optimization problem"""
@@ -63,6 +63,7 @@ class QuantumProblemRequest(BaseModel):
     )
     quantum_encoding: str = Field("amplitude", description="Quantum encoding method")
 
+
 class QuantumOptimizationResponse(BaseModel):
     """Response model for quantum optimization results"""
 
@@ -75,6 +76,7 @@ class QuantumOptimizationResponse(BaseModel):
     execution_time: float
     geological_interpretation: Dict[str, Any]
     convergence_history: List[float]
+
 
 class HeliosIntegrationRequest(BaseModel):
     """Request model for Helios integration"""
@@ -91,6 +93,7 @@ class HeliosIntegrationRequest(BaseModel):
         None, description="Analysis configuration"
     )
 
+
 class HeliosIntegrationResponse(BaseModel):
     """Response model for Helios integration results"""
 
@@ -102,12 +105,14 @@ class HeliosIntegrationResponse(BaseModel):
     combined_interpretation: Dict[str, Any]
     processing_time: float
 
+
 class BenchmarkRequest(BaseModel):
     """Request model for algorithm benchmarking"""
 
     geological_data: GeologicalDataInput
     problem_type: str
     algorithms: Optional[List[str]] = Field(None, description="Algorithms to benchmark")
+
 
 class BenchmarkResponse(BaseModel):
     """Response model for benchmarking results"""
@@ -118,7 +123,9 @@ class BenchmarkResponse(BaseModel):
     best_algorithm: str
     recommendations: Dict[str, float]
 
+
 # API Endpoints
+
 
 @router.post("/optimize", response_model=QuantumOptimizationResponse)
 async def optimize_geological_problem(request: QuantumProblemRequest):
@@ -169,6 +176,7 @@ async def optimize_geological_problem(request: QuantumProblemRequest):
     except Exception as e:
         logger.error(f"Quantum optimization failed: {e}")
         raise HTTPException(status_code=500, detail=f"Optimization failed: {str(e)}")
+
 
 @router.post("/helios-integration", response_model=HeliosIntegrationResponse)
 async def quantum_enhanced_helios_analysis(request: HeliosIntegrationRequest):
@@ -260,6 +268,7 @@ async def quantum_enhanced_helios_analysis(request: HeliosIntegrationRequest):
         logger.error(f"Helios integration failed: {e}")
         raise HTTPException(status_code=500, detail=f"Integration failed: {str(e)}")
 
+
 @router.post("/benchmark", response_model=BenchmarkResponse)
 async def benchmark_quantum_algorithms(request: BenchmarkRequest):
     """
@@ -306,8 +315,10 @@ async def benchmark_quantum_algorithms(request: BenchmarkRequest):
                 quantum_advantage_metric=result.quantum_advantage_metric,
                 confidence_score=result.confidence_score,
                 execution_time=result.execution_time,
-                geological_interpretation=getattr(result, 'geological_interpretation', {}),
-                metadata=getattr(result, 'metadata', {})
+                geological_interpretation=getattr(
+                    result, "geological_interpretation", {}
+                ),
+                metadata=getattr(result, "metadata", {}),
             )
 
         # Analyze performance
@@ -342,6 +353,7 @@ async def benchmark_quantum_algorithms(request: BenchmarkRequest):
     except Exception as e:
         logger.error(f"Benchmarking failed: {e}")
         raise HTTPException(status_code=500, detail=f"Benchmarking failed: {str(e)}")
+
 
 @router.get("/algorithms")
 async def get_available_algorithms():
@@ -404,6 +416,7 @@ async def get_available_algorithms():
         "quantum_hardware_status": "Currently using quantum simulators. Hardware integration available upon request.",
     }
 
+
 @router.get("/problem-types")
 async def get_problem_types():
     """
@@ -461,6 +474,7 @@ async def get_problem_types():
         ],
     }
 
+
 @router.get("/status")
 async def get_quantum_system_status():
     """
@@ -500,6 +514,7 @@ async def get_quantum_system_status():
         logger.error(f"Status check failed: {e}")
         raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
 
+
 @router.delete("/cache")
 async def clear_optimization_cache():
     """
@@ -528,6 +543,7 @@ async def clear_optimization_cache():
     except Exception as e:
         logger.error(f"Cache clear failed: {e}")
         raise HTTPException(status_code=500, detail=f"Cache clear failed: {str(e)}")
+
 
 # Background task for long-running optimizations
 @router.post("/optimize-async")
@@ -561,8 +577,10 @@ async def optimize_geological_problem_async(
             status_code=500, detail=f"Failed to start async optimization: {str(e)}"
         )
 
+
 # Store for async task results
 async_results = {}
+
 
 async def run_async_optimization(task_id: str, request: QuantumProblemRequest):
     """Background task for running quantum optimization"""
@@ -605,6 +623,7 @@ async def run_async_optimization(task_id: str, request: QuantumProblemRequest):
         async_results[task_id]["status"] = "failed"
         async_results[task_id]["error"] = str(e)
         logger.error(f"Async optimization {task_id} failed: {e}")
+
 
 @router.get("/status/{task_id}")
 async def get_async_optimization_status(task_id: str):

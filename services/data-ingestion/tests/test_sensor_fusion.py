@@ -3,26 +3,18 @@
 from datetime import datetime, timedelta
 
 import numpy as np
-import pytest
-from models.geological_data import (
-    AtmosphericMeasurement,
-    DataQuality,
-    DeformationMeasurement,
-    GeologicalLocation,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
-from processors.sensor_fusion import (
-    FusionResult,
-    FusionState,
-    KalmanSensorFusion,
-    MultiSensorDataFusion,
-    SensorReading,
-    WeightedSensorFusion,
-)
 import pandas as pd
+import pytest
+from models.geological_data import (AtmosphericMeasurement, DataQuality,
+                                    DeformationMeasurement, GeologicalLocation,
+                                    SeismicEvent, StrainMeasurement,
+                                    ThermalMeasurement)
+from processors.sensor_fusion import (FusionResult, FusionState,
+                                      KalmanSensorFusion,
+                                      MultiSensorDataFusion, SensorReading,
+                                      WeightedSensorFusion)
 from scipy import signal
+
 
 class TestKalmanSensorFusion:
     """Test cases for Kalman filter-based sensor fusion"""
@@ -282,6 +274,7 @@ class TestKalmanSensorFusion:
         # Should be the same state (updated)
         assert retrieved_state.sensor_types == sensor_types
 
+
 class TestWeightedSensorFusion:
     """Test cases for weighted sensor fusion"""
 
@@ -380,6 +373,7 @@ class TestWeightedSensorFusion:
         result = weighted_fusion.weighted_average_fusion([], reference_location)
 
         assert result == {}
+
 
 class TestMultiSensorDataFusion:
     """Test cases for the main multi-sensor data fusion class"""
@@ -560,6 +554,7 @@ class TestMultiSensorDataFusion:
         assert -90 <= result.fused_state.location.latitude <= 90
         assert -180 <= result.fused_state.location.longitude <= 180
 
+
 class TestFusionDataStructures:
     """Test cases for fusion data structures"""
 
@@ -637,6 +632,7 @@ class TestFusionDataStructures:
         assert fusion_result.outliers_rejected == []
         assert fusion_result.temporal_alignment_offset == 30.0
         assert fusion_result.confidence_level == 0.9
+
 
 # Integration tests
 class TestSensorFusionIntegration:
@@ -795,6 +791,7 @@ class TestSensorFusionIntegration:
         # Check that outliers are properly handled
         total_outliers = sum(len(result.outliers_rejected) for result in fusion_results)
         assert total_outliers >= 0  # Some outliers expected in random data
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

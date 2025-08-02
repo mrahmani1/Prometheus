@@ -13,15 +13,12 @@ from core.config import Settings
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from influxdb_client.client.query_api_async import QueryApiAsync
 from influxdb_client.client.write_api_async import WriteApiAsync
-from models.schemas import (
-    AnomalyCluster,
-    DetectedAnomaly,
-    GeologicalDataStream,
-    PhenomenaDiscovery,
-)
+from models.schemas import (AnomalyCluster, DetectedAnomaly,
+                            GeologicalDataStream, PhenomenaDiscovery)
 from neo4j import AsyncGraphDatabase
 
 logger = logging.getLogger(__name__)
+
 
 class DatabaseManager:
     """Manages all database connections and operations"""

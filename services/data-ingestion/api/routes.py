@@ -14,13 +14,16 @@ logger = structlog.get_logger()
 # Global reference to ingestion engine (set in main.py)
 ingestion_engine = None
 
+
 def get_ingestion_engine():
     """Dependency to get the ingestion engine"""
     if ingestion_engine is None:
         raise HTTPException(status_code=503, detail="Ingestion engine not available")
     return ingestion_engine
 
+
 router = APIRouter()
+
 
 class IngestionRequest(BaseModel):
     """Request model for manual data ingestion"""
@@ -29,6 +32,7 @@ class IngestionRequest(BaseModel):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     parameters: Optional[Dict[str, Any]] = None
+
 
 class ConnectorStatusResponse(BaseModel):
     """Response model for connector status"""
@@ -40,6 +44,7 @@ class ConnectorStatusResponse(BaseModel):
     total_records_processed: int = 0
     error_count: int = 0
 
+
 class IngestionStatisticsResponse(BaseModel):
     """Response model for ingestion statistics"""
 
@@ -47,6 +52,7 @@ class IngestionStatisticsResponse(BaseModel):
     active_connectors: int
     ingestion_tasks_running: int
     connectors: Dict[str, Any]
+
 
 @router.get("/connectors", response_model=List[str])
 async def list_connectors(engine=Depends(get_ingestion_engine)):
@@ -57,6 +63,7 @@ async def list_connectors(engine=Depends(get_ingestion_engine)):
     except Exception as e:
         logger.error("Failed to list connectors", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to list connectors")
+
 
 @router.get("/connectors/status", response_model=Dict[str, ConnectorStatusResponse])
 async def get_connectors_status(engine=Depends(get_ingestion_engine)):
@@ -82,6 +89,7 @@ async def get_connectors_status(engine=Depends(get_ingestion_engine)):
     except Exception as e:
         logger.error("Failed to get connector status", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get connector status")
+
 
 @router.get(
     "/connectors/{connector_name}/status", response_model=ConnectorStatusResponse
@@ -115,6 +123,7 @@ async def get_connector_status(
             "Failed to get connector status", connector=connector_name, error=str(e)
         )
         raise HTTPException(status_code=500, detail="Failed to get connector status")
+
 
 @router.post("/connectors/{connector_name}/ingest")
 async def trigger_manual_ingestion(
@@ -160,6 +169,7 @@ async def trigger_manual_ingestion(
             status_code=500, detail="Failed to trigger manual ingestion"
         )
 
+
 @router.post("/connectors/{connector_name}/pause")
 async def pause_connector(connector_name: str, engine=Depends(get_ingestion_engine)):
     """Pause a specific connector"""
@@ -180,6 +190,7 @@ async def pause_connector(connector_name: str, engine=Depends(get_ingestion_engi
             "Failed to pause connector", connector=connector_name, error=str(e)
         )
         raise HTTPException(status_code=500, detail="Failed to pause connector")
+
 
 @router.post("/connectors/{connector_name}/resume")
 async def resume_connector(connector_name: str, engine=Depends(get_ingestion_engine)):
@@ -202,6 +213,7 @@ async def resume_connector(connector_name: str, engine=Depends(get_ingestion_eng
         )
         raise HTTPException(status_code=500, detail="Failed to resume connector")
 
+
 @router.get("/statistics", response_model=IngestionStatisticsResponse)
 async def get_ingestion_statistics(engine=Depends(get_ingestion_engine)):
     """Get ingestion statistics for all connectors"""
@@ -221,6 +233,7 @@ async def get_ingestion_statistics(engine=Depends(get_ingestion_engine)):
             status_code=500, detail="Failed to get ingestion statistics"
         )
 
+
 @router.get("/processing/statistics")
 async def get_processing_statistics(engine=Depends(get_ingestion_engine)):
     """Get data processing statistics"""
@@ -238,6 +251,7 @@ async def get_processing_statistics(engine=Depends(get_ingestion_engine)):
         raise HTTPException(
             status_code=500, detail="Failed to get processing statistics"
         )
+
 
 @router.get("/fiber-optic/geometry")
 async def get_fiber_geometry(engine=Depends(get_ingestion_engine)):
@@ -265,6 +279,7 @@ async def get_fiber_geometry(engine=Depends(get_ingestion_engine)):
     except Exception as e:
         logger.error("Failed to get fiber geometry", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get fiber geometry")
+
 
 @router.get("/data/recent")
 async def get_recent_data(
@@ -297,6 +312,7 @@ async def get_recent_data(
     except Exception as e:
         logger.error("Failed to get recent data", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get recent data")
+
 
 # Set the global ingestion engine reference
 def set_ingestion_engine(engine):

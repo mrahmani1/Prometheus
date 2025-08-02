@@ -7,11 +7,9 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 from core.risk_assessment import VolcanicRiskAssessmentEngine
-from models.volcanic_data import (
-    DeformationMeasurement,
-    GeologicalLocation,
-    SeismicEvent,
-)
+from models.volcanic_data import (DeformationMeasurement, GeologicalLocation,
+                                  SeismicEvent)
+
 
 @pytest.fixture
 def risk_engine():
@@ -141,6 +139,7 @@ async def test_composite_risk_calculation(risk_engine):
 async def test_hazard_zone_generation(risk_engine):
     """Test hazard zone generation"""
     from models.volcanic_data import AlertLevel
+
     # Create test alert level
     alert_level = AlertLevel(
         level=3,

@@ -6,9 +6,8 @@ Tests all advanced system components and end-to-end data flows
 
 import json
 import os
-
-# Import the main application
 import sys
+# Import the main application
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -22,6 +21,7 @@ import torch.nn.functional as F
 from main import app
 
 client = TestClient(app)
+
 
 class TestComprehensiveIntegration:
     """Test comprehensive system integration"""
@@ -256,6 +256,7 @@ class TestComprehensiveIntegration:
             assert "cost_metrics" in data
             assert data["system_status"] == "operational"
 
+
 class TestDataFlowPipelines:
     """Test end-to-end data flow pipelines"""
 
@@ -320,6 +321,7 @@ class TestDataFlowPipelines:
         mock_pipeline_manager.execute_pipeline.assert_called_once_with(
             "test_pipeline", input_data
         )
+
 
 class TestCloudResourceManagement:
     """Test cloud resource management"""
@@ -392,6 +394,7 @@ class TestCloudResourceManagement:
         assert "spot_instances" in result["optimizations_applied"]
         mock_cloud_manager.optimize_costs.assert_called_once()
 
+
 class TestDatabaseIntegration:
     """Test database integration"""
 
@@ -432,6 +435,7 @@ class TestDatabaseIntegration:
         """Test continuous database health monitoring"""
         await mock_database_manager.check_database_health()
         mock_database_manager.check_database_health.assert_called_once()
+
 
 class TestAdvancedFeatures:
     """Test advanced system features"""
@@ -521,6 +525,7 @@ class TestAdvancedFeatures:
             assert "active_allocations" in data
             assert len(data["active_allocations"]) == 2
 
+
 class TestErrorHandling:
     """Test error handling and resilience"""
 
@@ -572,6 +577,7 @@ class TestErrorHandling:
             response = client.get(f"/insar/asf/status/{integration_id}")
             assert response.status_code == 404
             assert "Integration not found" in response.json()["detail"]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

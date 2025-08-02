@@ -14,6 +14,7 @@ from datetime import datetime
 import torch.nn.functional as F
 import yaml
 
+
 def validate_file_structure():
     """Validate that all required files are present"""
     print("🔍 Validating file structure...")
@@ -46,6 +47,7 @@ def validate_file_structure():
         print("✅ All required files present")
         return True
 
+
 def validate_python_syntax():
     """Validate Python syntax for all Python files"""
     print("\n🐍 Validating Python syntax...")
@@ -72,6 +74,7 @@ def validate_python_syntax():
             print(f"⚠️  {file_path} - file not found")
 
     return len(syntax_errors) == 0
+
 
 def validate_docker_files():
     """Validate Dockerfile syntax and structure"""
@@ -100,6 +103,7 @@ def validate_docker_files():
 
     return valid_dockerfiles == len(docker_files)
 
+
 def validate_yaml_files():
     """Validate YAML file syntax"""
     print("\n📄 Validating YAML files...")
@@ -119,6 +123,7 @@ def validate_yaml_files():
             print(f"⚠️  {yaml_file} - file not found")
 
     return valid_yamls == len(yaml_files)
+
 
 def validate_terraform_files():
     """Validate Terraform configuration"""
@@ -146,6 +151,7 @@ def validate_terraform_files():
             print(f"⚠️  {tf_file} - file not found")
 
     return valid_tf_files == len(terraform_files)
+
 
 def validate_configuration_completeness():
     """Validate that configurations are complete"""
@@ -236,6 +242,7 @@ def validate_configuration_completeness():
 
     return True
 
+
 def validate_requirements():
     """Validate Python requirements"""
     print("\n📦 Validating Python requirements...")
@@ -269,6 +276,7 @@ def validate_requirements():
         print("❌ requirements.txt not found")
         return False
 
+
 def validate_deployment_script():
     """Validate deployment script"""
     print("\n🚀 Validating deployment script...")
@@ -301,6 +309,7 @@ def validate_deployment_script():
     except FileNotFoundError:
         print("❌ deploy.sh not found")
         return False
+
 
 def validate_feature_completeness():
     """Validate that all required features are implemented"""
@@ -363,6 +372,7 @@ def validate_feature_completeness():
 
     return implemented_count == total_count
 
+
 def generate_validation_report():
     """Generate a comprehensive validation report"""
     print("\n📊 Generating validation report...")
@@ -413,6 +423,7 @@ def generate_validation_report():
 
     return report
 
+
 def main():
     """Main validation function"""
     print("🚀 Cloud Run Serverless Scaling Implementation Validation")
@@ -430,6 +441,7 @@ def main():
         sys.exit(0)  # Success
     else:
         sys.exit(1)  # Failure
+
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Healthmonitor:
     """Main class for health monitor functionality."""
 
@@ -30,11 +31,13 @@ class Healthmonitor:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Healthmonitor()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

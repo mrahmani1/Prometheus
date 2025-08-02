@@ -15,6 +15,7 @@ from core.intent_classifier import IntentClassifier
 from core.query_translator import QueryTranslator
 from core.response_generator import ConversationalResponseGenerator
 
+
 async def test_integration():
     """Test complete NLP pipeline integration"""
 
@@ -127,6 +128,7 @@ async def test_integration():
     print("✓ Query translation to system parameters implemented")
     print("✓ Conversational response generation implemented")
     print("\nAll task requirements (4.1.1, 4.1.2, 4.1.3, 4.1.4) satisfied!")
+
 
 if __name__ == "__main__":
     asyncio.run(test_integration())

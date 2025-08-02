@@ -39,6 +39,7 @@ from core.geological_processes.mantle_convection import (
     create_mantle_convection_model,
 )
 
+
 class TestMantleConvectionModel:
     """Test suite for mantle convection modeling"""
 
@@ -93,6 +94,7 @@ class TestMantleConvectionModel:
         assert isinstance(model, MantleConvectionModel)
         assert model.params.rayleigh_number == 1e6
 
+
 class TestCrustalDeformationModel:
     """Test suite for crustal deformation modeling"""
 
@@ -139,6 +141,7 @@ class TestCrustalDeformationModel:
         assert isinstance(loss, torch.Tensor)
         assert loss.requires_grad
         assert loss.item() >= 0
+
 
 class TestHydrothermalFlowModel:
     """Test suite for hydrothermal flow modeling"""
@@ -187,6 +190,7 @@ class TestHydrothermalFlowModel:
         assert isinstance(loss, torch.Tensor)
         assert loss.requires_grad
 
+
 class TestGeochemicalReactionNetwork:
     """Test suite for geochemical reaction networks"""
 
@@ -231,6 +235,7 @@ class TestGeochemicalReactionNetwork:
             assert "concentration_evolution" in results
             assert "ph_evolution" in results
             assert "reaction_rates" in results
+
 
 class TestIntegratedGeologicalModel:
     """Test suite for integrated geological modeling"""
@@ -314,6 +319,7 @@ class TestIntegratedGeologicalModel:
         assert model.params.thermal_coupling_strength == 1.5
         assert model.params.mechanical_coupling_strength == 1.2
         assert model.params.chemical_coupling_strength == 0.8
+
 
 class TestModelComplexity:
     """Test suite for model complexity and performance"""
@@ -407,6 +413,7 @@ class TestModelComplexity:
 
         ph = predictions["ph"]
         assert torch.all(ph >= 0.0) and torch.all(ph <= 14.0)  # Valid pH range
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

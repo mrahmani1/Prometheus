@@ -18,6 +18,7 @@ from models.device import DataSyncRequest, DataSyncResponse, SyncStatus
 
 logger = logging.getLogger(__name__)
 
+
 class DataSyncManager:
     """Manages data synchronization between edge devices and cloud"""
 

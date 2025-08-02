@@ -13,11 +13,10 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from core.hypothesis_generation_engine import (
-    CausalRelationship,
-    HypothesisValidationSystem,
-    ScientificHypothesis,
-)
+
+from core.hypothesis_generation_engine import (CausalRelationship,
+                                               HypothesisValidationSystem,
+                                               ScientificHypothesis)
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 

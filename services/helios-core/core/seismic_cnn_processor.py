@@ -19,6 +19,7 @@ import torch.nn as nn
 
 try:
     from ..models.geological import GeologicalLocation
+
 except ImportError:
     # For direct execution or testing
     import os
@@ -27,6 +28,7 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger(__name__)
+
 
 class SeismicEventType(str, Enum):
     """Types of seismic events that can be detected"""
@@ -41,6 +43,7 @@ class SeismicEventType(str, Enum):
     NOISE = "noise"
     UNKNOWN = "unknown"
 
+
 class SeismometerType(str, Enum):
     """Types of seismometers supported"""
 
@@ -50,6 +53,7 @@ class SeismometerType(str, Enum):
     OCEAN_BOTTOM = "ocean_bottom"
     BOREHOLE = "borehole"
     FIBER_OPTIC_DAS = "fiber_optic_das"
+
 
 @dataclass
 class SeismicEvent:
@@ -97,6 +101,7 @@ class SeismicEvent:
         if self.depth is not None and self.depth < 0:
             raise ValueError(f"Depth cannot be negative, got {self.depth}")
 
+
 @dataclass
 class WaveformFeatures:
     """
@@ -115,6 +120,7 @@ class WaveformFeatures:
     wavelet_features: Dict[str, float] = field(default_factory=dict)
     statistical_features: Dict[str, float] = field(default_factory=dict)
     spectral_features: Dict[str, float] = field(default_factory=dict)
+
 
 class SeismicCNN(nn.Module):
     """
@@ -260,6 +266,7 @@ class SeismicCNN(nn.Module):
 
         return outputs
 
+
 class SeismicFeatureExtractor:
     """
     Extracts features from seismic waveforms for CNN input and analysis.
@@ -337,6 +344,7 @@ class SeismicFeatureExtractor:
 
     def extract_wavelet_features(self, waveform: np.ndarray) -> Dict[str, float]:
         """Extract wavelet transform features"""
+
 
 class AdvancedPhysicsSimulator:
     """Physics-Informed Neural Network for geological simulations"""
@@ -439,6 +447,7 @@ class AdvancedPhysicsSimulator:
     ) -> torch.Tensor:
         """Compute boundary conditions loss"""
 
+
 class AdvancedDataProcessor:
     """Advanced data processing pipeline for geological datasets"""
 
@@ -518,6 +527,7 @@ class AdvancedDataProcessor:
 
         try:
             from scipy import signal
+
         except ImportError:
             signal = None
 
@@ -590,6 +600,7 @@ class AdvancedDataProcessor:
 
         entropy = -np.sum(normalized * np.log2(normalized))
         return float(entropy)
+
 
 class SeismicCNNProcessor:
     """
@@ -955,6 +966,7 @@ class SeismicCNNProcessor:
         self.detection_threshold = new_threshold
         logger.info(f"Updated detection threshold to {new_threshold}")
 
+
 class SeismicEventClassifier:
     """
     Specialized classifier for different types of seismic events.
@@ -1018,6 +1030,7 @@ class SeismicEventClassifier:
             event.detection_metadata["classification_rule"] = "high_freq_short_duration"
 
         return event
+
 
 # Export main classes
 __all__ = [

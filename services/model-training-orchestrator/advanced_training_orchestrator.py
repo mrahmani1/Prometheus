@@ -20,23 +20,20 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from ..graph_database.core.advanced_geological_gnn import AdvancedGeologicalGNNEngine
-from ..helios_core.core.advanced_pinn_engine import (
-    AdvancedPINNEngine,
-    GeologicalParameters,
-)
-from ..helios_core.core.advanced_tpu_pod_manager import (
-    AdvancedTPUPodManager,
-    TPUPodConfig,
-)
-
+from ..graph_database.core.advanced_geological_gnn import \
+    AdvancedGeologicalGNNEngine
+from ..helios_core.core.advanced_pinn_engine import (AdvancedPINNEngine,
+                                                     GeologicalParameters)
+from ..helios_core.core.advanced_tpu_pod_manager import (AdvancedTPUPodManager,
+                                                         TPUPodConfig)
 # Import our advanced components
-from ..helios_core.core.real_time_data_integration import RealTimeGeologicalDataManager
-from ..volcano_watchtower.core.advanced_volcanic_monitoring import (
-    AdvancedVolcanicMonitor,
-)
+from ..helios_core.core.real_time_data_integration import \
+    RealTimeGeologicalDataManager
+from ..volcano_watchtower.core.advanced_volcanic_monitoring import \
+    AdvancedVolcanicMonitor
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ComprehensiveTrainingConfig:
@@ -85,6 +82,7 @@ class ComprehensiveTrainingConfig:
             self.geographical_regions = ["global"]
         if self.geological_parameters is None:
             self.geological_parameters = GeologicalParameters()
+
 
 class AdvancedTrainingOrchestrator:
     """One-stop advanced model training orchestrator"""
@@ -657,7 +655,8 @@ class AdvancedTrainingOrchestrator:
         y = torch.LongTensor(labels)
 
         # Create and train CNN model
-        from ..volcano_watchtower.core.advanced_volcanic_monitoring import VolcanicCNN
+        from ..volcano_watchtower.core.advanced_volcanic_monitoring import \
+            VolcanicCNN
 
         model = VolcanicCNN(input_channels=3, num_classes=5)
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
@@ -791,11 +790,11 @@ class AdvancedTrainingOrchestrator:
         """Train eruption forecasting model"""
 
         import signal
+
         import torch.nn.functional as F
-        
-        from ..volcano_watchtower.core.advanced_volcanic_monitoring import (
-            EruptionForecastModel,
-        )
+
+        from ..volcano_watchtower.core.advanced_volcanic_monitoring import \
+            EruptionForecastModel
 
         # Create forecasting model
         model = EruptionForecastModel(input_features=20, hidden_size=128, num_layers=3)

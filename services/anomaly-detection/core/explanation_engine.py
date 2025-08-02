@@ -17,6 +17,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class AnomalyExplanation:
     """Comprehensive explanation for a detected anomaly"""
@@ -35,6 +36,7 @@ class AnomalyExplanation:
     scientific_references: List[str]
     explanation_text: str
 
+
 @dataclass
 class CausalExplanation:
     """Causal explanation for anomaly occurrence"""
@@ -47,6 +49,7 @@ class CausalExplanation:
     ]  # (cause, effect, strength, lag)
     alternative_explanations: List[str]
     causal_confidence: float
+
 
 class GeologicalKnowledgeBase:
     """Knowledge base of geological processes and relationships"""
@@ -299,6 +302,7 @@ class GeologicalKnowledgeBase:
             return "medium"
         else:
             return "low"
+
 
 class AnomalyExplanationEngine:
     """

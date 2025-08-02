@@ -9,21 +9,18 @@ Requirements: 6.2, 6.3
 
 import json
 import logging
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ..core.geothermal_resource_assessment import (
-    EconomicParameters,
-    GeothermalAssessmentResult,
-    GeothermalReservoir,
-    GeothermalResourceAssessmentSystem,
-)
+    EconomicParameters, GeothermalAssessmentResult, GeothermalReservoir,
+    GeothermalResourceAssessmentSystem)
 from ..core.service_registry import ServiceRegistry
 from ..models.geological import GeologicalLocation, ThermalMeasurement
 
@@ -32,6 +29,7 @@ router = APIRouter(prefix="/api/v1/geothermal", tags=["geothermal"])
 
 # Global assessment system instance
 assessment_system = None
+
 
 # Pydantic models for API
 class GeothermalAssessmentRequest(BaseModel):
@@ -55,6 +53,7 @@ class GeothermalAssessmentRequest(BaseModel):
         default=None, description="Custom economic parameters"
     )
 
+
 class GeothermalAssessmentResponse(BaseModel):
     """Response model for geothermal assessment"""
 
@@ -66,6 +65,7 @@ class GeothermalAssessmentResponse(BaseModel):
     average_viability_score: float
     assessment_timestamp: datetime
     detailed_results: List[Dict[str, Any]]
+
 
 class EconomicParametersModel(BaseModel):
     """Economic parameters model"""
@@ -82,6 +82,7 @@ class EconomicParametersModel(BaseModel):
     project_lifetime_years: int = Field(default=30, description="Project lifetime")
     tax_rate: float = Field(default=0.25, description="Tax rate")
 
+
 class SustainabilityAnalysisRequest(BaseModel):
     """Request model for sustainability analysis"""
 
@@ -90,6 +91,7 @@ class SustainabilityAnalysisRequest(BaseModel):
     reinjection_rate: float = Field(description="Reinjection rate in kg/s")
     time_horizon_years: int = Field(default=30, description="Analysis time horizon")
 
+
 class ThermalModelingRequest(BaseModel):
     """Request model for thermal modeling"""
 
@@ -97,12 +99,14 @@ class ThermalModelingRequest(BaseModel):
     depth_profile: List[float] = Field(description="Depth levels for modeling")
     surface_measurements: List[Dict[str, Any]] = Field(default=[])
 
+
 def get_assessment_system() -> GeothermalResourceAssessmentSystem:
     """Dependency to get assessment system instance"""
     global assessment_system
     if assessment_system is None:
         assessment_system = GeothermalResourceAssessmentSystem()
     return assessment_system
+
 
 @router.post("/assess", response_model=GeothermalAssessmentResponse)
 async def assess_geothermal_potential(
@@ -237,6 +241,7 @@ async def assess_geothermal_potential(
         logger.error(f"Error in geothermal assessment: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
 
+
 @router.post("/thermal-modeling")
 async def perform_thermal_modeling(
     request: ThermalModelingRequest,
@@ -307,6 +312,7 @@ async def perform_thermal_modeling(
         raise HTTPException(
             status_code=500, detail=f"Thermal modeling failed: {str(e)}"
         )
+
 
 @router.post("/sustainability-analysis")
 async def analyze_sustainability(
@@ -399,6 +405,7 @@ async def analyze_sustainability(
             status_code=500, detail=f"Sustainability analysis failed: {str(e)}"
         )
 
+
 @router.post("/economic-viability")
 async def assess_economic_viability(
     reservoir_properties: Dict[str, Any],
@@ -484,6 +491,7 @@ async def assess_economic_viability(
             status_code=500, detail=f"Economic assessment failed: {str(e)}"
         )
 
+
 @router.get("/assessment/{assessment_id}/report")
 async def get_assessment_report(assessment_id: str):
     """
@@ -505,6 +513,7 @@ async def get_assessment_report(assessment_id: str):
             status_code=500, detail=f"Failed to retrieve report: {str(e)}"
         )
 
+
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -514,6 +523,7 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "version": "1.0.0",
     }
+
 
 # Helper functions
 def _classify_viability(score: float) -> str:
@@ -527,6 +537,7 @@ def _classify_viability(score: float) -> str:
     else:
         return "Not Viable"
 
+
 def _classify_sustainability(years: float) -> str:
     """Classify sustainability based on expected lifetime"""
     if years >= 50:
@@ -537,6 +548,7 @@ def _classify_sustainability(years: float) -> str:
         return "Moderately Sustainable"
     else:
         return "Limited Sustainability"
+
 
 async def _generate_background_report(
     assessment_id: str, results: List[GeothermalAssessmentResult]
@@ -558,6 +570,7 @@ async def _generate_background_report(
 
     except Exception as e:
         logger.error(f"Error generating background report: {str(e)}")
+
 
 # Register service with service registry
 def register_geothermal_service():
@@ -581,6 +594,7 @@ def register_geothermal_service():
         logger.info("Geothermal assessment service registered")
     except Exception as e:
         logger.error(f"Failed to register geothermal service: {str(e)}")
+
 
 # Initialize service registration on module import
 register_geothermal_service()

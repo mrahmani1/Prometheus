@@ -4,12 +4,12 @@ Comprehensive syntax error fixer for the Prometheus AI platform.
 Fixes common Python syntax issues automatically.
 """
 
+from pathlib import Path
+from typing import List, Tuple, Dict
 import ast
 import os
 import re
 import sys
-from pathlib import Path
-from typing import List, Tuple, Dict
 
 class SyntaxFixer:
     """Advanced syntax error fixer."""

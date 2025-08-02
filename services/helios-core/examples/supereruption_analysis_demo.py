@@ -6,21 +6,21 @@ can identify and analyze supereruption potential in large caldera systems.
 """
 
 import os
-import sys
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
 import signal
+import sys
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
 from core.geological_network_representation import (
     GeologicalGraphData,
     GeologicalNetworkRepresentationEngine,
     SupereruptionAnalyzer,
-    signal,
 )
+
 
 def create_yellowstone_like_system():
     """Create a Yellowstone-like caldera system for analysis."""
@@ -116,6 +116,7 @@ def create_yellowstone_like_system():
         spatial_coords=spatial_coords,
     )
 
+
 def create_toba_like_system():
     """Create a Toba-like supereruption system for comparison."""
     print("🌋 Creating Toba-like Supereruption System...")
@@ -189,6 +190,7 @@ def create_toba_like_system():
         edge_types=edge_types,
         spatial_coords=spatial_coords,
     )
+
 
 def analyze_supereruption_systems():
     """Analyze multiple supereruption systems and compare them."""
@@ -426,6 +428,7 @@ def analyze_supereruption_systems():
     print(
         "• Large caldera systems require specialized monitoring and analysis approaches"
     )
+
 
 if __name__ == "__main__":
     analyze_supereruption_systems()

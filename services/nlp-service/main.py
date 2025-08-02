@@ -40,6 +40,7 @@ logger = structlog.get_logger()
 # Global NLP components
 nlp_components = {}
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize NLP components on startup"""
@@ -59,6 +60,7 @@ async def lifespan(app: FastAPI):
         raise
     finally:
         logger.info("Shutting down NLP service")
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -80,10 +82,12 @@ app.add_middleware(
 # Include NLP routes
 app.include_router(nlp_router, prefix="/api/v1/nlp", tags=["nlp"])
 
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "nlp-service"}
+
 
 @app.get("/ready")
 async def readiness_check():
@@ -113,6 +117,7 @@ async def readiness_check():
     except Exception as e:
         logger.error("Readiness check failed", error=str(e))
         return {"status": "error", "service": "nlp-service", "error": str(e)}
+
 
 if __name__ == "__main__":
     uvicorn.run(

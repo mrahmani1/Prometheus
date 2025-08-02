@@ -22,6 +22,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 class GeologicalEventType(str, Enum):
     """Types of geological events to predict"""
 
@@ -36,6 +37,7 @@ class GeologicalEventType(str, Enum):
     VOLCANIC_UNREST = "volcanic_unrest"
     CRUSTAL_MOVEMENT = "crustal_movement"
 
+
 class PredictionHorizon(str, Enum):
     """Prediction time horizons"""
 
@@ -44,6 +46,7 @@ class PredictionHorizon(str, Enum):
     MEDIUM_TERM = "medium_term"  # 1-7 days
     LONG_TERM = "long_term"  # 1-4 weeks
     EXTENDED = "extended"  # 1-12 months
+
 
 @dataclass
 class SensorReading:
@@ -57,6 +60,7 @@ class SensorReading:
     unit: str
     quality_score: float
     metadata: Dict[str, Any]
+
 
 @dataclass
 class GeologicalPrediction:

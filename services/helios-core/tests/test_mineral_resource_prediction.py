@@ -26,6 +26,7 @@ from core.mineral_resource_prediction import (
 )
 from models.geological import GeochemicalSample, GeologicalLocation
 
+
 class TestResourceDeposit:
     """Test ResourceDeposit data model"""
 
@@ -83,6 +84,7 @@ class TestResourceDeposit:
                 geochemical_signature={},
                 geological_setting={},
             )
+
 
 class TestGeochemicalSignatureAnalyzer:
     """Test GeochemicalSignatureAnalyzer functionality"""
@@ -219,6 +221,7 @@ class TestGeochemicalSignatureAnalyzer:
         with pytest.raises(ValueError, match="Signature classifier not trained"):
             analyzer.predict_deposit_type(samples[0])
 
+
 class TestOreDepositPatternRecognizer:
     """Test OreDepositPatternRecognizer functionality"""
 
@@ -321,6 +324,7 @@ class TestOreDepositPatternRecognizer:
         assert 0 <= prediction.geological_favorability <= 1
         assert 0 <= prediction.model_confidence <= 1
 
+
 class TestGeologicalProcessModeler:
     """Test GeologicalProcessModeler functionality"""
 
@@ -403,6 +407,7 @@ class TestGeologicalProcessModeler:
         assert "concentration_mechanisms" in result
         assert "favorability_score" in result
         assert 0 <= result["favorability_score"] <= 1
+
 
 class TestMineralResourcePredictor:
     """Test main MineralResourcePredictor class"""
@@ -593,6 +598,7 @@ class TestMineralResourcePredictor:
         """Test that training without data raises error"""
         with pytest.raises(ValueError, match="No training data available"):
             predictor.train_models()
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

@@ -70,6 +70,7 @@ reservoir_estimator: Optional[MagmaReservoirEstimator] = None
 alert_manager: Optional[AlertLevelManager] = None
 notification_system: Optional[NotificationSystem] = None
 
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize all service components on startup"""
@@ -95,6 +96,7 @@ async def startup_event():
         logger.error("Failed to initialize Volcano Watchtower Service", error=str(e))
         raise
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on service shutdown"""
@@ -102,6 +104,7 @@ async def shutdown_event():
 
     if notification_system:
         await notification_system.shutdown()
+
 
 async def continuous_risk_monitoring():
     """Background task for continuous volcanic risk monitoring"""
@@ -134,6 +137,7 @@ async def continuous_risk_monitoring():
             logger.error("Error in continuous risk monitoring", error=str(e))
             await asyncio.sleep(300)  # Wait 5 minutes before retrying
 
+
 async def alert_escalation_monitor():
     """Background task for monitoring alert escalation"""
     logger.info("Starting alert escalation monitor")
@@ -152,11 +156,13 @@ async def alert_escalation_monitor():
             logger.error("Error in alert escalation monitoring", error=str(e))
             await asyncio.sleep(600)  # Wait 10 minutes before retrying
 
+
 async def get_active_volcanoes() -> List[str]:
     """Get list of currently monitored active volcanoes"""
     # This would integrate with the monitoring network
     # For now, return a sample list
     return ["yellowstone", "kilauea", "etna", "stromboli", "sakurajima"]
+
 
 # Health check endpoint
 @app.get("/health")
@@ -174,6 +180,7 @@ async def health_check():
             "notification_system": notification_system is not None,
         },
     }
+
 
 # Include API routes
 create_routes(

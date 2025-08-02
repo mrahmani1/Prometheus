@@ -17,17 +17,18 @@ import sys
 from datetime import datetime
 
 import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import torch.nn as nn
-import torch.nn.functional as F
 from core.earthquake_impact_modeling import (
     EarthquakeImpactModelingEngine,
     GroundMotionModel,
     SoilType,
 )
 from models.geological import EventType, GeologicalLocation, SeismicEvent
+
 
 def create_scenario_earthquake():
     """Create a scenario earthquake for impact modeling"""
@@ -43,6 +44,7 @@ def create_scenario_earthquake():
         event_type=EventType.EARTHQUAKE,
         event_id="scenario_earthquake_001",
     )
+
 
 def create_target_locations():
     """Create a grid of target locations for impact assessment"""
@@ -64,6 +66,7 @@ def create_target_locations():
 
     return locations
 
+
 def create_soil_conditions(num_locations):
     """Create soil condition data for target locations"""
     soil_conditions = {}
@@ -80,6 +83,7 @@ def create_soil_conditions(num_locations):
             soil_conditions[str(i)] = SoilType.VERY_SOFT_SOIL
 
     return soil_conditions
+
 
 def create_soil_properties(num_locations):
     """Create soil properties for liquefaction analysis"""
@@ -99,6 +103,7 @@ def create_soil_properties(num_locations):
 
     return soil_properties
 
+
 def create_groundwater_data(num_locations):
     """Create groundwater depth data"""
     groundwater_data = {}
@@ -109,6 +114,7 @@ def create_groundwater_data(num_locations):
         groundwater_data[str(i)] = depth
 
     return groundwater_data
+
 
 def create_slope_data(num_locations):
     """Create slope angle data for landslide analysis"""
@@ -128,6 +134,7 @@ def create_slope_data(num_locations):
         slope_data[str(i)] = min(slope, 60.0)  # Cap at 60 degrees
 
     return slope_data
+
 
 def create_soil_strength_data(num_locations):
     """Create soil strength parameters for landslide analysis"""
@@ -149,6 +156,7 @@ def create_soil_strength_data(num_locations):
 
     return soil_strength
 
+
 def create_coastal_locations():
     """Create coastal locations for tsunami analysis"""
     coastal_locations = []
@@ -165,6 +173,7 @@ def create_coastal_locations():
             coastal_locations.append(location)
 
     return coastal_locations
+
 
 def run_ground_shaking_analysis(engine, earthquake, locations, soil_conditions):
     """Run ground shaking analysis"""
@@ -200,6 +209,7 @@ def run_ground_shaking_analysis(engine, earthquake, locations, soil_conditions):
 
     return results
 
+
 def run_liquefaction_analysis(engine, ground_motion, soil_properties, groundwater_data):
     """Run liquefaction susceptibility analysis"""
     print("Running liquefaction analysis...")
@@ -229,6 +239,7 @@ def run_liquefaction_analysis(engine, ground_motion, soil_properties, groundwate
     print(f"  High-risk locations: {len(high_risk_locations)}")
 
     return liquefaction_results
+
 
 def run_landslide_analysis(engine, ground_motion, slope_data, soil_strength):
     """Run landslide triggering analysis"""
@@ -265,6 +276,7 @@ def run_landslide_analysis(engine, ground_motion, slope_data, soil_strength):
 
     return landslide_results
 
+
 def run_tsunami_analysis(engine, earthquake, coastal_locations):
     """Run tsunami generation and propagation analysis"""
     print("Running tsunami analysis...")
@@ -298,6 +310,7 @@ def run_tsunami_analysis(engine, earthquake, coastal_locations):
     )
 
     return tsunami_result
+
 
 def create_summary_report(
     earthquake,
@@ -365,6 +378,7 @@ def create_summary_report(
 
     print("\n" + "=" * 60)
 
+
 def save_results_to_json(results, filename="earthquake_impact_results.json"):
     """Save results to JSON file for further analysis"""
     # Convert results to serializable format
@@ -419,6 +433,7 @@ def save_results_to_json(results, filename="earthquake_impact_results.json"):
         json.dump(serializable_results, f, indent=2)
 
     print(f"\nResults saved to {filename}")
+
 
 def main():
     """Main function to run the earthquake impact modeling example"""
@@ -488,6 +503,7 @@ def main():
     save_results_to_json(results)
 
     print("\nEarthquake impact modeling example completed successfully!")
+
 
 if __name__ == "__main__":
     main()

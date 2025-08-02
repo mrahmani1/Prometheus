@@ -12,7 +12,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from core.device_manager import EdgeDeviceManager
 from models.config import DeviceCapabilities, DeviceLocation, EdgeManagerConfig
-from models.device import DeviceMetrics, DeviceRegistrationRequest, DeviceStatus
+from models.device import (DeviceMetrics, DeviceRegistrationRequest,
+                           DeviceStatus)
+
 
 @pytest.fixture
 def config():
@@ -23,6 +25,7 @@ def config():
         device_timeout=300,
         max_devices_per_region=100,
     )
+
 
 @pytest.fixture
 def device_capabilities():
@@ -41,6 +44,7 @@ def device_capabilities():
         kubernetes_available=False,
     )
 
+
 @pytest.fixture
 def device_location():
     """Test device location"""
@@ -52,6 +56,7 @@ def device_location():
         site_name="San Francisco Station",
         timezone="America/Los_Angeles",
     )
+
 
 @pytest.fixture
 def registration_request(device_capabilities, device_location):
@@ -67,6 +72,7 @@ def registration_request(device_capabilities, device_location):
         firmware_version="1.0.0",
         software_version="2.0.0",
     )
+
 
 @pytest.fixture
 async def device_manager(config):
@@ -86,6 +92,7 @@ async def device_manager(config):
         yield manager
 
         await manager.cleanup()
+
 
 class TestEdgeDeviceManager:
     """Test cases for EdgeDeviceManager"""
@@ -326,6 +333,7 @@ class TestEdgeDeviceManager:
         device = await device_manager.get_device(device_id)
         # Note: In real implementation, this would be handled by background task
         # For testing, we manually simulate the timeout logic above
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

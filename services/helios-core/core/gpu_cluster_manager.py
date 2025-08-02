@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Gpuclustermanager:
     """Main class for gpu cluster manager functionality."""
 
@@ -30,11 +31,13 @@ class Gpuclustermanager:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Gpuclustermanager()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

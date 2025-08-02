@@ -19,6 +19,7 @@ from transformers import AutoModel, AutoTokenizer, pipeline
 
 logger = structlog.get_logger()
 
+
 @dataclass
 class ExtractedKnowledge:
     """Container for extracted scientific knowledge"""
@@ -29,6 +30,7 @@ class ExtractedKnowledge:
     temporal_facts: List[Dict[str, Any]]
     confidence_scores: Dict[str, float]
     source_metadata: Dict[str, Any]
+
 
 @dataclass
 class ScientificPaper:
@@ -43,6 +45,7 @@ class ScientificPaper:
     journal: str
     keywords: List[str]
     citations: List[str]
+
 
 class ScientificKnowledgeExtractor:
     """Automated knowledge extraction from geological literature"""

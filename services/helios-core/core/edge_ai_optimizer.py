@@ -26,6 +26,7 @@ import torch.nn.utils.prune as prune
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class HardwareConstraints:
     """Hardware constraints for edge deployment"""
@@ -36,6 +37,7 @@ class HardwareConstraints:
     has_gpu: bool = False
     gpu_memory_mb: Optional[int] = None
     target_platform: str = "cpu"  # cpu, cuda, mobile, embedded
+
 
 @dataclass
 class OptimizationConfig:
@@ -48,6 +50,7 @@ class OptimizationConfig:
     enable_pruning: bool = True
     enable_knowledge_distillation: bool = True
     validation_threshold: float = 0.95  # Minimum accuracy retention
+
 
 @dataclass
 class OptimizationResult:
@@ -63,6 +66,7 @@ class OptimizationResult:
     memory_usage_mb: float
     meets_constraints: bool
     optimization_steps: List[str]
+
 
 class ModelCompressor:
     """Implements various model compression techniques"""
@@ -178,6 +182,7 @@ class ModelCompressor:
 
         return centroids.tolist()
 
+
 class ModelQuantizer:
     """Implements model quantization for edge deployment"""
 
@@ -260,6 +265,7 @@ class ModelQuantizer:
         quantized_model = torch.quantization.convert(prepared_model)
         return quantized_model
 
+
 class ModelPruner:
     """Implements model pruning techniques"""
 
@@ -332,6 +338,7 @@ class ModelPruner:
         # This would typically be done during training
         # For now, we'll apply magnitude pruning
         return self._magnitude_pruning(model, sparsity, structured)
+
 
 class PerformanceValidator:
     """Validates optimized model performance"""
@@ -487,6 +494,7 @@ class PerformanceValidator:
         memory_ok = memory_usage <= constraints.max_memory_mb
 
         return size_ok and time_ok and memory_ok
+
 
 class EdgeAIOptimizer:
     """Main edge AI optimization pipeline"""
@@ -698,6 +706,7 @@ class EdgeAIOptimizer:
 
         logger.info(f"Saved optimized model to {save_path}")
 
+
 # Example usage and factory functions
 def create_mobile_constraints() -> HardwareConstraints:
     """Create typical mobile device constraints"""
@@ -709,6 +718,7 @@ def create_mobile_constraints() -> HardwareConstraints:
         target_platform="mobile",
     )
 
+
 def create_embedded_constraints() -> HardwareConstraints:
     """Create typical embedded device constraints"""
     return HardwareConstraints(
@@ -718,6 +728,7 @@ def create_embedded_constraints() -> HardwareConstraints:
         has_gpu=False,
         target_platform="embedded",
     )
+
 
 def create_edge_server_constraints() -> HardwareConstraints:
     """Create typical edge server constraints"""

@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pydantic import BaseModel, Field
 
+
 class ProcessType(str, Enum):
     """Types of geological processes"""
 
@@ -24,6 +25,7 @@ class ProcessType(str, Enum):
     EROSIONAL = "erosional"
     DEFORMATIONAL = "deformational"
     GEOCHEMICAL = "geochemical"
+
 
 class RelationshipType(str, Enum):
     """Types of relationships between geological processes"""
@@ -39,6 +41,7 @@ class RelationshipType(str, Enum):
     FOLLOWS = "follows"
     COOCCURS = "cooccurs"
 
+
 class GeologicalLocation(BaseModel):
     """Geological location information"""
 
@@ -51,6 +54,7 @@ class GeologicalLocation(BaseModel):
     region: Optional[str] = None
     tectonic_setting: Optional[str] = None
     coordinate_system: str = "WGS84"
+
 
 class GeologicalProcess(BaseModel):
     """Represents a geological process in the graph database"""
@@ -85,6 +89,7 @@ class GeologicalProcess(BaseModel):
     class Config:
         use_enum_values = True
 
+
 class GeologicalRelationship(BaseModel):
     """Represents a relationship between geological processes"""
 
@@ -114,6 +119,7 @@ class GeologicalRelationship(BaseModel):
     class Config:
         use_enum_values = True
 
+
 class CausalRelationship(BaseModel):
     """Represents a causal chain of geological processes"""
 
@@ -133,6 +139,7 @@ class CausalRelationship(BaseModel):
     # Validation
     validated: bool = False
     validation_method: Optional[str] = None
+
 
 class ProcessNetwork(BaseModel):
     """Represents a network of interconnected geological processes"""
@@ -161,6 +168,7 @@ class ProcessNetwork(BaseModel):
     # Metadata
     created_at: Optional[datetime] = None
     analysis_timestamp: Optional[datetime] = None
+
 
 class NetworkAnalysisResult(BaseModel):
     """Results of network analysis on geological processes"""
@@ -193,6 +201,7 @@ class NetworkAnalysisResult(BaseModel):
     analysis_timestamp: datetime
     analysis_parameters: Optional[Dict[str, Any]] = None
 
+
 class GraphQuery(BaseModel):
     """Represents a graph query for geological relationships"""
 
@@ -220,6 +229,7 @@ class GraphQuery(BaseModel):
     class Config:
         use_enum_values = True
 
+
 class GraphVisualizationConfig(BaseModel):
     """Configuration for graph visualization"""
 
@@ -243,6 +253,7 @@ class GraphVisualizationConfig(BaseModel):
     export_format: str = "json"  # json, graphml, gexf, cytoscape
     include_metadata: bool = True
 
+
 class GeologicalEvent(BaseModel):
     """Represents a specific geological event"""
 
@@ -264,6 +275,7 @@ class GeologicalEvent(BaseModel):
     data_sources: Optional[List[str]] = None
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     validated: bool = False
+
 
 class ProcessEvolution(BaseModel):
     """Represents the evolution of a geological process over time"""

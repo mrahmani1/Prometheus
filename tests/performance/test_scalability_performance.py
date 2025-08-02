@@ -4,19 +4,19 @@ Performance tests for scalability validation of Prometheus AI platform
 Tests system performance under various load conditions and data volumes.
 """
 
-import pytest
-import asyncio
-import time
-import psutil
-import numpy as np
-import torch
-from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-import multiprocessing
+from datetime import datetime, timedelta
 from typing import List, Dict, Any
+import asyncio
 import gc
-import threading
+import multiprocessing
+import numpy as np
+import psutil
+import pytest
 import queue
+import threading
+import time
+import torch
 
 # Performance test markers
 pytestmark = pytest.mark.performance

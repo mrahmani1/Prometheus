@@ -19,6 +19,7 @@ import torch.nn.functional as F
 
 from .geological import GeologicalLocation
 
+
 class SensorType(str, Enum):
     """Types of monitoring sensors"""
 
@@ -37,6 +38,7 @@ class SensorType(str, Enum):
     WEATHER_STATION = "weather_station"
     WEBCAM = "webcam"
 
+
 class QualityFlag(str, Enum):
     """Data quality flags for sensor readings"""
 
@@ -51,6 +53,7 @@ class QualityFlag(str, Enum):
     SPIKE_DETECTED = "spike_detected"
     DRIFT_DETECTED = "drift_detected"
 
+
 class AlertLevelEnum(int, Enum):
     """Volcanic alert levels (0-5 scale)"""
 
@@ -61,6 +64,7 @@ class AlertLevelEnum(int, Enum):
     CRITICAL = 4  # Major eruption in progress
     EXTREME = 5  # Catastrophic eruption
 
+
 class NotificationPriority(str, Enum):
     """Priority levels for notifications"""
 
@@ -69,6 +73,7 @@ class NotificationPriority(str, Enum):
     HIGH = "high"
     URGENT = "urgent"
     CRITICAL = "critical"
+
 
 class NotificationChannel(str, Enum):
     """Channels for sending notifications"""
@@ -80,6 +85,7 @@ class NotificationChannel(str, Enum):
     SLACK = "slack"
     PHONE_CALL = "phone_call"
     EMERGENCY_BROADCAST = "emergency_broadcast"
+
 
 @dataclass
 class SensorReading:
@@ -199,6 +205,7 @@ class SensorReading:
             metadata=data.get("metadata", {}),
         )
 
+
 @dataclass
 class AlertLevel:
     """
@@ -290,6 +297,7 @@ class AlertLevel:
             evacuation_zones=data.get("evacuation_zones", []),
             restrictions=data.get("restrictions", []),
         )
+
 
 @dataclass
 class VolcanicRiskAssessment:
@@ -405,6 +413,7 @@ class VolcanicRiskAssessment:
             assessment_id=data.get("assessment_id", str(uuid.uuid4())),
         )
 
+
 @dataclass
 class TimeSeriesBuffer:
     """
@@ -517,6 +526,7 @@ class TimeSeriesBuffer:
             "last_update": self.last_update.isoformat() if self.last_update else None,
             "quality_statistics": self.get_quality_statistics(),
         }
+
 
 @dataclass
 class StreamingDataProcessor:
@@ -681,6 +691,7 @@ class StreamingDataProcessor:
             "timestamp": datetime.utcnow().isoformat(),
         }
 
+
 @dataclass
 class NotificationRule:
     """
@@ -766,6 +777,7 @@ class NotificationRule:
 
         self.last_triggered = current_time
 
+
 @dataclass
 class Notification:
     """
@@ -841,6 +853,7 @@ class Notification:
             "delivered_channels": [c.value for c in self.delivered_channels],
             "failed_channels": [c.value for c in self.failed_channels],
         }
+
 
 @dataclass
 class AlertEscalationManager:

@@ -12,6 +12,7 @@ from models.geological_data import DataQuality
 
 logger = structlog.get_logger()
 
+
 class CompletenessValidator:
     """Data completeness and consistency validation"""
 

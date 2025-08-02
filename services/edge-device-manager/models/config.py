@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
+
 class EdgeManagerConfig(BaseSettings):
     """Main configuration for Edge Device Manager"""
 
@@ -63,6 +64,7 @@ class EdgeManagerConfig(BaseSettings):
     class Config:
         env_file = ".env"
 
+
 class DeviceCapabilities(BaseModel):
     """Device hardware and software capabilities"""
 
@@ -78,6 +80,7 @@ class DeviceCapabilities(BaseModel):
     docker_available: bool = False
     kubernetes_available: bool = False
 
+
 class DeviceLocation(BaseModel):
     """Device geographical location"""
 
@@ -87,6 +90,7 @@ class DeviceLocation(BaseModel):
     region: str
     site_name: Optional[str] = None
     timezone: str = "UTC"
+
 
 class EdgeDeviceConfig(BaseModel):
     """Configuration for an edge device"""
@@ -119,6 +123,7 @@ class EdgeDeviceConfig(BaseModel):
     model_execution_enabled: bool = True
     max_concurrent_models: int = 3
 
+
 class ModelDeploymentConfig(BaseModel):
     """Configuration for model deployment to edge devices"""
 
@@ -148,6 +153,7 @@ class ModelDeploymentConfig(BaseModel):
     input_data_sources: List[str] = []
     output_data_targets: List[str] = []
     processing_interval: Optional[int] = None  # seconds
+
 
 class SyncConfiguration(BaseModel):
     """Data synchronization configuration"""

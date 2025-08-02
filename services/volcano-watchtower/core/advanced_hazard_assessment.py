@@ -16,6 +16,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class VolcanicHazard:
     """Comprehensive volcanic hazard specification"""
@@ -29,6 +30,7 @@ class VolcanicHazard:
     impact_zones: Dict[str, Any]  # Impact zone definitions
     mitigation_effectiveness: Dict[str, float]  # Mitigation measures
 
+
 @dataclass
 class VulnerabilityModel:
     """Vulnerability model for different assets"""
@@ -38,6 +40,7 @@ class VulnerabilityModel:
     exposure_data: np.ndarray  # Spatial exposure distribution
     economic_value: np.ndarray  # Economic value distribution
     social_vulnerability: np.ndarray  # Social vulnerability index
+
 
 @dataclass
 class RiskAssessment:
@@ -49,6 +52,7 @@ class RiskAssessment:
     risk_maps: Dict[str, np.ndarray]  # Spatial risk distributions
     uncertainty_bounds: Dict[str, Tuple[float, float]]
     confidence_intervals: Dict[str, Tuple[float, float]]
+
 
 class AdvancedVolcanicHazardAssessment:
     """Advanced volcanic hazard and risk assessment system"""

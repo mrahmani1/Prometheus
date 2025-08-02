@@ -10,6 +10,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 class Fusionintegration:
     """Main class for fusion integration functionality."""
 
@@ -31,11 +32,13 @@ class Fusionintegration:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Fusionintegration()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

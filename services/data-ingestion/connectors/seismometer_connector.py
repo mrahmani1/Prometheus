@@ -11,6 +11,7 @@ from .base_connector import BaseConnector
 
 logger = structlog.get_logger()
 
+
 class SeismometerConnector(BaseConnector):
     """Connector for seismometer network data"""
 

@@ -4,9 +4,9 @@ Quality Summary Script for Prometheus AI Platform
 Provides a comprehensive overview of code quality status
 """
 
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 
 def run_command(cmd, description):

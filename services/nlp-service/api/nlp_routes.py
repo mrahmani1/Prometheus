@@ -5,16 +5,16 @@ NLP API routes for geological query processing
 from datetime import datetime
 from typing import Dict
 
-import structlog
 from fastapi import APIRouter, Depends, HTTPException
+import structlog
 from models.nlp_models import (
-    ConversationalResponse,
+    ConversationalResponse, 
     EntityExtractionResult,
-    GeologicalQueryRequest,
+    GeologicalQueryRequest, 
     GeologicalQueryResponse,
-    IntentClassificationResult,
+    IntentClassificationResult, 
     NLPQuery,
-    QueryTranslationResult,
+    QueryTranslationResult
 )
 
 logger = structlog.get_logger()
@@ -23,6 +23,7 @@ router = APIRouter()
 def get_nlp_components():
     """Dependency to get NLP components from global state"""
     from main import nlp_components
+
     return nlp_components
 
 @router.post("/classify-intent", response_model=IntentClassificationResult)

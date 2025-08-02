@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Optional
 import structlog
 import torch
 import torch.nn.functional as F
-from core.model_complexity_manager import ComplexityLevel, ModelComplexityManager
+from core.model_complexity_manager import (ComplexityLevel,
+                                           ModelComplexityManager)
 from fastapi import APIRouter, HTTPException
 from models.ai_models import GeologicalProcess
 from pydantic import BaseModel, Field
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/complexity", tags=["Model Complexity"])
 
 # Global complexity manager instance
 complexity_manager = ModelComplexityManager()
+
 
 class ComplexityAssessmentRequest(BaseModel):
     """Request model for complexity assessment"""
@@ -44,6 +46,7 @@ class ComplexityAssessmentRequest(BaseModel):
             }
         }
 
+
 class ModelSelectionRequest(BaseModel):
     """Request model for optimal model selection"""
 
@@ -54,6 +57,7 @@ class ModelSelectionRequest(BaseModel):
     target_accuracy: float = Field(
         0.8, ge=0.0, le=1.0, description="Target accuracy requirement"
     )
+
 
 class ComplexityAssessmentResponse(BaseModel):
     """Response model for complexity assessment"""
@@ -66,11 +70,13 @@ class ComplexityAssessmentResponse(BaseModel):
     cost_breakdown: Dict[str, float]
     recommendations: List[str]
 
+
 class ModelHierarchyResponse(BaseModel):
     """Response model for model hierarchy"""
 
     hierarchy: Dict[str, Dict[str, Any]]
     description: str
+
 
 @router.post("/assess", response_model=ComplexityAssessmentResponse)
 async def assess_simulation_complexity(request: ComplexityAssessmentRequest):
@@ -118,6 +124,7 @@ async def assess_simulation_complexity(request: ComplexityAssessmentRequest):
         logger.error(f"Complexity assessment failed: {e}")
         raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
 
+
 @router.post("/select-model")
 async def select_optimal_model(request: ModelSelectionRequest):
     """
@@ -125,7 +132,8 @@ async def select_optimal_model(request: ModelSelectionRequest):
     """
     try:
         # Convert request data to assessment objects
-        from core.model_complexity_manager import DataAssessment, ResourceAssessment
+        from core.model_complexity_manager import (DataAssessment,
+                                                   ResourceAssessment)
 
         # Create data assessment from request
         data_assessment = DataAssessment(
@@ -181,6 +189,7 @@ async def select_optimal_model(request: ModelSelectionRequest):
         logger.error(f"Model selection failed: {e}")
         raise HTTPException(status_code=500, detail=f"Model selection failed: {str(e)}")
 
+
 @router.get("/hierarchy", response_model=ModelHierarchyResponse)
 async def get_model_hierarchy():
     """
@@ -199,6 +208,7 @@ async def get_model_hierarchy():
         raise HTTPException(
             status_code=500, detail=f"Failed to get hierarchy: {str(e)}"
         )
+
 
 @router.get("/resources")
 async def assess_current_resources():
@@ -226,6 +236,7 @@ async def assess_current_resources():
         raise HTTPException(
             status_code=500, detail=f"Resource assessment failed: {str(e)}"
         )
+
 
 @router.post("/estimate-cost")
 async def estimate_computational_cost(
@@ -286,6 +297,7 @@ async def estimate_computational_cost(
         logger.error(f"Cost estimation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Cost estimation failed: {str(e)}")
 
+
 @router.get("/recommendations/{geological_process}")
 async def get_complexity_recommendations(
     geological_process: str,
@@ -338,6 +350,7 @@ async def get_complexity_recommendations(
         raise HTTPException(
             status_code=500, detail=f"Failed to get recommendations: {str(e)}"
         )
+
 
 @router.post("/save-assessment")
 async def save_complexity_assessment(

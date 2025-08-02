@@ -6,6 +6,7 @@ anomalous patterns in sequences of geological events and time series data.
 """
 
 import logging
+import time
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -17,17 +18,14 @@ import torch
 import torch.nn as nn
 from core.config import Settings
 from core.database import DatabaseManager
-from models.schemas import (
-    AnomalySeverity,
-    AnomalyType,
-    DetectedAnomaly,
-    GeologicalDataStream,
-)
+from models.schemas import (AnomalySeverity, AnomalyType, DetectedAnomaly,
+                            GeologicalDataStream)
 from sklearn.preprocessing import StandardScaler
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.preprocessing import TimeSeriesScalerMeanVariance
 
 logger = logging.getLogger(__name__)
+
 
 class SequenceLSTM(nn.Module):
     """LSTM-based sequence anomaly detector"""
@@ -72,6 +70,7 @@ class SequenceLSTM(nn.Module):
         anomaly_prob = self.classifier(final_output)
 
         return anomaly_prob, attn_weights
+
 
 class GeologicalSequencePattern:
     """Represents a geological sequence pattern"""
@@ -151,6 +150,7 @@ class GeologicalSequencePattern:
             correlation = 0.0
 
         return abs(correlation)
+
 
 class CollectiveAnomalyDetector:
     """Collective anomaly detector for geological event sequences"""
@@ -444,9 +444,10 @@ class CollectiveAnomalyDetector:
                 if len(values) != self.sequence_length:
                     # Interpolate to standard length
                     from scipy import interpolate
+
                     x_old = np.linspace(0, 1, len(values))
                     x_new = np.linspace(0, 1, self.sequence_length)
-                    f = interpolate.interp1d(x_old, values, kind='linear')
+                    f = interpolate.interp1d(x_old, values, kind="linear")
                     values = f(x_new)
                 time_series_data.append(values)
 
@@ -455,7 +456,7 @@ class CollectiveAnomalyDetector:
 
             # Perform clustering
             from sklearn.cluster import KMeans
-            
+
             n_clusters = min(3, len(sequences) // 2)
             kmeans = KMeans(n_clusters=n_clusters, random_state=42)
             cluster_labels = kmeans.fit_predict(time_series_array)
@@ -467,16 +468,11 @@ class CollectiveAnomalyDetector:
             # Create anomalies for sequences in anomalous clusters
             for i, (seq, label) in enumerate(zip(sequences, cluster_labels)):
                 if label in anomalous_clusters:
-                    anomaly = DetectedAnomaly(
-                        id=f"collective_cluster_{i}_{int(time.time())}",
-                        timestamp=seq["timestamp"],
-                        location=seq["location"],
-                        anomaly_type="collective_clustering",
-                        severity=0.7,
-                        confidence=0.8,
-                        description=f"Sequence belongs to anomalous cluster {label}",
-                        features={"cluster_id": int(label), "cluster_size": int(cluster_counts[label])},
-                        context={"method": "time_series_clustering", "total_clusters": n_clusters}
+                    anomaly = self._create_collective_anomaly(
+                        seq, data_stream, 0.7, "time_series_clustering"
+                    )
+                    anomaly.geological_context += (
+                        f" (Cluster {label}, size: {cluster_counts[label]})"
                     )
                     anomalies.append(anomaly)
 

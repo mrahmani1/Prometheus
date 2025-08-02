@@ -5,14 +5,14 @@ Tests for geological graph neural network implementations.
 import os
 import sys
 
+import numpy as np
 import pytest
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
 from core.geological_graph_utils import (
     GeologicalGraphAnalyzer,
     GeologicalGraphBuilder,
@@ -27,6 +27,7 @@ from core.graph_neural_networks import (
     GeologicalGraphPooling,
     GeologicalGraphSAGE,
 )
+
 
 class TestGeologicalGraphData:
     """Test the GeologicalGraphData structure."""
@@ -70,6 +71,7 @@ class TestGeologicalGraphData:
         )
 
         assert data.spatial_coords.shape == (num_nodes, 3)
+
 
 class TestGeologicalGCN:
     """Test the Geological Graph Convolutional Network."""
@@ -135,6 +137,7 @@ class TestGeologicalGCN:
         for key, emb in embeddings.items():
             assert emb.shape[1] == output_dim
 
+
 class TestGeologicalGAT:
     """Test the Geological Graph Attention Network."""
 
@@ -198,6 +201,7 @@ class TestGeologicalGAT:
             assert isinstance(value, float)
             assert 0 <= value <= 1
 
+
 class TestGeologicalGraphSAGE:
     """Test the Geological GraphSAGE implementation."""
 
@@ -234,6 +238,7 @@ class TestGeologicalGraphSAGE:
 
         assert output.shape == (num_nodes, output_dim)
         assert not torch.isnan(output).any()
+
 
 class TestGeologicalGNNEnsemble:
     """Test the Geological GNN Ensemble."""
@@ -300,6 +305,7 @@ class TestGeologicalGNNEnsemble:
         assert agreement.shape == (num_nodes,)
         assert torch.all(agreement >= -1) and torch.all(agreement <= 1)
 
+
 class TestGeologicalGraphPooling:
     """Test the Geological Graph Pooling methods."""
 
@@ -347,6 +353,7 @@ class TestGeologicalGraphPooling:
 
         assert hierarchical.shape[0] == 1  # Single graph
         assert hierarchical.shape[1] == input_dim
+
 
 class TestGeologicalGraphBuilder:
     """Test the Geological Graph Builder."""
@@ -421,6 +428,7 @@ class TestGeologicalGraphBuilder:
         assert graph_data.node_types.shape[0] == 2
         assert graph_data.spatial_coords.shape == (2, 3)
 
+
 class TestGeologicalGraphAnalyzer:
     """Test the Geological Graph Analyzer."""
 
@@ -481,6 +489,7 @@ class TestGeologicalGraphAnalyzer:
         assert spatial_stats["latitude_range"] == 1.0
         assert spatial_stats["longitude_range"] == 1.0
 
+
 class TestGNNTraining:
     """Test GNN training functionality."""
 
@@ -513,6 +522,7 @@ class TestGNNTraining:
 
         assert isinstance(physics_loss, torch.Tensor)
         assert physics_loss.item() >= 0
+
 
 class TestCreateVolcanicSystemGraph:
     """Test volcanic system graph creation."""
@@ -558,6 +568,7 @@ class TestCreateVolcanicSystemGraph:
         assert graph_data.node_features.shape[0] == 3  # volcano + event + station
         assert graph_data.spatial_coords.shape[0] == 3
 
+
 class TestModelFactory:
     """Test the model factory function."""
 
@@ -585,6 +596,7 @@ class TestModelFactory:
         """Test error handling for invalid model type."""
         with pytest.raises(ValueError):
             create_geological_gnn_model("invalid_type", 32, [64], 16)
+
 
 # Integration tests
 class TestGNNIntegration:
@@ -623,6 +635,7 @@ class TestGNNIntegration:
 
         assert predictions.shape == (graph_data.node_features.shape[0], 3)
         assert not torch.isnan(predictions).any()
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

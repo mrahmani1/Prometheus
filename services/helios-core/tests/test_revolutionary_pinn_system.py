@@ -14,11 +14,13 @@ import torch.nn as nn
 
 from ..core.revolutionary_pinn_integration import RevolutionaryPINNSystem
 
+
 @pytest.fixture
 def revolutionary_system():
     """Create revolutionary PINN system for testing"""
     device = torch.device("cpu")
     return RevolutionaryPINNSystem(device)
+
 
 @pytest.fixture
 def sample_physics_problem():
@@ -62,6 +64,7 @@ def sample_physics_problem():
         "adaptive_mode": "discovery",
     }
 
+
 @pytest.fixture
 def sample_training_data():
     """Sample training data for testing"""
@@ -91,6 +94,7 @@ def sample_training_data():
         "variable_names": ["x", "y", "z", "t"],
     }
 
+
 @pytest.mark.asyncio
 async def test_create_revolutionary_model(revolutionary_system, sample_physics_problem):
     """Test creating a revolutionary PINN model"""
@@ -119,6 +123,7 @@ async def test_create_revolutionary_model(revolutionary_system, sample_physics_p
     assert "physics_informed_learning" in capabilities
     assert "quantum_enhancement" in capabilities
     assert "physics_law_discovery" in capabilities
+
 
 @pytest.mark.asyncio
 async def test_train_revolutionary_model(
@@ -161,6 +166,7 @@ async def test_train_revolutionary_model(
     # Verify capabilities were used
     capabilities_used = result["capabilities_used"]
     assert len(capabilities_used) > 0
+
 
 @pytest.mark.asyncio
 async def test_predict_with_revolutionary_model(
@@ -207,6 +213,7 @@ async def test_predict_with_revolutionary_model(
     # Check prediction shapes
     assert len(result["mean_prediction"]) == len(test_inputs)
 
+
 @pytest.mark.asyncio
 async def test_physics_law_discovery(revolutionary_system, sample_physics_problem):
     """Test physics law discovery"""
@@ -247,6 +254,7 @@ async def test_physics_law_discovery(revolutionary_system, sample_physics_proble
     # Check if any laws were discovered
     discovered_laws = result["discovered_laws"]
     assert isinstance(discovered_laws, dict)
+
 
 @pytest.mark.asyncio
 async def test_continual_learning(
@@ -303,6 +311,7 @@ async def test_continual_learning(
     assert "continual_learning_tasks" in model_info
     assert len(model_info["continual_learning_tasks"]) > 0
 
+
 @pytest.mark.asyncio
 async def test_meta_learning(revolutionary_system):
     """Test meta-learning across physics domains"""
@@ -341,6 +350,7 @@ async def test_meta_learning(revolutionary_system):
     assert "meta_learning_result" in result
     assert "models_updated" in result
 
+
 @pytest.mark.asyncio
 async def test_neuromorphic_processing(revolutionary_system, sample_physics_problem):
     """Test neuromorphic computing integration"""
@@ -368,6 +378,7 @@ async def test_neuromorphic_processing(revolutionary_system, sample_physics_prob
     assert "total_spikes" in result
     assert "neuromorphic_features" in result
     assert result["spike_trains_generated"] > 0
+
 
 @pytest.mark.asyncio
 async def test_causal_discovery(revolutionary_system, sample_physics_problem):
@@ -419,6 +430,7 @@ async def test_causal_discovery(revolutionary_system, sample_physics_problem):
     assert "relations" in result
     assert result["causal_relations_discovered"] >= 0
 
+
 def test_system_status(revolutionary_system):
     """Test system status reporting"""
 
@@ -445,6 +457,7 @@ def test_system_status(revolutionary_system):
     assert "continual_learning" in capabilities
     assert "physics_discovery" in capabilities
     assert "neuromorphic_processing" in capabilities
+
 
 @pytest.mark.asyncio
 async def test_model_comprehensive_info(
@@ -488,6 +501,7 @@ async def test_model_comprehensive_info(
     assert "physics_problem" in creation_info
     assert "enhancement_options" in creation_info
 
+
 def test_list_revolutionary_models(revolutionary_system):
     """Test listing revolutionary models"""
 
@@ -496,6 +510,7 @@ def test_list_revolutionary_models(revolutionary_system):
     # Should be empty initially
     assert isinstance(models_list, list)
     assert len(models_list) == 0
+
 
 @pytest.mark.asyncio
 async def test_save_and_load_system_state(
@@ -524,6 +539,7 @@ async def test_save_and_load_system_state(
     # Verify state was loaded
     assert model_id in new_system.active_models
     assert len(new_system.active_models) == len(revolutionary_system.active_models)
+
 
 @pytest.mark.asyncio
 async def test_quantum_enhancement_integration(
@@ -561,6 +577,7 @@ async def test_quantum_enhancement_integration(
     assert "total_iterations" in metrics
     assert "quantum_advantage_achieved" in metrics
     assert "quantum_circuit_parameters" in metrics
+
 
 if __name__ == "__main__":
     # Run tests

@@ -19,16 +19,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch.nn as nn
 import torch.nn.functional as F
-from core.insar_analysis import (
-    AtmosphericCorrectionNet,
-    DeformationPatternCNN,
-    DeformationResult,
-    InSARData,
-    InSARDeformationAnalyzer,
-    NoiseReductionNet,
-    create_synthetic_insar_time_series,
-    load_insar_data,
-)
+from core.insar_analysis import (AtmosphericCorrectionNet,
+                                 DeformationPatternCNN, DeformationResult,
+                                 InSARData, InSARDeformationAnalyzer,
+                                 NoiseReductionNet,
+                                 create_synthetic_insar_time_series,
+                                 load_insar_data)
+
 
 class TestInSARDataStructures:
     """Test InSAR data structures and utilities"""

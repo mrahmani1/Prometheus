@@ -23,6 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class QAResult:
     component: str
@@ -34,6 +35,7 @@ class QAResult:
     issues_count: int = 0
     critical_issues: int = 0
 
+
 @dataclass
 class QAOrchestrationReport:
     timestamp: str
@@ -43,6 +45,7 @@ class QAOrchestrationReport:
     component_results: List[QAResult]
     summary: Dict[str, Any]
     recommendations: List[str]
+
 
 class QAOrchestrator:
     def __init__(self):
@@ -539,6 +542,7 @@ class QAOrchestrator:
         with open(latest_report, "w") as f:
             json.dump(report_dict, f, indent=2)
 
+
 async def main():
     """Main execution function"""
     orchestrator = QAOrchestrator()
@@ -592,6 +596,7 @@ async def main():
     except Exception as e:
         logger.error(f"QA orchestration failed: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

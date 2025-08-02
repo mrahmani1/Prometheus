@@ -3,11 +3,11 @@
 Test script to verify the automated QA system implementation
 """
 
+from pathlib import Path
 import json
 import logging
 import subprocess
 import sys
-from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

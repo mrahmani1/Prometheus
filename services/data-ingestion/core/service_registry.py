@@ -10,6 +10,7 @@ import torch.nn.functional as F
 
 logger = structlog.get_logger()
 
+
 class ServiceRegistry:
     """Service registry using Consul for service discovery"""
 

@@ -12,14 +12,11 @@ from typing import Any, Dict, List, Optional
 
 import torch.nn as nn
 import torch.nn.functional as F
+
 from core.config import get_settings
-from core.mineral_resource_prediction import (
-    DepositType,
-    FormationProcess,
-    MineralResourcePredictor,
-    ResourceDeposit,
-    ResourceType,
-)
+from core.mineral_resource_prediction import (DepositType, FormationProcess,
+                                              MineralResourcePredictor,
+                                              ResourceDeposit, ResourceType)
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from models.geological import GeochemicalSample, GeologicalLocation
 from pydantic import BaseModel, Field

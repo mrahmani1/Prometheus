@@ -42,6 +42,7 @@ health_monitor: Optional[HealthMonitor] = None
 sync_manager: Optional[DataSyncManager] = None
 offline_coordinator: Optional[OfflineOperationsCoordinator] = None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
@@ -80,6 +81,7 @@ async def lifespan(app: FastAPI):
     await device_manager.cleanup()
     logger.info("Edge Device Management Service stopped")
 
+
 # Create FastAPI application
 app = FastAPI(
     title="Prometheus Edge Device Manager",
@@ -110,10 +112,12 @@ app.include_router(
     offline_router, prefix="/api/v1/offline", tags=["Offline Operations"]
 )
 
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "edge-device-manager", "version": "1.0.0"}
+
 
 @app.get("/ready")
 async def readiness_check():
@@ -140,6 +144,7 @@ async def readiness_check():
         },
     }
 
+
 @app.get("/metrics")
 async def get_metrics():
     """Get service metrics"""
@@ -147,6 +152,7 @@ async def get_metrics():
         raise HTTPException(status_code=503, detail="Service not ready")
 
     return await device_manager.get_metrics()
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))

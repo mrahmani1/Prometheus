@@ -15,6 +15,7 @@ import torch.nn.functional as F
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 async def check_health():
     """Perform health check on the service"""
     try:
@@ -61,6 +62,7 @@ async def check_health():
         logger.error(f"Health check failed with unexpected error: {e}")
         return False
 
+
 async def main():
     """Main health check function"""
     try:
@@ -76,6 +78,7 @@ async def main():
     except Exception as e:
         logger.error(f"Health check script failed: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

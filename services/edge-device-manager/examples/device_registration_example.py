@@ -11,6 +11,7 @@ import aiohttp
 import pandas as pd
 import torch.nn.functional as F
 
+
 class EdgeDeviceClient:
     """Client for interacting with Edge Device Manager API"""
 
@@ -93,6 +94,7 @@ class EdgeDeviceClient:
                 raise Exception(
                     f"Config update failed: {response.status} - {error_text}"
                 )
+
 
 async def simulate_seismic_station():
     """Simulate a seismic monitoring station"""
@@ -207,6 +209,7 @@ async def simulate_seismic_station():
         except Exception as e:
             print(f"❌ Error during simulation: {e}")
 
+
 async def simulate_weather_station():
     """Simulate a weather monitoring station"""
     print("🌤️ Starting Weather Station Simulation")
@@ -281,6 +284,7 @@ async def simulate_weather_station():
         except Exception as e:
             print(f"❌ Error during weather simulation: {e}")
 
+
 async def list_all_devices():
     """List all registered devices"""
     print("📋 Listing all registered devices...")
@@ -304,6 +308,7 @@ async def list_all_devices():
                 error_text = await response.text()
                 print(f"❌ Failed to list devices: {response.status} - {error_text}")
 
+
 async def main():
     """Main demonstration function"""
     print("🚀 Edge Device Manager Demo")
@@ -319,6 +324,7 @@ async def main():
 
     except Exception as e:
         print(f"❌ Demo failed: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

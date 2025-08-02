@@ -6,16 +6,17 @@ distributed training, and performance monitoring.
 """
 
 import logging
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from ..core.tpu_pod_manager import TPUPodConfig, TPUPodManager, create_tpu_pod_manager
+from ..core.tpu_pod_manager import (TPUPodConfig, TPUPodManager,
+                                    create_tpu_pod_manager)
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 tpu_manager: Optional[TPUPodManager] = None
 
 router = APIRouter(prefix="/tpu", tags=["TPU Pod Management"])
+
 
 class TPUPodConfigRequest(BaseModel):
     """Request model for TPU Pod configuration."""
@@ -43,6 +45,7 @@ class TPUPodConfigRequest(BaseModel):
         default=1, ge=1, description="Gradient accumulation steps"
     )
 
+
 class GeologicalModelConfig(BaseModel):
     """Configuration for geological PINN model."""
 
@@ -58,6 +61,7 @@ class GeologicalModelConfig(BaseModel):
     learning_rate: float = Field(default=1e-3, gt=0, description="Learning rate")
     weight_decay: float = Field(default=1e-4, ge=0, description="Weight decay")
 
+
 class TrainingRequest(BaseModel):
     """Request model for distributed training."""
 
@@ -66,11 +70,13 @@ class TrainingRequest(BaseModel):
     model_config: GeologicalModelConfig = Field(description="Model configuration")
     dataset_path: Optional[str] = Field(None, description="Path to training dataset")
 
+
 class InferenceRequest(BaseModel):
     """Request model for distributed inference."""
 
     input_data: List[List[float]] = Field(description="Input data for inference")
     model_checkpoint: Optional[str] = Field(None, description="Model checkpoint path")
+
 
 class TPUPodStatusResponse(BaseModel):
     """Response model for TPU Pod status."""
@@ -81,6 +87,7 @@ class TPUPodStatusResponse(BaseModel):
     memory_usage_gb: float
     flops_utilization: float
     training_metrics: List[Dict[str, Any]]
+
 
 class TrainingMetricsResponse(BaseModel):
     """Response model for training metrics."""
@@ -95,12 +102,14 @@ class TrainingMetricsResponse(BaseModel):
     flops_utilization: float
     timestamp: datetime
 
+
 def get_tpu_manager() -> TPUPodManager:
     """Dependency to get TPU Pod manager instance."""
     global tpu_manager
     if tpu_manager is None:
         raise HTTPException(status_code=503, detail="TPU Pod not initialized")
     return tpu_manager
+
 
 @router.post("/initialize", response_model=Dict[str, str])
 async def initialize_tpu_pod(config: TPUPodConfigRequest):
@@ -141,6 +150,7 @@ async def initialize_tpu_pod(config: TPUPodConfigRequest):
             status_code=500, detail=f"TPU Pod initialization failed: {str(e)}"
         )
 
+
 @router.get("/status", response_model=TPUPodStatusResponse)
 async def get_tpu_pod_status(manager: TPUPodManager = Depends(get_tpu_manager)):
     """
@@ -164,6 +174,7 @@ async def get_tpu_pod_status(manager: TPUPodManager = Depends(get_tpu_manager)):
     except Exception as e:
         logger.error(f"Failed to get TPU Pod status: {e}")
         raise HTTPException(status_code=500, detail=f"Status query failed: {str(e)}")
+
 
 @router.post("/model/create", response_model=Dict[str, str])
 async def create_geological_model(
@@ -195,6 +206,7 @@ async def create_geological_model(
     except Exception as e:
         logger.error(f"Failed to create geological model: {e}")
         raise HTTPException(status_code=500, detail=f"Model creation failed: {str(e)}")
+
 
 @router.post("/training/start", response_model=Dict[str, str])
 async def start_distributed_training(
@@ -254,6 +266,7 @@ async def start_distributed_training(
         logger.error(f"Failed to start training: {e}")
         raise HTTPException(status_code=500, detail=f"Training start failed: {str(e)}")
 
+
 @router.post("/inference/run", response_model=Dict[str, Any])
 async def run_distributed_inference(
     inference_request: InferenceRequest,
@@ -293,6 +306,7 @@ async def run_distributed_inference(
         logger.error(f"Failed to run inference: {e}")
         raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")
 
+
 @router.post("/model/save", response_model=Dict[str, str])
 async def save_model_checkpoint(
     checkpoint_path: str, manager: TPUPodManager = Depends(get_tpu_manager)
@@ -309,7 +323,7 @@ async def save_model_checkpoint(
         return {
             "success": True,
             "checkpoint_path": checkpoint_path,
-            "message": "Model checkpoint saved successfully"
+            "message": "Model checkpoint saved successfully",
         }
 
     except Exception as e:
@@ -325,6 +339,7 @@ async def save_model_checkpoint(
     except Exception as e:
         logger.error(f"Failed to save model: {e}")
         raise HTTPException(status_code=500, detail=f"Model save failed: {str(e)}")
+
 
 @router.post("/model/load", response_model=Dict[str, str])
 async def load_model_checkpoint(
@@ -348,6 +363,7 @@ async def load_model_checkpoint(
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
         raise HTTPException(status_code=500, detail=f"Model load failed: {str(e)}")
+
 
 @router.get("/metrics/training", response_model=List[TrainingMetricsResponse])
 async def get_training_metrics(
@@ -384,6 +400,7 @@ async def get_training_metrics(
         logger.error(f"Failed to get training metrics: {e}")
         raise HTTPException(status_code=500, detail=f"Metrics query failed: {str(e)}")
 
+
 @router.post("/shutdown", response_model=Dict[str, str])
 async def shutdown_tpu_pod(manager: TPUPodManager = Depends(get_tpu_manager)):
     """
@@ -403,6 +420,7 @@ async def shutdown_tpu_pod(manager: TPUPodManager = Depends(get_tpu_manager)):
     except Exception as e:
         logger.error(f"Failed to shutdown TPU Pod: {e}")
         raise HTTPException(status_code=500, detail=f"Shutdown failed: {str(e)}")
+
 
 # Health check endpoint
 @router.get("/health", response_model=Dict[str, str])

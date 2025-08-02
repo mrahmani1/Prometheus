@@ -30,6 +30,7 @@ from core.multi_physics_coupling import (
 from core.multi_physics_integration import create_magma_flow_system
 from core.pinn_engine import GeologicalProcess
 
+
 def example_thermal_mechanical_coupling():
     """
     Example 1: Thermal-Mechanical Coupling
@@ -174,6 +175,7 @@ def example_thermal_mechanical_coupling():
 
     return results
 
+
 def example_multi_domain_coupling():
     """
     Example 2: Multi-Domain Coupling
@@ -252,6 +254,7 @@ def example_multi_domain_coupling():
     print(f"  Active coupling terms: {diagnostics['coupling_terms_active']}")
 
     return results
+
 
 def example_pinn_integration():
     """
@@ -337,6 +340,7 @@ def example_pinn_integration():
         print(f"Integration example failed: {e}")
         print("This may be due to missing dependencies or model complexity")
         return None
+
 
 def example_stability_analysis():
     """
@@ -484,6 +488,7 @@ def example_stability_analysis():
         "total_steps": step,
     }
 
+
 def main():
     """
     Run all multi-physics coupling examples
@@ -522,8 +527,10 @@ def main():
     except Exception as e:
         print(f"\nExample execution failed: {e}")
         import traceback
+
         traceback.print_exc()
         return None
+
 
 if __name__ == "__main__":
     results = main()

@@ -8,6 +8,7 @@ import sys
 
 import torch.nn.functional as F
 
+
 def validate_sql_file(filepath):
     """Basic SQL syntax validation"""
     try:
@@ -63,6 +64,7 @@ def validate_sql_file(filepath):
     except Exception as e:
         print(f"Error validating {filepath}: {e}")
         return False
+
 
 if __name__ == "__main__":
     sql_files = ["database/timescale/init.sql"]

@@ -4,6 +4,10 @@ Automated Documentation Generation and Validation Script for Prometheus AI Platf
 Generates API documentation, validates completeness, and ensures consistency
 """
 
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 import ast
 import inspect
 import json
@@ -12,10 +16,6 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import asdict, dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 

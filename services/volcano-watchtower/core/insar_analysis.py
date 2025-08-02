@@ -21,6 +21,7 @@ from scipy import ndimage
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class InSARData:
     """InSAR interferogram data structure"""
@@ -35,6 +36,7 @@ class InSARData:
     heading_angle: float  # Satellite heading angle
     metadata: Dict
 
+
 @dataclass
 class DeformationResult:
     """Deformation analysis result"""
@@ -46,6 +48,7 @@ class DeformationResult:
     atmospheric_correction: np.ndarray  # Applied corrections
     quality_metrics: Dict
     processing_metadata: Dict
+
 
 class AtmosphericCorrectionNet(nn.Module):
     """
@@ -117,6 +120,7 @@ class AtmosphericCorrectionNet(nn.Module):
 
         return atmospheric_phase
 
+
 class DeformationPatternCNN(nn.Module):
     """
     CNN for deformation pattern recognition and classification.
@@ -177,6 +181,7 @@ class DeformationPatternCNN(nn.Module):
         classification = self.classifier(features)
         return classification
 
+
 class NoiseReductionNet(nn.Module):
     """
     Deep learning model for InSAR noise reduction using residual learning.
@@ -223,6 +228,7 @@ class NoiseReductionNet(nn.Module):
 
         # Return denoised image (input - predicted noise)
         return residual - noise
+
 
 class InSARDeformationAnalyzer:
     """
@@ -466,6 +472,7 @@ class InSARDeformationAnalyzer:
 
         # Find local maxima/minima for point sources
         from scipy.ndimage import maximum_filter, minimum_filter
+
         # Inflation centers (local maxima)
         local_maxima = maximum_filter(displacement_map, size=20) == displacement_map
         maxima_coords = np.where(
@@ -660,6 +667,7 @@ class InSARDeformationAnalyzer:
 
         return velocity_map
 
+
 # Utility functions for InSAR data handling
 def load_insar_data(file_path: str, metadata: Dict) -> InSARData:
     """
@@ -703,6 +711,7 @@ def load_insar_data(file_path: str, metadata: Dict) -> InSARData:
         heading_angle=-167.0,  # Typical Sentinel-1 heading
         metadata=metadata,
     )
+
 
 def create_synthetic_insar_time_series(num_acquisitions: int = 10) -> List[InSARData]:
     """Create synthetic InSAR time series for testing"""

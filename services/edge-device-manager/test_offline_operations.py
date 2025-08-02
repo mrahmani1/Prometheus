@@ -21,6 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 async def test_offline_operations():
     """Test offline operations functionality"""
 
@@ -186,6 +187,7 @@ async def test_offline_operations():
         logger.info("Stopping offline operations coordinator...")
         await coordinator.stop()
 
+
 async def test_individual_components():
     """Test individual components separately"""
 
@@ -233,6 +235,7 @@ async def test_individual_components():
     await processor.shutdown()
 
     logger.info("Individual component tests completed!")
+
 
 if __name__ == "__main__":
     print("Starting offline operations tests...")

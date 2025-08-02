@@ -13,18 +13,13 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
-from core.hazard_communication import (
-    AudienceType,
-    CommunicationFormat,
-    HazardCommunicationEngine,
-)
-from core.hazard_mapping import (
-    GeographicBounds,
-    HazardMappingEngine,
-    HazardType,
-    RiskLevel,
-)
-from core.realtime_hazard_updates import MonitoringDataStream, RealTimeHazardUpdater
+
+from core.hazard_communication import (AudienceType, CommunicationFormat,
+                                       HazardCommunicationEngine)
+from core.hazard_mapping import (GeographicBounds, HazardMappingEngine,
+                                 HazardType, RiskLevel)
+from core.realtime_hazard_updates import (MonitoringDataStream,
+                                          RealTimeHazardUpdater)
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field

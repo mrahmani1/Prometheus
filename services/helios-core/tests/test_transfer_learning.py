@@ -33,6 +33,7 @@ from core.transfer_learning_engine import (
 )
 from torch.utils.data import DataLoader, TensorDataset
 
+
 class SimpleTestModel(nn.Module):
     """Simple neural network for testing"""
 
@@ -47,10 +48,12 @@ class SimpleTestModel(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+
 @pytest.fixture
 def sample_model():
     """Create a sample model for testing"""
     return SimpleTestModel()
+
 
 @pytest.fixture
 def sample_domain():
@@ -69,6 +72,7 @@ def sample_domain():
         data_sparsity_level=0.7,
     )
 
+
 @pytest.fixture
 def sample_data():
     """Create sample training data"""
@@ -82,6 +86,7 @@ def sample_data():
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
     return dataloader
+
 
 @pytest.fixture
 def adaptation_config(sample_domain):
@@ -97,6 +102,7 @@ def adaptation_config(sample_domain):
         few_shot_samples=5,
         validation_split=0.2,
     )
+
 
 class TestFineTuningAdapter:
     """Test fine-tuning adaptation strategy"""
@@ -135,6 +141,7 @@ class TestFineTuningAdapter:
         confidence = adapter._calculate_confidence(metrics)
         assert 0.0 <= confidence <= 1.0
 
+
 class TestDomainAdversarialAdapter:
     """Test domain adversarial adaptation strategy"""
 
@@ -169,6 +176,7 @@ class TestDomainAdversarialAdapter:
         assert output.shape == (5, 1)
         assert torch.all(output >= 0) and torch.all(output <= 1)  # Sigmoid output
 
+
 class TestFewShotLearner:
     """Test few-shot learning functionality"""
 
@@ -191,6 +199,7 @@ class TestFewShotLearner:
         assert len(list(meta_model.parameters())) == len(
             list(sample_model.parameters())
         )
+
 
 class TestModelPerformanceValidator:
     """Test model performance validation"""
@@ -257,6 +266,7 @@ class TestModelPerformanceValidator:
         )
 
         assert 0.0 <= plausibility_score <= 1.0
+
 
 class TestTransferLearningEngine:
     """Test main transfer learning engine"""
@@ -346,6 +356,7 @@ class TestTransferLearningEngine:
         assert len(history_data) == 1
         assert history_data[0]["target_domain"] == sample_domain.domain_id
 
+
 class TestGeologicalDomainRegistry:
     """Test geological domain registry"""
 
@@ -427,6 +438,7 @@ class TestGeologicalDomainRegistry:
         assert len(export_data) == len(registry.domains)
         assert "yellowstone_usa" in export_data
 
+
 class TestDomainDataPreprocessor:
     """Test domain data preprocessing"""
 
@@ -483,6 +495,7 @@ class TestDomainDataPreprocessor:
 
         mock_show.assert_called_once()
 
+
 class TestAdaptationStrategySelector:
     """Test adaptation strategy selection"""
 
@@ -523,6 +536,7 @@ class TestAdaptationStrategySelector:
         score = selector._calculate_strategy_score("fine_tuning", sample_domain)
 
         assert 0.0 <= score <= 1.0
+
 
 # Integration tests
 class TestTransferLearningIntegration:
@@ -582,6 +596,7 @@ class TestTransferLearningIntegration:
 
         assert isinstance(result, AdaptationResult)
         assert result.confidence_score <= 0.8  # Lower confidence for few-shot
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

@@ -18,6 +18,7 @@ from ..core.tpu_pod_manager import TPUPodConfig, TPUPodManager, create_tpu_pod_m
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def generate_synthetic_geological_data(num_samples: int = 10000) -> tuple:
     """
     Generate synthetic geological data for TPU training demonstration.
@@ -62,6 +63,7 @@ def generate_synthetic_geological_data(num_samples: int = 10000) -> tuple:
 
     return input_data, target_data
 
+
 async def demonstrate_tpu_pod_initialization():
     """Demonstrate TPU Pod initialization and configuration."""
     print("\n=== TPU Pod Initialization Demo ===")
@@ -93,6 +95,7 @@ async def demonstrate_tpu_pod_initialization():
         print(f"✗ TPU Pod initialization failed: {e}")
         print("  Note: This requires actual TPU hardware or TPU emulation")
         return None
+
 
 async def demonstrate_model_creation(tpu_manager: TPUPodManager):
     """Demonstrate geological PINN model creation for TPU."""
@@ -128,6 +131,7 @@ async def demonstrate_model_creation(tpu_manager: TPUPodManager):
     except Exception as e:
         print(f"✗ Model creation failed: {e}")
 
+
 async def demonstrate_dataset_sharding(tpu_manager: TPUPodManager):
     """Demonstrate automatic dataset sharding across TPU cores."""
     print("\n=== Dataset Sharding Demo ===")
@@ -161,6 +165,7 @@ async def demonstrate_dataset_sharding(tpu_manager: TPUPodManager):
         print(f"✗ Dataset sharding failed: {e}")
         return None, None
 
+
 async def demonstrate_distributed_training(tpu_manager: TPUPodManager):
     """Demonstrate distributed training across TPU Pod."""
     print("\n=== Distributed Training Demo ===")
@@ -192,6 +197,7 @@ async def demonstrate_distributed_training(tpu_manager: TPUPodManager):
 
     except Exception as e:
         print(f"✗ Distributed training failed: {e}")
+
 
 async def demonstrate_distributed_inference(
     tpu_manager: TPUPodManager, test_data: np.ndarray
@@ -237,6 +243,7 @@ async def demonstrate_distributed_inference(
     except Exception as e:
         print(f"✗ Distributed inference failed: {e}")
 
+
 async def demonstrate_model_checkpointing(tpu_manager: TPUPodManager):
     """Demonstrate model checkpointing for TPU."""
     print("\n=== Model Checkpointing Demo ===")
@@ -258,6 +265,7 @@ async def demonstrate_model_checkpointing(tpu_manager: TPUPodManager):
 
     except Exception as e:
         print(f"✗ Model checkpointing failed: {e}")
+
 
 async def demonstrate_performance_monitoring(tpu_manager: TPUPodManager):
     """Demonstrate TPU performance monitoring."""
@@ -283,6 +291,7 @@ async def demonstrate_performance_monitoring(tpu_manager: TPUPodManager):
 
     except Exception as e:
         print(f"✗ Performance monitoring failed: {e}")
+
 
 async def main():
     """Main demonstration function."""
@@ -322,6 +331,7 @@ async def main():
         print("   The implementation is ready for deployment on Google Cloud TPU Pods")
 
     print("\n🎉 TPU Pod Integration Demo Complete!")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

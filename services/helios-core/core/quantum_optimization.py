@@ -39,6 +39,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class QuantumOptimizationResult:
     """Result from quantum optimization algorithm"""
@@ -52,6 +53,7 @@ class QuantumOptimizationResult:
     geological_interpretation: Dict[str, Any]
     confidence_score: float
 
+
 @dataclass
 class GeologicalQuantumProblem:
     """Defines a geological problem for quantum optimization"""
@@ -64,6 +66,7 @@ class GeologicalQuantumProblem:
     objective_function: str
     quantum_encoding: str  # 'amplitude', 'angle', 'basis'
     classical_preprocessing: bool = True
+
 
 class QuantumGeologicalOptimizer(ABC):
     """Abstract base class for quantum geological optimization algorithms"""
@@ -109,6 +112,7 @@ class QuantumGeologicalOptimizer(ABC):
 
         return qc
 
+
 class QuantumAnnealingOptimizer(QuantumGeologicalOptimizer):
     """Quantum annealing for geological parameter optimization"""
 
@@ -126,11 +130,11 @@ class QuantumAnnealingOptimizer(QuantumGeologicalOptimizer):
         - Volcanic hazard zone boundary optimization
         """
         start_time = datetime.now()
-        
+
         # Convert and solve problem
         qubo_matrix = self._geological_to_qubo(problem)
         result = self._execute_quantum_annealing(qubo_matrix, problem)
-        
+
         # Create final result
         return self._create_optimization_result(result, problem, start_time)
 
@@ -174,7 +178,7 @@ class QuantumAnnealingOptimizer(QuantumGeologicalOptimizer):
         builder = qubo_builders.get(problem.problem_type)
         if builder:
             return builder(qubo, problem.geological_data[:n], n)
-        
+
         return qubo
 
     def _build_parameter_optimization_qubo(
@@ -369,6 +373,7 @@ class QuantumAnnealingOptimizer(QuantumGeologicalOptimizer):
         convergence_speed = len(result["history"]) / 1000.0  # Normalized
         solution_quality = result["confidence"]
         return (solution_quality * 2.0) - convergence_speed
+
 
 class VariationalQuantumEigensolver(QuantumGeologicalOptimizer):
     """Variational Quantum Eigensolver for geological system analysis"""
@@ -673,6 +678,7 @@ class VariationalQuantumEigensolver(QuantumGeologicalOptimizer):
         energy_accuracy = result["confidence"]
         return (convergence_efficiency + energy_accuracy) / 2.0
 
+
 class QuantumMachineLearning(QuantumGeologicalOptimizer):
     """Quantum Machine Learning for geological pattern recognition"""
 
@@ -928,6 +934,7 @@ class QuantumMachineLearning(QuantumGeologicalOptimizer):
         accuracy_score = result["accuracy"]
         convergence_speed = 1.0 / (1.0 + len(result["history"]) / 100)
         return (accuracy_score + convergence_speed) / 2.0
+
 
 class QuantumClassicalHybrid(QuantumGeologicalOptimizer):
     """Quantum-Classical Hybrid algorithms for large-scale geological problems"""
@@ -1226,6 +1233,7 @@ class QuantumClassicalHybrid(QuantumGeologicalOptimizer):
 
         return synergy_factor * (convergence_efficiency + solution_quality) / 2.0
 
+
 class QuantumGeologicalOptimizationManager:
     """Main manager class for quantum geological optimization"""
 
@@ -1392,6 +1400,7 @@ class QuantumGeologicalOptimizationManager:
 
         return recommendations
 
+
 # Utility functions for geological quantum problems
 def create_geological_quantum_problem(
     geological_data: np.ndarray,
@@ -1409,6 +1418,7 @@ def create_geological_quantum_problem(
         quantum_encoding=quantum_encoding,
         classical_preprocessing=True,
     )
+
 
 def analyze_quantum_advantage(
     results: List[QuantumOptimizationResult],
@@ -1520,6 +1530,7 @@ def analyze_quantum_advantage(
         accuracy_advantage = result["accuracy"]
         feature_utilization = min(1.0, len(result["parameters"]) / (2**self.num_qubits))
         return (accuracy_advantage + feature_utilization) / 2.0
+
 
 class QuantumClassicalHybrid(QuantumGeologicalOptimizer):
     """Quantum-Classical Hybrid algorithms for large-scale geological problems"""
@@ -1823,6 +1834,7 @@ class QuantumClassicalHybrid(QuantumGeologicalOptimizer):
 
         return (convergence_speed + solution_quality + hybrid_balance) / 3.0
 
+
 class QuantumGeologicalOptimizationManager:
     """Manager class for quantum geological optimization algorithms"""
 
@@ -1943,6 +1955,7 @@ class QuantumGeologicalOptimizationManager:
 
         return report
 
+
 # Example usage and testing functions
 def create_example_geological_problems() -> List[GeologicalQuantumProblem]:
     """Create example geological problems for testing quantum algorithms"""
@@ -1991,6 +2004,7 @@ def create_example_geological_problems() -> List[GeologicalQuantumProblem]:
 
     return problems
 
+
 async def run_quantum_optimization_example():
     """Example of running quantum optimization on geological problems"""
     # Create optimization manager
@@ -2016,6 +2030,7 @@ async def run_quantum_optimization_example():
         results[f"problem_{i+1}"] = result
 
     return results
+
 
 if __name__ == "__main__":
     # Run example

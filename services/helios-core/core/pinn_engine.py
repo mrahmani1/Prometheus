@@ -19,24 +19,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from models.ai_models import (
-    ActivationFunction,
-    NetworkArchitecture,
-    OptimizationType,
-    PhysicsConstraint,
-    PINNModelConfig,
-)
+from models.ai_models import (ActivationFunction, NetworkArchitecture,
+                              OptimizationType, PhysicsConstraint,
+                              PINNModelConfig)
 
 from .physics_constraints import create_physics_constraint_enforcer
 from .temporal_processing import GeologicalProcess as TemporalGeologicalProcess
-from .temporal_processing import (
-    MultiScaleTemporalPINN,
-    TemporalScale,
-    TimeScale,
-    create_default_temporal_scales,
-)
+from .temporal_processing import (MultiScaleTemporalPINN, TemporalScale,
+                                  TimeScale, create_default_temporal_scales)
 
 logger = structlog.get_logger()
+
 
 class GeologicalProcess(str, Enum):
     """Types of geological processes for specialized PINN architectures"""
@@ -48,6 +41,7 @@ class GeologicalProcess(str, Enum):
     FLUID_FLOW = "fluid_flow"
     GEOCHEMICAL_TRANSPORT = "geochemical_transport"
     MANTLE_CONVECTION = "mantle_convection"
+
 
 @dataclass
 class PINNTrainingState:
@@ -61,6 +55,7 @@ class PINNTrainingState:
     gradient_norm: float
     physics_residual_max: float
     convergence_metric: float
+
 
 class ActivationRegistry:
     """Registry of activation functions"""
@@ -80,7 +75,9 @@ class ActivationRegistry:
         }
         return activations[activation_type]
 
+
 # Physics constraint enforcement is now handled by the dedicated physics_constraints module
+
 
 class PINNNetwork(nn.Module):
     """
@@ -191,6 +188,7 @@ class PINNNetwork(nn.Module):
 
         return x
 
+
 class PINNLoss(nn.Module):
     """
     Combined loss function for Physics-Informed Neural Networks
@@ -274,6 +272,7 @@ class PINNLoss(nn.Module):
         loss_components["total_loss"] = total_loss.item()
 
         return total_loss, loss_components
+
 
 class PINNTrainer:
     """
@@ -592,6 +591,7 @@ class PINNTrainer:
         self.training_state = checkpoint["training_state"]
 
         logger.info(f"Model loaded from {filepath}")
+
 
 class PINNEngine:
     """

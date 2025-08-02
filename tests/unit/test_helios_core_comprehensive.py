@@ -4,21 +4,22 @@ Comprehensive unit tests for Helios Core AI Engine
 Tests all core AI/ML components including PINNs, GANs, CNNs, and transfer learning.
 """
 
-import pytest
-import torch
-import numpy as np
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timedelta
-import tempfile
+from unittest.mock import Mock, patch, MagicMock
+import numpy as np
 import os
+import pytest
+import tempfile
+import torch
 
 # Import core modules (adjust imports based on actual structure)
 try:
-    from services.helios_core.core.pinn_engine import PINNEngine, PINNNetwork, PINNTrainer
-    from services.helios_core.core.gan_engine import GANGenerator, GANDiscriminator, GANTrainer
     from services.helios_core.core.cnn_processor import SeismicCNNProcessor, InSARCNNProcessor
+    from services.helios_core.core.gan_engine import GANGenerator, GANDiscriminator, GANTrainer
+    from services.helios_core.core.pinn_engine import PINNEngine, PINNNetwork, PINNTrainer
     from services.helios_core.core.transfer_learning import TransferLearningEngine
     from services.helios_core.models.ai_models import (
+
         PINNModelConfig, NetworkArchitecture, PhysicsConstraint,
         PhysicsConstraintType, ActivationFunction, GeologicalProcess
     )
@@ -655,6 +656,7 @@ class TestTransferLearningComprehensive:
             layer_sizes = [4, 64, 64, 3]
         
         from services.helios_core.models.ai_models import (
+
             PINNModelConfig, NetworkArchitecture, ActivationFunction
         )
         

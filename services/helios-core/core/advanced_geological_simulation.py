@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Advancedgeologicalsimulation:
     """Main class for advanced geological simulation functionality."""
 
@@ -30,11 +31,13 @@ class Advancedgeologicalsimulation:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Advancedgeologicalsimulation()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

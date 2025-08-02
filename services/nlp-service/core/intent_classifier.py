@@ -27,6 +27,7 @@ from models.nlp_models import AlternativeIntent, IntentClassificationResult, Que
 
 logger = structlog.get_logger()
 
+
 class IntentClassifier:
     """
     Classifies geological query intents using hybrid approach:

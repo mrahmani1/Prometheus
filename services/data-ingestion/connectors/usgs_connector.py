@@ -16,6 +16,7 @@ from .base_connector import BaseConnector
 
 logger = structlog.get_logger()
 
+
 class USGSConnector(BaseConnector):
     """Connector for USGS earthquake and volcanic data services"""
 

@@ -16,19 +16,20 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+# Import transfer learning components
 from core.domain_adaptation_utils import (
     AdaptationStrategySelector,
     DomainDataPreprocessor,
     GeologicalDomainRegistry,
 )
-
-# Import transfer learning components
 from core.transfer_learning_engine import AdaptationConfig, TransferLearningEngine
 from torch.utils.data import DataLoader, TensorDataset
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class GeologicalDataSimulator:
     """Simulates geological data for different domains"""
@@ -108,6 +109,7 @@ class GeologicalDataSimulator:
         features, targets = self.generate_domain_data(domain_id, num_samples)
         dataset = TensorDataset(features, targets)
         return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
 
 def demonstrate_domain_adaptation():
     """Demonstrate domain adaptation between different geological settings"""
@@ -191,6 +193,7 @@ def demonstrate_domain_adaptation():
 
     return adaptation_results
 
+
 def demonstrate_few_shot_learning():
     """Demonstrate few-shot learning for data-sparse regions"""
     logger.info("\n=== Few-Shot Learning Demo ===")
@@ -244,6 +247,7 @@ def demonstrate_few_shot_learning():
 
     return result
 
+
 def demonstrate_strategy_selection():
     """Demonstrate automatic strategy selection based on domain characteristics"""
     logger.info("\n=== Strategy Selection Demo ===")
@@ -275,6 +279,7 @@ def demonstrate_strategy_selection():
                 f"(complexity: {details['complexity']})"
             )
 
+
 def demonstrate_domain_similarity():
     """Demonstrate domain similarity analysis"""
     logger.info("\n=== Domain Similarity Demo ===")
@@ -294,6 +299,7 @@ def demonstrate_domain_similarity():
             logger.info(f"  {similar_domain.region_name}: {similarity_score:.3f}")
             logger.info(f"    Setting: {similar_domain.geological_setting}")
             logger.info(f"    Context: {similar_domain.tectonic_context}")
+
 
 def demonstrate_data_preprocessing():
     """Demonstrate domain data preprocessing and visualization"""
@@ -337,6 +343,7 @@ def demonstrate_data_preprocessing():
     except Exception as e:
         logger.warning(f"Could not create visualization: {e}")
 
+
 def demonstrate_model_validation():
     """Demonstrate comprehensive model validation"""
     logger.info("\n=== Model Validation Demo ===")
@@ -362,6 +369,7 @@ def demonstrate_model_validation():
     logger.info("Validation Results:")
     for metric, score in validation_scores.items():
         logger.info(f"  {metric}: {score:.4f}")
+
 
 def create_adaptation_report(adaptation_results):
     """Create a comprehensive adaptation report"""
@@ -409,6 +417,7 @@ def create_adaptation_report(adaptation_results):
 
     return report
 
+
 def main():
     """Run all transfer learning demonstrations"""
     logger.info("Starting Transfer Learning Demonstration")
@@ -438,6 +447,7 @@ def main():
     except Exception as e:
         logger.error(f"Demonstration failed: {str(e)}")
         raise
+
 
 if __name__ == "__main__":
     results = main()

@@ -10,20 +10,16 @@ import pandas as pd
 import structlog
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_data import (
-    AtmosphericMeasurement,
-    DataQuality,
-    DeformationMeasurement,
-    GeologicalLocation,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
+from models.geological_data import (AtmosphericMeasurement, DataQuality,
+                                    DeformationMeasurement, GeologicalLocation,
+                                    SeismicEvent, StrainMeasurement,
+                                    ThermalMeasurement)
 from scipy import linalg
 from scipy.spatial.distance import cdist
 from scipy.stats import chi2
 
 logger = structlog.get_logger()
+
 
 @dataclass
 class SensorReading:
@@ -38,6 +34,7 @@ class SensorReading:
     source: str
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class FusionState:
     """Kalman filter state for sensor fusion"""
@@ -47,6 +44,7 @@ class FusionState:
     timestamp: datetime
     sensor_types: List[str]
     location: GeologicalLocation
+
 
 @dataclass
 class FusionResult:
@@ -59,6 +57,7 @@ class FusionResult:
     outliers_rejected: List[SensorReading]
     temporal_alignment_offset: float
     confidence_level: float
+
 
 class KalmanSensorFusion:
     """Kalman filter-based multi-sensor data fusion"""
@@ -897,6 +896,7 @@ class KalmanSensorFusion:
             logger.error("Error calculating confidence level", error=str(e))
             return 0.5  # Default moderate confidence
 
+
 class WeightedSensorFusion:
     """Weighted fusion algorithms for different sensor types"""
 
@@ -1051,6 +1051,7 @@ class WeightedSensorFusion:
         except Exception as e:
             logger.error("Error calculating distance", error=str(e))
             return 0.0
+
 
 class MultiSensorDataFusion:
     """Main class for multi-sensor data fusion algorithms"""

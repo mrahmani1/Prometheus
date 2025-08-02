@@ -26,6 +26,7 @@ from models.ai_models import (
     PINNModelConfig,
 )
 
+
 def create_synthetic_heat_transfer_data(num_points: int = 1000):
     """
     Create synthetic data for heat transfer problem
@@ -57,6 +58,7 @@ def create_synthetic_heat_transfer_data(num_points: int = 1000):
     )
 
     return inputs, temperature
+
 
 def create_heat_transfer_pinn_config():
     """Create PINN configuration for heat transfer problem"""
@@ -117,6 +119,7 @@ def create_heat_transfer_pinn_config():
 
     return config
 
+
 def create_fluid_flow_pinn_config():
     """Create PINN configuration for fluid flow problem"""
 
@@ -169,6 +172,7 @@ def create_fluid_flow_pinn_config():
     )
 
     return config
+
 
 def demonstrate_pinn_training():
     """Demonstrate PINN model training"""
@@ -270,6 +274,7 @@ def demonstrate_pinn_training():
 
     print("\n=== Demo completed successfully! ===")
 
+
 def plot_training_history(history):
     """Plot training history"""
     try:
@@ -311,6 +316,7 @@ def plot_training_history(history):
 
     except ImportError:
         print("Matplotlib not available, skipping plot generation")
+
 
 if __name__ == "__main__":
     # Set random seeds for reproducibility

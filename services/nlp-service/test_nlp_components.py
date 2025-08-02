@@ -16,6 +16,7 @@ from core.intent_classifier import IntentClassifier
 from core.query_translator import QueryTranslator
 from core.response_generator import ConversationalResponseGenerator
 
+
 async def test_nlp_components():
     """Test all NLP components with sample geological queries"""
 
@@ -85,6 +86,7 @@ async def test_nlp_components():
             print(f"✗ Error processing query: {str(e)}\n")
 
     print("NLP Component Testing Complete!")
+
 
 if __name__ == "__main__":
     asyncio.run(test_nlp_components())

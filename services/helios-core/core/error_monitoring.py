@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 
 try:
     from .error_management import ErrorInfo, ServiceDegradationLevel
+
 except ImportError:
     pass
 
@@ -23,6 +24,7 @@ import pandas as pd
 import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ErrorMetrics:
@@ -60,6 +62,7 @@ class ErrorMetrics:
     current_degradation_level: str = "full_service"
     time_in_degradation: float = 0.0
 
+
 @dataclass
 class SystemHealthMetrics:
     """System health metrics"""
@@ -81,6 +84,7 @@ class SystemHealthMetrics:
     # Alerts
     active_alerts: int = 0
     alert_history_24h: int = 0
+
 
 class ErrorMetricsCollector:
     """Collects and aggregates error metrics"""
@@ -651,33 +655,41 @@ class ErrorMetricsCollector:
         else:
             raise ValueError(f"Unsupported export format: {format}")
 
+
 # Global metrics collector instance
 metrics_collector = ErrorMetricsCollector()
+
 
 # Convenience functions
 def record_error(error_info: ErrorInfo):
     """Record an error for metrics collection"""
     metrics_collector.record_error(error_info)
 
+
 def record_error_resolution(error_id: str, resolution_time: float, success: bool):
     """Record error resolution for metrics"""
     metrics_collector.record_error_resolution(error_id, resolution_time, success)
+
 
 def get_error_metrics(time_window_hours: int = 24) -> ErrorMetrics:
     """Get error metrics for specified time window"""
     return metrics_collector.get_error_metrics(time_window_hours)
 
+
 def get_system_health_metrics() -> SystemHealthMetrics:
     """Get system health metrics"""
     return metrics_collector.get_system_health_metrics()
+
 
 def get_error_patterns() -> Dict[str, Any]:
     """Get error pattern analysis"""
     return metrics_collector.get_error_patterns()
 
+
 def export_metrics(format: str = "json") -> str:
     """Export all metrics"""
     return metrics_collector.export_metrics(format)
+
 
 if __name__ == "__main__":
     # Example usage

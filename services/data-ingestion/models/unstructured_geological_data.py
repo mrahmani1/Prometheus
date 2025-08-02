@@ -9,6 +9,7 @@ import torch.nn.functional as F
 
 from .geological_data import DataQuality, GeologicalLocation
 
+
 class RockType(str, Enum):
     IGNEOUS = "igneous"
     SEDIMENTARY = "sedimentary"
@@ -17,12 +18,14 @@ class RockType(str, Enum):
     PLUTONIC = "plutonic"
     UNKNOWN = "unknown"
 
+
 class MetamorphicGrade(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     ULTRA_HIGH = "ultra_high"
     UNKNOWN = "unknown"
+
 
 class CrystalSystem(str, Enum):
     CUBIC = "cubic"
@@ -33,6 +36,7 @@ class CrystalSystem(str, Enum):
     MONOCLINIC = "monoclinic"
     TRICLINIC = "triclinic"
     UNKNOWN = "unknown"
+
 
 @dataclass
 class RockSample:
@@ -62,6 +66,7 @@ class RockSample:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class MineralAnalysis:
@@ -94,6 +99,7 @@ class MineralAnalysis:
     quality: DataQuality = DataQuality.UNKNOWN
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class FluidSample:
     """Represents fluid sample analysis (water, gas, etc.)"""
@@ -120,6 +126,7 @@ class FluidSample:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class CoreSample:
@@ -152,6 +159,7 @@ class CoreSample:
     quality: DataQuality = DataQuality.UNKNOWN
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class GeologicalSurvey:
     """Represents geological survey data"""
@@ -179,6 +187,7 @@ class GeologicalSurvey:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class FieldObservation:
@@ -213,6 +222,7 @@ class FieldObservation:
     quality: DataQuality = DataQuality.UNKNOWN
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class LaboratoryResult:
     """Represents laboratory analysis results"""
@@ -240,6 +250,7 @@ class LaboratoryResult:
     quality: DataQuality = DataQuality.UNKNOWN
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class GeophysicalSurvey:
     """Represents geophysical survey data"""
@@ -265,6 +276,7 @@ class GeophysicalSurvey:
     maps_generated: List[str] = field(default_factory=list)
     report_reference: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class BoreholeData:

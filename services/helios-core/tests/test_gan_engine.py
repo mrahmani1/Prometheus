@@ -34,6 +34,7 @@ from core.uncertainty_quantification import (
 )
 from models.ai_models import UncertaintyMethod, UncertaintyQuantification
 
+
 class TestGANConfig:
     """Test GAN configuration"""
 
@@ -88,6 +89,7 @@ class TestGANConfig:
                 discriminator_layers=[256, 1],
             )
 
+
 class TestSpectralNorm:
     """Test spectral normalization"""
 
@@ -110,6 +112,7 @@ class TestSpectralNorm:
         output = spectral_linear(input_tensor)
 
         assert output.shape == (32, 5)
+
 
 class TestGeologicalGenerator:
     """Test geological generator network"""
@@ -174,6 +177,7 @@ class TestGeologicalGenerator:
         with pytest.raises(ValueError, match="Unknown noise type"):
             generator.generate_scenarios(10, torch.device("cpu"))
 
+
 class TestGeologicalDiscriminator:
     """Test geological discriminator network"""
 
@@ -217,6 +221,7 @@ class TestGeologicalDiscriminator:
         output = discriminator(scenarios)
 
         assert output.shape == (batch_size, 1)
+
 
 class TestGeologicalGAN:
     """Test complete GAN system"""
@@ -304,6 +309,7 @@ class TestGeologicalGAN:
             assert new_gan.config.model_id == gan.config.model_id
             assert new_gan.metadata.model_id == gan.metadata.model_id
 
+
 class TestGANEnsemble:
     """Test GAN ensemble for uncertainty quantification"""
 
@@ -355,6 +361,7 @@ class TestGANEnsemble:
         assert uncertainty_result.aleatoric_uncertainty.shape[0] == num_scenarios
         assert uncertainty_result.total_uncertainty.shape[0] == num_scenarios
         assert len(uncertainty_result.confidence_intervals) > 0
+
 
 class TestGANEngine:
     """Test GAN engine management"""
@@ -447,6 +454,7 @@ class TestGANEngine:
         loaded_gan = engine.get_gan(config.model_id)
         assert loaded_gan.config.model_id == config.model_id
 
+
 class TestGeologicalConstraintLoss:
     """Test geological constraint loss"""
 
@@ -488,6 +496,7 @@ class TestGeologicalConstraintLoss:
         # Loss should be lower for valid scenarios
         assert loss.item() >= 0
 
+
 class TestMonteCarloDropout:
     """Test Monte Carlo Dropout uncertainty quantification"""
 
@@ -526,6 +535,7 @@ class TestMonteCarloDropout:
         assert uncertainty.shape == (batch_size, 5)
         assert torch.all(uncertainty >= 0)  # Uncertainty should be non-negative
 
+
 class TestUncertaintyConfig:
     """Test uncertainty configuration"""
 
@@ -556,6 +566,7 @@ class TestUncertaintyConfig:
             UncertaintyConfig(
                 method=UncertaintyMethod.MONTE_CARLO_DROPOUT, num_samples=0
             )
+
 
 class TestTrainingConfig:
     """Test training configuration"""
@@ -590,6 +601,7 @@ class TestTrainingConfig:
             ValueError, match="Generator learning rate must be between 0 and 1"
         ):
             TrainingConfig(learning_rate_g=1.5)
+
 
 @pytest.mark.integration
 class TestGANIntegration:

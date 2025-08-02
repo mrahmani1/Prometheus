@@ -13,6 +13,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 def create_sample_volcanic_system():
     """Create a sample volcanic system for demonstration."""
     logger.info("Creating sample volcanic system...")
@@ -27,6 +28,7 @@ def create_sample_volcanic_system():
 
     return sample_data
 
+
 def demonstrate_graph_construction():
     """Demonstrate geological graph construction and analysis."""
     logger.info("\n=== Graph Construction Demo ===")
@@ -35,6 +37,7 @@ def demonstrate_graph_construction():
     logger.info(f"Created graph with {graph_data['node_features'].shape[0]} nodes")
 
     return graph_data
+
 
 def demonstrate_gnn_models(graph_data):
     """Demonstrate different GNN model architectures."""
@@ -53,6 +56,7 @@ def demonstrate_gnn_models(graph_data):
 
     logger.info(f"Model configuration: {model_config}")
     return model_config
+
 
 def demonstrate_volcanic_risk_prediction(graph_data):
     """Demonstrate volcanic risk prediction using GNN ensemble."""
@@ -90,6 +94,7 @@ def demonstrate_volcanic_risk_prediction(graph_data):
 
     return predictions, uncertainty
 
+
 def demonstrate_seismic_pattern_analysis(graph_data):
     """Demonstrate seismic pattern analysis using GAT."""
     logger.info("\n=== Seismic Pattern Analysis Demo ===")
@@ -106,6 +111,7 @@ def demonstrate_seismic_pattern_analysis(graph_data):
     logger.info("Seismic pattern analysis completed")
     return analysis_results
 
+
 def demonstrate_multi_scale_analysis(graph_data):
     """Demonstrate multi-scale geological analysis using GraphSAGE."""
     logger.info("\n=== Multi-Scale Analysis Demo ===")
@@ -120,6 +126,7 @@ def demonstrate_multi_scale_analysis(graph_data):
     logger.info("Multi-scale analysis completed")
     return multi_scale_results
 
+
 def save_analysis_results(results, output_dir="gnn_analysis_results"):
     """Save analysis results to files."""
     logger.info(f"Saving analysis results to {output_dir}")
@@ -128,6 +135,7 @@ def save_analysis_results(results, output_dir="gnn_analysis_results"):
     logger.info("Results saved successfully")
 
     return {"status": "saved", "output_dir": output_dir}
+
 
 def main():
     """Main demonstration function."""
@@ -159,6 +167,7 @@ def main():
     except Exception as e:
         logger.error(f"Demo failed: {e}")
         raise
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

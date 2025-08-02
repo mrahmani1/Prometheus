@@ -362,7 +362,8 @@ class AdvancedGeochemicalAnalyzer:
     
     def _initialize_ml_models(self) -> Dict[str, Any]:
         """Initialize machine learning models for geochemical analysis"""
-        from sklearn.ensemble import GradientBoostingClassifier, RandomForestRegressor
+        from sklearn.ensemble import (GradientBoostingClassifier,
+                                      RandomForestRegressor)
         from sklearn.neural_network import MLPRegressor
         
         return {
@@ -2948,7 +2949,8 @@ class AdvancedGeochemicalAnalyzer:
     
     def _initialize_ml_models(self) -> Dict[str, Any]:
         """Initialize machine learning models for geochemical analysis"""
-        from sklearn.ensemble import GradientBoostingClassifier, RandomForestRegressor
+        from sklearn.ensemble import (GradientBoostingClassifier,
+                                      RandomForestRegressor)
         from sklearn.neural_network import MLPRegressor
         
         return {

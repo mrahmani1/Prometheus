@@ -24,6 +24,7 @@ from models.nlp_models import EntityExtractionResult, EntityType, GeologicalEnti
 
 logger = structlog.get_logger()
 
+
 class GeologicalEntityExtractor:
     """
     Extracts geological entities from natural language text using:

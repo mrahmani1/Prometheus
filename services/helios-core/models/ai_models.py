@@ -15,6 +15,7 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class PhysicsConstraintType(str, Enum):
     """Types of physics constraints for PINNs"""
 
@@ -28,6 +29,7 @@ class PhysicsConstraintType(str, Enum):
     DIFFUSION_EQUATION = "diffusion_equation"
     WAVE_EQUATION = "wave_equation"
 
+
 class ActivationFunction(str, Enum):
     """Supported activation functions"""
 
@@ -40,6 +42,7 @@ class ActivationFunction(str, Enum):
     ELU = "elu"
     SELU = "selu"
 
+
 class OptimizationType(str, Enum):
     """Optimization algorithms"""
 
@@ -48,6 +51,7 @@ class OptimizationType(str, Enum):
     SGD = "sgd"
     RMSPROP = "rmsprop"
     LBFGS = "lbfgs"
+
 
 class GeologicalProcess(str, Enum):
     """Types of geological processes"""
@@ -63,6 +67,7 @@ class GeologicalProcess(str, Enum):
     MANTLE_CONVECTION = "mantle_convection"
     GEOCHEMICAL_REACTION = "geochemical_reaction"
 
+
 class ModelType(str, Enum):
     """Types of AI models"""
 
@@ -72,6 +77,7 @@ class ModelType(str, Enum):
     TRANSFORMER = "transformer"
     ENSEMBLE = "ensemble"
 
+
 class UncertaintyMethod(str, Enum):
     """Uncertainty quantification methods"""
 
@@ -80,6 +86,7 @@ class UncertaintyMethod(str, Enum):
     ENSEMBLE_VARIANCE = "ensemble_variance"
     CONFORMAL_PREDICTION = "conformal_prediction"
     DEEP_ENSEMBLES = "deep_ensembles"
+
 
 @dataclass
 class NetworkArchitecture:
@@ -150,6 +157,7 @@ class NetworkArchitecture:
             residual_connections=data.get("residual_connections", False),
             attention_mechanism=data.get("attention_mechanism", False),
         )
+
 
 @dataclass
 class PhysicsConstraint:
@@ -232,6 +240,7 @@ class PhysicsConstraint:
             domain_bounds=data.get("domain_bounds"),
             tolerance=data.get("tolerance", 1e-6),
         )
+
 
 @dataclass
 class PINNModelConfig:
@@ -322,6 +331,7 @@ class PINNModelConfig:
             uncertainty_config=data.get("uncertainty_config"),
             metadata=data.get("metadata"),
         )
+
 
 @dataclass
 class SimulationParameters:
@@ -440,6 +450,7 @@ class SimulationParameters:
             uncertainty_quantification=data.get("uncertainty_quantification", True),
         )
 
+
 @dataclass
 class UncertaintyQuantification:
     """
@@ -504,6 +515,7 @@ class UncertaintyQuantification:
             total_uncertainty=np.array(data["total_uncertainty"]),
             calibration_metrics=data.get("calibration_metrics"),
         )
+
 
 @dataclass
 class ModelPrediction:
@@ -587,6 +599,7 @@ class ModelPrediction:
             confidence_score=data["confidence_score"],
             metadata=data.get("metadata"),
         )
+
 
 @dataclass
 class ModelMetadata:
@@ -673,6 +686,7 @@ class ModelMetadata:
             tags=data.get("tags", []),
             description=data.get("description"),
         )
+
 
 @dataclass
 class ModelRegistry:

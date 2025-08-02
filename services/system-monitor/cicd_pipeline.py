@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Cicdpipeline:
     """Main class for cicd pipeline functionality."""
 
@@ -30,11 +31,13 @@ class Cicdpipeline:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Cicdpipeline()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

@@ -25,6 +25,7 @@ from core.global_model_deployment import GlobalModelDeploymentSystem
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class GeologicalPINNModel(nn.Module):
     """Sample geological PINN model for demonstration"""
 
@@ -51,6 +52,7 @@ class GeologicalPINNModel(nn.Module):
         """Simplified physics loss for demonstration"""
         # In practice, would implement actual physics constraints
         return torch.mean(self.physics_weights * torch.randn(4))
+
 
 class ModelTrainingSimulator:
     """Simulates model training with different performance characteristics"""
@@ -108,6 +110,7 @@ class ModelTrainingSimulator:
 
         return metrics
 
+
 async def demonstrate_model_versioning():
     """Demonstrate model versioning and registration"""
     logger.info("=== Model Versioning Demo ===")
@@ -161,6 +164,7 @@ async def demonstrate_model_versioning():
         )
 
     return system, model_versions
+
 
 async def demonstrate_global_deployment():
     """Demonstrate deployment to multiple geological regions"""
@@ -230,6 +234,7 @@ async def demonstrate_global_deployment():
 
     return system, deployment_ids
 
+
 async def demonstrate_performance_monitoring():
     """Demonstrate performance monitoring and metrics collection"""
     logger.info("\n=== Performance Monitoring Demo ===")
@@ -266,6 +271,7 @@ async def demonstrate_performance_monitoring():
             logger.info("No performance data available yet")
 
     return system, deployment_ids
+
 
 async def demonstrate_drift_detection():
     """Demonstrate model drift detection and retraining triggers"""
@@ -332,6 +338,7 @@ async def demonstrate_drift_detection():
 
     return system, deployment_ids
 
+
 async def demonstrate_automated_updates():
     """Demonstrate automated model updates and rollbacks"""
     logger.info("\n=== Automated Updates Demo ===")
@@ -388,6 +395,7 @@ async def demonstrate_automated_updates():
 
     return system, deployment_ids
 
+
 async def demonstrate_global_overview():
     """Demonstrate global deployment overview and analytics"""
     logger.info("\n=== Global Overview Demo ===")
@@ -428,6 +436,7 @@ async def demonstrate_global_overview():
         )
 
     return system
+
 
 async def demonstrate_maintenance_operations():
     """Demonstrate maintenance operations like cleanup and health checks"""
@@ -483,6 +492,7 @@ async def demonstrate_maintenance_operations():
 
     return system
 
+
 def create_deployment_visualization(system):
     """Create visualization of deployment metrics (if matplotlib available)"""
     try:
@@ -503,6 +513,7 @@ def create_deployment_visualization(system):
 
     except ImportError:
         logger.warning("Matplotlib not available - skipping visualization")
+
 
 async def main():
     """Run all global deployment demonstrations"""
@@ -543,6 +554,7 @@ async def main():
     except Exception as e:
         logger.error(f"Demonstration failed: {str(e)}")
         raise
+
 
 if __name__ == "__main__":
     # Run the demonstration

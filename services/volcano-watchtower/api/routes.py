@@ -21,6 +21,7 @@ logger = structlog.get_logger()
 
 # Pydantic models for API requests/responses
 
+
 class RiskAssessmentRequest(BaseModel):
     """Request model for risk assessment"""
 
@@ -28,6 +29,7 @@ class RiskAssessmentRequest(BaseModel):
     include_forecast: bool = Field(True, description="Include eruption forecast")
     include_reservoir: bool = Field(True, description="Include reservoir parameters")
     timeframe_hours: int = Field(24, description="Assessment timeframe in hours")
+
 
 class RiskAssessmentResponse(BaseModel):
     """Response model for risk assessment"""
@@ -43,6 +45,7 @@ class RiskAssessmentResponse(BaseModel):
     hazard_zones: Dict[str, List[float]]
     recommended_actions: List[str]
 
+
 class AlertUpdateRequest(BaseModel):
     """Request model for alert level updates"""
 
@@ -53,6 +56,7 @@ class AlertUpdateRequest(BaseModel):
     validity_hours: int = Field(6, description="Alert validity in hours")
     confidence: float = Field(..., ge=0.0, le=1.0)
 
+
 class ForecastRequest(BaseModel):
     """Request model for eruption forecasting"""
 
@@ -62,6 +66,7 @@ class ForecastRequest(BaseModel):
         description="Forecast timeframes",
     )
     include_uncertainty: bool = Field(True, description="Include uncertainty estimates")
+
 
 class NotificationRequest(BaseModel):
     """Request model for sending notifications"""
@@ -76,6 +81,7 @@ class NotificationRequest(BaseModel):
         default=["observatory_sta"], description="Notification targets"
     )
 
+
 class VolcanoStatusResponse(BaseModel):
     """Response model for volcano status"""
 
@@ -86,6 +92,7 @@ class VolcanoStatusResponse(BaseModel):
     data_quality: float
     active_alerts: int
     last_eruption: Optional[str] = None
+
 
 def create_routes(
     app,
@@ -538,7 +545,9 @@ def create_routes(
     app.include_router(router)
     app.include_router(insar_router)
 
+
 # Background task functions
+
 
 async def _send_alert_notification(
     volcano_id: str, alert_level: AlertLevel, notification_system: NotificationSystem
@@ -547,6 +556,7 @@ async def _send_alert_notification(
     try:
         # Create a mock risk assessment for notification
         from models.volcanic_data import VolcanicRiskAssessment
+
         risk_assessment = VolcanicRiskAssessment(
             volcano_id=volcano_id,
             timestamp=datetime.utcnow(),
@@ -566,6 +576,7 @@ async def _send_alert_notification(
             volcano_id=volcano_id,
             error=str(e),
         )
+
 
 async def _send_custom_notification(
     volcano_id: str,

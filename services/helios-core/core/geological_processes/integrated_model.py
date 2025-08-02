@@ -15,12 +15,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .crustal_deformation import CrustalDeformationModel, ViscoelasticParameters
+from .crustal_deformation import (CrustalDeformationModel,
+                                  ViscoelasticParameters)
 from .fluid_flow import FluidFlowParameters, HydrothermalFlowModel
-from .geochemical_reactions import GeochemicalReactionNetwork, ReactionParameters
+from .geochemical_reactions import (GeochemicalReactionNetwork,
+                                    ReactionParameters)
 from .mantle_convection import ConvectionParameters, MantleConvectionModel
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class IntegratedModelParameters:
@@ -52,6 +55,7 @@ class IntegratedModelParameters:
             self.flow_params = FluidFlowParameters()
         if self.reaction_params is None:
             self.reaction_params = ReactionParameters()
+
 
 class IntegratedGeologicalModel(nn.Module):
     """
@@ -523,6 +527,7 @@ class IntegratedGeologicalModel(nn.Module):
         coords = torch.cat([x, y, z, t], dim=1)
 
         return coords
+
 
 def create_integrated_geological_model(config: Dict) -> IntegratedGeologicalModel:
     """

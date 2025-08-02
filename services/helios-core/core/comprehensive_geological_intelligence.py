@@ -24,13 +24,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .advanced_geological_data_fusion import AdvancedGeologicalDataFusion
-from .autonomous_geological_discovery import (
-    AutonomousHypothesisGenerator,
-    GeologicalDomain,
-)
+from .autonomous_geological_discovery import (AutonomousHypothesisGenerator,
+                                              GeologicalDomain)
 from .revolutionary_pinn_integration import RevolutionaryPINNSystem
 
 logger = logging.getLogger(__name__)
+
 
 class IntelligenceLevel(str, Enum):
     """Levels of geological intelligence"""
@@ -40,6 +39,7 @@ class IntelligenceLevel(str, Enum):
     EXPERT = "expert"
     REVOLUTIONARY = "revolutionary"
     AUTONOMOUS = "autonomous"
+
 
 @dataclass
 class GeologicalIntelligenceConfig:
@@ -54,6 +54,7 @@ class GeologicalIntelligenceConfig:
     enable_adaptive_learning: bool
     max_concurrent_analyses: int
     resource_allocation: Dict[str, float]
+
 
 class ComprehensiveGeologicalIntelligence:
     """Comprehensive geological intelligence system"""

@@ -8,17 +8,14 @@ import numpy as np
 import structlog
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_data import (
-    DataQuality,
-    GeologicalLocation,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
+from models.geological_data import (DataQuality, GeologicalLocation,
+                                    SeismicEvent, StrainMeasurement,
+                                    ThermalMeasurement)
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 logger = structlog.get_logger()
+
 
 class DataQualityValidator:
     """Automated data quality assessment algorithms"""

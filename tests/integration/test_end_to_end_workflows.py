@@ -4,22 +4,23 @@ Integration tests for end-to-end workflows in Prometheus AI platform
 Tests complete data flow from ingestion through AI processing to visualization.
 """
 
-import pytest
-import asyncio
-import numpy as np
-import torch
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, AsyncMock
+import asyncio
 import json
-import tempfile
+import numpy as np
 import os
+import pytest
+import tempfile
+import torch
 
 # Mock service imports for testing
 try:
+    from services.api_gateway.api.v1.geological_api import GeologicalAPI
     from services.data_ingestion.core.ingestion_service import DataIngestionService
     from services.helios_core.core.helios_engine import HeliosEngine
     from services.volcano_watchtower.core.watchtower_service import VolcanoWatchtowerService
-    from services.api_gateway.api.v1.geological_api import GeologicalAPI
+
 except ImportError:
     # Create mock classes for testing framework
     class DataIngestionService:

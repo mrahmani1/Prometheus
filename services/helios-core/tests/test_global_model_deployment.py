@@ -31,6 +31,7 @@ from core.global_model_deployment import (
     PerformanceMonitor,
 )
 
+
 class SimpleTestModel(nn.Module):
     """Simple neural network for testing"""
 
@@ -45,6 +46,7 @@ class SimpleTestModel(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+
 @pytest.fixture
 def temp_storage_dir():
     """Create temporary directory for model storage"""
@@ -52,10 +54,12 @@ def temp_storage_dir():
     yield temp_dir
     shutil.rmtree(temp_dir)
 
+
 @pytest.fixture
 def sample_model():
     """Create a sample model for testing"""
     return SimpleTestModel()
+
 
 @pytest.fixture
 def sample_model_version():
@@ -75,6 +79,7 @@ def sample_model_version():
         deployment_config={},
     )
 
+
 @pytest.fixture
 def sample_deployment_target():
     """Create a sample deployment target"""
@@ -90,6 +95,7 @@ def sample_deployment_target():
         auto_update_enabled=True,
         monitoring_enabled=True,
     )
+
 
 class TestLocalModelStorage:
     """Test local model storage functionality"""
@@ -163,6 +169,7 @@ class TestLocalModelStorage:
         # Verify it's gone
         versions = await storage.list_versions("test_model")
         assert len(versions) == 0
+
 
 class TestModelVersionManager:
     """Test model version management"""
@@ -240,6 +247,7 @@ class TestModelVersionManager:
         different_model = SimpleTestModel(input_size=20)
         hash3 = version_manager._calculate_model_hash(different_model)
         assert hash1 != hash3
+
 
 class TestDeploymentOrchestrator:
     """Test deployment orchestration"""
@@ -353,6 +361,7 @@ class TestDeploymentOrchestrator:
         deployments = await orchestrator.list_deployments()
         assert len(deployments) == 1
 
+
 class TestPerformanceMonitor:
     """Test performance monitoring"""
 
@@ -454,6 +463,7 @@ class TestPerformanceMonitor:
         assert "latest_metrics" in summary
         assert "averages" in summary
         assert summary["metrics_count"] == 5
+
 
 class TestDriftDetector:
     """Test drift detection"""
@@ -563,6 +573,7 @@ class TestDriftDetector:
         # Second trigger within 6 hours should be skipped
         success = await drift_detector.trigger_retraining(deployment_id, drift_info)
         assert success is False
+
 
 class TestGlobalModelDeploymentSystem:
     """Test the complete global model deployment system"""
@@ -713,6 +724,7 @@ class TestGlobalModelDeploymentSystem:
         versions = await system.version_manager.list_versions("test_model")
         assert len(versions) == 3
 
+
 # Integration tests
 class TestDeploymentIntegration:
     """Integration tests for the complete deployment workflow"""
@@ -769,6 +781,7 @@ class TestDeploymentIntegration:
         # Verify all deployments are for our model
         for deployment in deployments:
             assert deployment["model_name"] == "integration_test_model"
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

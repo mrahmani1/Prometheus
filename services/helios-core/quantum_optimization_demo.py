@@ -15,19 +15,17 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from core.quantum_helios_integration import QuantumHeliosIntegrator
-
 # Import quantum optimization components
-from core.quantum_optimization import (
-    QuantumGeologicalOptimizationManager,
-    analyze_quantum_advantage,
-    create_geological_quantum_problem,
-)
+from core.quantum_optimization import (QuantumGeologicalOptimizationManager,
+                                       analyze_quantum_advantage,
+                                       create_geological_quantum_problem)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 def generate_realistic_geological_data():
     """Generate realistic synthetic geological data for demonstration"""
@@ -59,6 +57,7 @@ def generate_realistic_geological_data():
     }
 
     return geological_datasets
+
 
 async def demonstrate_quantum_annealing():
     """Demonstrate quantum annealing for geological parameter optimization"""
@@ -103,6 +102,7 @@ async def demonstrate_quantum_annealing():
 
     return result
 
+
 async def demonstrate_vqe_system_analysis():
     """Demonstrate VQE for geological system analysis"""
     print("\n" + "=" * 60)
@@ -144,6 +144,7 @@ async def demonstrate_vqe_system_analysis():
 
     return result
 
+
 async def demonstrate_quantum_machine_learning():
     """Demonstrate quantum machine learning for pattern recognition"""
     print("\n" + "=" * 60)
@@ -183,6 +184,7 @@ async def demonstrate_quantum_machine_learning():
     print(f"  Execution time: {result.execution_time:.2f}s")
 
     return result
+
 
 async def demonstrate_hybrid_optimization():
     """Demonstrate quantum-classical hybrid optimization"""
@@ -228,6 +230,7 @@ async def demonstrate_hybrid_optimization():
     print(f"  Execution time: {result.execution_time:.2f}s")
 
     return result
+
 
 async def demonstrate_helios_integration():
     """Demonstrate quantum-enhanced Helios integration"""
@@ -291,6 +294,7 @@ async def demonstrate_helios_integration():
 
     return param_result, system_result
 
+
 async def benchmark_all_algorithms():
     """Benchmark all quantum algorithms on the same problem"""
     print("\n" + "=" * 60)
@@ -347,6 +351,7 @@ async def benchmark_all_algorithms():
         print(f"Most reliable algorithm: {analysis.get('most_reliable', 'N/A')}")
 
     return benchmark_results
+
 
 def generate_summary_report(all_results):
     """Generate a comprehensive summary report"""
@@ -410,6 +415,7 @@ def generate_summary_report(all_results):
 
     return report
 
+
 async def main():
     """Main demonstration function"""
     print("QUANTUM GEOLOGICAL OPTIMIZATION DEMONSTRATION")
@@ -458,6 +464,7 @@ async def main():
         print(f"\nError during demonstration: {e}")
         logger.error(f"Demonstration failed: {e}")
         return None
+
 
 if __name__ == "__main__":
     # Run the demonstration

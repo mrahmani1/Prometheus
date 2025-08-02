@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Multiphysicscoupling:
     """Main class for multi physics coupling functionality."""
 
@@ -30,11 +31,13 @@ class Multiphysicscoupling:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Multiphysicscoupling()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

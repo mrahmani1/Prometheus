@@ -27,6 +27,7 @@ import torch.nn.functional as F
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class HazardType(Enum):
     """Types of geological hazards"""
 
@@ -41,6 +42,7 @@ class HazardType(Enum):
     ASH_FALL = "ash_fall"
     LAVA_FLOW = "lava_flow"
 
+
 class RiskLevel(Enum):
     """Risk levels for hazard assessment"""
 
@@ -50,6 +52,7 @@ class RiskLevel(Enum):
     HIGH = 4
     VERY_HIGH = 5
     EXTREME = 6
+
 
 class AudienceType(Enum):
     """Different audience types for hazard communication"""
@@ -61,6 +64,7 @@ class AudienceType(Enum):
     GOVERNMENT = "government"
     INDUSTRY = "industry"
 
+
 @dataclass
 class GeographicBounds:
     """Geographic boundaries for hazard mapping"""
@@ -70,6 +74,7 @@ class GeographicBounds:
     min_lon: float
     max_lon: float
     resolution: float = 0.001  # degrees
+
 
 @dataclass
 class UncertaintyQuantification:
@@ -81,6 +86,7 @@ class UncertaintyQuantification:
     epistemic_uncertainty: float  # Model uncertainty
     aleatory_uncertainty: float  # Natural variability
     total_uncertainty: float
+
 
 @dataclass
 class HazardMap:
@@ -94,6 +100,7 @@ class HazardMap:
     creation_time: datetime
     valid_until: datetime
     confidence_level: float
+
 
 class HazardMappingSystem:
     """

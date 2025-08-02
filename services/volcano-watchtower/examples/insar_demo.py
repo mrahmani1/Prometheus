@@ -19,19 +19,18 @@ import numpy as np
 # Add parent directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from core.insar_analysis import (
-    InSARData,
-    InSARDeformationAnalyzer,
-    create_synthetic_insar_time_series,
-    load_insar_data,
-)
+from core.insar_analysis import (InSARData, InSARDeformationAnalyzer,
+                                 create_synthetic_insar_time_series,
+                                 load_insar_data)
 from core.insar_integration import InSARMonitoringService
+
 
 def print_separator(title: str):
     """Print a formatted separator"""
     print("\n" + "=" * 60)
     print(f" {title}")
     print("=" * 60)
+
 
 def print_deformation_result(result, title: str = "Deformation Analysis Results"):
     """Print formatted deformation analysis results"""
@@ -72,6 +71,7 @@ def print_deformation_result(result, title: str = "Deformation Analysis Results"
                 f"    Location: ({pattern['location'][0]:.1f}, {pattern['location'][1]:.1f})"
             )
 
+
 def demonstrate_single_interferogram():
     """Demonstrate processing of a single InSAR interferogram"""
     print_separator("Single Interferogram Processing Demo")
@@ -96,6 +96,7 @@ def demonstrate_single_interferogram():
 
     # Display results
     print_deformation_result(result)
+
 
 def demonstrate_time_series_analysis():
     """Demonstrate time series analysis with velocity estimation"""
@@ -128,6 +129,7 @@ def demonstrate_time_series_analysis():
         print(
             f"  RMS Velocity: {np.sqrt(np.nanmean(result.velocity_map**2)):.3f} m/year"
         )
+
 
 async def demonstrate_monitoring_service():
     """Demonstrate the integrated monitoring service"""
@@ -202,6 +204,7 @@ async def demonstrate_monitoring_service():
         if key != "volcano_id":
             print(f"  {key.replace('_', ' ').title()}: {value}")
 
+
 def demonstrate_pattern_recognition():
     """Demonstrate deformation pattern recognition capabilities"""
     print_separator("Pattern Recognition Demo")
@@ -260,6 +263,7 @@ def demonstrate_pattern_recognition():
     # Display results
     print_deformation_result(result, "Pattern Recognition Results")
 
+
 def main():
     """Main demo function"""
     print("InSAR Deformation Analysis System Demo")
@@ -292,10 +296,12 @@ def main():
     except Exception as e:
         print(f"\nDemo failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
     return 0
+
 
 if __name__ == "__main__":
     exit(main())

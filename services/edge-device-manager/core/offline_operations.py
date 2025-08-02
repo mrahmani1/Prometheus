@@ -22,6 +22,7 @@ from .offline_processor import OfflineAnalysisResult, OfflineDataProcessor
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class OfflineOperationStatus:
     """Status of offline operations"""
@@ -35,6 +36,7 @@ class OfflineOperationStatus:
     pending_sync_count: int
     active_alerts_count: int
     last_analysis_time: Optional[datetime]
+
 
 class OfflineOperationsCoordinator:
     """Coordinates all offline operation capabilities"""

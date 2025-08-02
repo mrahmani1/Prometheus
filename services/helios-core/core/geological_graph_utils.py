@@ -21,6 +21,7 @@ from .graph_neural_networks import GeologicalGraphData
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GeologicalEntity:
     """Represents a geological entity in the graph."""
@@ -30,6 +31,7 @@ class GeologicalEntity:
     coordinates: Tuple[float, float, float]  # lat, lon, depth
     properties: Dict[str, float]
     temporal_data: Optional[Dict[str, List[float]]] = None
+
 
 @dataclass
 class GeologicalRelationship:
@@ -41,6 +43,7 @@ class GeologicalRelationship:
     strength: float
     properties: Dict[str, float]
     temporal_evolution: Optional[List[float]] = None
+
 
 class GeologicalGraphBuilder:
     """
@@ -350,6 +353,7 @@ class GeologicalGraphBuilder:
             spatial_coords=spatial_coords_tensor,
         )
 
+
 class GeologicalGraphPreprocessor:
     """
     Preprocessor for geological graph data.
@@ -407,6 +411,7 @@ class GeologicalGraphPreprocessor:
         """Fit and transform graph data in one step."""
         self.fit(graph_data)
         return self.transform(graph_data)
+
 
 class GeologicalGraphAnalyzer:
     """
@@ -539,6 +544,7 @@ class GeologicalGraphAnalyzer:
             "max_distance": distances.max(),
         }
 
+
 def create_volcanic_system_graph(
     volcanoes: List[Dict],
     seismic_events: List[Dict],
@@ -588,6 +594,7 @@ def create_volcanic_system_graph(
     builder.build_spatial_graph(max_distance=max_spatial_distance)
 
     return builder.to_geological_graph_data()
+
 
 # Example usage and testing
 def test_geological_graph_utils():
@@ -658,6 +665,7 @@ def test_geological_graph_utils():
     print("Spatial statistics:", spatial_stats)
 
     return True
+
 
 if __name__ == "__main__":
     test_geological_graph_utils()

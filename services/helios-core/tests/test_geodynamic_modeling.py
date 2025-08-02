@@ -35,10 +35,12 @@ from models.geological import (
     SeismicEvent,
 )
 
+
 @pytest.fixture
 def device():
     """Test device fixture"""
     return torch.device("cpu")
+
 
 @pytest.fixture
 def mock_pinn_engine():
@@ -48,6 +50,7 @@ def mock_pinn_engine():
     engine.get_trainer.return_value = Mock()
     engine.predict.return_value = torch.randn(100, 1)
     return engine
+
 
 @pytest.fixture
 def sample_seismic_events():
@@ -73,6 +76,7 @@ def sample_seismic_events():
 
     return events
 
+
 @pytest.fixture
 def sample_deformation_measurements():
     """Sample deformation measurements for testing"""
@@ -93,6 +97,7 @@ def sample_deformation_measurements():
         measurements.append(measurement)
 
     return measurements
+
 
 @pytest.fixture
 def sample_geochemical_samples():
@@ -121,6 +126,7 @@ def sample_geochemical_samples():
 
     return samples
 
+
 @pytest.fixture
 def sample_station_locations():
     """Sample seismic station locations for testing"""
@@ -133,6 +139,7 @@ def sample_station_locations():
         stations.append(station)
 
     return stations
+
 
 class TestSeismicTomographyProcessor:
     """Tests for seismic tomography processor"""
@@ -192,6 +199,7 @@ class TestSeismicTomographyProcessor:
                     )  # event + station coordinates
                     assert training_data["targets"].shape[1] == 1  # travel time
 
+
 class TestDeformationTracker:
     """Tests for deformation tracker"""
 
@@ -245,6 +253,7 @@ class TestDeformationTracker:
 
                     assert strain_tensor.shape == (10, 10, 5, 6)
                     assert not np.isnan(strain_tensor).any()
+
 
 class TestEarthquakeAnalyzer:
     """Tests for earthquake analyzer"""
@@ -302,6 +311,7 @@ class TestEarthquakeAnalyzer:
         assert "clusters" in clustering_results
         assert "num_clusters" in clustering_results
         assert isinstance(clustering_results["clusters"], list)
+
 
 class TestGeochemicalAnalyzer:
     """Tests for geochemical analyzer"""
@@ -361,6 +371,7 @@ class TestGeochemicalAnalyzer:
             assert "step" in step
             assert "process_type" in step
             assert "compositional_changes" in step
+
 
 class TestIntegratedGeodynamicModeler:
     """Tests for integrated geodynamic modeler"""
@@ -476,6 +487,7 @@ class TestIntegratedGeodynamicModeler:
                         assert "magma_indicators" in summary
                         assert "structural_consistency" in summary
 
+
 class TestDataStructures:
     """Tests for data structure classes"""
 
@@ -559,6 +571,7 @@ class TestDataStructures:
         assert result.temperature_estimates["measured"] == 1150.0
         assert result.crystallinity == 0.3
         assert len(result.evolution_pathway) == 1
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

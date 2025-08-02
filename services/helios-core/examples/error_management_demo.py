@@ -32,6 +32,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 class DemoGeologicalModel(GeologicalModelErrorHandler):
     """Demonstration geological model with error scenarios"""
 
@@ -90,6 +91,7 @@ class DemoGeologicalModel(GeologicalModelErrorHandler):
             "timestamp": datetime.now(),
         }
 
+
 class DemoVolcanicMonitor(VolcanicMonitoringErrorHandler):
     """Demonstration volcanic monitor with error scenarios"""
 
@@ -144,6 +146,7 @@ class DemoVolcanicMonitor(VolcanicMonitoringErrorHandler):
             "recommended_actions": ["monitor_closely", "prepare_evacuation_plans"],
             "timestamp": datetime.now(),
         }
+
 
 async def demonstrate_error_scenarios():
     """Demonstrate various error scenarios and recovery mechanisms"""
@@ -241,6 +244,7 @@ async def demonstrate_error_scenarios():
     except Exception as e:
         print(f"   ❌ Failed: {e}")
 
+
 async def demonstrate_system_monitoring():
     """Demonstrate system monitoring and health assessment"""
 
@@ -280,6 +284,7 @@ async def demonstrate_system_monitoring():
         for rec in patterns["recommendations"]:
             print(f"   - {rec}")
 
+
 async def demonstrate_configuration():
     """Demonstrate configuration management"""
 
@@ -287,6 +292,7 @@ async def demonstrate_configuration():
     print("-" * 50)
 
     from core.error_config import get_config, get_service_config
+
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -307,6 +313,7 @@ for service_name in ["helios_core", "volcano_watchtower"]:
         print(f"   {service_name}:")
         for key, value in service_config.items():
             print(f"     - {key}: {value}")
+
 
 async def main():
     """Main demonstration function"""
@@ -334,6 +341,7 @@ async def main():
         return 1
 
     return 0
+
 
 if __name__ == "__main__":
     # Run the demonstration

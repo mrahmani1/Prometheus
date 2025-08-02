@@ -10,6 +10,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 class Federatedgeologicallearning:
     """Main class for federated geological learning functionality."""
 
@@ -31,11 +32,13 @@ class Federatedgeologicallearning:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Federatedgeologicallearning()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

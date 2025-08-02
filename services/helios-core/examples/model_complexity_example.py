@@ -19,6 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.model_complexity_manager import ModelComplexityManager
 from models.ai_models import GeologicalProcess
 
+
 def create_synthetic_geological_data() -> Dict[str, torch.Tensor]:
     """Create synthetic geological data for demonstration"""
 
@@ -68,6 +69,7 @@ def create_synthetic_geological_data() -> Dict[str, torch.Tensor]:
         f"Created data with {sum(d.shape[0] for d in data.values())} total measurements"
     )
     return data
+
 
 def demonstrate_complexity_assessment():
     """Demonstrate comprehensive complexity assessment"""
@@ -134,6 +136,7 @@ def demonstrate_complexity_assessment():
 
     return assessment_result
 
+
 def demonstrate_model_hierarchy():
     """Demonstrate the model complexity hierarchy"""
 
@@ -162,6 +165,7 @@ def demonstrate_model_hierarchy():
         print(f"  Complexity score: {metrics['complexity_score']:.3f}")
         print(f"  Physics constraints: {len(config['physics_constraints'])}")
         print(f"  Coupling terms: {len(config['coupling_terms'])}")
+
 
 def demonstrate_cost_optimization():
     """Demonstrate cost optimization for different scenarios"""
@@ -264,6 +268,7 @@ def demonstrate_cost_optimization():
 
     return results
 
+
 def visualize_complexity_tradeoffs(results):
     """Visualize complexity vs cost tradeoffs"""
 
@@ -314,6 +319,7 @@ def visualize_complexity_tradeoffs(results):
     except ImportError:
         print("Matplotlib not available - skipping visualization")
 
+
 def save_assessment_results(assessment_result: Dict[str, Any]):
     """Save assessment results to file"""
 
@@ -344,6 +350,7 @@ def save_assessment_results(assessment_result: Dict[str, Any]):
         json.dump(summary, f, indent=2)
 
     print("Summary saved to complexity_summary.json")
+
 
 def main():
     """Main demonstration function"""
@@ -382,7 +389,9 @@ def main():
     except Exception as e:
         print(f"\nError during demonstration: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()

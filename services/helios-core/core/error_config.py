@@ -8,16 +8,18 @@ Requirements: 12.3, 12.4
 """
 
 import os
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
 
 try:
     pass
 except ImportError:
     pass
+
 
 @dataclass
 class ErrorHandlingConfig:
@@ -64,6 +66,7 @@ class ErrorHandlingConfig:
     service_specific_configs: Dict[str, Any] = None
     service_configs: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
+
 @dataclass
 class ServiceSpecificConfig:
     """Service-specific error handling configuration"""
@@ -76,6 +79,7 @@ class ServiceSpecificConfig:
     custom_recovery_strategies: List[str] = field(default_factory=list)
     priority_operations: List[str] = field(default_factory=list)
     degradation_exempt: bool = False
+
 
 class ErrorConfigManager:
     """Manages error handling configuration"""
@@ -212,6 +216,7 @@ class ErrorConfigManager:
         except Exception as e:
             print(f"Error saving config to {save_path}: {e}")
 
+
 # Predefined configuration profiles
 class ConfigProfiles:
     """Predefined configuration profiles for different deployment scenarios"""
@@ -289,6 +294,7 @@ class ConfigProfiles:
             exponential_backoff=True,
         )
 
+
 # Environment-specific configuration loader
 def load_config_for_environment(environment: str = None) -> ErrorHandlingConfig:
     """Load configuration based on environment"""
@@ -308,17 +314,21 @@ def load_config_for_environment(environment: str = None) -> ErrorHandlingConfig:
     profile_func = profile_map.get(env, ConfigProfiles.development_profile)
     return profile_func()
 
+
 # Global configuration manager instance
 config_manager = ErrorConfigManager()
+
 
 # Convenience functions
 def get_config() -> ErrorHandlingConfig:
     """Get current error handling configuration"""
     return config_manager.config
 
+
 def get_service_config(service_name: str) -> Dict[str, Any]:
     """Get configuration for a specific service"""
     return config_manager.get_service_config(service_name)
+
 
 def update_config(**kwargs):
     """Update global configuration"""
@@ -326,10 +336,12 @@ def update_config(**kwargs):
         if hasattr(config_manager.config, key):
             setattr(config_manager.config, key, value)
 
+
 def reload_config():
     """Reload configuration from file and environment"""
     global config_manager
     config_manager = ErrorConfigManager(config_manager.config_file)
+
 
 # Configuration validation
 def validate_config(config: ErrorHandlingConfig) -> List[str]:
@@ -359,6 +371,7 @@ def validate_config(config: ErrorHandlingConfig) -> List[str]:
         )
 
     return issues
+
 
 # Example configuration file template
 CONFIG_TEMPLATE = """
@@ -417,6 +430,7 @@ CONFIG_TEMPLATE = """
 }
 """
 
+
 def create_config_template(file_path: str = "error_config.json"):
     """Create a configuration template file"""
     try:
@@ -425,6 +439,7 @@ def create_config_template(file_path: str = "error_config.json"):
         print(f"Configuration template created at {file_path}")
     except Exception as e:
         print(f"Error creating config template: {e}")
+
 
 if __name__ == "__main__":
     # Example usage

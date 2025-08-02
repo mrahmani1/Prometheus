@@ -30,6 +30,7 @@ from core.temporal_processing import (
     create_default_temporal_scales,
 )
 
+
 def create_sample_geological_data():
     """Create sample geological data for different temporal scales"""
 
@@ -53,6 +54,7 @@ def create_sample_geological_data():
     }
 
     return spatial_coords, time_scales
+
 
 def demonstrate_multi_scale_prediction():
     """Demonstrate multi-scale temporal predictions"""
@@ -99,6 +101,7 @@ def demonstrate_multi_scale_prediction():
 
     return model, results
 
+
 def demonstrate_adaptive_time_stepping():
     """Demonstrate adaptive time stepping for geological processes"""
     print("\n=== Adaptive Time Stepping Demo ===")
@@ -139,6 +142,7 @@ def demonstrate_adaptive_time_stepping():
         print(
             f"Min/Max time step: {np.min(results['time_steps']):.2f} / {np.max(results['time_steps']):.2f}"
         )
+
 
 def demonstrate_temporal_interpolation_extrapolation():
     """Demonstrate temporal interpolation and extrapolation"""
@@ -188,6 +192,7 @@ def demonstrate_temporal_interpolation_extrapolation():
         print(f"\nExtrapolated data ({method} method):")
         for i, (time, solution) in enumerate(zip(future_times, extrapolated)):
             print(f"  Time {time:.0f}: Solution norm = {torch.norm(solution):.3f}")
+
 
 def demonstrate_geological_timescale_modeling():
     """Demonstrate modeling across geological timescales"""
@@ -252,6 +257,7 @@ def demonstrate_geological_timescale_modeling():
     print("Geological timescale prediction completed")
     print(f"Prediction shape: {geological_prediction['fused_prediction'].shape}")
 
+
 def plot_temporal_scales():
     """Create a visualization of temporal scales"""
     print("\n=== Creating Temporal Scale Visualization ===")
@@ -305,6 +311,7 @@ def plot_temporal_scales():
     plt.savefig("temporal_scales.png", dpi=300, bbox_inches="tight")
     print("Temporal scale visualization saved as 'temporal_scales.png'")
 
+
 def main():
     """Run all demonstrations"""
     print("Multi-Scale Temporal Processing for Geological Systems")
@@ -340,7 +347,9 @@ def main():
     except Exception as e:
         print(f"\nError during demonstration: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()

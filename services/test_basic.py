@@ -7,6 +7,7 @@ import unittest
 
 import torch.nn.functional as F
 
+
 class TestBasic(unittest.TestCase):
     """Basic test class."""
 
@@ -42,6 +43,7 @@ class TestBasic(unittest.TestCase):
         self.assertFalse(False)
         self.assertTrue(1 == 1)
         self.assertFalse(1 == 2)
+
 
 if __name__ == "__main__":
     unittest.main()

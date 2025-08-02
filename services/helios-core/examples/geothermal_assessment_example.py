@@ -9,19 +9,20 @@ Requirements: 6.2, 6.3
 
 import os
 import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from core.geothermal_resource_assessment import (
     EconomicParameters,
     GeothermalReservoir,
     GeothermalResourceAssessmentSystem,
 )
 from models.geological import GeologicalLocation, ThermalMeasurement
+
 
 def create_sample_data():
     """Create sample data for geothermal assessment"""
@@ -109,6 +110,7 @@ def create_sample_data():
 
     return locations, thermal_measurements, geological_data
 
+
 def demonstrate_thermal_modeling():
     """Demonstrate thermal modeling capabilities"""
     print("\n=== Thermal Modeling Demonstration ===")
@@ -178,6 +180,7 @@ def demonstrate_thermal_modeling():
     plt.show()
 
     return temperature_field
+
 
 def demonstrate_sustainability_analysis():
     """Demonstrate sustainability analysis capabilities"""
@@ -329,6 +332,7 @@ def demonstrate_sustainability_analysis():
 
     return results
 
+
 def demonstrate_economic_assessment():
     """Demonstrate economic viability assessment"""
     print("\n=== Economic Viability Assessment Demonstration ===")
@@ -467,6 +471,7 @@ def demonstrate_economic_assessment():
     plt.show()
 
     return results
+
 
 def demonstrate_comprehensive_assessment():
     """Demonstrate comprehensive geothermal resource assessment"""
@@ -679,6 +684,7 @@ def demonstrate_comprehensive_assessment():
 
     return results, report
 
+
 def main():
     """Main demonstration function"""
     print("Geothermal Resource Assessment System Demonstration")
@@ -710,7 +716,9 @@ def main():
     except Exception as e:
         print(f"Error during demonstration: {str(e)}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()

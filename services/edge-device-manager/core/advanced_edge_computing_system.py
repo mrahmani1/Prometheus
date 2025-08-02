@@ -26,11 +26,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import psutil
-
-# Edge computing and ML libraries
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+# Edge computing and ML libraries
 from torch.utils.data import DataLoader, TensorDataset
 
 # Federated learning
@@ -63,6 +62,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 class EdgeNodeStatus(Enum):
     """Edge node operational status"""
 
@@ -74,6 +74,7 @@ class EdgeNodeStatus(Enum):
     ERROR = "error"
     MAINTENANCE = "maintenance"
 
+
 class ProcessingMode(Enum):
     """Edge processing modes"""
 
@@ -81,6 +82,7 @@ class ProcessingMode(Enum):
     CLOUD_ONLY = "cloud_only"
     HYBRID = "hybrid"
     ADAPTIVE = "adaptive"
+
 
 @dataclass
 class EdgeNodeConfig:
@@ -116,6 +118,7 @@ class EdgeNodeConfig:
     compression_enabled: bool = True
     encryption_enabled: bool = True
 
+
 @dataclass
 class GeologicalMeasurement:
     """Geological measurement from edge sensors"""
@@ -144,6 +147,7 @@ class GeologicalMeasurement:
             "edge_processed": self.edge_processed,
             "anomaly_score": self.anomaly_score,
         }
+
 
 class EdgeOptimizedGeologicalModel(nn.Module):
     """Lightweight geological model optimized for edge deployment"""
@@ -192,6 +196,7 @@ class EdgeOptimizedGeologicalModel(nn.Module):
             "magnitude": magnitude,
             "features": features,
         }
+
 
 class FederatedGeologicalClient(NumPyClient):
     """Federated learning client for geological edge nodes"""
@@ -279,6 +284,7 @@ class FederatedGeologicalClient(NumPyClient):
         avg_loss = total_loss / len(self.val_loader)
 
         return avg_loss, len(self.val_loader.dataset), {"accuracy": accuracy}
+
 
 class EdgeDataProcessor:
     """Advanced data processing pipeline for edge nodes"""
@@ -546,6 +552,7 @@ class EdgeDataProcessor:
         """Get current processing statistics"""
         return self.processing_stats.copy()
 
+
 class EdgeCommunicationManager:
     """Manages communication between edge nodes and cloud services"""
 
@@ -756,6 +763,7 @@ class EdgeCommunicationManager:
             self.zmq_context.term()
 
         logger.info("Edge communication disconnected")
+
 
 class AdvancedEdgeNode:
     """Advanced edge computing node for geological monitoring"""
@@ -1099,6 +1107,7 @@ class AdvancedEdgeNode:
 
         logger.info(f"Edge node {self.config.node_id} stopped")
 
+
 # Example usage and testing
 async def main():
     """Example usage of advanced edge computing system"""
@@ -1153,6 +1162,7 @@ async def main():
 
     finally:
         await edge_node.stop()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

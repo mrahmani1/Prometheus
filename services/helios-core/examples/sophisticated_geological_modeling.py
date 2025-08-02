@@ -15,12 +15,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-import torch.nn.functional as F
 from core.geological_processes.crustal_deformation import (
     create_crustal_deformation_model,
 )
@@ -34,6 +34,7 @@ from core.geological_processes.integrated_model import (
 
 # Import geological process models
 from core.geological_processes.mantle_convection import create_mantle_convection_model
+
 
 def demonstrate_mantle_convection():
     """Demonstrate comprehensive mantle convection modeling"""
@@ -91,6 +92,7 @@ def demonstrate_mantle_convection():
     )
 
     return model, predictions, evolution_results
+
 
 def demonstrate_crustal_deformation():
     """Demonstrate viscoelastic crustal deformation modeling"""
@@ -154,6 +156,7 @@ def demonstrate_crustal_deformation():
     )
 
     return model, predictions, cycle_results
+
 
 def demonstrate_hydrothermal_flow():
     """Demonstrate multi-phase hydrothermal flow modeling"""
@@ -229,6 +232,7 @@ def demonstrate_hydrothermal_flow():
 
     return model, predictions, circulation_results
 
+
 def demonstrate_geochemical_reactions():
     """Demonstrate comprehensive geochemical reaction networks"""
     logger.info("=== Geochemical Reaction Networks ===")
@@ -284,6 +288,7 @@ def demonstrate_geochemical_reactions():
     )
 
     return model, predictions, reaction_results
+
 
 def demonstrate_integrated_modeling():
     """Demonstrate integrated multi-physics geological modeling"""
@@ -359,6 +364,7 @@ def demonstrate_integrated_modeling():
 
     return model, predictions, integrated_results
 
+
 def create_visualization_plots(results_dict):
     """Create visualization plots for the geological modeling results"""
     logger.info("Creating visualization plots...")
@@ -411,6 +417,7 @@ def create_visualization_plots(results_dict):
 
     logger.info(f"Visualization plots saved to {output_dir}")
 
+
 def main():
     """Main function to run all geological modeling demonstrations"""
     logger.info("Starting Sophisticated Geological Process Modeling Demonstration")
@@ -437,6 +444,7 @@ def main():
         raise
 
     return results
+
 
 if __name__ == "__main__":
     results = main()

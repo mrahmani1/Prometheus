@@ -24,6 +24,7 @@ from torch_geometric.nn import GCNConv, MessagePassing, SAGEConv
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GeologicalNode:
     """Geological process or entity node"""
@@ -45,6 +46,7 @@ class GeologicalNode:
         features.extend([self.uncertainty, self.confidence])
         return torch.tensor(features, dtype=torch.float32)
 
+
 @dataclass
 class GeologicalEdge:
     """Geological relationship edge"""
@@ -63,6 +65,7 @@ class GeologicalEdge:
         features = [self.strength, self.confidence, self.temporal_lag, self.distance]
         features.extend(list(self.properties.values()))
         return torch.tensor(features, dtype=torch.float32)
+
 
 class TemporalGraphAttention(MessagePassing):
     """Temporal Graph Attention mechanism for geological processes"""
@@ -157,6 +160,7 @@ class TemporalGraphAttention(MessagePassing):
         out = attention.unsqueeze(-1) * value_j
 
         return out
+
 
 class PhysicsInformedGNN(nn.Module):
     """Physics-informed Graph Neural Network for geological processes"""
@@ -326,6 +330,7 @@ class PhysicsInformedGNN(nn.Module):
 
         return total_physics_loss
 
+
 class HeterogeneousGeologicalGNN(nn.Module):
     """Heterogeneous GNN for different types of geological entities"""
 
@@ -436,6 +441,7 @@ class HeterogeneousGeologicalGNN(nn.Module):
                 )
 
         return predictions
+
 
 class VariationalGraphAutoencoder(nn.Module):
     """Variational Graph Autoencoder for uncertainty quantification"""
@@ -550,6 +556,7 @@ class VariationalGraphAutoencoder(nn.Module):
             "edge_loss": edge_loss,
             "kl_loss": kl_loss,
         }
+
 
 class CausalDiscoveryGNN(nn.Module):
     """GNN for discovering causal relationships in geological processes"""
@@ -673,6 +680,7 @@ class CausalDiscoveryGNN(nn.Module):
                 adj_matrix[tgt, src] = filtered_strength[i]
 
         return adj_matrix
+
 
 class AdvancedGeologicalGNNEngine:
     """Advanced GNN engine for geological process modeling"""

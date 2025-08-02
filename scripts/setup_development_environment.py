@@ -4,11 +4,11 @@ Development environment setup script for the Prometheus AI platform.
 Handles Git setup, pre-commit hooks, testing infrastructure, and CI/CD pipeline.
 """
 
-import os
-import sys
-import subprocess
-import platform
 from pathlib import Path
+import os
+import platform
+import subprocess
+import sys
 
 def run_command(command, check=True, shell=True):
     """Run a command and return the result."""
@@ -422,10 +422,10 @@ def create_comprehensive_test_suite():
 Comprehensive test runner for the Prometheus AI platform.
 \"\"\"
 
+from pathlib import Path
+import os
 import subprocess
 import sys
-import os
-from pathlib import Path
 
 def run_tests():
     \"\"\"Run all tests with comprehensive coverage.\"\"\"

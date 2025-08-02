@@ -5,13 +5,10 @@ from datetime import datetime, timedelta
 
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_data import (
-    AtmosphericMeasurement,
-    DataQuality,
-    GeochemicalSample,
-    GeologicalLocation,
-)
+from models.geological_data import (AtmosphericMeasurement, DataQuality,
+                                    GeochemicalSample, GeologicalLocation)
 from storage.mongodb_storage import MongoDBStorage
+
 
 async def example_basic_storage():
     """Example: Basic storage operations"""
@@ -81,6 +78,7 @@ async def example_basic_storage():
 
     finally:
         await storage.cleanup()
+
 
 async def example_unstructured_data():
     """Example: Storing various unstructured geological data types"""
@@ -193,6 +191,7 @@ async def example_unstructured_data():
     finally:
         await storage.cleanup()
 
+
 async def example_bulk_operations():
     """Example: Bulk data operations"""
     print("\n=== Bulk Operations ===")
@@ -234,6 +233,7 @@ async def example_bulk_operations():
 
     finally:
         await storage.cleanup()
+
 
 async def example_advanced_queries():
     """Example: Advanced querying capabilities"""
@@ -284,6 +284,7 @@ async def example_advanced_queries():
 
     finally:
         await storage.cleanup()
+
 
 async def example_aggregation_pipelines():
     """Example: Advanced aggregation pipelines"""
@@ -347,6 +348,7 @@ async def example_aggregation_pipelines():
     finally:
         await storage.cleanup()
 
+
 async def example_data_quality_monitoring():
     """Example: Data quality monitoring and validation"""
     print("\n=== Data Quality Monitoring ===")
@@ -405,6 +407,7 @@ async def example_data_quality_monitoring():
 
     finally:
         await storage.cleanup()
+
 
 async def example_custom_aggregation():
     """Example: Custom aggregation pipeline"""
@@ -466,6 +469,7 @@ async def example_custom_aggregation():
     finally:
         await storage.cleanup()
 
+
 async def main():
     """Run all examples"""
     print("MongoDB Storage Examples for Geological Data")
@@ -486,6 +490,7 @@ async def main():
     except Exception as e:
         print(f"Error running examples: {e}")
         print("Make sure MongoDB is running on localhost:27017")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

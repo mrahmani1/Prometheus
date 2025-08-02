@@ -19,6 +19,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ConvectionParameters:
     """Parameters for mantle convection modeling"""
@@ -55,6 +56,7 @@ class ConvectionParameters:
             self.transition_depths = [410e3, 660e3]  # 410 and 660 km discontinuities
         if self.clapeyron_slopes is None:
             self.clapeyron_slopes = [2.5e6, -2.5e6]  # Pa/K
+
 
 class MantleConvectionModel(nn.Module):
     """
@@ -452,6 +454,7 @@ class MantleConvectionModel(nn.Module):
 
         return heat_flow
 
+
 class PlumeDynamicsModel:
     """
     Specialized model for mantle plume dynamics
@@ -486,6 +489,7 @@ class PlumeDynamicsModel:
         # This is a placeholder for the complex plume tracking algorithm
 
         return plume_data
+
 
 def create_mantle_convection_model(config: Dict) -> MantleConvectionModel:
     """

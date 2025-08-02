@@ -25,6 +25,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 class DataModality(str, Enum):
     """Types of geological data modalities"""
 
@@ -43,6 +44,7 @@ class DataModality(str, Enum):
     METEOROLOGICAL = "meteorological"
     HYDROGEOLOGICAL = "hydrogeological"
 
+
 class FusionStrategy(str, Enum):
     """Data fusion strategies"""
 
@@ -52,6 +54,7 @@ class FusionStrategy(str, Enum):
     ADAPTIVE_FUSION = "adaptive_fusion"
     HIERARCHICAL_FUSION = "hierarchical_fusion"
     ENSEMBLE_FUSION = "ensemble_fusion"
+
 
 @dataclass
 class DataSource:
@@ -72,6 +75,7 @@ class DataSource:
     calibration_info: Dict[str, Any]
     metadata: Dict[str, Any]
 
+
 @dataclass
 class FusedDataProduct:
     """Fused geological data product"""
@@ -87,6 +91,7 @@ class FusedDataProduct:
     fusion_weights: Dict[str, float]
     processing_metadata: Dict[str, Any]
     creation_time: datetime
+
 
 class AdvancedGeologicalDataFusion:
     """Advanced geological data fusion system"""

@@ -9,12 +9,12 @@ Requirements addressed: 5.3, 5.4, 5.5
 """
 
 import logging
-import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -26,6 +26,7 @@ router = APIRouter(prefix="/api/v1/model-deployment", tags=["model-deployment"])
 
 # Global deployment system instance
 deployment_system = GlobalModelDeploymentSystem()
+
 
 # Pydantic models for API
 class ModelRegistrationRequest(BaseModel):
@@ -39,6 +40,7 @@ class ModelRegistrationRequest(BaseModel):
     )
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
+
 class DeploymentRequest(BaseModel):
     model_name: str = Field(..., description="Name of the model to deploy")
     region_name: str = Field(..., description="Target region name")
@@ -47,12 +49,15 @@ class DeploymentRequest(BaseModel):
     deployment_type: str = Field("cloud", description="Deployment type")
     auto_update: bool = Field(True, description="Enable automatic updates")
 
+
 class DeploymentUpdateRequest(BaseModel):
     new_version_id: str = Field(..., description="New model version ID")
+
 
 class AutoDeploymentRequest(BaseModel):
     model_name: str = Field(..., description="Model name")
     target_domains: List[str] = Field(..., description="Target geological domains")
+
 
 class PerformanceThresholdRequest(BaseModel):
     accuracy_threshold: float = Field(
@@ -68,6 +73,7 @@ class PerformanceThresholdRequest(BaseModel):
         0.3, ge=0.0, le=1.0, description="Drift detection threshold"
     )
 
+
 # Dependency to get Helios engine
 async def get_helios_engine():
     """Dependency to get the Helios engine instance"""
@@ -76,6 +82,7 @@ async def get_helios_engine():
     if not helios_engine or not await helios_engine.is_ready():
         raise HTTPException(status_code=503, detail="Helios engine not ready")
     return helios_engine
+
 
 @router.post("/models/register")
 async def register_model(
@@ -115,6 +122,7 @@ async def register_model(
         logger.error(f"Failed to register model: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/deployments/deploy")
 async def deploy_model(request: DeploymentRequest, background_tasks: BackgroundTasks):
     """Deploy a model to a geological region"""
@@ -143,6 +151,7 @@ async def deploy_model(request: DeploymentRequest, background_tasks: BackgroundT
         logger.error(f"Failed to deploy model: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/deployments/{deployment_id}/status")
 async def get_deployment_status(deployment_id: str):
     """Get detailed status of a deployment"""
@@ -160,6 +169,7 @@ async def get_deployment_status(deployment_id: str):
         logger.error(f"Failed to get deployment status: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/deployments")
 async def list_deployments():
     """List all deployments"""
@@ -175,6 +185,7 @@ async def list_deployments():
     except Exception as e:
         logger.error(f"Failed to list deployments: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.put("/deployments/{deployment_id}/update")
 async def update_deployment(deployment_id: str, request: DeploymentUpdateRequest):
@@ -199,6 +210,7 @@ async def update_deployment(deployment_id: str, request: DeploymentUpdateRequest
     except Exception as e:
         logger.error(f"Failed to update deployment: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/deployments/{deployment_id}/rollback")
 async def rollback_deployment(deployment_id: str):
@@ -226,6 +238,7 @@ async def rollback_deployment(deployment_id: str):
         logger.error(f"Failed to rollback deployment: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/deployments/overview")
 async def get_global_deployment_overview():
     """Get overview of all global deployments"""
@@ -236,6 +249,7 @@ async def get_global_deployment_overview():
     except Exception as e:
         logger.error(f"Failed to get deployment overview: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/models/{model_name}/versions")
 async def list_model_versions(model_name: str):
@@ -266,6 +280,7 @@ async def list_model_versions(model_name: str):
         logger.error(f"Failed to list model versions: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/models/{model_name}/latest")
 async def get_latest_model_version(model_name: str):
     """Get the latest version of a model"""
@@ -295,6 +310,7 @@ async def get_latest_model_version(model_name: str):
         logger.error(f"Failed to get latest model version: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.delete("/models/{model_name}/versions/{version_id}")
 async def delete_model_version(model_name: str, version_id: str):
     """Delete a specific model version"""
@@ -318,6 +334,7 @@ async def delete_model_version(model_name: str, version_id: str):
     except Exception as e:
         logger.error(f"Failed to delete model version: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/monitoring/{deployment_id}/metrics")
 async def get_deployment_metrics(deployment_id: str, hours: int = 24):
@@ -353,6 +370,7 @@ async def get_deployment_metrics(deployment_id: str, hours: int = 24):
         logger.error(f"Failed to get deployment metrics: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/monitoring/{deployment_id}/performance")
 async def get_performance_summary(deployment_id: str):
     """Get performance summary for a deployment"""
@@ -366,6 +384,7 @@ async def get_performance_summary(deployment_id: str):
         logger.error(f"Failed to get performance summary: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/monitoring/{deployment_id}/drift")
 async def check_model_drift(deployment_id: str):
     """Check for model drift in a deployment"""
@@ -376,6 +395,7 @@ async def check_model_drift(deployment_id: str):
     except Exception as e:
         logger.error(f"Failed to check model drift: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/monitoring/{deployment_id}/baseline")
 async def establish_performance_baseline(deployment_id: str):
@@ -392,6 +412,7 @@ async def establish_performance_baseline(deployment_id: str):
     except Exception as e:
         logger.error(f"Failed to establish baseline: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.put("/monitoring/thresholds")
 async def update_performance_thresholds(request: PerformanceThresholdRequest):
@@ -426,6 +447,7 @@ async def update_performance_thresholds(request: PerformanceThresholdRequest):
         logger.error(f"Failed to update thresholds: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/automation/enable-auto-deployment")
 async def enable_auto_deployment(request: AutoDeploymentRequest):
     """Enable automatic deployment for new model versions"""
@@ -444,6 +466,7 @@ async def enable_auto_deployment(request: AutoDeploymentRequest):
     except Exception as e:
         logger.error(f"Failed to enable auto-deployment: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/automation/{deployment_id}/trigger-retraining")
 async def trigger_model_retraining(deployment_id: str):
@@ -476,6 +499,7 @@ async def trigger_model_retraining(deployment_id: str):
         logger.error(f"Failed to trigger retraining: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/maintenance/cleanup-versions")
 async def cleanup_old_versions(model_name: str, keep_versions: int = 5):
     """Clean up old model versions"""
@@ -492,6 +516,7 @@ async def cleanup_old_versions(model_name: str, keep_versions: int = 5):
     except Exception as e:
         logger.error(f"Failed to cleanup versions: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/targets")
 async def list_deployment_targets():
@@ -518,6 +543,7 @@ async def list_deployment_targets():
     except Exception as e:
         logger.error(f"Failed to list deployment targets: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/system/status")
 async def get_system_status():
@@ -547,6 +573,7 @@ async def get_system_status():
     except Exception as e:
         logger.error(f"Failed to get system status: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Health check endpoint
 @router.get("/health")

@@ -22,6 +22,7 @@ from core.insar_deformation_analyzer import (
 )
 from models.geological import GeologicalLocation
 
+
 class TestInSARScene:
     """Test InSAR scene data structure"""
 
@@ -118,6 +119,7 @@ class TestInSARScene:
         expected = phase * scene.wavelength / (4 * np.pi)
         np.testing.assert_array_almost_equal(displacement, expected)
 
+
 class TestAtmosphericCorrectionNet:
     """Test atmospheric correction neural network"""
 
@@ -140,6 +142,7 @@ class TestAtmosphericCorrectionNet:
             x = torch.randn(1, 2, size, size)
             output = model(x)
             assert output.shape == (1, 1, size, size)
+
 
 class TestDeformationPatternNet:
     """Test deformation pattern recognition network"""
@@ -169,6 +172,7 @@ class TestDeformationPatternNet:
 
         # Magnitude should be a single value
         assert magnitude.shape == (1, 1)
+
 
 class TestNoiseReductionFilter:
     """Test noise reduction filters"""
@@ -216,6 +220,7 @@ class TestNoiseReductionFilter:
         left_mean = np.mean(filtered_data[:, :20])
         right_mean = np.mean(filtered_data[:, 30:])
         assert abs(right_mean - left_mean) > 5.0  # Edge preserved
+
 
 class TestInSARDataset:
     """Test InSAR dataset for PyTorch"""
@@ -269,6 +274,7 @@ class TestInSARDataset:
         # All items should have same shape but potentially different values due to augmentation
         for item in items:
             assert item["data"].shape[1:] == (64, 64)
+
 
 class TestInSARDeformationAnalyzer:
     """Test main InSAR deformation analyzer"""
@@ -457,6 +463,7 @@ class TestInSARDeformationAnalyzer:
         assert "status" in results
         assert results["scene_id"] == "error_test"
 
+
 class TestDeformationPattern:
     """Test deformation pattern data structure"""
 
@@ -479,6 +486,7 @@ class TestDeformationPattern:
         assert pattern.confidence == 0.85
         assert pattern.spatial_extent == (500.0, 800.0)
 
+
 class TestAtmosphericCorrection:
     """Test atmospheric correction data structure"""
 
@@ -498,6 +506,7 @@ class TestAtmosphericCorrection:
         assert correction.atmospheric_phase.shape == (100, 100)
         assert correction.corrected_phase.shape == (100, 100)
         assert correction.correction_quality["variance_reduction"] == 0.75
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

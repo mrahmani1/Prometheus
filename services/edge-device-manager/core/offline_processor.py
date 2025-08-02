@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Offlineprocessor:
     """Main class for offline processor functionality."""
 
@@ -30,11 +31,13 @@ class Offlineprocessor:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Offlineprocessor()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

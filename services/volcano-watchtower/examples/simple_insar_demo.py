@@ -17,6 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from core.insar_analysis import InSARDeformationAnalyzer, load_insar_data
 
+
 def main():
     """Simple demo of InSAR analysis"""
     print("InSAR Deformation Analysis - Simple Demo")
@@ -115,11 +116,13 @@ def main():
     print("\nDemo completed successfully!")
     return 0
 
+
 if __name__ == "__main__":
     try:
         exit(main())
     except Exception as e:
         print(f"\nDemo failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         exit(1)

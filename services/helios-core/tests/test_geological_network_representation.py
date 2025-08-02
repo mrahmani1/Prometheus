@@ -26,6 +26,7 @@ from geological_network_representation import (
 )
 from graph_neural_networks import GeologicalGraphData
 
+
 class TestGeologicalNodeEmbedding:
     """Test geological node embedding functionality."""
 
@@ -41,8 +42,8 @@ class TestGeologicalNodeEmbedding:
         """Test proper initialization of node embedder."""
         assert self.node_embedder.embedding_dim == self.embedding_dim
         assert self.node_embedder.num_nodes == self.num_nodes
-        assert self.node_embedder.use_physics_constraints  is True
-        assert self.node_embedder.include_temporal_dynamics  is True
+        assert self.node_embedder.use_physics_constraints is True
+        assert self.node_embedder.include_temporal_dynamics is True
 
     def test_forward_pass(self):
         """Test forward pass through node embedder."""
@@ -90,6 +91,7 @@ class TestGeologicalNodeEmbedding:
 
         assert results["caldera_embeddings"].shape == (batch_size, self.embedding_dim)
 
+
 class TestGeologicalEdgeEmbedding:
     """Test geological edge embedding functionality."""
 
@@ -128,6 +130,7 @@ class TestGeologicalEdgeEmbedding:
         assert results["edge_embeddings"].shape == (batch_size, self.embedding_dim)
         assert results["causal_scores"].shape == (batch_size, 1)
         assert results["supereruption_trigger_scores"].shape == (batch_size, 1)
+
 
 class TestGeologicalGraphEmbedding:
     """Test geological graph-level embedding functionality."""
@@ -180,6 +183,7 @@ class TestGeologicalGraphEmbedding:
 
         assert isinstance(classification["system_type"], str)
         assert 0.0 <= classification["confidence"] <= 1.0
+
 
 class TestGeologicalSimilaritySearch:
     """Test geological similarity search functionality."""
@@ -268,6 +272,7 @@ class TestGeologicalSimilaritySearch:
             assert "similarity" in system
             assert "matching_features" in system
 
+
 class TestSupereruptionAnalyzer:
     """Test supereruption analysis functionality."""
 
@@ -350,6 +355,7 @@ class TestSupereruptionAnalyzer:
             assert "similarity" in comparison
             assert "volume_comparison" in comparison
             assert "implications" in comparison
+
 
 class TestGeologicalNetworkRepresentationEngine:
     """Test the main representation engine."""
@@ -456,14 +462,15 @@ class TestGeologicalNetworkRepresentationEngine:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+
 def test_integration():
     """Integration test for the complete system."""
     print("Running integration test...")
 
     # Create a realistic geological network
-    from geological_graph_utils import GeologicalGraphBuilder
     import torch.nn as nn
     import torch.nn.functional as F
+    from geological_graph_utils import GeologicalGraphBuilder
 
     builder = GeologicalGraphBuilder()
 
@@ -509,6 +516,7 @@ def test_integration():
     assert 0.0 <= results["system_classification"]["confidence"] <= 1.0
 
     print("Integration test passed!")
+
 
 if __name__ == "__main__":
     # Run the integration test

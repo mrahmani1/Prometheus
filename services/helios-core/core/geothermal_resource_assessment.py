@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Geothermalresourceassessment:
     """Main class for geothermal resource assessment functionality."""
 
@@ -30,11 +31,13 @@ class Geothermalresourceassessment:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Geothermalresourceassessment()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

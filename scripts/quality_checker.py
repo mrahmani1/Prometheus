@@ -4,12 +4,12 @@ Comprehensive quality checker for the Prometheus AI platform.
 Combines syntax checking, testing, security scanning, and code quality metrics.
 """
 
+from datetime import datetime
+from pathlib import Path
+import json
+import os
 import subprocess
 import sys
-import json
-from pathlib import Path
-from datetime import datetime
-import os
 
 class QualityChecker:
     """Comprehensive code quality checker."""

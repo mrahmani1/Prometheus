@@ -27,6 +27,7 @@ except ImportError:
 try:
     from .geological_graph_utils import GeologicalGraphBuilder
     from .graph_neural_networks import GeologicalGraphData
+
 except ImportError:
     # Fallback simple data structure
     @dataclass
@@ -40,7 +41,9 @@ except ImportError:
         temporal_info: Optional[torch.Tensor] = None
         batch: Optional[torch.Tensor] = None
 
+
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class GeologicalEmbedding:
@@ -52,6 +55,7 @@ class GeologicalEmbedding:
     metadata: Dict[str, Any]
     timestamp: datetime
     confidence: float = 1.0
+
 
 @dataclass
 class SupereruptionSignature:
@@ -67,6 +71,7 @@ class SupereruptionSignature:
     geochemical_indicators: Dict[str, float]
     eruption_probability: float
     time_to_eruption_estimate: Optional[float] = None  # years
+
 
 class GeologicalNodeEmbedding(nn.Module):
     """
@@ -259,6 +264,7 @@ class GeologicalNodeEmbedding(nn.Module):
             "chamber_analysis": chamber_analysis,
         }
 
+
 class GeologicalEdgeEmbedding(nn.Module):
     """
     Advanced edge embedding system for geological relationships.
@@ -418,6 +424,7 @@ class GeologicalEdgeEmbedding(nn.Module):
             "strength_embeddings": strength_emb,
             **enhanced_analysis,
         }
+
 
 class GeologicalGraphEmbedding(nn.Module):
     """
@@ -632,6 +639,7 @@ class GeologicalGraphEmbedding(nn.Module):
                 for i in range(len(system_types))
             },
         }
+
 
 class GeologicalSimilaritySearch:
     """
@@ -889,6 +897,7 @@ class GeologicalSimilaritySearch:
                     matching_features.append(feature)
 
         return matching_features
+
 
 class SupereruptionAnalyzer:
     """
@@ -1227,6 +1236,7 @@ class SupereruptionAnalyzer:
 
         return implications
 
+
 class GeologicalNetworkRepresentationEngine:
     """
     Main engine that combines all representation learning components.
@@ -1454,6 +1464,7 @@ class GeologicalNetworkRepresentationEngine:
         self.similarity_search.embeddings_db = similarity_data.get("embeddings", {})
         self.similarity_search.metadata_db = similarity_data.get("metadata", {})
 
+
 # Example usage and testing functions
 def test_geological_network_representation():
     """Test the geological network representation learning system."""
@@ -1556,6 +1567,7 @@ def test_geological_network_representation():
     print("\nGeological Network Representation Learning test completed successfully!")
     return True
 
+
 def create_sample_volcanic_network() -> GeologicalGraphData:
     """Create a sample volcanic network for testing."""
     builder = GeologicalGraphBuilder()
@@ -1596,6 +1608,7 @@ def create_sample_volcanic_network() -> GeologicalGraphData:
     builder.add_causal_relationship("rainier_chamber", "mount_rainier", 0.8)
 
     return builder.to_geological_graph_data()
+
 
 def demonstrate_supereruption_detection():
     """Demonstrate supereruption detection capabilities."""
@@ -1668,6 +1681,7 @@ def demonstrate_supereruption_detection():
             print(f"  Explosive potential: {chamber_state['explosive_potential']}")
 
     print("Supereruption detection demonstration completed!")
+
 
 if __name__ == "__main__":
     # Run tests

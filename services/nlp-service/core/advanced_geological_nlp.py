@@ -17,10 +17,10 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-
-# NLP and ML libraries
 import torch.nn as nn
 import torch.nn.functional as F
+
+# NLP and ML libraries
 from transformers import AutoModel
 
 # Specialized NLP libraries
@@ -57,6 +57,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 class QueryType(Enum):
     """Types of geological queries"""
 
@@ -66,6 +67,7 @@ class QueryType(Enum):
     COMPARATIVE = "comparative"  # "Compare seismic activity between regions"
     PROCEDURAL = "procedural"  # "How to interpret InSAR data?"
     EXPLORATORY = "exploratory"  # "Show me unusual geological patterns"
+
 
 class GeologicalEntity(Enum):
     """Geological entities for NER"""
@@ -82,6 +84,7 @@ class GeologicalEntity(Enum):
     PRESSURE = "PRESSURE"
     TIME_PERIOD = "TIME_PERIOD"
     GEOLOGICAL_PROCESS = "GEOLOGICAL_PROCESS"
+
 
 @dataclass
 class GeologicalQuery:
@@ -110,6 +113,7 @@ class GeologicalQuery:
             "timestamp": self.timestamp.isoformat(),
         }
 
+
 @dataclass
 class GeologicalResponse:
     """Structured geological response"""
@@ -124,6 +128,7 @@ class GeologicalResponse:
     scientific_references: List[str]
     uncertainty_bounds: Optional[Tuple[float, float]] = None
     timestamp: datetime = field(default_factory=datetime.now)
+
 
 class GeologicalNER(nn.Module):
     """Named Entity Recognition for geological terms"""

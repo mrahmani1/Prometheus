@@ -9,15 +9,10 @@ import numpy as np
 import pandas as pd
 import structlog
 import torch.nn as nn
-from models.geological_data import (
-    DataQuality,
-    FiberOpticMeasurement,
-    ProcessedDataBatch,
-    SatelliteObservation,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
+from models.geological_data import (DataQuality, FiberOpticMeasurement,
+                                    ProcessedDataBatch, SatelliteObservation,
+                                    SeismicEvent, StrainMeasurement,
+                                    ThermalMeasurement)
 from storage.data_storage import DataStorage
 from streaming.kafka_producer import KafkaDataProducer
 
@@ -27,6 +22,7 @@ from .outlier_detector import OutlierDetector
 from .quality_validator import DataQualityValidator
 
 logger = structlog.get_logger()
+
 
 class DataProcessor:
     """Main data processor for geological data validation and standardization"""

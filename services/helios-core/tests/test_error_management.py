@@ -35,6 +35,7 @@ from core.error_management import (
     handle_error,
 )
 
+
 class TestErrorClassifier:
     """Test error classification functionality"""
 
@@ -97,6 +98,7 @@ class TestErrorClassifier:
 
         assert error_info.category == ErrorCategory.SECURITY
         assert error_info.severity in [ErrorSeverity.HIGH, ErrorSeverity.MEDIUM]
+
 
 class TestRecoveryStrategies:
     """Test recovery strategy implementations"""
@@ -257,6 +259,7 @@ class TestRecoveryStrategies:
         assert result is not None
         assert "auth_status" in result
 
+
 class TestErrorAnalyzer:
     """Test error analysis functionality"""
 
@@ -316,6 +319,7 @@ class TestErrorAnalyzer:
         # Should recommend data validation improvements
         assert any("data validation" in rec.lower() for rec in recommendations)
 
+
 class TestGracefulDegradationManager:
     """Test graceful degradation functionality"""
 
@@ -367,10 +371,12 @@ class TestGracefulDegradationManager:
         )
 
         assert (
-            self.degradation_manager.current_degradation_level == ServiceDegradationLevel.REDUCED_PRECISION
+            self.degradation_manager.current_degradation_level
+            == ServiceDegradationLevel.REDUCED_PRECISION
         )
         assert len(self.degradation_manager.degradation_history) == 1
         assert config["model_complexity"] == "reduced"
+
 
 class TestAlertSystem:
     """Test alert system functionality"""
@@ -422,6 +428,7 @@ class TestAlertSystem:
         alert = self.alert_system.alert_history[0]
         assert alert["alert_type"] == "error_pattern"
         assert alert["analysis"]["critical_error_count"] == 5
+
 
 class TestPrometheusErrorHandler:
     """Test main error handler functionality"""
@@ -484,6 +491,7 @@ class TestPrometheusErrorHandler:
         # Initially should be healthy
         assert health_status["system_status"] == "healthy"
 
+
 class TestConvenienceFunctions:
     """Test convenience functions for easy integration"""
 
@@ -518,6 +526,7 @@ class TestConvenienceFunctions:
         assert context.user_id == "test_user"
         assert context.session_id == "test_session"
         assert isinstance(context.timestamp, datetime)
+
 
 class TestIntegrationScenarios:
     """Test realistic integration scenarios"""
@@ -596,6 +605,7 @@ class TestIntegrationScenarios:
         # Should optimize resource usage and retry
         assert result is not None
         assert result["resource_usage"] == "optimized"
+
 
 if __name__ == "__main__":
     # Run tests

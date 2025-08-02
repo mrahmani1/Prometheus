@@ -9,12 +9,14 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class DataQuality(str, Enum):
     EXCELLENT = "excellent"
     GOOD = "good"
     FAIR = "fair"
     POOR = "poor"
     UNKNOWN = "unknown"
+
 
 @dataclass
 class GeologicalLocation:
@@ -26,6 +28,7 @@ class GeologicalLocation:
     depth: Optional[float] = None
     coordinate_system: str = "WGS84"
     uncertainty_m: Optional[float] = None
+
 
 @dataclass
 class SeismicEvent:
@@ -43,6 +46,7 @@ class SeismicEvent:
     waveform_data: Optional[np.ndarray] = None
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class VolcanicEvent:
     """Represents a volcanic event"""
@@ -57,6 +61,7 @@ class VolcanicEvent:
     confidence: float = 1.0
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class DeformationMeasurement:
     """Represents ground deformation measurement"""
@@ -69,6 +74,7 @@ class DeformationMeasurement:
     reference_frame: str = "ITRF2014"
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
+
 
 @dataclass
 class GeochemicalSample:
@@ -85,6 +91,7 @@ class GeochemicalSample:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class ThermalMeasurement:
     """Represents thermal measurement"""
@@ -100,6 +107,7 @@ class ThermalMeasurement:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class SatelliteObservation:
     """Represents satellite observation data"""
@@ -114,6 +122,7 @@ class SatelliteObservation:
     scene_id: str = ""
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
+
 
 @dataclass
 class FiberOpticMeasurement:
@@ -132,6 +141,7 @@ class FiberOpticMeasurement:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class StrainMeasurement:
     """Represents strain measurement from DAS"""
@@ -148,6 +158,7 @@ class StrainMeasurement:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class AtmosphericMeasurement:
     """Represents atmospheric measurement"""
@@ -163,6 +174,7 @@ class AtmosphericMeasurement:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class HydroacousticMeasurement:
     """Represents hydroacoustic measurement"""
@@ -177,6 +189,7 @@ class HydroacousticMeasurement:
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
 
+
 @dataclass
 class GravityMeasurement:
     """Represents gravity measurement"""
@@ -189,6 +202,7 @@ class GravityMeasurement:
     reference_datum: str = "WGS84"
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
+
 
 @dataclass
 class MagneticMeasurement:
@@ -204,6 +218,7 @@ class MagneticMeasurement:
     measurement_type: str = "total_field"
     source: str = ""
     quality: DataQuality = DataQuality.UNKNOWN
+
 
 @dataclass
 class ProcessedDataBatch:

@@ -17,17 +17,16 @@ import torch.nn.functional as F
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from ..core.active_learning_engine import (
-    ActiveLearningConfig,
-    ActiveLearningEngine,
-    GeologicalSample,
-)
+from ..core.active_learning_engine import (ActiveLearningConfig,
+                                           ActiveLearningEngine,
+                                           GeologicalSample)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/active-learning", tags=["active-learning"])
 
 # Global active learning engine instance
 active_learning_engine: Optional[ActiveLearningEngine] = None
+
 
 class GeologicalSampleRequest(BaseModel):
     """Request model for geological sample"""
@@ -41,6 +40,7 @@ class GeologicalSampleRequest(BaseModel):
     label: Optional[List[float]] = None
     uncertainty: Optional[float] = None
 
+
 class ActiveLearningConfigRequest(BaseModel):
     """Request model for active learning configuration"""
 
@@ -52,6 +52,7 @@ class ActiveLearningConfigRequest(BaseModel):
     geological_features: Optional[List[str]] = None
     evaluation_metrics: Optional[List[str]] = None
 
+
 class SampleSelectionRequest(BaseModel):
     """Request model for sample selection"""
 
@@ -60,6 +61,7 @@ class SampleSelectionRequest(BaseModel):
     config: ActiveLearningConfigRequest
     model_id: Optional[str] = None
     use_committee: bool = False
+
 
 class SampleSelectionResponse(BaseModel):
     """Response model for sample selection"""
@@ -72,6 +74,7 @@ class SampleSelectionResponse(BaseModel):
     timestamp: str
     processing_time_ms: float
 
+
 class EvaluationSummaryResponse(BaseModel):
     """Response model for evaluation summary"""
 
@@ -81,6 +84,7 @@ class EvaluationSummaryResponse(BaseModel):
     best_performing_strategy: Optional[Dict[str, Any]]
     trends: Dict[str, Any]
 
+
 class StrategyRecommendationResponse(BaseModel):
     """Response model for strategy recommendations"""
 
@@ -88,6 +92,7 @@ class StrategyRecommendationResponse(BaseModel):
     reason: str
     secondary: Optional[str] = None
     coverage_note: Optional[str] = None
+
 
 def get_active_learning_engine() -> ActiveLearningEngine:
     """Get or create active learning engine instance"""
@@ -98,6 +103,7 @@ def get_active_learning_engine() -> ActiveLearningEngine:
         active_learning_engine = ActiveLearningEngine(config)
 
     return active_learning_engine
+
 
 def convert_sample_request_to_geological_sample(
     sample_req: GeologicalSampleRequest,
@@ -114,6 +120,7 @@ def convert_sample_request_to_geological_sample(
         uncertainty=sample_req.uncertainty,
     )
 
+
 def convert_geological_sample_to_response(
     sample: GeologicalSample,
 ) -> GeologicalSampleRequest:
@@ -128,6 +135,7 @@ def convert_geological_sample_to_response(
         label=sample.label.tolist() if sample.label is not None else None,
         uncertainty=sample.uncertainty,
     )
+
 
 @router.post("/select-samples", response_model=SampleSelectionResponse)
 async def select_optimal_samples(
@@ -223,6 +231,7 @@ async def select_optimal_samples(
             status_code=500, detail=f"Sample selection failed: {str(e)}"
         )
 
+
 @router.get("/evaluation-summary", response_model=EvaluationSummaryResponse)
 async def get_evaluation_summary(
     engine: ActiveLearningEngine = Depends(get_active_learning_engine),
@@ -248,6 +257,7 @@ async def get_evaluation_summary(
         raise HTTPException(
             status_code=500, detail=f"Failed to get evaluation summary: {str(e)}"
         )
+
 
 @router.post("/strategy-recommendations", response_model=StrategyRecommendationResponse)
 async def get_strategy_recommendations(
@@ -290,6 +300,7 @@ async def get_strategy_recommendations(
             status_code=500, detail=f"Failed to get recommendations: {str(e)}"
         )
 
+
 @router.post("/update-config")
 async def update_active_learning_config(
     config: ActiveLearningConfigRequest,
@@ -330,6 +341,7 @@ async def update_active_learning_config(
             status_code=500, detail=f"Failed to update configuration: {str(e)}"
         )
 
+
 @router.post("/export-evaluation-report")
 async def export_evaluation_report(
     filepath: str,
@@ -357,6 +369,7 @@ async def export_evaluation_report(
             status_code=500, detail=f"Failed to export report: {str(e)}"
         )
 
+
 @router.get("/health")
 async def health_check():
     """Health check endpoint for active learning service"""
@@ -374,6 +387,7 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
+
 
 def _create_placeholder_model(input_size: int) -> torch.nn.Module:
     """Create a placeholder model for testing purposes"""
@@ -394,6 +408,7 @@ def _create_placeholder_model(input_size: int) -> torch.nn.Module:
             return x
 
     return PlaceholderModel(input_size)
+
 
 # Example usage endpoints for testing
 @router.post("/test/generate-sample-data")
@@ -426,6 +441,7 @@ async def generate_sample_data(
         raise HTTPException(
             status_code=500, detail=f"Failed to generate sample data: {str(e)}"
         )
+
 
 @router.post("/test/run-strategy-comparison")
 async def run_strategy_comparison(n_samples: int = 500, batch_size: int = 20):

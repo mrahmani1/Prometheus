@@ -34,6 +34,7 @@ from models.geological import GeochemicalSample, GeologicalLocation
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def create_synthetic_training_data():
     """
     Create synthetic training data for demonstration.
@@ -228,6 +229,7 @@ def create_synthetic_training_data():
     logger.info(f"Created {len(deposits)} deposits and {len(samples)} samples")
     return deposits, samples
 
+
 def demonstrate_model_training(predictor, deposits, samples):
     """Demonstrate model training process"""
     logger.info("Demonstrating model training...")
@@ -266,6 +268,7 @@ def demonstrate_model_training(predictor, deposits, samples):
     sorted_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)
     for feature, importance_val in sorted_features[:5]:
         print(f"  - {feature}: {importance_val:.3f}")
+
 
 def demonstrate_resource_prediction(predictor):
     """Demonstrate resource prediction at specific locations"""
@@ -358,6 +361,7 @@ def demonstrate_resource_prediction(predictor):
             f"  - Tonnage Uncertainty: {prediction.uncertainty_bounds['tonnage'][0]:.0f} - {prediction.uncertainty_bounds['tonnage'][1]:.0f}"
         )
 
+
 def demonstrate_resource_mapping(predictor):
     """Demonstrate resource map generation"""
     logger.info("Demonstrating resource map generation...")
@@ -420,6 +424,7 @@ def demonstrate_resource_mapping(predictor):
 
     return map_data
 
+
 def demonstrate_process_modeling(predictor):
     """Demonstrate geological process modeling"""
     logger.info("Demonstrating geological process modeling...")
@@ -467,6 +472,7 @@ def demonstrate_process_modeling(predictor):
     for process, likelihood in prediction.formation_likelihood.items():
         print(f"    - {process.value}: {likelihood:.3f}")
 
+
 def demonstrate_model_evaluation(predictor, deposits):
     """Demonstrate model performance evaluation"""
     logger.info("Demonstrating model evaluation...")
@@ -482,6 +488,7 @@ def demonstrate_model_evaluation(predictor, deposits):
     print(f"Mean grade error: {metrics['mean_grade_error']:.3f}")
     print(f"Mean tonnage error: {metrics['mean_tonnage_error']:.3f}")
     print(f"High probability precision: {metrics['probability_precision']:.3f}")
+
 
 def visualize_results(map_data):
     """Create visualizations of the results"""
@@ -559,6 +566,7 @@ def visualize_results(map_data):
     except Exception as e:
         logger.error(f"Error creating visualization: {e}")
 
+
 def main():
     """Main demonstration function"""
     print("=== MINERAL RESOURCE PREDICTION DEMONSTRATION ===")
@@ -600,6 +608,7 @@ def main():
     print("- Uncertainty quantification for resource predictions")
     print("- Resource potential mapping")
     print("- Model performance evaluation")
+
 
 if __name__ == "__main__":
     main()

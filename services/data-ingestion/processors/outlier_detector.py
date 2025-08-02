@@ -6,7 +6,8 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import structlog
 import torch.nn.functional as F
-from models.geological_data import DataQuality, SeismicEvent, ThermalMeasurement
+from models.geological_data import (DataQuality, SeismicEvent,
+                                    ThermalMeasurement)
 from scipy import stats
 from sklearn.cluster import DBSCAN
 from sklearn.covariance import EllipticEnvelope
@@ -14,6 +15,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 logger = structlog.get_logger()
+
 
 class OutlierDetector:
     """Advanced outlier detection and data cleaning procedures"""

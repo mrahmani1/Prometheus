@@ -8,14 +8,11 @@ from typing import Any, Dict, List, Optional
 import structlog
 from aiokafka import AIOKafkaProducer
 from aiokafka.errors import KafkaError
-from models.geological_data import (
-    ProcessedDataBatch,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
+from models.geological_data import (ProcessedDataBatch, SeismicEvent,
+                                    StrainMeasurement, ThermalMeasurement)
 
 logger = structlog.get_logger()
+
 
 class KafkaDataProducer:
     """Kafka producer for streaming geological data"""

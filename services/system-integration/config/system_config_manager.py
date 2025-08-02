@@ -21,6 +21,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ServiceConfig:
     """Configuration for individual services"""
@@ -34,6 +35,7 @@ class ServiceConfig:
     authentication_required: bool
     resource_limits: Dict[str, str]
     environment_variables: Dict[str, str]
+
 
 @dataclass
 class CloudResourceConfig:
@@ -49,6 +51,7 @@ class CloudResourceConfig:
     cost_optimization: bool
     monitoring_enabled: bool
 
+
 @dataclass
 class DatabaseConfig:
     """Configuration for database systems"""
@@ -62,6 +65,7 @@ class DatabaseConfig:
     ssl_enabled: bool
     backup_enabled: bool
     replication_enabled: bool
+
 
 @dataclass
 class PipelineConfig:
@@ -77,6 +81,7 @@ class PipelineConfig:
     error_handling_strategy: str
     monitoring_enabled: bool
 
+
 @dataclass
 class IntegrationFeatureConfig:
     """Configuration for advanced integration features"""
@@ -87,6 +92,7 @@ class IntegrationFeatureConfig:
     configuration_parameters: Dict[str, Any]
     resource_requirements: Dict[str, str]
     monitoring_metrics: List[str]
+
 
 class SystemConfigManager:
     """Manages system-wide configuration for complex deployments"""
@@ -573,8 +579,10 @@ class SystemConfigManager:
             logger.error(f"Failed to import configuration: {e}")
             raise
 
+
 # Global configuration manager instance
 config_manager = SystemConfigManager()
+
 
 def initialize_default_configurations():
     """Initialize default configurations for all system components"""
@@ -682,6 +690,7 @@ def initialize_default_configurations():
     except Exception as e:
         logger.error(f"Failed to initialize default configurations: {e}")
         raise
+
 
 if __name__ == "__main__":
     initialize_default_configurations()

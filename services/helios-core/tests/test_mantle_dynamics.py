@@ -33,10 +33,12 @@ from core.mantle_dynamics import (
 from core.pinn_engine import PINNEngine
 from models.geological import GeologicalLocation
 
+
 @pytest.fixture
 def device():
     """Test device fixture"""
     return torch.device("cpu")
+
 
 @pytest.fixture
 def mock_pinn_engine():
@@ -45,6 +47,7 @@ def mock_pinn_engine():
     engine.create_temporal_model.return_value = Mock()
     return engine
 
+
 @pytest.fixture
 def sample_time_span():
     """Sample time span for testing"""
@@ -52,10 +55,12 @@ def sample_time_span():
     end_time = datetime(2000, 1, 1)  # 2000 years ago
     return (start_time, end_time)
 
+
 @pytest.fixture
 def sample_location():
     """Sample geological location"""
     return GeologicalLocation(latitude=19.5, longitude=-155.5, elevation=0.0)  # Hawaii
+
 
 class TestCoreMantleBoundaryModeler:
     """Tests for core-mantle boundary modeler"""
@@ -121,6 +126,7 @@ class TestCoreMantleBoundaryModeler:
         temp_field = cmb_state["temperature_field"]
         assert np.min(temp_field) < np.max(temp_field)
 
+
 class TestMantlePlumeModeler:
     """Tests for mantle plume modeler"""
 
@@ -179,6 +185,7 @@ class TestMantlePlumeModeler:
         test_state["head_location"][2] = -50e3  # 50 km depth
         stage = modeler._determine_plume_stage(test_state, 20e6)  # 20 Myr
         assert stage == PlumeStage.SURFACE_EXPRESSION
+
 
 class TestMantleConvectionModeler:
     """Tests for mantle convection modeler"""
@@ -246,6 +253,7 @@ class TestMantleConvectionModeler:
         assert temp_field.ndim == 3
         assert vel_field.ndim == 4  # 3D + 3 velocity components
         assert vel_field.shape[-1] == 3
+
 
 class TestHotspotVolcanismModeler:
     """Tests for hotspot volcanism modeler"""
@@ -322,6 +330,7 @@ class TestHotspotVolcanismModeler:
         assert hotspot_state["volcanic_flux"] > 0
         assert hotspot_state["temperature"] == 1600
 
+
 class TestLargeIgneousProvinceModeler:
     """Tests for large igneous province modeler"""
 
@@ -391,6 +400,7 @@ class TestLargeIgneousProvinceModeler:
         assert "CO2_release" in impact
         assert "temperature_change" in impact
         assert all(isinstance(v, float) for v in impact.values())
+
 
 class TestDeepEarthMantleDynamicsSimulator:
     """Tests for deep Earth mantle dynamics simulator"""
@@ -479,6 +489,7 @@ class TestDeepEarthMantleDynamicsSimulator:
         assert isinstance(hotspot_results, list)
         assert len(hotspot_results) == 1
         assert hotspot_results[0]["hotspot_id"] == "test_hotspot"
+
 
 class TestDataStructures:
     """Tests for data structure classes"""
@@ -588,6 +599,7 @@ class TestDataStructures:
         assert state.total_volume == 1e15
         assert "SO2_release" in state.environmental_impact
 
+
 class TestEnums:
     """Tests for enum classes"""
 
@@ -620,6 +632,7 @@ class TestEnums:
         assert HotspotType.SHALLOW_PLUME == "shallow_plume"
         assert HotspotType.EDGE_DRIVEN == "edge_driven"
         assert HotspotType.LITHOSPHERIC == "lithospheric"
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

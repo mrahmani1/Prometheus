@@ -9,16 +9,13 @@ import numpy as np
 import structlog
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_data import (
-    DataQuality,
-    GeologicalLocation,
-    SeismicEvent,
-    StrainMeasurement,
-    ThermalMeasurement,
-)
+from models.geological_data import (DataQuality, GeologicalLocation,
+                                    SeismicEvent, StrainMeasurement,
+                                    ThermalMeasurement)
 from pyproj import CRS, Transformer
 
 logger = structlog.get_logger()
+
 
 class FormatStandardizer:
     """Format standardization for diverse geological data sources"""

@@ -3,10 +3,10 @@
 Script to fix common code quality issues automatically.
 """
 
+from pathlib import Path
 import os
 import re
 import subprocess
-from pathlib import Path
 
 def remove_unused_imports():
     """Remove unused imports using autoflake."""

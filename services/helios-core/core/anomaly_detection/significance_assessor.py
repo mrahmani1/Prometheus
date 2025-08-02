@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class Significanceassessor:
     """Main class for significance assessor functionality."""
 
@@ -30,11 +31,13 @@ class Significanceassessor:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Significanceassessor()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

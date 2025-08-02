@@ -15,11 +15,10 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import torch
 import torch.nn as nn
-from core.automated_edge_generation import (
-    AutomatedEdgeGenerator,
-    EdgeDeploymentProfile,
-    HeliosEdgeModelFactory,
-)
+
+from core.automated_edge_generation import (AutomatedEdgeGenerator,
+                                            EdgeDeploymentProfile,
+                                            HeliosEdgeModelFactory)
 from core.edge_ai_optimizer import HardwareConstraints, OptimizationConfig
 from core.helios_engine import HeliosCore
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException

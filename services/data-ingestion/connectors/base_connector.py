@@ -10,6 +10,7 @@ import torch.nn.functional as F
 
 logger = structlog.get_logger()
 
+
 class BaseConnector(ABC):
     """Abstract base class for all data source connectors"""
 

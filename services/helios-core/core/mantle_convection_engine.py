@@ -16,6 +16,7 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class MantleLayer:
     """Mantle layer specification"""
@@ -31,6 +32,7 @@ class MantleLayer:
     heat_capacity: float  # J/(kg·K)
     phase_transitions: List[Dict[str, Any]]
     composition: Dict[str, float]  # major element composition
+
 
 @dataclass
 class MantlePlume:
@@ -50,6 +52,7 @@ class MantlePlume:
     surface_expression: Optional[str]  # hotspot name if any
     interaction_history: List[Dict[str, Any]]  # interactions with other plumes/plates
 
+
 @dataclass
 class ConvectionCell:
     """Mantle convection cell specification"""
@@ -64,6 +67,7 @@ class ConvectionCell:
     circulation_pattern: str  # whole_mantle, layered, hybrid
     rayleigh_number: float
     nusselt_number: float
+
 
 class MantleConvectionEngine:
     """Advanced mantle convection and plume modeling engine"""

@@ -22,6 +22,7 @@ from core.quantum_optimization import (
     create_example_geological_problems,
 )
 
+
 class TestGeologicalQuantumProblem:
     """Test the GeologicalQuantumProblem data structure"""
 
@@ -41,6 +42,7 @@ class TestGeologicalQuantumProblem:
         assert problem.constraints["max_value"] == 5.0
         assert problem.quantum_encoding == "amplitude"
         assert problem.classical_preprocessing is True
+
 
 class TestQuantumAnnealingOptimizer:
     """Test quantum annealing optimizer"""
@@ -153,6 +155,7 @@ class TestQuantumAnnealingOptimizer:
         assert result.algorithm_type == "quantum_annealing"
         assert "connectivity_strength" in result.geological_interpretation
 
+
 class TestVariationalQuantumEigensolver:
     """Test variational quantum eigensolver"""
 
@@ -235,6 +238,7 @@ class TestVariationalQuantumEigensolver:
 
         assert isinstance(result, QuantumOptimizationResult)
         assert "dominant_parameters" in result.geological_interpretation
+
 
 class TestQuantumMachineLearning:
     """Test quantum machine learning optimizer"""
@@ -320,6 +324,7 @@ class TestQuantumMachineLearning:
         assert isinstance(result, QuantumOptimizationResult)
         assert result.algorithm_type == "quantum_machine_learning"
         assert "pattern_distribution" in result.geological_interpretation
+
 
 class TestQuantumClassicalHybrid:
     """Test quantum-classical hybrid optimizer"""
@@ -408,6 +413,7 @@ class TestQuantumClassicalHybrid:
         assert "quantum_contribution" in result.geological_interpretation
         assert "classical_contribution" in result.geological_interpretation
         assert "dominant_component" in result.geological_interpretation
+
 
 class TestQuantumGeologicalOptimizationManager:
     """Test the optimization manager"""
@@ -559,6 +565,7 @@ class TestQuantumGeologicalOptimizationManager:
             report["quantum_advantage_analysis"]["quantum_advantage_achieved"] is True
         )
 
+
 class TestExampleProblems:
     """Test example problem creation and execution"""
 
@@ -577,12 +584,13 @@ class TestExampleProblems:
             assert problem.objective_function is not None
             assert problem.quantum_encoding in ["amplitude", "angle", "basis"]
 
+
 @pytest.mark.asyncio
 async def test_run_quantum_optimization_example():
     """Test the complete example workflow"""
     # Import the example function
-    from core.quantum_optimization import run_quantum_optimization_example
     import torch.nn as nn
+    from core.quantum_optimization import run_quantum_optimization_example
 
     # Run the example (with reduced problem sizes for faster testing)
     results = await run_quantum_optimization_example()
@@ -599,6 +607,7 @@ async def test_run_quantum_optimization_example():
             "quantum_machine_learning",
             "quantum_classical_hybrid",
         ]
+
 
 if __name__ == "__main__":
     # Run tests

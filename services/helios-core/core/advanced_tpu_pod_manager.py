@@ -11,19 +11,19 @@ of massive geological AI models across TPU v4/v5/v6 pods with:
 """
 
 import logging
-import numpy as np
 import os
-import pandas as pd
 import signal
 import threading
-import torch.nn as nn
-import torch.nn.functional as F
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
+import pandas as pd
+import torch.nn as nn
+import torch.nn.functional as F
 
 try:
     import jax
@@ -58,6 +58,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 class TPUVersion(Enum):
     """TPU version enumeration"""
 
@@ -65,6 +66,7 @@ class TPUVersion(Enum):
     V5E = "v5e"
     V5P = "v5p"
     V6E = "v6e"
+
 
 class TPUPodStatus(Enum):
     """TPU Pod status enumeration"""
@@ -77,6 +79,7 @@ class TPUPodStatus(Enum):
     ERROR = "error"
     SHUTDOWN = "shutdown"
     PREEMPTED = "preempted"
+
 
 @dataclass
 class TPUPodConfig:
@@ -116,6 +119,7 @@ class TPUPodConfig:
     enable_profiling: bool = True
     profile_steps: List[int] = field(default_factory=lambda: [100, 200, 300])
 
+
 @dataclass
 class TPUMetrics:
     """TPU performance metrics"""
@@ -134,6 +138,7 @@ class TPUMetrics:
     training_throughput: float  # samples/sec
     loss_value: float
     learning_rate: float
+
 
 class GeologicalPINNModel(nn.Module):
     """Advanced PINN model optimized for TPU execution"""
@@ -205,6 +210,7 @@ class GeologicalPINNModel(nn.Module):
         # Vectorized physics loss computation
         physics_losses = vmap(single_physics_loss)(coords, predictions)
         return jnp.mean(physics_losses)
+
 
 class AdvancedTPUPodManager:
     """Advanced TPU Pod Manager for geological simulations"""
@@ -685,6 +691,7 @@ class AdvancedTPUPodManager:
         except Exception as e:
             logger.error(f"Error during TPU pod shutdown: {e}")
 
+
 class TPUPerformanceMonitor:
     """Real-time TPU performance monitoring"""
 
@@ -745,6 +752,7 @@ class TPUPerformanceMonitor:
         # Check for failed chips
         if latest_metrics.failed_chips > 0:
             logger.error(f"Failed TPU chips detected: {latest_metrics.failed_chips}")
+
 
 class TPUFaultHandler:
     """TPU fault tolerance and recovery"""

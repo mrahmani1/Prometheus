@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+
 class PhysicsScale(str, Enum):
     """Physics scales for multi-scale modeling"""
 
@@ -33,6 +34,7 @@ class PhysicsScale(str, Enum):
     GALACTIC = "galactic"
     COSMOLOGICAL = "cosmological"
 
+
 class CouplingType(str, Enum):
     """Types of scale coupling"""
 
@@ -42,6 +44,7 @@ class CouplingType(str, Enum):
     HIERARCHICAL = "hierarchical"
     EMERGENT = "emergent"
     RENORMALIZATION = "renormalization"
+
 
 @dataclass
 class ScaleProperties:
@@ -61,6 +64,7 @@ class ScaleProperties:
     computational_complexity: str
     resolution_requirements: Dict[str, float]
     accuracy_requirements: Dict[str, float]
+
 
 @dataclass
 class ScaleCoupling:

@@ -24,6 +24,7 @@ from core.temporal_processing import (
     create_default_temporal_scales,
 )
 
+
 class TestTemporalScale:
     """Test TemporalScale dataclass"""
 
@@ -64,6 +65,7 @@ class TestTemporalScale:
                 characteristic_time=-10.0,
             )
 
+
 class TestAdaptiveTimeStepConfig:
     """Test AdaptiveTimeStepConfig dataclass"""
 
@@ -97,6 +99,7 @@ class TestAdaptiveTimeStepConfig:
                 initial_dt=1.0, min_dt=0.1, max_dt=10.0, safety_factor=1.5
             )
 
+
 class TestTemporalPositionalEncoding:
     """Test TemporalPositionalEncoding module"""
 
@@ -127,6 +130,7 @@ class TestTemporalPositionalEncoding:
         assert not torch.equal(
             encoded_features, features
         )  # Should be different after encoding
+
 
 class TestTemporalAttentionMechanism:
     """Test TemporalAttentionMechanism module"""
@@ -161,6 +165,7 @@ class TestTemporalAttentionMechanism:
         fused_features = attention(features, time_coords)
 
         assert fused_features.shape == (batch_size, seq_len, 64)
+
 
 class TestMultiScaleTemporalBranch:
     """Test MultiScaleTemporalBranch module"""
@@ -217,6 +222,7 @@ class TestMultiScaleTemporalBranch:
         )
 
         assert branch.get_characteristic_time() == 3.15e11
+
 
 class TestAdaptiveTimeStepper:
     """Test AdaptiveTimeStepper class"""
@@ -284,6 +290,7 @@ class TestAdaptiveTimeStepper:
         assert stepper.current_dt == 1.0
         assert stepper.step_count == 0
         assert stepper.error_history == []
+
 
 class TestTemporalInterpolator:
     """Test TemporalInterpolator class"""
@@ -375,6 +382,7 @@ class TestTemporalInterpolator:
         assert torch.all(torch.isfinite(extrapolated))
         # Should continue exponential trend
         assert torch.all(extrapolated > values[-1])
+
 
 class TestMultiScaleTemporalPINN:
     """Test MultiScaleTemporalPINN module"""
@@ -524,6 +532,7 @@ class TestMultiScaleTemporalPINN:
 
         assert extrapolated.shape == (2, 8)
 
+
 class TestDefaultTemporalScales:
     """Test default temporal scales creation"""
 
@@ -565,6 +574,7 @@ class TestDefaultTemporalScales:
         assert deep_time.min_time == 3.15e13  # 1 million years
         assert deep_time.max_time == 3.15e17  # 10 billion years
 
+
 @pytest.fixture
 def sample_temporal_model():
     """Fixture for creating a sample temporal model"""
@@ -579,6 +589,7 @@ def sample_temporal_model():
     )
 
     return model
+
 
 class TestIntegration:
     """Integration tests for temporal processing components"""
@@ -658,6 +669,7 @@ class TestIntegration:
         )
 
         assert extrapolated.shape == (2, 8)
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

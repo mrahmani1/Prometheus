@@ -29,17 +29,13 @@ from core.explanation_engine import AnomalyExplanationEngine
 from core.multiscale_analyzer import MultiScaleAnalyzer
 from core.multivariate_detector import MultivariateAnomalyDetector
 from core.significance_assessor import SignificanceAssessor
-from models.schemas import (
-    AnomalyDetectionRequest,
-    AnomalyDetectionResponse,
-    AnomalyType,
-    DetectedAnomaly,
-    GeologicalDataStream,
-    PhenomenaDiscovery,
-)
+from models.schemas import (AnomalyDetectionRequest, AnomalyDetectionResponse,
+                            AnomalyType, DetectedAnomaly, GeologicalDataStream,
+                            PhenomenaDiscovery)
 from sklearn.cluster import DBSCAN
 
 logger = logging.getLogger(__name__)
+
 
 class AnomalyDetectionEngine:
     """Main anomaly detection engine orchestrating all detection methods"""

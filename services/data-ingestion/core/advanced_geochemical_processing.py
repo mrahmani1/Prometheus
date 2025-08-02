@@ -26,6 +26,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GeochemicalDataset:
     """Comprehensive geochemical dataset"""
@@ -41,6 +42,7 @@ class GeochemicalDataset:
     uncertainties: pd.DataFrame  # analytical uncertainties
     quality_flags: pd.DataFrame  # data quality flags
 
+
 @dataclass
 class ProcessingParameters:
     """Parameters for geochemical data processing"""
@@ -53,6 +55,7 @@ class ProcessingParameters:
     dimensionality_reduction: str = "pca"
     clustering_method: str = "hierarchical"
     reference_composition: str = "chondrite"
+
 
 class AdvancedGeochemicalProcessor:
     """Advanced geochemical data processing system"""

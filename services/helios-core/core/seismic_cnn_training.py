@@ -27,6 +27,7 @@ from .seismic_cnn_processor import SeismicCNN, SeismicEventType
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class TrainingConfig:
     """Configuration for CNN training"""
@@ -42,6 +43,7 @@ class TrainingConfig:
     device: str = "cpu"
     save_best_model: bool = True
     model_save_path: str = "best_seismic_model.pth"
+
 
 class SeismicDataset(Dataset):
     """
@@ -138,6 +140,7 @@ class SeismicDataset(Dataset):
             augmented *= -1
 
         return augmented
+
 
 class SeismicCNNTrainer:
     """
@@ -613,6 +616,7 @@ class SeismicCNNTrainer:
         except ImportError:
             logger.warning("Matplotlib not available for plotting")
 
+
 def create_synthetic_training_data(
     num_samples: int = 1000, sequence_length: int = 3000, sampling_rate: float = 100.0
 ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
@@ -715,6 +719,7 @@ def create_synthetic_training_data(
     logger.info("Synthetic training data generated successfully")
     return waveforms, labels
 
+
 def main():
     """Main training function"""
     # Configuration
@@ -756,6 +761,7 @@ def main():
     print("Training completed!")
     print(f"Best validation loss: {trainer.best_val_loss:.4f}")
     print(f"Final validation accuracy: {results.get('accuracy', 'N/A'):.3f}")
+
 
 if __name__ == "__main__":
     main()

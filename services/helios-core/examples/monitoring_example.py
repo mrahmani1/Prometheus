@@ -10,11 +10,11 @@ import sys
 from datetime import datetime, timedelta
 
 import numpy as np
+import pandas as pd
+import torch.nn as nn
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import pandas as pd
-import torch.nn as nn
 from models.geological import GeologicalLocation
 from models.monitoring import (
     AlertEscalationManager,
@@ -27,6 +27,7 @@ from models.monitoring import (
     StreamingDataProcessor,
     VolcanicRiskAssessment,
 )
+
 
 def main():
     """Demonstrate real-time monitoring data models"""
@@ -238,6 +239,7 @@ def main():
     print("\n=== Monitoring System Ready ===")
     print("Real-time volcanic monitoring system is operational.")
     print("All data models are functioning correctly.")
+
 
 if __name__ == "__main__":
     main()

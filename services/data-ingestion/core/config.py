@@ -7,12 +7,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pydantic import BaseSettings, Field
 
+
 class LogLevel(str, Enum):
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
+
 
 class DataSourceType(str, Enum):
     USGS = "usgs"
@@ -23,6 +25,7 @@ class DataSourceType(str, Enum):
     SEISMOMETER = "seismometer"
     ATMOSPHERIC = "atmospheric"
     HYDROACOUSTIC = "hydroacoustic"
+
 
 class Settings(BaseSettings):
     """Application settings"""
@@ -119,6 +122,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+
 
 # Global settings instance
 settings = Settings()

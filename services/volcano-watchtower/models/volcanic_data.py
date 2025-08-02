@@ -13,6 +13,7 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 @dataclass
 class GeologicalLocation:
     """Geological location with coordinates and elevation"""
@@ -22,6 +23,7 @@ class GeologicalLocation:
     elevation: float
     depth: Optional[float] = None
     coordinate_system: str = "WGS84"
+
 
 @dataclass
 class SeismicEvent:
@@ -36,6 +38,7 @@ class SeismicEvent:
     confidence: float = 1.0
     source_network: str = "unknown"
 
+
 @dataclass
 class DeformationMeasurement:
     """Ground deformation measurement"""
@@ -47,6 +50,7 @@ class DeformationMeasurement:
     uncertainty: np.ndarray  # uncertainty in each dimension
     reference_frame: str = "ITRF2014"
     quality_flag: str = "good"
+
 
 @dataclass
 class GeochemicalSample:
@@ -61,6 +65,7 @@ class GeochemicalSample:
     pressure: Optional[float] = None
     collection_method: str = "unknown"
 
+
 @dataclass
 class ThermalMeasurement:
     """Thermal measurement data"""
@@ -73,6 +78,7 @@ class ThermalMeasurement:
     uncertainty: float
     calibration_date: Optional[datetime] = None
 
+
 @dataclass
 class AlertLevel:
     """Volcanic alert level definition"""
@@ -82,6 +88,7 @@ class AlertLevel:
     recommended_actions: List[str]
     validity_period: Tuple[datetime, datetime]  # (start, end) timestamps
     confidence: float
+
 
 @dataclass
 class EruptionForecast:
@@ -94,6 +101,7 @@ class EruptionForecast:
     confidence: float
     key_indicators: List[str]
     model_ensemble_results: Dict[str, Dict[str, float]]
+
 
 @dataclass
 class MagmaReservoirParameters:
@@ -117,6 +125,7 @@ class MagmaReservoirParameters:
     estimation_methods: List[str]
     uncertainty_bounds: Dict[str, float]
 
+
 @dataclass
 class VolcanicRiskAssessment:
     """Comprehensive volcanic risk assessment"""
@@ -133,6 +142,7 @@ class VolcanicRiskAssessment:
     confidence_metrics: Dict[str, float] = None
     data_quality_assessment: Dict[str, float] = None
 
+
 class NotificationChannel(Enum):
     """Notification delivery channels"""
 
@@ -141,6 +151,7 @@ class NotificationChannel(Enum):
     PUSH = "push"
     WEBHOOK = "webhook"
     EMERGENCY_BROADCAST = "emergency_broadcast"
+
 
 @dataclass
 class NotificationTarget:
@@ -153,6 +164,7 @@ class NotificationTarget:
     contact_info: Dict[str, str]  # channel -> contact details
     priority: int = 1  # 1=highest, 5=lowest
     active: bool = True
+
 
 @dataclass
 class MonitoringStation:
@@ -167,6 +179,7 @@ class MonitoringStation:
     data_quality_score: float = 1.0
     communication_status: str = "online"
 
+
 @dataclass
 class VolcanicHazardZone:
     """Volcanic hazard zone definition"""
@@ -178,6 +191,7 @@ class VolcanicHazardZone:
     infrastructure_at_risk: List[str]
     evacuation_time_required: timedelta
     last_updated: datetime
+
 
 @dataclass
 class EmergencyResponse:
@@ -192,6 +206,7 @@ class EmergencyResponse:
     activation_criteria: Dict[str, Any]
     estimated_duration: timedelta
 
+
 @dataclass
 class DataQualityMetrics:
     """Data quality assessment metrics"""
@@ -204,6 +219,7 @@ class DataQualityMetrics:
     overall_score: float  # 0-1 scale
     last_assessment: datetime
     issues_identified: List[str]
+
 
 @dataclass
 class ModelPerformanceMetrics:
@@ -220,6 +236,7 @@ class ModelPerformanceMetrics:
     validation_dataset: str
     performance_trend: str  # improving, stable, degrading
 
+
 @dataclass
 class SystemHealthMetrics:
     """System health monitoring"""
@@ -234,19 +251,24 @@ class SystemHealthMetrics:
     uptime: timedelta
     last_health_check: datetime
 
+
 # Utility functions for data validation and conversion
+
 
 def validate_alert_level(level: int) -> bool:
     """Validate alert level is within valid range"""
     return 0 <= level <= 5
 
+
 def validate_probability(probability: float) -> bool:
     """Validate probability is within valid range"""
     return 0.0 <= probability <= 1.0
 
+
 def validate_coordinates(latitude: float, longitude: float) -> bool:
     """Validate geographic coordinates"""
     return -90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0
+
 
 def calculate_distance(loc1: GeologicalLocation, loc2: GeologicalLocation) -> float:
     """Calculate distance between two geological locations in meters"""
@@ -273,10 +295,12 @@ def calculate_distance(loc1: GeologicalLocation, loc2: GeologicalLocation) -> fl
 
     return distance
 
+
 def convert_magnitude_to_energy(magnitude: float) -> float:
     """Convert seismic magnitude to energy in Joules"""
     # Gutenberg-Richter relation: log10(E) = 1.5*M + 9.1
     return 10 ** (1.5 * magnitude + 9.1)
+
 
 def calculate_volcanic_explosivity_index(
     eruption_volume: float, column_height: float
@@ -302,6 +326,7 @@ def calculate_volcanic_explosivity_index(
     else:
         return 8
 
+
 def estimate_ash_fall_area(vei: int, wind_speed: float = 10.0) -> float:
     """Estimate ash fall area in km² based on VEI and wind conditions"""
     # Simplified ash fall area estimation
@@ -324,6 +349,7 @@ def estimate_ash_fall_area(vei: int, wind_speed: float = 10.0) -> float:
 
     return base_area * wind_factor
 
+
 def calculate_evacuation_time(population: int, evacuation_routes: int = 1) -> timedelta:
     """Estimate evacuation time based on population and available routes"""
     # Simplified evacuation time calculation
@@ -333,6 +359,7 @@ def calculate_evacuation_time(population: int, evacuation_routes: int = 1) -> ti
     hours_needed = max(1, population / evacuation_rate)
 
     return timedelta(hours=hours_needed)
+
 
 # Data validation schemas for API endpoints
 

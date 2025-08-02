@@ -15,6 +15,7 @@ from scipy.optimize import minimize
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ThermodynamicState:
     """Complete thermodynamic state specification"""
@@ -34,6 +35,7 @@ class ThermodynamicState:
     heat_capacity: float  # J/(mol·K)
     volume: float  # m³/mol
 
+
 @dataclass
 class ReactionKinetics:
     """Reaction kinetics parameters"""
@@ -47,6 +49,7 @@ class ReactionKinetics:
     inhibitors: List[str]  # inhibiting species
     surface_area: Optional[float]  # m²/g for heterogeneous reactions
     diffusion_coefficients: Dict[str, float]  # m²/s
+
 
 @dataclass
 class GeochemicalReaction:
@@ -64,6 +67,7 @@ class GeochemicalReaction:
     kinetics: ReactionKinetics
     mechanism: str  # reaction mechanism
     rate_limiting_step: str
+
 
 class AdvancedGeochemicalModeling:
     """Advanced geochemical modeling and simulation system"""

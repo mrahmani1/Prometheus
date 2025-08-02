@@ -9,6 +9,7 @@ from datetime import datetime
 
 import pytest
 import torch.nn.functional as F
+
 from core.earthquake_impact_modeling import (
     EarthquakeImpactModelingEngine,
     GroundMotionModel,
@@ -22,6 +23,7 @@ from core.earthquake_impact_modeling import (
     TsunamiSource,
 )
 from models.geological import EventType, GeologicalLocation, SeismicEvent
+
 
 class TestEarthquakeImpactModelingEngine:
     """Test cases for the main earthquake impact modeling engine"""
@@ -404,6 +406,7 @@ class TestEarthquakeImpactModelingEngine:
 
         assert result is None
 
+
 class TestGroundMotionParameters:
     """Test cases for GroundMotionParameters data class"""
 
@@ -460,6 +463,7 @@ class TestGroundMotionParameters:
                 arias_intensity=0.6,
             )
 
+
 class TestLiquefactionAssessment:
     """Test cases for LiquefactionAssessment data class"""
 
@@ -502,6 +506,7 @@ class TestLiquefactionAssessment:
                 contributing_factors=[],
                 soil_properties={},
             )
+
 
 class TestLandslideAssessment:
     """Test cases for LandslideAssessment data class"""
@@ -553,6 +558,7 @@ class TestLandslideAssessment:
                 runout_path=[location],
                 impact_area=40000.0,
             )
+
 
 class TestTsunamiParameters:
     """Test cases for TsunamiParameters data class"""
@@ -621,6 +627,7 @@ class TestTsunamiParameters:
                 affected_coastline=50.0,
             )
 
+
 class TestDistanceCalculation:
     """Test cases for distance calculation methods"""
 
@@ -648,6 +655,7 @@ class TestDistanceCalculation:
         distance = engine._calculate_distance(location, location)
 
         assert distance == 0.0
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

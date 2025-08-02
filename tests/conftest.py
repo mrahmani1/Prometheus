@@ -4,21 +4,22 @@ Global pytest configuration and fixtures for Prometheus AI platform testing
 This module provides shared fixtures and configuration for all test suites.
 """
 
-import pytest
-import asyncio
-import numpy as np
-import torch
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
-import tempfile
-import os
+import asyncio
 import json
+import numpy as np
+import os
+import pytest
+import tempfile
+import torch
 
 # Test data fixtures
 @pytest.fixture
 def sample_geological_location():
     """Create a sample geological location for testing"""
     from services.helios_core.models.geological import GeologicalLocation
+
     return GeologicalLocation(
         latitude=44.428,
         longitude=-110.588,
@@ -122,6 +123,7 @@ def sample_thermal_data(sample_geological_location):
 def sample_pinn_config():
     """Create sample PINN configuration for testing"""
     from services.helios_core.models.ai_models import (
+
         PINNModelConfig, NetworkArchitecture, PhysicsConstraint,
         PhysicsConstraintType, ActivationFunction
     )

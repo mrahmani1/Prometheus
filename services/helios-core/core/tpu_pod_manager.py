@@ -31,6 +31,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 class TPUPodStatus(Enum):
     """TPU Pod status enumeration."""
 
@@ -40,6 +41,7 @@ class TPUPodStatus(Enum):
     INFERENCE = "inference"
     ERROR = "error"
     SHUTDOWN = "shutdown"
+
 
 @dataclass
 class TPUPodConfig:
@@ -54,6 +56,7 @@ class TPUPodConfig:
     batch_size_per_device: int = 32
     gradient_accumulation_steps: int = 1
 
+
 @dataclass
 class TPUTrainingMetrics:
     """Metrics for TPU training performance."""
@@ -66,6 +69,7 @@ class TPUTrainingMetrics:
     throughput_samples_per_sec: float
     memory_usage_gb: float
     flops_utilization: float
+
 
 class GeologicalPINNTPU(nn.Module):
     """
@@ -114,6 +118,7 @@ class GeologicalPINNTPU(nn.Module):
 
         return {"prediction": output, "physics_constraints": physics_outputs}
 
+
 class TPUDatasetSharding:
     """Handles automatic dataset sharding and distribution across TPU cores."""
 
@@ -150,6 +155,7 @@ class TPUDatasetSharding:
                 batch_labels = labels[batch_indices]
 
                 yield self.shard_batch({"inputs": batch_data, "targets": batch_labels})
+
 
 class TPUPhysicsKernels:
     """Specialized TPU kernels for physics-informed computations."""
@@ -244,6 +250,7 @@ class TPUPhysicsKernels:
 
         return jnp.stack([residual_x, residual_y], axis=-1)
 
+
 class TPUPodManager:
     """
     Manages TPU Pod resources for distributed geological modeling.
@@ -302,6 +309,7 @@ class TPUPodManager:
 
         # Initialize model parameters
         random.PRNGKey(42)
+
 
 class AdvancedSeismicCNN:
     """Convolutional Neural Network for seismic event detection and classification"""
@@ -774,6 +782,7 @@ class AdvancedSeismicCNN:
         """Shutdown TPU Pod and cleanup resources."""
         self.status = TPUPodStatus.SHUTDOWN
         logger.info("TPU Pod shutdown completed")
+
 
 # Factory function for creating TPU Pod manager
 def create_tpu_pod_manager(config: Optional[TPUPodConfig] = None) -> TPUPodManager:

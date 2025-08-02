@@ -18,22 +18,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .causal_reinforcement import CausalReinforcementLearner
-from .collective_detector import (
-    CollectiveAnomalyDetector,
-    CollectiveAnomalyResult,
-    GeologicalEventSequence,
-)
-from .contextual_detector import (
-    ContextualAnomalyDetector,
-    ContextualAnomalyResult,
-    GeologicalContext,
-)
+from .collective_detector import (CollectiveAnomalyDetector,
+                                  CollectiveAnomalyResult,
+                                  GeologicalEventSequence)
+from .contextual_detector import (ContextualAnomalyDetector,
+                                  ContextualAnomalyResult, GeologicalContext)
 from .continuous_learner import ContinuousAnomalyLearner, LearningUpdate
 from .explanation_engine import AnomalyExplanation, AnomalyExplanationEngine
 from .multivariate_detector import AnomalyResult, MultivariateAnomalyDetector
 from .significance_assessor import SignificanceAssessment, SignificanceAssessor
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ComprehensiveAnomalyResult:
@@ -65,6 +61,7 @@ class ComprehensiveAnomalyResult:
     processing_time: float
     data_sources: List[str]
     analysis_methods: List[str]
+
 
 class AnomalyDetectionManager:
     """

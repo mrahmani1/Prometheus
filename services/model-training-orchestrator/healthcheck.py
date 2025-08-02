@@ -19,6 +19,7 @@ from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
 
+
 class HealthChecker:
     """Comprehensive health checker for the orchestrator"""
 
@@ -364,6 +365,7 @@ class HealthChecker:
 
         try:
             import psutil
+
             memory = psutil.virtual_memory()
 
             if memory.percent > 90:
@@ -481,6 +483,7 @@ class HealthChecker:
                 "timestamp": datetime.now().isoformat(),
             }
 
+
 async def main():
     """Main health check function"""
 
@@ -495,6 +498,7 @@ async def main():
         sys.exit(0)
     else:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

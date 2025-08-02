@@ -30,6 +30,7 @@ warnings.filterwarnings("ignore")
 
 logger = logging.getLogger(__name__)
 
+
 class AlertLevel(Enum):
     """Volcanic alert levels based on international standards"""
 
@@ -37,6 +38,7 @@ class AlertLevel(Enum):
     YELLOW = "yellow"  # Elevated unrest
     ORANGE = "orange"  # Heightened unrest with increased potential for eruption
     RED = "red"  # Eruption imminent or in progress
+
 
 class EruptionType(Enum):
     """Types of volcanic eruptions"""
@@ -48,6 +50,7 @@ class EruptionType(Enum):
     VULCANIAN = "vulcanian"  # Short violent explosions
     PLINIAN = "plinian"  # Large explosive eruptions
     ULTRA_PLINIAN = "ultra_plinian"  # Catastrophic eruptions
+
 
 @dataclass
 class VolcanicEvent:
@@ -69,6 +72,7 @@ class VolcanicEvent:
     def is_significant(self) -> bool:
         return self.magnitude >= 2.0 or self.energy_joules >= 1e10
 
+
 @dataclass
 class ThermalAnomaly:
     """Thermal anomaly detection result"""
@@ -87,6 +91,7 @@ class ThermalAnomaly:
     @property
     def is_significant(self) -> bool:
         return self.temperature_anomaly >= 50.0 or self.radiant_power_mw >= 100.0
+
 
 @dataclass
 class DeformationMeasurement:
@@ -110,6 +115,7 @@ class DeformationMeasurement:
     def is_significant(self) -> bool:
         return self.total_displacement >= 10.0  # 1 cm threshold
 
+
 @dataclass
 class GasEmission:
     """Volcanic gas emission measurement"""
@@ -128,6 +134,7 @@ class GasEmission:
     @property
     def is_anomalous(self) -> bool:
         return self.so2_tonnes_day >= 1000.0 or self.co2_tonnes_day >= 5000.0
+
 
 class VolcanicCNN(nn.Module):
     """Convolutional Neural Network for volcanic signal classification"""
@@ -215,6 +222,7 @@ class VolcanicCNN(nn.Module):
             "attention_weights": attention_weights,
             "features": features,
         }
+
 
 class EruptionForecastModel(nn.Module):
     """LSTM-based model for eruption forecasting"""
@@ -316,6 +324,7 @@ class EruptionForecastModel(nn.Module):
             "attention_weights": attention_weights,
             "features": attended_features,
         }
+
 
 class AdvancedVolcanicMonitor:
     """Advanced volcanic monitoring system"""

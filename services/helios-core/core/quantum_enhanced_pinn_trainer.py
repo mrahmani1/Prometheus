@@ -10,6 +10,7 @@ import torch.nn as nn
 
 logger = logging.getLogger(__name__)
 
+
 class Quantumenhancedpinntrainer:
     """Main class for quantum enhanced pinn trainer functionality."""
 
@@ -31,11 +32,13 @@ class Quantumenhancedpinntrainer:
         """Validate input data."""
         return data is not None
 
+
 def main():
     """Main function for testing."""
     instance = Quantumenhancedpinntrainer()
     result = instance.process("test_data")
     print(f"Result: {result}")
+
 
 if __name__ == "__main__":
     main()

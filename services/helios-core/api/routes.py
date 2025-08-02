@@ -11,28 +11,20 @@ from pydantic import BaseModel, Field
 
 # Import Causal Inference API
 from .causal_inference import router as causal_inference_router
-
 # Import edge optimization API
 from .edge_optimization import router as edge_optimization_router
-
 # Import geothermal assessment API
 from .geothermal_assessment import router as geothermal_assessment_router
-
 # Import GPU Cluster API
 from .gpu_cluster_api import router as gpu_cluster_router
-
 # Import mineral resource prediction API
 from .mineral_resource_prediction import router as mineral_resource_router
-
 # Import Model Complexity API
 from .model_complexity_api import router as model_complexity_router
-
 # Import model deployment API
 from .model_deployment import router as model_deployment_router
-
 # Import TPU Pod API
 from .tpu_pod_api import router as tpu_pod_router
-
 # Import transfer learning API
 from .transfer_learning import router as transfer_learning_router
 
@@ -59,6 +51,7 @@ router.include_router(causal_inference_router)
 # Include model complexity routes
 router.include_router(model_complexity_router)
 
+
 # Pydantic models for request/response validation
 class GeologicalDataRequest(BaseModel):
     input_features: List[List[float]] = Field(
@@ -68,6 +61,7 @@ class GeologicalDataRequest(BaseModel):
     location: Dict[str, float] = Field(..., description="Geographic location")
     data_type: str = Field(..., description="Type of geological data")
 
+
 class SeismicEventRequest(BaseModel):
     waveform_data: List[List[float]] = Field(
         ..., description="3-component seismic waveform data"
@@ -75,6 +69,7 @@ class SeismicEventRequest(BaseModel):
     sampling_rate: float = Field(..., description="Sampling rate in Hz")
     station_id: str = Field(..., description="Seismic station identifier")
     timestamp: str = Field(..., description="Event timestamp")
+
 
 class UncertaintyRequest(BaseModel):
     num_scenarios: int = Field(
@@ -84,12 +79,14 @@ class UncertaintyRequest(BaseModel):
         default="geological", description="Type of uncertainty scenarios"
     )
 
+
 class GeologicalDataResponse(BaseModel):
     predictions: List[List[float]]
     model_version: str
     timestamp: str
     confidence: float
     processing_time_ms: float
+
 
 class SeismicEventResponse(BaseModel):
     event_type: str
@@ -98,11 +95,13 @@ class SeismicEventResponse(BaseModel):
     model_version: str
     processing_time_ms: float
 
+
 class UncertaintyResponse(BaseModel):
     scenarios: List[List[float]]
     num_scenarios: int
     model_version: str
     generation_time_ms: float
+
 
 # Dependency to get Helios engine instance
 async def get_helios_engine():
@@ -114,6 +113,7 @@ async def get_helios_engine():
     if not helios_engine or not await helios_engine.is_ready():
         raise HTTPException(status_code=503, detail="Helios engine not ready")
     return helios_engine
+
 
 @router.get("/")
 async def root():
@@ -129,6 +129,7 @@ async def root():
             "model_info": "/models/info",
         },
     }
+
 
 @router.post("/geological/analyze", response_model=GeologicalDataResponse)
 async def analyze_geological_data(
@@ -170,6 +171,7 @@ async def analyze_geological_data(
         logger.error("Failed to analyze geological data", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 @router.post("/seismic/detect", response_model=SeismicEventResponse)
 async def detect_seismic_events(
     request: SeismicEventRequest, helios_engine=Depends(get_helios_engine)
@@ -205,6 +207,7 @@ async def detect_seismic_events(
         logger.error("Failed to detect seismic events", error=str(e))
         raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 
+
 # Enhanced seismic processing endpoints
 class ContinuousSeismicRequest(BaseModel):
     waveform_data: List[List[float]] = Field(
@@ -220,6 +223,7 @@ class ContinuousSeismicRequest(BaseModel):
         default=0.5, ge=0.0, le=1.0, description="Detection threshold"
     )
 
+
 class MultiStationSeismicRequest(BaseModel):
     stations: List[Dict[str, Any]] = Field(
         ..., description="List of station data with waveforms"
@@ -231,12 +235,14 @@ class MultiStationSeismicRequest(BaseModel):
         default=True, description="Whether to estimate event locations"
     )
 
+
 class SeismicEventListResponse(BaseModel):
     events: List[Dict[str, Any]]
     total_events: int
     processing_statistics: Dict[str, Any]
     model_version: str
     processing_time_ms: float
+
 
 @router.post("/seismic/detect-continuous", response_model=SeismicEventListResponse)
 async def detect_continuous_seismic_events(request: ContinuousSeismicRequest):
@@ -328,15 +334,14 @@ async def detect_continuous_seismic_events(request: ContinuousSeismicRequest):
         logger.error("Failed to detect continuous seismic events", error=str(e))
         raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 
+
 @router.post("/seismic/detect-multi-station", response_model=SeismicEventListResponse)
 async def detect_multi_station_seismic_events(request: MultiStationSeismicRequest):
     """Detect and locate seismic events using multiple stations"""
     try:
 
-        from core.seismic_cnn_processor import (
-            SeismicCNNProcessor,
-            SeismicEventClassifier,
-        )
+        from core.seismic_cnn_processor import (SeismicCNNProcessor,
+                                                SeismicEventClassifier)
 
         start_time = time.time()
 
@@ -447,6 +452,7 @@ async def detect_multi_station_seismic_events(request: MultiStationSeismicReques
         logger.error("Failed to detect multi-station seismic events", error=str(e))
         raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 
+
 @router.get("/seismic/model-info")
 async def get_seismic_model_info():
     """Get information about the seismic CNN model"""
@@ -495,6 +501,7 @@ async def get_seismic_model_info():
             status_code=500, detail=f"Failed to get model info: {str(e)}"
         )
 
+
 @router.post("/uncertainty/generate", response_model=UncertaintyResponse)
 async def generate_uncertainty_scenarios(
     request: UncertaintyRequest, helios_engine=Depends(get_helios_engine)
@@ -527,6 +534,7 @@ async def generate_uncertainty_scenarios(
     except Exception as e:
         logger.error("Failed to generate uncertainty scenarios", error=str(e))
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
 
 @router.get("/models/info")
 async def get_model_info(helios_engine=Depends(get_helios_engine)):
@@ -564,6 +572,7 @@ async def get_model_info(helios_engine=Depends(get_helios_engine)):
             status_code=500, detail=f"Failed to get model info: {str(e)}"
         )
 
+
 @router.get("/models/status")
 async def get_model_status(helios_engine=Depends(get_helios_engine)):
     """Get detailed status of all models"""
@@ -595,6 +604,7 @@ async def get_model_status(helios_engine=Depends(get_helios_engine)):
             status_code=500, detail=f"Failed to get model status: {str(e)}"
         )
 
+
 @router.post("/models/reload")
 async def reload_models(helios_engine=Depends(get_helios_engine)):
     """Reload all models (admin endpoint)"""
@@ -615,6 +625,7 @@ async def reload_models(helios_engine=Depends(get_helios_engine)):
         raise HTTPException(
             status_code=500, detail=f"Failed to reload models: {str(e)}"
         )
+
 
 # Physics simulation endpoints
 @router.post("/physics/simulate")
@@ -643,6 +654,7 @@ async def run_physics_simulation(
         logger.error("Failed to run physics simulation", error=str(e))
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
+
 # Integrated Geodynamic Modeling endpoints
 class IntegratedGeodynamicRequest(BaseModel):
     seismic_events: List[Dict[str, Any]] = Field(
@@ -665,6 +677,7 @@ class IntegratedGeodynamicRequest(BaseModel):
         default=1.0, ge=0.1, le=10.0, description="Grid resolution in km"
     )
 
+
 class SeismicTomographyRequest(BaseModel):
     seismic_events: List[Dict[str, Any]] = Field(..., description="Seismic event data")
     station_locations: List[Dict[str, Any]] = Field(
@@ -678,6 +691,7 @@ class SeismicTomographyRequest(BaseModel):
         default=1.0, ge=0.1, le=10.0, description="Grid resolution in km"
     )
 
+
 class DeformationTrackingRequest(BaseModel):
     deformation_measurements: List[Dict[str, Any]] = Field(
         ..., description="Deformation measurement data"
@@ -690,6 +704,7 @@ class DeformationTrackingRequest(BaseModel):
         default=0.5, ge=0.1, le=5.0, description="Grid resolution in km"
     )
 
+
 class EarthquakeAnalysisRequest(BaseModel):
     seismic_events: List[Dict[str, Any]] = Field(..., description="Seismic event data")
     time_window: List[str] = Field(
@@ -700,6 +715,7 @@ class EarthquakeAnalysisRequest(BaseModel):
         description="Spatial bounds [[x_min, x_max], [y_min, y_max], [z_min, z_max]]",
     )
 
+
 class GeochemicalAnalysisRequest(BaseModel):
     geochemical_samples: List[Dict[str, Any]] = Field(
         ..., description="Geochemical sample data"
@@ -707,6 +723,7 @@ class GeochemicalAnalysisRequest(BaseModel):
     reference_compositions: Dict[str, Dict[str, float]] = Field(
         default=None, description="Reference magma compositions"
     )
+
 
 @router.post("/geodynamic/integrated")
 async def process_integrated_geodynamic_data(
@@ -747,6 +764,7 @@ async def process_integrated_geodynamic_data(
         logger.error("Failed to process integrated geodynamic data", error=str(e))
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
+
 @router.post("/geodynamic/seismic-tomography")
 async def analyze_seismic_tomography(
     request: SeismicTomographyRequest, helios_engine=Depends(get_helios_engine)
@@ -782,6 +800,7 @@ async def analyze_seismic_tomography(
         logger.error("Failed to analyze seismic tomography", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 @router.post("/geodynamic/deformation-tracking")
 async def track_deformation(
     request: DeformationTrackingRequest, helios_engine=Depends(get_helios_engine)
@@ -812,6 +831,7 @@ async def track_deformation(
     except Exception as e:
         logger.error("Failed to track deformation", error=str(e))
         raise HTTPException(status_code=500, detail=f"Tracking failed: {str(e)}")
+
 
 @router.post("/geodynamic/earthquake-analysis")
 async def analyze_earthquake_catalog(
@@ -849,6 +869,7 @@ async def analyze_earthquake_catalog(
         logger.error("Failed to analyze earthquake catalog", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 @router.post("/geodynamic/geochemical-analysis")
 async def analyze_geochemical_data(
     request: GeochemicalAnalysisRequest, helios_engine=Depends(get_helios_engine)
@@ -877,6 +898,7 @@ async def analyze_geochemical_data(
         logger.error("Failed to analyze geochemical data", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 # Long-term Geological Simulation endpoints
 class LongTermSimulationRequest(BaseModel):
     simulation_config: Dict[str, Any] = Field(
@@ -887,6 +909,7 @@ class LongTermSimulationRequest(BaseModel):
         default="millions_years", description="Time scale for simulation"
     )
 
+
 class VolcanicEvolutionRequest(BaseModel):
     initial_state_config: Dict[str, Any] = Field(
         ..., description="Initial volcanic system configuration"
@@ -896,6 +919,7 @@ class VolcanicEvolutionRequest(BaseModel):
     external_forcing: Dict[str, Any] = Field(
         default=None, description="External forcing factors"
     )
+
 
 class MagmaGenerationRequest(BaseModel):
     initial_conditions: Dict[str, Any] = Field(
@@ -908,6 +932,7 @@ class MagmaGenerationRequest(BaseModel):
     )
     time_step_days: int = Field(default=36500, description="Time step in days")
 
+
 class HydrothermalCirculationRequest(BaseModel):
     initial_conditions: Dict[str, Any] = Field(
         ..., description="Initial fluid and rock conditions"
@@ -916,6 +941,7 @@ class HydrothermalCirculationRequest(BaseModel):
     time_span: List[str] = Field(..., description="Time span [start_iso, end_iso]")
     spatial_domain: List[List[float]] = Field(..., description="3D spatial domain")
     time_step_days: int = Field(default=3650, description="Time step in days")
+
 
 class TectonicReconstructionRequest(BaseModel):
     initial_configuration: Dict[str, Any] = Field(
@@ -926,6 +952,7 @@ class TectonicReconstructionRequest(BaseModel):
     reference_frame: str = Field(
         default="hotspot", description="Reference frame for reconstruction"
     )
+
 
 @router.post("/geological/long-term-simulation")
 async def run_long_term_geological_simulation(
@@ -955,6 +982,7 @@ async def run_long_term_geological_simulation(
     except Exception as e:
         logger.error("Failed to run long-term geological simulation", error=str(e))
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
 
 @router.post("/geological/volcanic-evolution")
 async def simulate_volcanic_evolution(
@@ -987,6 +1015,7 @@ async def simulate_volcanic_evolution(
         logger.error("Failed to simulate volcanic evolution", error=str(e))
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
+
 @router.post("/geological/magma-generation")
 async def track_magma_generation(
     request: MagmaGenerationRequest, helios_engine=Depends(get_helios_engine)
@@ -1017,6 +1046,7 @@ async def track_magma_generation(
     except Exception as e:
         logger.error("Failed to track magma generation", error=str(e))
         raise HTTPException(status_code=500, detail=f"Tracking failed: {str(e)}")
+
 
 @router.post("/geological/hydrothermal-circulation")
 async def simulate_hydrothermal_circulation(
@@ -1050,6 +1080,7 @@ async def simulate_hydrothermal_circulation(
         logger.error("Failed to simulate hydrothermal circulation", error=str(e))
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
+
 @router.post("/geological/tectonic-reconstruction")
 async def reconstruct_tectonic_plates(
     request: TectonicReconstructionRequest, helios_engine=Depends(get_helios_engine)
@@ -1082,6 +1113,7 @@ async def reconstruct_tectonic_plates(
         logger.error("Failed to reconstruct tectonic plates", error=str(e))
         raise HTTPException(status_code=500, detail=f"Reconstruction failed: {str(e)}")
 
+
 # Real-time monitoring endpoints
 @router.post("/monitoring/analyze")
 async def analyze_monitoring_data(
@@ -1112,22 +1144,27 @@ async def analyze_monitoring_data(
         logger.error("Failed to analyze monitoring data", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 # Earthquake Forecasting API endpoints
+
 
 class EarthquakePatternAnalysisRequest(BaseModel):
     events: List[Dict[str, Any]] = Field(
         ..., description="List of seismic events for pattern analysis"
     )
 
+
 class StatisticalSeismicityModelRequest(BaseModel):
     events: List[Dict[str, Any]] = Field(
         ..., description="List of seismic events for statistical modeling"
     )
 
+
 class TemporalClusteringRequest(BaseModel):
     events: List[Dict[str, Any]] = Field(
         ..., description="List of seismic events for clustering analysis"
     )
+
 
 class ProbabilisticHazardAssessmentRequest(BaseModel):
     events: List[Dict[str, Any]] = Field(
@@ -1140,10 +1177,12 @@ class ProbabilisticHazardAssessmentRequest(BaseModel):
         default=30, ge=1, le=365, description="Forecast period in days"
     )
 
+
 class EarthquakeConfigUpdateRequest(BaseModel):
     config_updates: Dict[str, Any] = Field(
         ..., description="Configuration updates to apply"
     )
+
 
 @router.post("/earthquake/analyze-patterns")
 async def analyze_earthquake_patterns(
@@ -1173,6 +1212,7 @@ async def analyze_earthquake_patterns(
             status_code=500, detail=f"Pattern analysis failed: {str(e)}"
         )
 
+
 @router.post("/earthquake/statistical-model")
 async def create_statistical_seismicity_model(
     request: StatisticalSeismicityModelRequest, helios_engine=Depends(get_helios_engine)
@@ -1200,6 +1240,7 @@ async def create_statistical_seismicity_model(
         raise HTTPException(
             status_code=500, detail=f"Statistical modeling failed: {str(e)}"
         )
+
 
 @router.post("/earthquake/temporal-clustering")
 async def perform_temporal_clustering_analysis(
@@ -1230,6 +1271,7 @@ async def perform_temporal_clustering_analysis(
         raise HTTPException(
             status_code=500, detail=f"Clustering analysis failed: {str(e)}"
         )
+
 
 @router.post("/earthquake/hazard-assessment")
 async def generate_probabilistic_hazard_assessment(
@@ -1263,6 +1305,7 @@ async def generate_probabilistic_hazard_assessment(
             status_code=500, detail=f"Hazard assessment failed: {str(e)}"
         )
 
+
 @router.get("/earthquake/config")
 async def get_earthquake_forecasting_config(helios_engine=Depends(get_helios_engine)):
     """Get earthquake forecasting engine configuration"""
@@ -1273,6 +1316,7 @@ async def get_earthquake_forecasting_config(helios_engine=Depends(get_helios_eng
     except Exception as e:
         logger.error("Failed to get earthquake forecasting config", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get config: {str(e)}")
+
 
 @router.put("/earthquake/config")
 async def update_earthquake_forecasting_config(
@@ -1296,6 +1340,7 @@ async def update_earthquake_forecasting_config(
         raise HTTPException(
             status_code=500, detail=f"Failed to update config: {str(e)}"
         )
+
 
 @router.get("/earthquake/model-info")
 async def get_earthquake_forecasting_model_info():
@@ -1399,6 +1444,7 @@ async def get_earthquake_forecasting_model_info():
             status_code=500, detail=f"Failed to get model info: {str(e)}"
         )
 
+
 # Example data generation endpoint for testing
 @router.post("/earthquake/generate-test-data")
 async def generate_test_earthquake_data(
@@ -1421,7 +1467,6 @@ async def generate_test_earthquake_data(
     """Generate synthetic earthquake data for testing and demonstration"""
     try:
         from datetime import datetime, timedelta
-
 
         logger.info(
             "Generating synthetic earthquake test data",
@@ -1487,6 +1532,7 @@ async def generate_test_earthquake_data(
         logger.error("Failed to generate test earthquake data", error=str(e))
         raise HTTPException(status_code=500, detail=f"Data generation failed: {str(e)}")
 
+
 # Earthquake Impact Modeling endpoints
 class GroundShakingRequest(BaseModel):
     earthquake: Dict[str, Any] = Field(..., description="Earthquake event data")
@@ -1500,6 +1546,7 @@ class GroundShakingRequest(BaseModel):
         default="boore_atkinson_2008", description="Ground motion prediction equation"
     )
 
+
 class LiquefactionRequest(BaseModel):
     ground_motion: List[Dict[str, Any]] = Field(
         ..., description="Ground motion parameters"
@@ -1510,6 +1557,7 @@ class LiquefactionRequest(BaseModel):
     groundwater_data: Dict[str, float] = Field(
         default=None, description="Groundwater depth data"
     )
+
 
 class LandslideRequest(BaseModel):
     ground_motion: List[Dict[str, Any]] = Field(
@@ -1525,6 +1573,7 @@ class LandslideRequest(BaseModel):
         default=None, description="Digital elevation model data"
     )
 
+
 class TsunamiRequest(BaseModel):
     earthquake: Dict[str, Any] = Field(..., description="Earthquake event data")
     coastal_locations: List[Dict[str, float]] = Field(
@@ -1534,11 +1583,13 @@ class TsunamiRequest(BaseModel):
         default=None, description="Bathymetry data for wave propagation"
     )
 
+
 class EarthquakeImpactResponse(BaseModel):
     results: List[Dict[str, Any]]
     summary_statistics: Dict[str, Any]
     model_version: str
     processing_time_ms: float
+
 
 @router.post(
     "/earthquake-impact/ground-shaking", response_model=EarthquakeImpactResponse
@@ -1548,11 +1599,9 @@ async def simulate_ground_shaking(request: GroundShakingRequest):
     try:
 
         from core.earthquake_impact_modeling import (
-            EarthquakeImpactModelingEngine,
-            GroundMotionModel,
-            SoilType,
-        )
-        from models.geological import EventType, GeologicalLocation, SeismicEvent
+            EarthquakeImpactModelingEngine, GroundMotionModel, SoilType)
+        from models.geological import (EventType, GeologicalLocation,
+                                       SeismicEvent)
 
         start_time = time.time()
 
@@ -1662,15 +1711,14 @@ async def simulate_ground_shaking(request: GroundShakingRequest):
         logger.error("Failed to simulate ground shaking", error=str(e))
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
+
 @router.post("/earthquake-impact/liquefaction", response_model=EarthquakeImpactResponse)
 async def assess_liquefaction_susceptibility(request: LiquefactionRequest):
     """Assess liquefaction susceptibility and probability"""
     try:
 
         from core.earthquake_impact_modeling import (
-            EarthquakeImpactModelingEngine,
-            GroundMotionParameters,
-        )
+            EarthquakeImpactModelingEngine, GroundMotionParameters)
 
         start_time = time.time()
 
@@ -1768,6 +1816,7 @@ async def assess_liquefaction_susceptibility(request: LiquefactionRequest):
     except Exception as e:
         logger.error("Failed to assess liquefaction susceptibility", error=str(e))
         raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
+
 
 @router.post("/earthquake-impact/landslide", response_model=EarthquakeImpactResponse)
 async def model_landslide_triggering(request: LandslideRequest):
@@ -1890,12 +1939,14 @@ async def model_landslide_triggering(request: LandslideRequest):
         logger.error("Failed to model landslide triggering", error=str(e))
         raise HTTPException(status_code=500, detail=f"Modeling failed: {str(e)}")
 
+
 @router.post("/earthquake-impact/tsunami")
 async def model_tsunami_generation(request: TsunamiRequest):
     """Model tsunami generation and propagation"""
     try:
 
-        from core.earthquake_impact_modeling import EarthquakeImpactModelingEngine
+        from core.earthquake_impact_modeling import \
+            EarthquakeImpactModelingEngine
 
         start_time = time.time()
 
@@ -1989,17 +2040,14 @@ async def model_tsunami_generation(request: TsunamiRequest):
         logger.error("Failed to model tsunami generation", error=str(e))
         raise HTTPException(status_code=500, detail=f"Modeling failed: {str(e)}")
 
+
 @router.get("/earthquake-impact/model-info")
 async def get_earthquake_impact_model_info():
     """Get information about earthquake impact modeling capabilities"""
     try:
         from core.earthquake_impact_modeling import (
-            GroundMotionModel,
-            LandslideSusceptibility,
-            LiquefactionSusceptibility,
-            SoilType,
-            TsunamiSource,
-        )
+            GroundMotionModel, LandslideSusceptibility,
+            LiquefactionSusceptibility, SoilType, TsunamiSource)
 
         return {
             "model_name": "Earthquake Impact Modeling System",
@@ -2069,6 +2117,7 @@ async def get_earthquake_impact_model_info():
             status_code=500, detail=f"Failed to get model info: {str(e)}"
         )
 
+
 # Infrastructure Vulnerability Assessment endpoints
 class BuildingInventoryItem(BaseModel):
     building_id: str = Field(..., description="Unique building identifier")
@@ -2085,6 +2134,7 @@ class BuildingInventoryItem(BaseModel):
         default="none", description="Seismic design code level"
     )
 
+
 class TransportationNetworkItem(BaseModel):
     network_id: str = Field(..., description="Network identifier")
     network_type: str = Field(..., description="Type of transportation network")
@@ -2095,6 +2145,7 @@ class TransportationNetworkItem(BaseModel):
     capacity: Dict[str, float] = Field(..., description="Edge capacities")
     importance: Dict[str, float] = Field(..., description="Node/edge importance scores")
     vulnerability: Dict[str, float] = Field(..., description="Vulnerability scores")
+
 
 class UtilitySystemItem(BaseModel):
     system_id: str = Field(..., description="System identifier")
@@ -2108,6 +2159,7 @@ class UtilitySystemItem(BaseModel):
     capacity: Dict[str, float] = Field(..., description="Component capacities")
     redundancy: Dict[str, float] = Field(..., description="Redundancy levels")
     service_area: Dict[str, float] = Field(..., description="Service area coverage")
+
 
 class InfrastructureVulnerabilityRequest(BaseModel):
     scenario_name: str = Field(..., description="Name of the earthquake scenario")
@@ -2125,6 +2177,7 @@ class InfrastructureVulnerabilityRequest(BaseModel):
         ..., description="Ground motion intensities by location"
     )
 
+
 class BuildingDamageRequest(BaseModel):
     scenario_name: str = Field(..., description="Name of the earthquake scenario")
     buildings: List[BuildingInventoryItem] = Field(
@@ -2133,6 +2186,7 @@ class BuildingDamageRequest(BaseModel):
     ground_motion_data: Dict[str, float] = Field(
         ..., description="Ground motion intensities by location"
     )
+
 
 class TransportationDisruptionRequest(BaseModel):
     scenario_name: str = Field(..., description="Name of the earthquake scenario")
@@ -2143,12 +2197,14 @@ class TransportationDisruptionRequest(BaseModel):
         ..., description="Ground motion intensities by location"
     )
 
+
 class UtilityFailureRequest(BaseModel):
     scenario_name: str = Field(..., description="Name of the earthquake scenario")
     utility_systems: List[UtilitySystemItem] = Field(..., description="Utility systems")
     ground_motion_data: Dict[str, float] = Field(
         ..., description="Ground motion intensities by location"
     )
+
 
 class CascadingFailureRequest(BaseModel):
     scenario_name: str = Field(..., description="Name of the earthquake scenario")
@@ -2160,6 +2216,7 @@ class CascadingFailureRequest(BaseModel):
     )
     utility_failures: List[Dict[str, Any]] = Field(..., description="Utility failures")
 
+
 @router.post("/infrastructure/vulnerability-assessment")
 async def assess_infrastructure_vulnerability(
     request: InfrastructureVulnerabilityRequest,
@@ -2168,14 +2225,9 @@ async def assess_infrastructure_vulnerability(
     try:
 
         from core.infrastructure_vulnerability import (
-            BuildingInventory,
-            BuildingType,
-            InfrastructureVulnerabilityEngine,
-            TransportationNetwork,
-            TransportationType,
-            UtilitySystem,
-            UtilityType,
-        )
+            BuildingInventory, BuildingType, InfrastructureVulnerabilityEngine,
+            TransportationNetwork, TransportationType, UtilitySystem,
+            UtilityType)
 
         start_time = time.time()
 
@@ -2376,16 +2428,14 @@ async def assess_infrastructure_vulnerability(
         logger.error("Failed to assess infrastructure vulnerability", error=str(e))
         raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
 
+
 @router.post("/infrastructure/building-damage")
 async def assess_building_damage(request: BuildingDamageRequest):
     """Assess building damage estimation models"""
     try:
 
         from core.infrastructure_vulnerability import (
-            BuildingInventory,
-            BuildingType,
-            InfrastructureVulnerabilityEngine,
-        )
+            BuildingInventory, BuildingType, InfrastructureVulnerabilityEngine)
 
         start_time = time.time()
 
@@ -2467,16 +2517,15 @@ async def assess_building_damage(request: BuildingDamageRequest):
         logger.error("Failed to assess building damage", error=str(e))
         raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
 
+
 @router.post("/infrastructure/transportation-disruption")
 async def analyze_transportation_disruption(request: TransportationDisruptionRequest):
     """Analyze transportation network disruption"""
     try:
 
         from core.infrastructure_vulnerability import (
-            InfrastructureVulnerabilityEngine,
-            TransportationNetwork,
-            TransportationType,
-        )
+            InfrastructureVulnerabilityEngine, TransportationNetwork,
+            TransportationType)
 
         start_time = time.time()
 
@@ -2564,16 +2613,14 @@ async def analyze_transportation_disruption(request: TransportationDisruptionReq
         logger.error("Failed to analyze transportation disruption", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 @router.post("/infrastructure/utility-failure")
 async def model_utility_failure_probability(request: UtilityFailureRequest):
     """Model utility system failure probability"""
     try:
 
         from core.infrastructure_vulnerability import (
-            InfrastructureVulnerabilityEngine,
-            UtilitySystem,
-            UtilityType,
-        )
+            InfrastructureVulnerabilityEngine, UtilitySystem, UtilityType)
 
         start_time = time.time()
 
@@ -2660,18 +2707,16 @@ async def model_utility_failure_probability(request: UtilityFailureRequest):
         logger.error("Failed to model utility failure probability", error=str(e))
         raise HTTPException(status_code=500, detail=f"Modeling failed: {str(e)}")
 
+
 @router.post("/infrastructure/cascading-failure")
 async def analyze_cascading_failures(request: CascadingFailureRequest):
     """Analyze cascading failure effects across infrastructure systems"""
     try:
 
         from core.infrastructure_vulnerability import (
-            BuildingDamageAssessment,
-            DamageState,
-            InfrastructureVulnerabilityEngine,
-            TransportationDisruption,
-            UtilityFailureAssessment,
-        )
+            BuildingDamageAssessment, DamageState,
+            InfrastructureVulnerabilityEngine, TransportationDisruption,
+            UtilityFailureAssessment)
 
         start_time = time.time()
 
@@ -2772,16 +2817,15 @@ async def analyze_cascading_failures(request: CascadingFailureRequest):
         logger.error("Failed to analyze cascading failures", error=str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 @router.get("/infrastructure/model-info")
 async def get_infrastructure_model_info():
     """Get information about infrastructure vulnerability models"""
     try:
-        from core.infrastructure_vulnerability import (
-            BuildingType,
-            DamageState,
-            TransportationType,
-            UtilityType,
-        )
+        from core.infrastructure_vulnerability import (BuildingType,
+                                                       DamageState,
+                                                       TransportationType,
+                                                       UtilityType)
 
         return {
             "model_name": "Infrastructure Vulnerability Assessment System",

@@ -9,6 +9,7 @@ import pandas as pd
 import torch.nn.functional as F
 from pydantic import BaseModel, Field
 
+
 class HealthResponse(BaseModel):
     """Health check response model"""
 
@@ -16,6 +17,7 @@ class HealthResponse(BaseModel):
     service: str
     version: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
 
 class AnomalyType(str, Enum):
     """Types of anomalies that can be detected"""
@@ -26,6 +28,7 @@ class AnomalyType(str, Enum):
     CAUSAL = "causal"
     MULTI_SCALE = "multi_scale"
 
+
 class AnomalySeverity(str, Enum):
     """Severity levels for detected anomalies"""
 
@@ -33,6 +36,7 @@ class AnomalySeverity(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+
 
 class GeologicalDataPoint(BaseModel):
     """Individual geological data point"""
@@ -46,6 +50,7 @@ class GeologicalDataPoint(BaseModel):
     quality_score: float = Field(ge=0.0, le=1.0)
     metadata: Optional[Dict[str, Any]] = None
 
+
 class GeologicalDataStream(BaseModel):
     """Stream of geological data points"""
 
@@ -55,6 +60,7 @@ class GeologicalDataStream(BaseModel):
     spatial_resolution: Optional[float] = None  # meters
     data_source: str
     processing_timestamp: datetime = Field(default_factory=datetime.utcnow)
+
 
 class AnomalyDetectionRequest(BaseModel):
     """Request for anomaly detection"""
@@ -68,6 +74,7 @@ class AnomalyDetectionRequest(BaseModel):
     include_explanation: bool = True
     include_significance: bool = True
 
+
 class CausalRelationship(BaseModel):
     """Causal relationship between variables"""
 
@@ -78,6 +85,7 @@ class CausalRelationship(BaseModel):
     lag_time: Optional[float] = None  # seconds
     mechanism: Optional[str] = None
 
+
 class AnomalyExplanation(BaseModel):
     """Explanation for detected anomaly"""
 
@@ -86,6 +94,7 @@ class AnomalyExplanation(BaseModel):
     causal_relationships: List[CausalRelationship]
     domain_knowledge_context: Optional[str] = None
     confidence_score: float = Field(ge=0.0, le=1.0)
+
 
 class SignificanceAssessment(BaseModel):
     """Assessment of anomaly significance"""
@@ -96,6 +105,7 @@ class SignificanceAssessment(BaseModel):
     potential_discovery: bool
     research_priority: str  # low, medium, high, urgent
     suggested_follow_up: List[str]
+
 
 class DetectedAnomaly(BaseModel):
     """Detected anomaly with full details"""
@@ -128,6 +138,7 @@ class DetectedAnomaly(BaseModel):
     model_version: str
     processing_time: float  # seconds
 
+
 class AnomalyDetectionResponse(BaseModel):
     """Response from anomaly detection"""
 
@@ -137,6 +148,7 @@ class AnomalyDetectionResponse(BaseModel):
     summary_statistics: Dict[str, Any]
     processing_time: float  # seconds
     model_performance: Dict[str, float]
+
 
 class ContinuousLearningUpdate(BaseModel):
     """Update for continuous learning system"""
@@ -148,6 +160,7 @@ class ContinuousLearningUpdate(BaseModel):
     performance_metrics: Dict[str, float]
     adaptation_rate: float
 
+
 class MultiScaleAnalysisRequest(BaseModel):
     """Request for multi-scale anomaly analysis"""
 
@@ -156,6 +169,7 @@ class MultiScaleAnalysisRequest(BaseModel):
     spatial_scales: List[str]
     cross_scale_analysis: bool = True
     scale_interaction_detection: bool = True
+
 
 class MultiScaleAnomaly(BaseModel):
     """Multi-scale anomaly detection result"""
@@ -167,6 +181,7 @@ class MultiScaleAnomaly(BaseModel):
     cross_scale_coherence: float = Field(ge=0.0, le=1.0)
     emergent_properties: List[str]
 
+
 class ReinforcementLearningState(BaseModel):
     """State representation for RL agent"""
 
@@ -177,6 +192,7 @@ class ReinforcementLearningState(BaseModel):
     context_variables: Dict[str, Any]
     reward_signal: Optional[float] = None
 
+
 class ReinforcementLearningAction(BaseModel):
     """Action taken by RL agent"""
 
@@ -185,6 +201,7 @@ class ReinforcementLearningAction(BaseModel):
     parameters: Dict[str, Any]
     expected_outcome: str
     confidence: float = Field(ge=0.0, le=1.0)
+
 
 class NonLinearRelationship(BaseModel):
     """Non-linear relationship between geological variables"""
@@ -196,6 +213,7 @@ class NonLinearRelationship(BaseModel):
     goodness_of_fit: float = Field(ge=0.0, le=1.0)
     complexity_score: float = Field(ge=0.0, le=1.0)
 
+
 class AnomalyCluster(BaseModel):
     """Cluster of related anomalies"""
 
@@ -206,6 +224,7 @@ class AnomalyCluster(BaseModel):
     coherence_score: float = Field(ge=0.0, le=1.0)
     temporal_pattern: Optional[str] = None
     spatial_pattern: Optional[str] = None
+
 
 class PhenomenaDiscovery(BaseModel):
     """Discovered new geological phenomena"""

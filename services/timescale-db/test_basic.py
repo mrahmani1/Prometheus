@@ -5,6 +5,7 @@ Basic integration test for TimescaleDB service
 
 import sys
 
+
 def test_imports():
     """Test that all required modules can be imported"""
     try:
@@ -15,6 +16,7 @@ def test_imports():
     except ImportError as e:
         print(f"✗ Import error: {e}")
         return False
+
 
 def test_app_creation():
     """Test that the FastAPI app can be created"""
@@ -35,6 +37,7 @@ def test_app_creation():
     except Exception as e:
         print(f"✗ App creation error: {e}")
         return False
+
 
 def test_pydantic_models():
     """Test that Pydantic models are valid"""
@@ -67,10 +70,12 @@ def test_pydantic_models():
         print(f"✗ Pydantic model error: {e}")
         return False
 
+
 def test_geological_interpretation():
     """Test geological interpretation function"""
     try:
         from main import interpret_geological_trends
+
         # Test with sample analysis data
         analysis = {
             "trend_analysis": {"slope": 0.005, "r_squared": 0.85},
@@ -90,6 +95,7 @@ def test_geological_interpretation():
     except Exception as e:
         print(f"✗ Geological interpretation error: {e}")
         return False
+
 
 def main():
     """Run all basic tests"""
@@ -120,6 +126,7 @@ def main():
     else:
         print("✗ Some tests failed")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

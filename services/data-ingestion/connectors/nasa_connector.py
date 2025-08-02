@@ -10,15 +10,13 @@ import pandas as pd
 import structlog
 import torch.nn as nn
 import torch.nn.functional as F
-from models.geological_data import (
-    GeologicalLocation,
-    SatelliteObservation,
-    ThermalMeasurement,
-)
+from models.geological_data import (GeologicalLocation, SatelliteObservation,
+                                    ThermalMeasurement)
 
 from .base_connector import BaseConnector
 
 logger = structlog.get_logger()
+
 
 class NASAConnector(BaseConnector):
     """Connector for NASA Earth observation and satellite data"""

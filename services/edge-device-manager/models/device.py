@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from .config import DeviceCapabilities, DeviceLocation, EdgeDeviceConfig
 
+
 class DeviceStatus(str, Enum):
     """Device operational status"""
 
@@ -21,6 +22,7 @@ class DeviceStatus(str, Enum):
     MAINTENANCE = "maintenance"
     ERROR = "error"
     UNKNOWN = "unknown"
+
 
 class ModelStatus(str, Enum):
     """Model deployment status"""
@@ -33,6 +35,7 @@ class ModelStatus(str, Enum):
     FAILED = "failed"
     UPDATING = "updating"
 
+
 class SyncStatus(str, Enum):
     """Data synchronization status"""
 
@@ -41,6 +44,7 @@ class SyncStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     PAUSED = "paused"
+
 
 class DeviceMetrics(BaseModel):
     """Real-time device metrics"""
@@ -66,6 +70,7 @@ class DeviceMetrics(BaseModel):
     active_models: int = 0
     data_processing_rate: Optional[float] = None  # samples per second
     error_count: int = 0
+
 
 class EdgeDevice(BaseModel):
     """Edge device representation"""
@@ -98,6 +103,7 @@ class EdgeDevice(BaseModel):
     last_sync: Optional[datetime] = None
     sync_status: SyncStatus = SyncStatus.IDLE
 
+
 class ModelDeployment(BaseModel):
     """Model deployment on edge device"""
 
@@ -128,6 +134,7 @@ class ModelDeployment(BaseModel):
     port: Optional[int] = None
     health_status: str = "unknown"
 
+
 class DeviceRegistrationRequest(BaseModel):
     """Request to register a new edge device"""
 
@@ -150,6 +157,7 @@ class DeviceRegistrationRequest(BaseModel):
     software_version: Optional[str] = None
     metadata: Dict[str, Any] = {}
 
+
 class DeviceRegistrationResponse(BaseModel):
     """Response to device registration"""
 
@@ -167,6 +175,7 @@ class DeviceRegistrationResponse(BaseModel):
     client_certificate: Optional[str] = None
     client_private_key: Optional[str] = None
 
+
 class ModelDeploymentRequest(BaseModel):
     """Request to deploy a model to edge devices"""
 
@@ -181,6 +190,7 @@ class ModelDeploymentRequest(BaseModel):
     # Configuration overrides
     environment_variables: Optional[Dict[str, str]] = None
     resource_limits: Optional[Dict[str, Any]] = None
+
 
 class ModelDeploymentResponse(BaseModel):
     """Response to model deployment request"""
@@ -198,6 +208,7 @@ class ModelDeploymentResponse(BaseModel):
     # Deployment details
     deployment_details: List[Dict[str, Any]] = []
 
+
 class DataSyncRequest(BaseModel):
     """Request to synchronize data with edge devices"""
 
@@ -213,6 +224,7 @@ class DataSyncRequest(BaseModel):
     max_bandwidth_mbps: Optional[float] = None
     priority: str = "normal"  # low, normal, high
 
+
 class DataSyncResponse(BaseModel):
     """Response to data sync request"""
 
@@ -227,6 +239,7 @@ class DataSyncResponse(BaseModel):
 
     # Per-device status
     device_status: Dict[str, Dict[str, Any]] = {}
+
 
 class HealthCheckResult(BaseModel):
     """Health check result for a device"""

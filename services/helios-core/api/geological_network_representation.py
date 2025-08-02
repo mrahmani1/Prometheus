@@ -17,11 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ..core.geological_network_representation import (
-    GeologicalGraphData,
-    GeologicalNetworkRepresentationEngine,
-    SupereruptionAnalyzer,
-    SupereruptionSignature,
-)
+    GeologicalGraphData, GeologicalNetworkRepresentationEngine,
+    SupereruptionAnalyzer, SupereruptionSignature)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +32,7 @@ router = APIRouter(
 _engine = None
 _analyzer = None
 
+
 def get_engine() -> GeologicalNetworkRepresentationEngine:
     """Get or create the geological network representation engine."""
     global _engine
@@ -44,6 +42,7 @@ def get_engine() -> GeologicalNetworkRepresentationEngine:
         )
     return _engine
 
+
 def get_analyzer() -> SupereruptionAnalyzer:
     """Get or create the supereruption analyzer."""
     global _analyzer
@@ -51,7 +50,9 @@ def get_analyzer() -> SupereruptionAnalyzer:
         _analyzer = SupereruptionAnalyzer()
     return _analyzer
 
+
 # Pydantic models for API requests and responses
+
 
 class GeologicalNodeData(BaseModel):
     """Input data for geological nodes."""
@@ -63,6 +64,7 @@ class GeologicalNodeData(BaseModel):
     temporal_info: Optional[List[float]] = None
     geological_properties: Optional[List[List[float]]] = None
 
+
 class GeologicalEdgeData(BaseModel):
     """Input data for geological edges."""
 
@@ -70,6 +72,7 @@ class GeologicalEdgeData(BaseModel):
     edge_distances: Optional[List[float]] = None
     edge_strengths: Optional[List[float]] = None
     temporal_evolution: Optional[List[float]] = None
+
 
 class GeologicalGraphInput(BaseModel):
     """Input data for a complete geological graph."""
@@ -81,6 +84,7 @@ class GeologicalGraphInput(BaseModel):
     spatial_coords: Optional[List[List[float]]] = None
     temporal_info: Optional[List[float]] = None
 
+
 class CalderaSystemData(BaseModel):
     """Input data for caldera system analysis."""
 
@@ -88,6 +92,7 @@ class CalderaSystemData(BaseModel):
     magma_chamber_volume: float = Field(..., description="Magma chamber volume in km³")
     caldera_diameter: float = Field(..., description="Caldera diameter in km")
     location: Optional[List[float]] = Field(None, description="[latitude, longitude]")
+
 
 class MonitoringData(BaseModel):
     """Current monitoring data for supereruption analysis."""
@@ -109,6 +114,7 @@ class MonitoringData(BaseModel):
         None, description="Geochemical measurements"
     )
 
+
 class SimilaritySearchRequest(BaseModel):
     """Request for similarity search."""
 
@@ -116,6 +122,7 @@ class SimilaritySearchRequest(BaseModel):
     k: int = Field(10, description="Number of similar systems to return")
     system_type_filter: Optional[str] = None
     min_similarity: float = Field(0.5, description="Minimum similarity threshold")
+
 
 class SystemMetadata(BaseModel):
     """Metadata for geological systems."""
@@ -128,6 +135,7 @@ class SystemMetadata(BaseModel):
     caldera_diameter: Optional[float] = None
     eruption_frequency: Optional[float] = None
 
+
 class AddSystemRequest(BaseModel):
     """Request to add a system to the similarity database."""
 
@@ -135,7 +143,9 @@ class AddSystemRequest(BaseModel):
     embedding: List[float]
     metadata: SystemMetadata
 
+
 # Response models
+
 
 class NodeEmbeddingResponse(BaseModel):
     """Response for node embedding generation."""
@@ -147,6 +157,7 @@ class NodeEmbeddingResponse(BaseModel):
     process_embeddings: List[List[float]]
     spatial_embeddings: List[List[float]]
 
+
 class EdgeEmbeddingResponse(BaseModel):
     """Response for edge embedding generation."""
 
@@ -154,6 +165,7 @@ class EdgeEmbeddingResponse(BaseModel):
     causal_scores: List[float]
     supereruption_trigger_scores: List[float]
     type_embeddings: List[List[float]]
+
 
 class GraphEmbeddingResponse(BaseModel):
     """Response for graph-level embedding generation."""
@@ -164,6 +176,7 @@ class GraphEmbeddingResponse(BaseModel):
     all_probabilities: Dict[str, float]
     supereruption_system_score: float
     caldera_characteristics: List[float]
+
 
 class SupereruptionAnalysisResponse(BaseModel):
     """Response for supereruption analysis."""
@@ -179,6 +192,7 @@ class SupereruptionAnalysisResponse(BaseModel):
     geochemical_indicators: Dict[str, float]
     time_to_eruption_estimate: Optional[float]
 
+
 class HistoricalComparison(BaseModel):
     """Historical supereruption comparison."""
 
@@ -186,6 +200,7 @@ class HistoricalComparison(BaseModel):
     similarity: float
     volume_comparison: Dict[str, float]
     implications: List[str]
+
 
 class MagmaChamberState(BaseModel):
     """Magma chamber state analysis."""
@@ -200,12 +215,14 @@ class MagmaChamberState(BaseModel):
     volatile_content: Dict[str, float]
     eruption_style_prediction: str
 
+
 class SimilarSystem(BaseModel):
     """Similar geological system."""
 
     system_id: str
     similarity: float
     metadata: SystemMetadata
+
 
 class NetworkAnalysisResponse(BaseModel):
     """Complete network analysis response."""
@@ -216,7 +233,9 @@ class NetworkAnalysisResponse(BaseModel):
     system_classification: Dict[str, Any]
     supereruption_analysis: Optional[Dict[str, Any]] = None
 
+
 # API Endpoints
+
 
 @router.post("/node-embeddings", response_model=NodeEmbeddingResponse)
 async def generate_node_embeddings(
@@ -293,6 +312,7 @@ async def generate_node_embeddings(
             status_code=500, detail=f"Failed to generate node embeddings: {str(e)}"
         )
 
+
 @router.post("/edge-embeddings", response_model=EdgeEmbeddingResponse)
 async def generate_edge_embeddings(
     edge_data: GeologicalEdgeData,
@@ -352,6 +372,7 @@ async def generate_edge_embeddings(
         raise HTTPException(
             status_code=500, detail=f"Failed to generate edge embeddings: {str(e)}"
         )
+
 
 @router.post("/graph-embeddings", response_model=GraphEmbeddingResponse)
 async def generate_graph_embeddings(
@@ -429,6 +450,7 @@ async def generate_graph_embeddings(
             status_code=500, detail=f"Failed to generate graph embeddings: {str(e)}"
         )
 
+
 @router.post("/analyze-supereruption", response_model=SupereruptionAnalysisResponse)
 async def analyze_supereruption_potential(
     caldera_system: CalderaSystemData,
@@ -483,6 +505,7 @@ async def analyze_supereruption_potential(
             detail=f"Failed to analyze supereruption potential: {str(e)}",
         )
 
+
 @router.post(
     "/compare-historical-supereruptions", response_model=List[HistoricalComparison]
 )
@@ -531,6 +554,7 @@ async def compare_with_historical_supereruptions(
             detail=f"Failed to compare with historical supereruptions: {str(e)}",
         )
 
+
 @router.post("/analyze-magma-chamber", response_model=MagmaChamberState)
 async def analyze_magma_chamber_state(
     chamber_embedding: List[float],
@@ -559,6 +583,7 @@ async def analyze_magma_chamber_state(
         raise HTTPException(
             status_code=500, detail=f"Failed to analyze magma chamber state: {str(e)}"
         )
+
 
 @router.post("/add-system")
 async def add_geological_system(
@@ -589,6 +614,7 @@ async def add_geological_system(
         raise HTTPException(
             status_code=500, detail=f"Failed to add geological system: {str(e)}"
         )
+
 
 @router.post("/find-similar-systems", response_model=List[SimilarSystem])
 async def find_similar_systems(
@@ -627,6 +653,7 @@ async def find_similar_systems(
         raise HTTPException(
             status_code=500, detail=f"Failed to find similar systems: {str(e)}"
         )
+
 
 @router.post("/analyze-network", response_model=NetworkAnalysisResponse)
 async def analyze_complete_network(
@@ -696,6 +723,7 @@ async def analyze_complete_network(
         raise HTTPException(
             status_code=500, detail=f"Failed to analyze complete network: {str(e)}"
         )
+
 
 @router.get("/health")
 async def health_check():

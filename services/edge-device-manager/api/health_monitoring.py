@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 # Dependencies
 async def get_health_monitor() -> HealthMonitor:
     from main import health_monitor
@@ -22,12 +23,14 @@ async def get_health_monitor() -> HealthMonitor:
         raise HTTPException(status_code=503, detail="Health monitor not available")
     return health_monitor
 
+
 async def get_device_manager() -> EdgeDeviceManager:
     from main import device_manager
 
     if not device_manager:
         raise HTTPException(status_code=503, detail="Device manager not available")
     return device_manager
+
 
 @router.get("/summary")
 async def get_health_summary(monitor: HealthMonitor = Depends(get_health_monitor)):
@@ -38,6 +41,7 @@ async def get_health_summary(monitor: HealthMonitor = Depends(get_health_monitor
     except Exception as e:
         logger.error(f"Failed to get health summary: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/devices/{device_id}", response_model=HealthCheckResult)
 async def get_device_health(
@@ -50,6 +54,7 @@ async def get_device_health(
             status_code=404, detail="No health data available for device"
         )
     return health_result
+
 
 @router.post("/devices/{device_id}/check")
 async def perform_health_check(
@@ -78,6 +83,7 @@ async def perform_health_check(
         logger.error(f"Failed to initiate health check for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/devices/{device_id}/diagnostics")
 async def get_device_diagnostics(
     device_id: str, monitor: HealthMonitor = Depends(get_health_monitor)
@@ -89,6 +95,7 @@ async def get_device_diagnostics(
     except Exception as e:
         logger.error(f"Failed to get diagnostics for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/devices/{device_id}/monitoring/start")
 async def start_device_monitoring(
@@ -115,6 +122,7 @@ async def start_device_monitoring(
         logger.error(f"Failed to start monitoring for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/devices/{device_id}/monitoring/stop")
 async def stop_device_monitoring(
     device_id: str, monitor: HealthMonitor = Depends(get_health_monitor)
@@ -131,6 +139,7 @@ async def stop_device_monitoring(
     except Exception as e:
         logger.error(f"Failed to stop monitoring for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/alerts")
 async def get_health_alerts(
@@ -160,6 +169,7 @@ async def get_health_alerts(
     except Exception as e:
         logger.error(f"Failed to get health alerts: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/metrics/system")
 async def get_system_health_metrics(
@@ -208,6 +218,7 @@ async def get_system_health_metrics(
         logger.error(f"Failed to get system health metrics: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/devices/{device_id}/metrics/history")
 async def get_device_health_history(
     device_id: str,
@@ -230,6 +241,7 @@ async def get_device_health_history(
     except Exception as e:
         logger.error(f"Failed to get health history for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/thresholds/update")
 async def update_health_thresholds(
@@ -270,6 +282,7 @@ async def update_health_thresholds(
     except Exception as e:
         logger.error(f"Failed to update health thresholds: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/status")
 async def get_monitoring_status(monitor: HealthMonitor = Depends(get_health_monitor)):

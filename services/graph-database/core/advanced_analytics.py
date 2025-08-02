@@ -13,6 +13,7 @@ from .database import GraphDatabaseManager
 
 logger = logging.getLogger(__name__)
 
+
 class AdvancedGraphAnalytics:
     """Advanced analytics for geological process networks"""
 
@@ -320,6 +321,7 @@ class AdvancedGraphAnalytics:
         if not failure_scenarios:
             # Default failure scenarios: remove most critical processes
             from .graph_algorithms import GeologicalGraphAlgorithms
+
             algorithms = GeologicalGraphAlgorithms(self.db_manager)
             critical_processes = await algorithms.find_critical_processes(
                 process_ids, criteria="centrality"

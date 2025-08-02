@@ -33,6 +33,7 @@ from core.seismic_cnn_processor import (
 )
 from models.geological import GeologicalLocation
 
+
 class TestSeismicCNN:
     """Test the CNN model architecture"""
 
@@ -92,6 +93,7 @@ class TestSeismicCNN:
             key in outputs
             for key in ["event_type", "detection", "magnitude", "confidence"]
         )
+
 
 class TestSeismicFeatureExtractor:
     """Test the feature extraction functionality"""
@@ -198,6 +200,7 @@ class TestSeismicFeatureExtractor:
         for key, value in features.items():
             assert np.isfinite(value) or value == 0.0
 
+
 class TestSeismicEvent:
     """Test the SeismicEvent data structure"""
 
@@ -246,6 +249,7 @@ class TestSeismicEvent:
                 event_type=SeismicEventType.EARTHQUAKE,
                 depth=-5.0,
             )
+
 
 class TestSeismicCNNProcessor:
     """Test the main CNN processor"""
@@ -417,6 +421,7 @@ class TestSeismicCNNProcessor:
         for key in expected_keys:
             assert key in stats
 
+
 class TestSeismicEventClassifier:
     """Test the specialized event classifier"""
 
@@ -473,6 +478,7 @@ class TestSeismicEventClassifier:
         # Check that classification rules were recorded
         for event in classified_events:
             assert "classification_rule" in event.detection_metadata
+
 
 class TestIntegration:
     """Integration tests for the complete seismic detection system"""
@@ -603,6 +609,7 @@ class TestIntegration:
 
         # Verify streaming processing worked
         assert self.processor.processing_stats["total_windows_processed"] > 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

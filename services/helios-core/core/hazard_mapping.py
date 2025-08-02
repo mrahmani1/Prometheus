@@ -17,6 +17,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class HazardType(Enum):
     """Types of geological hazards"""
 
@@ -32,6 +33,7 @@ class HazardType(Enum):
     GROUND_DEFORMATION = "ground_deformation"
     LIQUEFACTION = "liquefaction"
 
+
 class RiskLevel(Enum):
     """Risk assessment levels"""
 
@@ -41,6 +43,7 @@ class RiskLevel(Enum):
     HIGH = 4
     VERY_HIGH = 5
     EXTREME = 6
+
 
 @dataclass
 class GeographicBounds:
@@ -52,6 +55,7 @@ class GeographicBounds:
     max_lon: float
     resolution: float = 0.001  # degrees
 
+
 @dataclass
 class HazardProbability:
     """Probabilistic hazard assessment"""
@@ -62,6 +66,7 @@ class HazardProbability:
     time_window: timedelta
     uncertainty: float
     contributing_factors: List[str] = field(default_factory=list)
+
 
 @dataclass
 class HazardZone:
@@ -77,6 +82,7 @@ class HazardZone:
     evacuation_routes: List[Tuple[float, float]]
     last_updated: datetime
 
+
 @dataclass
 class MultiHazardAssessment:
     """Combined assessment of multiple hazard types"""
@@ -90,6 +96,7 @@ class MultiHazardAssessment:
     cascading_effects: Dict[HazardType, List[HazardType]]
     total_population_at_risk: int
     economic_impact_estimate: float
+
 
 class HazardMappingEngine:
     """Core engine for comprehensive hazard mapping"""
@@ -260,6 +267,7 @@ class HazardMappingEngine:
     ) -> float:
         """Calculate conditional probability of secondary hazard given primary"""
 
+
 class AdvancedPhysicsSimulator:
     """Physics-Informed Neural Network for geological simulations"""
 
@@ -360,6 +368,7 @@ class AdvancedPhysicsSimulator:
         self, coords: torch.Tensor, u_pred: torch.Tensor
     ) -> torch.Tensor:
         """Compute boundary conditions loss"""
+
 
 class AdvancedDataProcessor:
     """Advanced data processing pipeline for geological datasets"""
@@ -539,6 +548,7 @@ class AdvancedDataProcessor:
     ) -> int:
         """Calculate population at risk based on risk map"""
 
+
 class AdvancedSeismicCNN:
     """Convolutional Neural Network for seismic event detection and classification"""
 
@@ -690,6 +700,7 @@ class AdvancedSeismicCNN:
         """Estimate earthquake magnitude from waveform amplitude"""
         np.max(np.abs(waveform_data))
 
+
 class AdvancedPhysicsSimulator:
     """Physics-Informed Neural Network for geological simulations"""
 
@@ -831,6 +842,7 @@ class AdvancedPhysicsSimulator:
         individual_hazards: Dict[HazardType, HazardProbability],
     ) -> float:
         """Estimate economic impact of hazards"""
+
 
 class AdvancedSeismicCNN:
     """Convolutional Neural Network for seismic event detection and classification"""
@@ -981,6 +993,7 @@ class AdvancedSeismicCNN:
     def _estimate_magnitude(self, waveform_data: np.ndarray) -> float:
         """Estimate earthquake magnitude from waveform amplitude"""
         np.max(np.abs(waveform_data))
+
 
 class AdvancedPhysicsSimulator:
     """Physics-Informed Neural Network for geological simulations"""
@@ -1133,6 +1146,7 @@ class AdvancedPhysicsSimulator:
 
         return total_impact
 
+
 class BaseHazardModel:
     """Base class for individual hazard models"""
 
@@ -1147,6 +1161,7 @@ class BaseHazardModel:
     ) -> HazardProbability:
         """Assess probability for this hazard type"""
         raise NotImplementedError
+
 
 class VolcanicHazardModel(BaseHazardModel):
     """Model for volcanic eruption hazard assessment"""
@@ -1227,6 +1242,7 @@ class VolcanicHazardModel(BaseHazardModel):
 
         return quality_score
 
+
 class SeismicHazardModel(BaseHazardModel):
     """Model for seismic earthquake hazard assessment"""
 
@@ -1288,6 +1304,7 @@ class SeismicHazardModel(BaseHazardModel):
             contributing_factors=contributing_factors,
         )
 
+
 # Additional hazard models (simplified implementations)
 class PyroclasticFlowModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):
@@ -1305,6 +1322,7 @@ class PyroclasticFlowModel(BaseHazardModel):
             uncertainty=0.3,
             contributing_factors=["volcanic_activity"],
         )
+
 
 class LaharModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):
@@ -1326,6 +1344,7 @@ class LaharModel(BaseHazardModel):
             contributing_factors=["precipitation", "volcanic_activity"],
         )
 
+
 class AshFallModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):
         volcanic_activity = monitoring_data.get("volcanic_activity", {})
@@ -1342,6 +1361,7 @@ class AshFallModel(BaseHazardModel):
             contributing_factors=["volcanic_activity", "wind_patterns"],
         )
 
+
 class LavaFlowModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):
         volcanic_activity = monitoring_data.get("volcanic_activity", {})
@@ -1355,6 +1375,7 @@ class LavaFlowModel(BaseHazardModel):
             uncertainty=0.25,
             contributing_factors=["volcanic_activity"],
         )
+
 
 class LandslideModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):
@@ -1383,6 +1404,7 @@ class LandslideModel(BaseHazardModel):
             ],
         )
 
+
 class TsunamiModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):
         earthquake_prob = monitoring_data.get("earthquake_probability", 0.1)
@@ -1401,6 +1423,7 @@ class TsunamiModel(BaseHazardModel):
             contributing_factors=["seismic_activity", "underwater_activity"],
         )
 
+
 class LiquefactionModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):
         earthquake_prob = monitoring_data.get("earthquake_probability", 0.1)
@@ -1417,6 +1440,7 @@ class LiquefactionModel(BaseHazardModel):
             uncertainty=0.3,
             contributing_factors=["seismic_activity", "soil_conditions", "groundwater"],
         )
+
 
 class DeformationModel(BaseHazardModel):
     async def assess_probability(self, bounds, monitoring_data, time_horizon):

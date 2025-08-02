@@ -20,11 +20,8 @@ from pydantic import BaseModel, Field
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch.nn.functional as F
-from core.causal_inference_engine import (
-    CausalAlgorithm,
-    CausalGraph,
-    CausalInferenceEngine,
-)
+from core.causal_inference_engine import (CausalAlgorithm, CausalGraph,
+                                          CausalInferenceEngine)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -34,6 +31,7 @@ router = APIRouter(prefix="/causal-inference", tags=["causal-inference"])
 
 # Global engine instance
 causal_engine = CausalInferenceEngine()
+
 
 # Pydantic models for API
 class CausalDiscoveryRequest(BaseModel):
@@ -48,6 +46,7 @@ class CausalDiscoveryRequest(BaseModel):
         default=None, description="Variables to include in analysis"
     )
 
+
 class CausalDiscoveryResponse(BaseModel):
     graph_id: str
     nodes: List[str]
@@ -56,6 +55,7 @@ class CausalDiscoveryResponse(BaseModel):
     confidence_threshold: float
     creation_timestamp: str
     validation_metrics: Dict[str, float]
+
 
 class InterventionRequest(BaseModel):
     graph_id: str = Field(description="ID of causal graph to use")
@@ -67,6 +67,7 @@ class InterventionRequest(BaseModel):
         default=None, description="Variables to analyze effects on"
     )
 
+
 class InterventionResponse(BaseModel):
     intervention_variable: str
     intervention_value: float
@@ -76,20 +77,24 @@ class InterventionResponse(BaseModel):
     statistical_significance: Dict[str, float]
     geological_interpretation: str
 
+
 class HypothesisGenerationRequest(BaseModel):
     graph_id: str = Field(description="ID of causal graph to use")
     confidence_threshold: float = Field(
         default=0.8, description="Minimum confidence for hypothesis generation"
     )
 
+
 class HypothesisGenerationResponse(BaseModel):
     hypotheses: List[str]
     graph_summary: Dict[str, Any]
     generation_timestamp: str
 
+
 class ValidationRequest(BaseModel):
     graph_id: str = Field(description="ID of causal graph to validate")
     validation_data_source: str = Field(description="Source of validation data")
+
 
 class ValidationResponse(BaseModel):
     total_edges: int
@@ -99,9 +104,11 @@ class ValidationResponse(BaseModel):
     domain_knowledge_consistency: float
     edge_validations: Dict[str, Dict[str, Any]]
 
+
 # In-memory storage for discovered graphs (in production, use proper database)
 discovered_graphs: Dict[str, CausalGraph] = {}
 graph_data: Dict[str, pd.DataFrame] = {}
+
 
 @router.post("/discover", response_model=CausalDiscoveryResponse)
 async def discover_causal_relationships(
@@ -236,6 +243,7 @@ async def discover_causal_relationships(
         logger.error(f"Error in causal discovery: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+
 @router.post("/intervene", response_model=InterventionResponse)
 async def perform_intervention_analysis(request: InterventionRequest):
     """
@@ -311,6 +319,7 @@ async def perform_intervention_analysis(request: InterventionRequest):
         logger.error(f"Error in intervention analysis: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+
 @router.post("/generate-hypotheses", response_model=HypothesisGenerationResponse)
 async def generate_hypotheses(request: HypothesisGenerationRequest):
     """
@@ -371,6 +380,7 @@ async def generate_hypotheses(request: HypothesisGenerationRequest):
     except Exception as e:
         logger.error(f"Error in hypothesis generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 
 @router.post("/validate", response_model=ValidationResponse)
 async def validate_causal_graph(
@@ -439,6 +449,7 @@ async def validate_causal_graph(
         logger.error(f"Error in causal graph validation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+
 @router.get("/graphs")
 async def list_discovered_graphs():
     """List all discovered causal graphs"""
@@ -457,6 +468,7 @@ async def list_discovered_graphs():
         )
 
     return {"graphs": graphs_info}
+
 
 @router.get("/graphs/{graph_id}")
 async def get_causal_graph(graph_id: str):
@@ -493,6 +505,7 @@ async def get_causal_graph(graph_id: str):
         "domain_knowledge": causal_graph.geological_domain_knowledge,
     }
 
+
 @router.delete("/graphs/{graph_id}")
 async def delete_causal_graph(graph_id: str):
     """Delete a discovered causal graph"""
@@ -506,6 +519,7 @@ async def delete_causal_graph(graph_id: str):
         del graph_data[graph_id]
 
     return {"message": f"Causal graph {graph_id} deleted successfully"}
+
 
 @router.post("/export/{graph_id}")
 async def export_causal_graph(graph_id: str):
@@ -540,6 +554,7 @@ async def export_causal_graph(graph_id: str):
     }
 
     return export_data
+
 
 @router.get("/health")
 async def health_check():
