@@ -29,9 +29,14 @@ from core.explanation_engine import AnomalyExplanationEngine
 from core.multiscale_analyzer import MultiScaleAnalyzer
 from core.multivariate_detector import MultivariateAnomalyDetector
 from core.significance_assessor import SignificanceAssessor
-from models.schemas import (AnomalyDetectionRequest, AnomalyDetectionResponse,
-                            AnomalyType, DetectedAnomaly, GeologicalDataStream,
-                            PhenomenaDiscovery)
+from models.schemas import (
+    AnomalyDetectionRequest,
+    AnomalyDetectionResponse,
+    AnomalyType,
+    DetectedAnomaly,
+    GeologicalDataStream,
+    PhenomenaDiscovery,
+)
 from sklearn.cluster import DBSCAN
 
 logger = logging.getLogger(__name__)
@@ -75,27 +80,19 @@ class AnomalyDetectionEngine:
             logger.info("Initializing anomaly detection engine...")
 
             # Initialize multivariate detector
-            self.multivariate_detector = MultivariateAnomalyDetector(
-                self.settings, self.db_manager
-            )
+            self.multivariate_detector = MultivariateAnomalyDetector(self.settings, self.db_manager)
             await self.multivariate_detector.initialize()
 
             # Initialize contextual detector
-            self.contextual_detector = ContextualAnomalyDetector(
-                self.settings, self.db_manager
-            )
+            self.contextual_detector = ContextualAnomalyDetector(self.settings, self.db_manager)
             await self.contextual_detector.initialize()
 
             # Initialize collective detector
-            self.collective_detector = CollectiveAnomalyDetector(
-                self.settings, self.db_manager
-            )
+            self.collective_detector = CollectiveAnomalyDetector(self.settings, self.db_manager)
             await self.collective_detector.initialize()
 
             # Initialize causal RL agent
-            self.causal_rl_agent = CausalReinforcementLearningAgent(
-                self.settings, self.db_manager
-            )
+            self.causal_rl_agent = CausalReinforcementLearningAgent(self.settings, self.db_manager)
             await self.causal_rl_agent.initialize()
 
             # Initialize continuous learner
@@ -103,21 +100,15 @@ class AnomalyDetectionEngine:
             await self.continuous_learner.initialize()
 
             # Initialize multi-scale analyzer
-            self.multiscale_analyzer = MultiScaleAnalyzer(
-                self.settings, self.db_manager
-            )
+            self.multiscale_analyzer = MultiScaleAnalyzer(self.settings, self.db_manager)
             await self.multiscale_analyzer.initialize()
 
             # Initialize explanation engine
-            self.explanation_engine = AnomalyExplanationEngine(
-                self.settings, self.db_manager
-            )
+            self.explanation_engine = AnomalyExplanationEngine(self.settings, self.db_manager)
             await self.explanation_engine.initialize()
 
             # Initialize significance assessor
-            self.significance_assessor = SignificanceAssessor(
-                self.settings, self.db_manager
-            )
+            self.significance_assessor = SignificanceAssessor(self.settings, self.db_manager)
             await self.significance_assessor.initialize()
 
             logger.info("Anomaly detection engine initialized successfully")
@@ -140,9 +131,7 @@ class AnomalyDetectionEngine:
 
         logger.info("Anomaly detection engine shutdown complete")
 
-    async def detect_anomalies(
-        self, request: AnomalyDetectionRequest
-    ) -> AnomalyDetectionResponse:
+    async def detect_anomalies(self, request: AnomalyDetectionRequest) -> AnomalyDetectionResponse:
         """Main anomaly detection method"""
         start_time = datetime.utcnow()
         request_id = str(uuid.uuid4())
@@ -166,21 +155,15 @@ class AnomalyDetectionEngine:
                 detected_anomalies.extend(contextual_anomalies)
 
             if AnomalyType.COLLECTIVE in request.detection_types:
-                collective_anomalies = await self._detect_collective_anomalies(
-                    request.data_stream
-                )
+                collective_anomalies = await self._detect_collective_anomalies(request.data_stream)
                 detected_anomalies.extend(collective_anomalies)
 
             if AnomalyType.CAUSAL in request.detection_types:
-                causal_anomalies = await self._detect_causal_anomalies(
-                    request.data_stream
-                )
+                causal_anomalies = await self._detect_causal_anomalies(request.data_stream)
                 detected_anomalies.extend(causal_anomalies)
 
             if AnomalyType.MULTI_SCALE in request.detection_types:
-                multiscale_anomalies = await self._detect_multiscale_anomalies(
-                    request.data_stream
-                )
+                multiscale_anomalies = await self._detect_multiscale_anomalies(request.data_stream)
                 detected_anomalies.extend(multiscale_anomalies)
 
             # Add explanations and significance assessments if requested
@@ -234,9 +217,7 @@ class AnomalyDetectionEngine:
         if not self.multivariate_detector:
             return []
 
-        return await self.multivariate_detector.detect_anomalies(
-            data_stream, sensitivity
-        )
+        return await self.multivariate_detector.detect_anomalies(data_stream, sensitivity)
 
     async def _detect_contextual_anomalies(
         self, data_stream: GeologicalDataStream, context_window: Optional[int]
@@ -245,9 +226,7 @@ class AnomalyDetectionEngine:
         if not self.contextual_detector:
             return []
 
-        return await self.contextual_detector.detect_anomalies(
-            data_stream, context_window
-        )
+        return await self.contextual_detector.detect_anomalies(data_stream, context_window)
 
     async def _detect_collective_anomalies(
         self, data_stream: GeologicalDataStream
@@ -287,22 +266,16 @@ class AnomalyDetectionEngine:
 
         for anomaly in anomalies:
             if include_explanation and self.explanation_engine:
-                anomaly.explanation = await self.explanation_engine.explain_anomaly(
-                    anomaly
-                )
+                anomaly.explanation = await self.explanation_engine.explain_anomaly(anomaly)
 
             if include_significance and self.significance_assessor:
-                anomaly.significance = (
-                    await self.significance_assessor.assess_significance(anomaly)
-                )
+                anomaly.significance = await self.significance_assessor.assess_significance(anomaly)
 
             enriched_anomalies.append(anomaly)
 
         return enriched_anomalies
 
-    def _generate_summary_statistics(
-        self, anomalies: List[DetectedAnomaly]
-    ) -> Dict[str, Any]:
+    def _generate_summary_statistics(self, anomalies: List[DetectedAnomaly]) -> Dict[str, Any]:
         """Generate summary statistics for detected anomalies"""
         if not anomalies:
             return {
@@ -364,9 +337,7 @@ class AnomalyDetectionEngine:
         )
         recall = true_positives / total_detections if total_detections > 0 else 0.0
         f1_score = (
-            2 * (precision * recall) / (precision + recall)
-            if (precision + recall) > 0
-            else 0.0
+            2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
         )
 
         processing_times = self.detection_stats["processing_times"]
@@ -394,9 +365,7 @@ class AnomalyDetectionEngine:
                 discovery = await self._create_phenomena_discovery(cluster)
                 if discovery:
                     await self.db_manager.store_phenomena_discovery(discovery)
-                    logger.info(
-                        f"Potential new phenomena discovered: {discovery.phenomena_name}"
-                    )
+                    logger.info(f"Potential new phenomena discovered: {discovery.phenomena_name}")
 
     async def _cluster_anomalies(
         self, anomalies: List[DetectedAnomaly]
@@ -437,11 +406,7 @@ class AnomalyDetectionEngine:
 
         # Check novelty score
         avg_novelty = np.mean(
-            [
-                anomaly.significance.novelty_score
-                for anomaly in cluster
-                if anomaly.significance
-            ]
+            [anomaly.significance.novelty_score for anomaly in cluster if anomaly.significance]
         )
 
         if avg_novelty < 0.8:  # High novelty threshold
@@ -473,7 +438,9 @@ class AnomalyDetectionEngine:
             if cluster[0].spatial_extent:
                 location_info = f"lat_{cluster[0].spatial_extent.get('lat', 0):.2f}"
 
-            phenomena_name = f"Anomalous_{primary_type}_{location_info}_{datetime.utcnow().strftime('%Y%m%d')}"
+            phenomena_name = (
+                f"Anomalous_{primary_type}_{location_info}_{datetime.utcnow().strftime('%Y%m%d')}"
+            )
 
             # Aggregate supporting evidence
             supporting_anomalies = [anomaly.anomaly_id for anomaly in cluster]
@@ -515,13 +482,10 @@ class AnomalyDetectionEngine:
                 phenomena_type=primary_type,
                 temporal_characteristics={
                     "duration": statistical_evidence["temporal_span_hours"],
-                    "frequency": len(cluster)
-                    / max(1, statistical_evidence["temporal_span_hours"]),
+                    "frequency": len(cluster) / max(1, statistical_evidence["temporal_span_hours"]),
                 },
                 spatial_characteristics={
-                    "extent": (
-                        cluster[0].spatial_extent if cluster[0].spatial_extent else {}
-                    )
+                    "extent": (cluster[0].spatial_extent if cluster[0].spatial_extent else {})
                 },
                 confidence_level=confidence_level,
                 validation_status="pending",

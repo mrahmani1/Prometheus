@@ -44,9 +44,7 @@ class CausalExplanation:
     root_causes: List[str]
     intermediate_causes: List[str]
     proximate_causes: List[str]
-    causal_pathway: List[
-        Tuple[str, str, float, float]
-    ]  # (cause, effect, strength, lag)
+    causal_pathway: List[Tuple[str, str, float, float]]  # (cause, effect, strength, lag)
     alternative_explanations: List[str]
     causal_confidence: float
 
@@ -225,9 +223,7 @@ class GeologicalKnowledgeBase:
             ],
         }
 
-    def get_expected_ranges(
-        self, context: Dict[str, Any], parameter: str
-    ) -> Tuple[float, float]:
+    def get_expected_ranges(self, context: Dict[str, Any], parameter: str) -> Tuple[float, float]:
         """Get expected parameter ranges for given geological context"""
         setting = context.get("geological_setting", "unknown")
 
@@ -353,9 +349,7 @@ class AnomalyExplanationEngine:
         )
 
         # Extract key information
-        anomaly_id = anomaly_data.get(
-            "anomaly_id", f"anomaly_{np.random.randint(10000)}"
-        )
+        anomaly_id = anomaly_data.get("anomaly_id", f"anomaly_{np.random.randint(10000)}")
         timestamp = anomaly_data.get("timestamp", 0.0)
         affected_parameters = anomaly_data.get("affected_parameters", [])
         anomaly_data.get("anomaly_score", 0.0)
@@ -371,14 +365,10 @@ class AnomalyExplanationEngine:
         historical_cases = self._find_similar_cases(anomaly_data, context)
 
         # Assess confidence and uncertainty
-        confidence_assessment = self._assess_confidence(
-            anomaly_data, causal_explanation
-        )
+        confidence_assessment = self._assess_confidence(anomaly_data, causal_explanation)
 
         # Generate recommendations
-        recommendations = self._generate_recommendations(
-            anomaly_data, causal_explanation, context
-        )
+        recommendations = self._generate_recommendations(anomaly_data, causal_explanation, context)
 
         # Get relevant scientific references
         references = self._get_relevant_references(affected_parameters, anomaly_type)
@@ -397,9 +387,7 @@ class AnomalyExplanationEngine:
             timestamp=timestamp,
             explanation_type=self._classify_explanation_type(anomaly_data),
             primary_cause=(
-                causal_explanation.root_causes[0]
-                if causal_explanation.root_causes
-                else "unknown"
+                causal_explanation.root_causes[0] if causal_explanation.root_causes else "unknown"
             ),
             contributing_factors=causal_explanation.intermediate_causes,
             geological_context=geological_context,
@@ -412,9 +400,7 @@ class AnomalyExplanationEngine:
             explanation_text=explanation_text,
         )
 
-        logger.info(
-            f"Generated explanation with {explanation.confidence_level:.2f} confidence"
-        )
+        logger.info(f"Generated explanation with {explanation.confidence_level:.2f} confidence")
         return explanation
 
     def _generate_causal_explanation(
@@ -433,9 +419,7 @@ class AnomalyExplanationEngine:
         for parameter in affected_parameters:
             # Find geological processes that could affect this parameter
             for process, info in self.knowledge_base.process_relationships.items():
-                if any(
-                    indicator in parameter.lower() for indicator in info["indicators"]
-                ):
+                if any(indicator in parameter.lower() for indicator in info["indicators"]):
                     # This process could be involved
                     root_causes.extend(info["causes"])
                     intermediate_causes.append(process)
@@ -498,8 +482,7 @@ class AnomalyExplanationEngine:
         if any("seismic" in param.lower() for param in affected_params):
             return "seismically active region with ongoing tectonic processes"
         elif any(
-            "volcanic" in param.lower() or "gas" in param.lower()
-            for param in affected_params
+            "volcanic" in param.lower() or "gas" in param.lower() for param in affected_params
         ):
             return "volcanic environment with active magmatic processes"
         elif any("deformation" in param.lower() for param in affected_params):
@@ -609,23 +592,15 @@ class AnomalyExplanationEngine:
 
         # High-priority recommendations for high-score anomalies
         if anomaly_score > 0.8:
-            recommendations.append(
-                "Immediate investigation required - high anomaly score detected"
-            )
-            recommendations.append(
-                "Increase monitoring frequency for affected parameters"
-            )
+            recommendations.append("Immediate investigation required - high anomaly score detected")
+            recommendations.append("Increase monitoring frequency for affected parameters")
             recommendations.append("Alert relevant authorities and stakeholders")
 
         # Parameter-specific recommendations
         for parameter in affected_parameters:
             if "seismic" in parameter.lower():
-                recommendations.append(
-                    "Deploy additional seismometers in the affected area"
-                )
-                recommendations.append(
-                    "Analyze earthquake catalog for precursory patterns"
-                )
+                recommendations.append("Deploy additional seismometers in the affected area")
+                recommendations.append("Analyze earthquake catalog for precursory patterns")
             elif "deformation" in parameter.lower():
                 recommendations.append("Increase GPS and InSAR monitoring frequency")
                 recommendations.append("Check for infrastructure impacts")
@@ -636,13 +611,9 @@ class AnomalyExplanationEngine:
         # Causal-based recommendations
         for cause in causal_explanation.root_causes[:2]:  # Top 2 causes
             if "magma" in cause:
-                recommendations.append(
-                    "Monitor volcanic gas emissions and thermal signatures"
-                )
+                recommendations.append("Monitor volcanic gas emissions and thermal signatures")
             elif "tectonic" in cause:
-                recommendations.append(
-                    "Analyze regional stress field and fault activity"
-                )
+                recommendations.append("Analyze regional stress field and fault activity")
             elif "fluid" in cause:
                 recommendations.append("Monitor groundwater levels and hydrogeology")
 
@@ -659,20 +630,12 @@ class AnomalyExplanationEngine:
         # Parameter-based references
         for parameter in affected_parameters:
             if "seismic" in parameter.lower():
-                references.extend(
-                    self.knowledge_base.scientific_references["seismic_precursors"]
-                )
-            elif any(
-                term in parameter.lower() for term in ["volcanic", "gas", "thermal"]
-            ):
-                references.extend(
-                    self.knowledge_base.scientific_references["volcanic_monitoring"]
-                )
+                references.extend(self.knowledge_base.scientific_references["seismic_precursors"])
+            elif any(term in parameter.lower() for term in ["volcanic", "gas", "thermal"]):
+                references.extend(self.knowledge_base.scientific_references["volcanic_monitoring"])
 
         # Always include anomaly detection references
-        references.extend(
-            self.knowledge_base.scientific_references["anomaly_detection"]
-        )
+        references.extend(self.knowledge_base.scientific_references["anomaly_detection"])
 
         # Remove duplicates and limit
         references = list(set(references))
@@ -732,9 +695,7 @@ class AnomalyExplanationEngine:
         affected_params = anomaly_data.get("affected_parameters", [])
         anomaly_score = anomaly_data.get("anomaly_score", 0.0)
 
-        components.append(
-            f"Anomaly {anomaly_id} detected with score {anomaly_score:.2f}"
-        )
+        components.append(f"Anomaly {anomaly_id} detected with score {anomaly_score:.2f}")
 
         if affected_params:
             param_str = ", ".join(affected_params[:3])
@@ -757,9 +718,7 @@ class AnomalyExplanationEngine:
         components.append(f"Explanation confidence is {confidence_level}")
 
         if confidence_assessment["uncertainty_sources"]:
-            uncertainty_str = ", ".join(
-                confidence_assessment["uncertainty_sources"][:2]
-            )
+            uncertainty_str = ", ".join(confidence_assessment["uncertainty_sources"][:2])
             components.append(f"Main uncertainties: {uncertainty_str}")
 
         # Historical precedent
@@ -791,9 +750,7 @@ class AnomalyExplanationEngine:
             "individual_explanations": individual_explanations,
             "collective_analysis": collective_analysis,
             "meta_explanation": meta_explanation,
-            "summary": self._generate_summary(
-                individual_explanations, collective_analysis
-            ),
+            "summary": self._generate_summary(individual_explanations, collective_analysis),
         }
 
     def _analyze_collective_patterns(
@@ -818,9 +775,7 @@ class AnomalyExplanationEngine:
         return {
             "common_causes": dict(cause_counts),
             "dominant_cause": (
-                max(cause_counts.items(), key=lambda x: x[1])[0]
-                if cause_counts
-                else None
+                max(cause_counts.items(), key=lambda x: x[1])[0] if cause_counts else None
             ),
             "temporal_span": temporal_span,
             "average_confidence": avg_confidence,
@@ -841,21 +796,15 @@ class AnomalyExplanationEngine:
         # Dominant cause
         if collective_analysis["dominant_cause"]:
             dominant_cause = collective_analysis["dominant_cause"]
-            components.append(
-                f"reveals {dominant_cause} as the primary underlying cause"
-            )
+            components.append(f"reveals {dominant_cause} as the primary underlying cause")
 
         # Temporal pattern
         temporal_span = collective_analysis["temporal_span"]
         if temporal_span > 0:
             if temporal_span < 3600:  # Less than 1 hour
-                components.append(
-                    "occurring within a short time window, suggesting rapid process"
-                )
+                components.append("occurring within a short time window, suggesting rapid process")
             elif temporal_span < 86400:  # Less than 1 day
-                components.append(
-                    "spanning several hours, indicating evolving geological process"
-                )
+                components.append("spanning several hours, indicating evolving geological process")
             else:
                 components.append(
                     "occurring over extended period, suggesting long-term geological evolution"
@@ -887,9 +836,7 @@ class AnomalyExplanationEngine:
         avg_confidence = collective_analysis.get("average_confidence", 0.0)
 
         confidence_desc = (
-            "high"
-            if avg_confidence > 0.7
-            else "moderate" if avg_confidence > 0.5 else "low"
+            "high" if avg_confidence > 0.7 else "moderate" if avg_confidence > 0.5 else "low"
         )
 
         return (

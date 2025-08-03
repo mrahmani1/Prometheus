@@ -19,9 +19,7 @@ class Settings(BaseSettings):
     # Service configuration
     port: int = Field(default=8007, description="Service port")
     debug: bool = Field(default=False, description="Debug mode")
-    allowed_origins: List[str] = Field(
-        default=["*"], description="CORS allowed origins"
-    )
+    allowed_origins: List[str] = Field(default=["*"], description="CORS allowed origins")
 
     # Database connections
     postgres_url: str = Field(
@@ -35,22 +33,14 @@ class Settings(BaseSettings):
         default="prometheus-token", description="InfluxDB authentication token"
     )
     influxdb_org: str = Field(default="prometheus", description="InfluxDB organization")
-    influxdb_bucket: str = Field(
-        default="geological_data", description="InfluxDB bucket name"
-    )
-    redis_url: str = Field(
-        default="redis://localhost:6379", description="Redis connection URL"
-    )
-    neo4j_url: str = Field(
-        default="bolt://localhost:7687", description="Neo4j connection URL"
-    )
+    influxdb_bucket: str = Field(default="geological_data", description="InfluxDB bucket name")
+    redis_url: str = Field(default="redis://localhost:6379", description="Redis connection URL")
+    neo4j_url: str = Field(default="bolt://localhost:7687", description="Neo4j connection URL")
     neo4j_user: str = Field(default="neo4j", description="Neo4j username")
     neo4j_password: str = Field(default="prometheus123", description="Neo4j password")
 
     # Anomaly detection parameters
-    anomaly_threshold: float = Field(
-        default=0.95, description="Anomaly detection threshold (0-1)"
-    )
+    anomaly_threshold: float = Field(default=0.95, description="Anomaly detection threshold (0-1)")
     multivariate_window_size: int = Field(
         default=100, description="Window size for multivariate analysis"
     )
@@ -62,12 +52,8 @@ class Settings(BaseSettings):
     )
 
     # Reinforcement learning parameters
-    rl_learning_rate: float = Field(
-        default=0.001, description="Learning rate for RL agent"
-    )
-    rl_exploration_rate: float = Field(
-        default=0.1, description="Exploration rate for RL agent"
-    )
+    rl_learning_rate: float = Field(default=0.001, description="Learning rate for RL agent")
+    rl_exploration_rate: float = Field(default=0.1, description="Exploration rate for RL agent")
     rl_memory_size: int = Field(default=10000, description="Memory size for RL agent")
 
     # Continuous learning parameters

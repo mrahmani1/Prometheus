@@ -18,8 +18,7 @@ import torch
 import torch.nn as nn
 from core.config import Settings
 from core.database import DatabaseManager
-from models.schemas import (AnomalySeverity, AnomalyType, DetectedAnomaly,
-                            GeologicalDataStream)
+from models.schemas import AnomalySeverity, AnomalyType, DetectedAnomaly, GeologicalDataStream
 from sklearn.preprocessing import StandardScaler
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.preprocessing import TimeSeriesScalerMeanVariance
@@ -38,9 +37,7 @@ class SequenceLSTM(nn.Module):
         self.num_layers = num_layers
 
         # LSTM layers
-        self.lstm = nn.LSTM(
-            input_dim, hidden_dim, num_layers, batch_first=True, dropout=0.2
-        )
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True, dropout=0.2)
 
         # Attention mechanism
         self.attention = nn.MultiheadAttention(
@@ -111,17 +108,14 @@ class GeologicalSequencePattern:
             "max_amplitude": np.max(self.template_sequence),
             "min_amplitude": np.min(self.template_sequence),
             "sequence_length": len(self.template_sequence),
-            "trend": np.polyfit(
-                range(len(self.template_sequence)), self.template_sequence, 1
-            )[0],
+            "trend": np.polyfit(range(len(self.template_sequence)), self.template_sequence, 1)[0],
         }
 
         # Temporal characteristics
         self.temporal_characteristics = {
             "duration_mean": np.mean([len(seq) for seq in sequences]),
             "duration_std": np.std([len(seq) for seq in sequences]),
-            "peak_position": np.argmax(self.template_sequence)
-            / len(self.template_sequence),
+            "peak_position": np.argmax(self.template_sequence) / len(self.template_sequence),
         }
 
         self.occurrence_frequency = len(sequences)
@@ -138,9 +132,7 @@ class GeologicalSequencePattern:
         template_length = len(self.template_sequence)
         if len(sequence) != template_length:
             if len(sequence) < template_length:
-                sequence = np.pad(
-                    sequence, (0, template_length - len(sequence)), mode="edge"
-                )
+                sequence = np.pad(sequence, (0, template_length - len(sequence)), mode="edge")
             else:
                 sequence = sequence[:template_length]
 
@@ -196,9 +188,7 @@ class CollectiveAnomalyDetector:
             logger.error(f"Failed to initialize collective detector: {e}")
             raise
 
-    async def detect_anomalies(
-        self, data_stream: GeologicalDataStream
-    ) -> List[DetectedAnomaly]:
+    async def detect_anomalies(self, data_stream: GeologicalDataStream) -> List[DetectedAnomaly]:
         """Detect collective anomalies in geological data stream"""
         try:
             if len(data_stream.data_points) < self.min_sequence_length:
@@ -210,21 +200,15 @@ class CollectiveAnomalyDetector:
             detected_anomalies = []
 
             # LSTM-based sequence anomaly detection
-            lstm_anomalies = await self._detect_lstm_sequence_anomalies(
-                sequences, data_stream
-            )
+            lstm_anomalies = await self._detect_lstm_sequence_anomalies(sequences, data_stream)
             detected_anomalies.extend(lstm_anomalies)
 
             # Pattern-based collective anomaly detection
-            pattern_anomalies = await self._detect_pattern_based_anomalies(
-                sequences, data_stream
-            )
+            pattern_anomalies = await self._detect_pattern_based_anomalies(sequences, data_stream)
             detected_anomalies.extend(pattern_anomalies)
 
             # Time series clustering-based detection
-            clustering_anomalies = await self._detect_clustering_anomalies(
-                sequences, data_stream
-            )
+            clustering_anomalies = await self._detect_clustering_anomalies(sequences, data_stream)
             detected_anomalies.extend(clustering_anomalies)
 
             # Statistical sequence anomaly detection
@@ -242,9 +226,7 @@ class CollectiveAnomalyDetector:
             logger.error(f"Collective anomaly detection failed: {e}")
             return []
 
-    def _extract_sequences(
-        self, data_stream: GeologicalDataStream
-    ) -> List[Dict[str, Any]]:
+    def _extract_sequences(self, data_stream: GeologicalDataStream) -> List[Dict[str, Any]]:
         """Extract sequences from geological data stream"""
         sequences = []
 
@@ -302,15 +284,11 @@ class CollectiveAnomalyDetector:
                         "min_value": np.min(values),
                         "max_value": np.max(values),
                         "trend": (
-                            np.polyfit(range(len(values)), values, 1)[0]
-                            if len(values) > 1
-                            else 0.0
+                            np.polyfit(range(len(values)), values, 1)[0] if len(values) > 1 else 0.0
                         ),
                         "peak_position": np.argmax(values) / len(values),
                         "energy": np.sum(values**2),
-                        "zero_crossings": np.sum(
-                            np.diff(np.sign(values - np.mean(values))) != 0
-                        ),
+                        "zero_crossings": np.sum(np.diff(np.sign(values - np.mean(values))) != 0),
                     }
                 )
 
@@ -356,9 +334,7 @@ class CollectiveAnomalyDetector:
 
             for seq_tensor in sequence_tensors:
                 if len(seq_tensor) < max_length:
-                    padding = torch.zeros(
-                        max_length - len(seq_tensor), seq_tensor.shape[1]
-                    )
+                    padding = torch.zeros(max_length - len(seq_tensor), seq_tensor.shape[1])
                     padded_seq = torch.cat([seq_tensor, padding], dim=0)
                 else:
                     padded_seq = seq_tensor[:max_length]
@@ -635,9 +611,7 @@ class CollectiveAnomalyDetector:
         try:
             # Initialize LSTM model
             input_dim = 5  # Features per time step
-            self.sequence_lstm = SequenceLSTM(
-                input_dim=input_dim, hidden_dim=64, num_layers=2
-            )
+            self.sequence_lstm = SequenceLSTM(input_dim=input_dim, hidden_dim=64, num_layers=2)
             self.sequence_lstm.to(self.device)
 
             # Initialize scalers
@@ -659,33 +633,21 @@ class CollectiveAnomalyDetector:
             # Seismic swarm pattern
             swarm_pattern = GeologicalSequencePattern("seismic_swarm", "seismic")
             swarm_sequences = [
-                np.array(
-                    [0.1, 0.3, 0.8, 1.2, 2.1, 1.8, 1.0, 0.5, 0.2, 0.1]
-                ),  # Typical swarm
-                np.array(
-                    [0.2, 0.5, 1.1, 1.8, 2.3, 1.9, 1.2, 0.7, 0.3, 0.1]
-                ),  # Variant 1
-                np.array(
-                    [0.1, 0.4, 0.9, 1.5, 2.0, 1.6, 0.9, 0.4, 0.2, 0.1]
-                ),  # Variant 2
+                np.array([0.1, 0.3, 0.8, 1.2, 2.1, 1.8, 1.0, 0.5, 0.2, 0.1]),  # Typical swarm
+                np.array([0.2, 0.5, 1.1, 1.8, 2.3, 1.9, 1.2, 0.7, 0.3, 0.1]),  # Variant 1
+                np.array([0.1, 0.4, 0.9, 1.5, 2.0, 1.6, 0.9, 0.4, 0.2, 0.1]),  # Variant 2
             ]
             swarm_pattern.fit_pattern(swarm_sequences)
             self.known_patterns["seismic_swarm"] = swarm_pattern
 
             # Volcanic precursor pattern
-            precursor_pattern = GeologicalSequencePattern(
-                "volcanic_precursor", "volcanic"
-            )
+            precursor_pattern = GeologicalSequencePattern("volcanic_precursor", "volcanic")
             precursor_sequences = [
                 np.array(
                     [0.1, 0.2, 0.4, 0.8, 1.5, 2.8, 4.2, 6.1, 8.5, 12.0]
                 ),  # Exponential increase
-                np.array(
-                    [0.2, 0.3, 0.6, 1.0, 1.8, 3.2, 4.8, 6.9, 9.2, 11.8]
-                ),  # Variant 1
-                np.array(
-                    [0.1, 0.3, 0.5, 0.9, 1.6, 2.9, 4.5, 6.3, 8.8, 12.2]
-                ),  # Variant 2
+                np.array([0.2, 0.3, 0.6, 1.0, 1.8, 3.2, 4.8, 6.9, 9.2, 11.8]),  # Variant 1
+                np.array([0.1, 0.3, 0.5, 0.9, 1.6, 2.9, 4.5, 6.3, 8.8, 12.2]),  # Variant 2
             ]
             precursor_pattern.fit_pattern(precursor_sequences)
             self.known_patterns["volcanic_precursor"] = precursor_pattern
@@ -696,12 +658,8 @@ class CollectiveAnomalyDetector:
                 np.array(
                     [15.0, 15.2, 15.8, 17.2, 19.8, 23.5, 28.2, 32.1, 35.8, 38.5]
                 ),  # Gradual heating
-                np.array(
-                    [14.8, 15.1, 15.9, 17.5, 20.2, 24.1, 28.8, 32.5, 36.2, 39.1]
-                ),  # Variant 1
-                np.array(
-                    [15.2, 15.4, 16.0, 17.8, 20.5, 24.3, 29.0, 32.8, 36.5, 39.8]
-                ),  # Variant 2
+                np.array([14.8, 15.1, 15.9, 17.5, 20.2, 24.1, 28.8, 32.5, 36.2, 39.1]),  # Variant 1
+                np.array([15.2, 15.4, 16.0, 17.8, 20.5, 24.3, 29.0, 32.8, 36.5, 39.8]),  # Variant 2
             ]
             thermal_pattern.fit_pattern(thermal_sequences)
             self.known_patterns["thermal_anomaly"] = thermal_pattern
@@ -742,9 +700,7 @@ class CollectiveAnomalyDetector:
                         self.known_patterns[pattern_id].fit_pattern(type_sequences)
                     else:
                         # Create new pattern
-                        new_pattern = GeologicalSequencePattern(
-                            pattern_id, measurement_type
-                        )
+                        new_pattern = GeologicalSequencePattern(pattern_id, measurement_type)
                         new_pattern.fit_pattern(type_sequences)
                         self.known_patterns[pattern_id] = new_pattern
 
@@ -758,14 +714,10 @@ class CollectiveAnomalyDetector:
         return {
             "models_initialized": self.sequence_lstm is not None,
             "known_patterns_count": len(self.known_patterns),
-            "pattern_types": list(
-                set(p.sequence_type for p in self.known_patterns.values())
-            ),
+            "pattern_types": list(set(p.sequence_type for p in self.known_patterns.values())),
             "sequence_length": self.sequence_length,
             "last_pattern_update": (
-                self.pattern_library_updated.isoformat()
-                if self.pattern_library_updated
-                else None
+                self.pattern_library_updated.isoformat() if self.pattern_library_updated else None
             ),
             "pattern_details": {
                 pid: {

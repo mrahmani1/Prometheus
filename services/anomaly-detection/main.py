@@ -99,9 +99,7 @@ app = create_app()
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint"""
-    return HealthResponse(
-        status="healthy", service="anomaly-detection", version="1.0.0"
-    )
+    return HealthResponse(status="healthy", service="anomaly-detection", version="1.0.0")
 
 
 @app.get("/ready", response_model=HealthResponse)

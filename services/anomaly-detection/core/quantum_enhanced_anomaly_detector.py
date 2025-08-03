@@ -75,9 +75,7 @@ class QuantumFeatureMap:
 
     def __init__(self, num_features: int, num_qubits: int = 8):
         self.num_features = num_features
-        self.num_qubits = min(
-            num_qubits, num_features
-        )  # Can't have more qubits than features
+        self.num_qubits = min(num_qubits, num_features)  # Can't have more qubits than features
         self.feature_map = None
         self._build_feature_map()
 
@@ -116,9 +114,7 @@ class QuantumFeatureMap:
             return None
 
         # Normalize data to [0, 2π] for quantum encoding
-        normalized_data = (
-            2 * np.pi * (data - np.min(data)) / (np.max(data) - np.min(data))
-        )
+        normalized_data = 2 * np.pi * (data - np.min(data)) / (np.max(data) - np.min(data))
 
         # Create parameterized circuit
         circuit = self.feature_map.bind_parameters(normalized_data[: self.num_features])
@@ -252,9 +248,7 @@ class VariationalQuantumAnomalyDetector:
             logger.error(f"Quantum training failed: {e}")
             return self._classical_fallback_train(X_train, y_train)
 
-    def _classical_fallback_train(
-        self, X_train: np.ndarray, y_train: np.ndarray
-    ) -> Dict[str, Any]:
+    def _classical_fallback_train(self, X_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
         """Classical fallback training"""
 
         scaler = StandardScaler()
@@ -291,9 +285,7 @@ class VariationalQuantumAnomalyDetector:
                 return predictions, probabilities
 
             except Exception as e:
-                logger.warning(
-                    f"Quantum prediction failed: {e}, using classical fallback"
-                )
+                logger.warning(f"Quantum prediction failed: {e}, using classical fallback")
 
         # Classical fallback
         if hasattr(self, "classical_model"):
@@ -402,9 +394,7 @@ class QuantumApproximateOptimization:
 
             # Extract optimal feature subset
             optimal_bitstring = result.eigenstate
-            self.optimal_features = [
-                i for i, bit in enumerate(optimal_bitstring) if bit == "1"
-            ]
+            self.optimal_features = [i for i, bit in enumerate(optimal_bitstring) if bit == "1"]
 
             logger.info(f"QAOA selected {len(self.optimal_features)} optimal features")
 
@@ -582,9 +572,7 @@ class QuantumEnhancedAnomalyDetector:
         anomalies = []
 
         # VQC predictions
-        vqc_predictions, vqc_probabilities = self.vq_detector.predict_anomaly(
-            X_selected
-        )
+        vqc_predictions, vqc_probabilities = self.vq_detector.predict_anomaly(X_selected)
 
         # QNN predictions
         if self.quantum_nn is not None:
@@ -685,9 +673,7 @@ class QuantumEnhancedAnomalyDetector:
     ) -> str:
         """Generate geological interpretation of anomaly"""
 
-        top_features = sorted(
-            feature_importance.items(), key=lambda x: x[1], reverse=True
-        )[:3]
+        top_features = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)[:3]
 
         interpretations = [
             f"Quantum-enhanced analysis detected a {anomaly_score:.2f} confidence anomaly.",
@@ -709,9 +695,7 @@ class QuantumEnhancedAnomalyDetector:
 
         return " ".join(interpretations)
 
-    def _generate_recommendations(
-        self, anomaly_score: float, interpretation: str
-    ) -> List[str]:
+    def _generate_recommendations(self, anomaly_score: float, interpretation: str) -> List[str]:
         """Generate recommended actions based on anomaly"""
 
         recommendations = []
@@ -816,9 +800,7 @@ class QuantumEnhancedAnomalyDetector:
         # Quantum fidelity vs Entanglement
         fidelity = [a.quantum_state_fidelity for a in anomalies]
         entanglement = [a.entanglement_measure for a in anomalies]
-        scatter = axes[1, 0].scatter(
-            fidelity, entanglement, c=scores, cmap="viridis", alpha=0.7
-        )
+        scatter = axes[1, 0].scatter(fidelity, entanglement, c=scores, cmap="viridis", alpha=0.7)
         axes[1, 0].set_title("Quantum State Properties")
         axes[1, 0].set_xlabel("Quantum Fidelity")
         axes[1, 0].set_ylabel("Entanglement Measure")
@@ -848,9 +830,7 @@ async def main():
     """Example usage of quantum-enhanced anomaly detection"""
 
     if not QUANTUM_AVAILABLE:
-        logger.warning(
-            "Quantum computing libraries not available. Running classical simulation."
-        )
+        logger.warning("Quantum computing libraries not available. Running classical simulation.")
 
     # Configuration
     config = QuantumCircuitConfig(
@@ -923,9 +903,7 @@ async def main():
 
     # Visualize results
     if detected_anomalies:
-        detector.visualize_quantum_results(
-            detected_anomalies, "quantum_anomaly_results.png"
-        )
+        detector.visualize_quantum_results(detected_anomalies, "quantum_anomaly_results.png")
 
 
 if __name__ == "__main__":

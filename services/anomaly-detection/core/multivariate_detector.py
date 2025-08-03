@@ -17,8 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from core.config import Settings
 from core.database import DatabaseManager
-from models.schemas import (AnomalySeverity, AnomalyType, DetectedAnomaly,
-                            GeologicalDataStream)
+from models.schemas import AnomalySeverity, AnomalyType, DetectedAnomaly, GeologicalDataStream
 from pyod.models.copod import COPOD
 from pyod.models.deep_svdd import DeepSVDD
 from pyod.models.ecod import ECOD
@@ -33,9 +32,7 @@ logger = logging.getLogger(__name__)
 class GeologicalVAE(nn.Module):
     """Variational Autoencoder specifically designed for geological data"""
 
-    def __init__(
-        self, input_dim: int, latent_dim: int = 32, hidden_dims: List[int] = None
-    ):
+    def __init__(self, input_dim: int, latent_dim: int = 32, hidden_dims: List[int] = None):
         super(GeologicalVAE, self).__init__()
 
         if hidden_dims is None:
@@ -267,9 +264,7 @@ class MultivariateAnomalyDetector:
             # Create rolling statistics
             window_size = min(10, len(df))
             if window_size > 1:
-                df["value_rolling_mean"] = (
-                    df["value"].rolling(window=window_size).mean()
-                )
+                df["value_rolling_mean"] = df["value"].rolling(window=window_size).mean()
                 df["value_rolling_std"] = df["value"].rolling(window=window_size).std()
                 df["value_rolling_min"] = df["value"].rolling(window=window_size).min()
                 df["value_rolling_max"] = df["value"].rolling(window=window_size).max()
@@ -290,9 +285,7 @@ class MultivariateAnomalyDetector:
 
             # One-hot encode categorical variables
             sensor_dummies = pd.get_dummies(df["sensor_type"], prefix="sensor")
-            measurement_dummies = pd.get_dummies(
-                df["measurement_type"], prefix="measurement"
-            )
+            measurement_dummies = pd.get_dummies(df["measurement_type"], prefix="measurement")
 
             # Combine all features
             feature_columns = [
@@ -313,9 +306,7 @@ class MultivariateAnomalyDetector:
             ]
 
             features_df = df[feature_columns].copy()
-            features_df = pd.concat(
-                [features_df, sensor_dummies, measurement_dummies], axis=1
-            )
+            features_df = pd.concat([features_df, sensor_dummies, measurement_dummies], axis=1)
 
             # Fill NaN values
             features_df = features_df.fillna(features_df.mean())
@@ -329,9 +320,7 @@ class MultivariateAnomalyDetector:
             logger.error(f"Feature preparation failed: {e}")
             return pd.DataFrame()
 
-    async def _compute_anomaly_scores(
-        self, features_df: pd.DataFrame
-    ) -> Dict[str, np.ndarray]:
+    async def _compute_anomaly_scores(self, features_df: pd.DataFrame) -> Dict[str, np.ndarray]:
         """Compute anomaly scores using multiple methods"""
         scores = {}
 
@@ -378,17 +367,13 @@ class MultivariateAnomalyDetector:
             features_tensor = torch.FloatTensor(features_scaled).to(self.device)
 
             with torch.no_grad():
-                reconstruction_errors = self.vae_model.get_reconstruction_error(
-                    features_tensor
-                )
+                reconstruction_errors = self.vae_model.get_reconstruction_error(features_tensor)
 
             # Normalize scores to [0, 1]
             min_error = np.min(reconstruction_errors)
             max_error = np.max(reconstruction_errors)
             if max_error > min_error:
-                normalized_scores = (reconstruction_errors - min_error) / (
-                    max_error - min_error
-                )
+                normalized_scores = (reconstruction_errors - min_error) / (max_error - min_error)
             else:
                 normalized_scores = np.zeros_like(reconstruction_errors)
 
@@ -487,9 +472,7 @@ class MultivariateAnomalyDetector:
                 if len(self.baseline_statistics) > 0:
                     baseline_mean = self.baseline_statistics.get("feature_means", {})
                     current_value = data_point.value
-                    expected_value = baseline_mean.get(
-                        data_point.measurement_type, current_value
-                    )
+                    expected_value = baseline_mean.get(data_point.measurement_type, current_value)
                     deviation_magnitude = abs(current_value - expected_value) / (
                         abs(expected_value) + 1e-8
                     )
@@ -581,12 +564,8 @@ class MultivariateAnomalyDetector:
                 self.baseline_statistics = {
                     "mean": df.select_dtypes(include=[np.number]).mean().values,
                     "covariance": df.select_dtypes(include=[np.number]).cov().values,
-                    "feature_means": df.groupby("measurement_type")["value"]
-                    .mean()
-                    .to_dict(),
-                    "feature_stds": df.groupby("measurement_type")["value"]
-                    .std()
-                    .to_dict(),
+                    "feature_means": df.groupby("measurement_type")["value"].mean().to_dict(),
+                    "feature_stds": df.groupby("measurement_type")["value"].std().to_dict(),
                 }
 
                 logger.info("Baseline statistics loaded from historical data")
@@ -635,8 +614,7 @@ class MultivariateAnomalyDetector:
             "feature_names": self.feature_names,
             "models": {
                 "vae": self.vae_model is not None,
-                "ensemble": self.ensemble_detector is not None
-                and self.ensemble_detector.is_fitted,
+                "ensemble": self.ensemble_detector is not None and self.ensemble_detector.is_fitted,
                 "deep_svdd": self.deep_svdd is not None,
             },
             "baseline_available": len(self.baseline_statistics) > 0,

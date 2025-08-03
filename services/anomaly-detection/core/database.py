@@ -13,8 +13,7 @@ from core.config import Settings
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from influxdb_client.client.query_api_async import QueryApiAsync
 from influxdb_client.client.write_api_async import WriteApiAsync
-from models.schemas import (AnomalyCluster, DetectedAnomaly,
-                            GeologicalDataStream, PhenomenaDiscovery)
+from models.schemas import AnomalyCluster, DetectedAnomaly, GeologicalDataStream, PhenomenaDiscovery
 from neo4j import AsyncGraphDatabase
 
 logger = logging.getLogger(__name__)
@@ -44,9 +43,7 @@ class DatabaseManager:
             logger.info("PostgreSQL connection pool initialized")
 
             # Redis connection
-            self.redis_client = redis.from_url(
-                self.settings.redis_url, decode_responses=True
-            )
+            self.redis_client = redis.from_url(self.settings.redis_url, decode_responses=True)
             await self.redis_client.ping()
             logger.info("Redis connection established")
 
@@ -274,9 +271,7 @@ class DatabaseManager:
                 }
                 points.append(point)
 
-            await self.influx_write_api.write(
-                bucket=self.settings.influxdb_bucket, record=points
-            )
+            await self.influx_write_api.write(bucket=self.settings.influxdb_bucket, record=points)
 
         except Exception as e:
             logger.error(f"Failed to store geological data: {e}")
@@ -333,12 +328,8 @@ class DatabaseManager:
     async def cache_anomaly_features(self, anomaly_id: str, features: Dict[str, Any]):
         """Cache anomaly features in Redis"""
         try:
-            await self.redis_client.hset(
-                f"anomaly_features:{anomaly_id}", mapping=features
-            )
-            await self.redis_client.expire(
-                f"anomaly_features:{anomaly_id}", 86400
-            )  # 24 hours
+            await self.redis_client.hset(f"anomaly_features:{anomaly_id}", mapping=features)
+            await self.redis_client.expire(f"anomaly_features:{anomaly_id}", 86400)  # 24 hours
         except Exception as e:
             logger.error(f"Failed to cache anomaly features: {e}")
 
