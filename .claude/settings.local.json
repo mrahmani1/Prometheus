@@ -15,7 +15,11 @@
       "Bash(pip install:*)",
       "Bash(set PYTHONIOENCODING=utf-8)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(az:*)",
+      "Bash(powershell:*)",
+      "Bash(winget install:*)",
+      "Bash(choco install:*)"
     ],
     "deny": []
   }
