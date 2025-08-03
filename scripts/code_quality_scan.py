@@ -4,10 +4,6 @@ Code Quality and Security Scanning Script for Prometheus AI Platform
 Performs automated code quality checks, security scans, and compliance validation
 """
 
-from dataclasses import asdict, dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 import ast
 import json
 import logging
@@ -15,6 +11,10 @@ import os
 import re
 import subprocess
 import sys
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 # Configure logging
 logging.basicConfig(

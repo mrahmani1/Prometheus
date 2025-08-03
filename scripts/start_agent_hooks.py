@@ -4,11 +4,11 @@ Start Intelligent Agent Hook System
 Initializes and starts the intelligent agent hook system for automated operations
 """
 
-from pathlib import Path
 import asyncio
 import logging
 import signal
 import sys
+from pathlib import Path
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent

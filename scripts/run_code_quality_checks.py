@@ -4,10 +4,10 @@ Code quality checks script for Prometheus AI Platform
 Runs Black, isort, flake8, pylint, and bandit on Python files
 """
 
-from pathlib import Path
-from typing import List, Tuple
 import subprocess
 import sys
+from pathlib import Path
+from typing import List, Tuple
 
 
 def run_command(cmd: List[str], description: str) -> Tuple[bool, str]:

@@ -4,16 +4,16 @@ Continuous Model Validation Script for Prometheus AI Platform
 Validates AI models against scientific benchmarks and physics constraints
 """
 
-from dataclasses import asdict, dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 import hashlib
 import json
 import logging
 import os
 import pickle
 import sys
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -142,7 +142,7 @@ class ScientificBenchmarkValidator:
         try:
             with open(model_path, "rb") as f:
                 content = f.read()
-                return hashlib.md5(content, usedforsecurity=False).hexdigest()[:8]
+                return hashlib.md5(content, usedforsecurity=False, usedforsecurity=False, usedforsecurity=False).hexdigest()[:8]
         except Exception:
             return "unknown"
 

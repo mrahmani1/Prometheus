@@ -4,30 +4,34 @@ Development environment setup script for the Prometheus AI platform.
 Handles Git setup, pre-commit hooks, testing infrastructure, and CI/CD pipeline.
 """
 
-from pathlib import Path
 import os
 import platform
 import subprocess
 import sys
+from pathlib import Path
+
 
 def run_command(command, check=True, shell=True):
     """Run a command and return the result."""
     try:
-        result = subprocess.run(command, shell=shell, check=check, 
-                              capture_output=True, text=True)
+        result = subprocess.run(
+            command, shell=shell, check=check, capture_output=True, text=True
+        )
         return result.returncode == 0, result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
         return False, e.stdout, e.stderr
+
 
 def check_git_installed():
     """Check if Git is installed."""
     success, _, _ = run_command("git --version", check=False)
     return success
 
+
 def setup_git_repository():
     """Initialize Git repository and set up basic configuration."""
     print("🔧 Setting up Git repository...")
-    
+
     if not check_git_installed():
         print("❌ Git is not installed. Please install Git first:")
         if platform.system() == "Windows":
@@ -37,7 +41,7 @@ def setup_git_repository():
         else:
             print("   Run: sudo apt-get install git")
         return False
-    
+
     # Initialize repository if not already initialized
     if not Path(".git").exists():
         success, _, _ = run_command("git init")
@@ -45,7 +49,7 @@ def setup_git_repository():
             print("❌ Failed to initialize Git repository")
             return False
         print("✅ Git repository initialized")
-    
+
     # Set up .gitignore
     gitignore_content = """
 # Python
@@ -127,36 +131,38 @@ backups/
 *.tmp
 *.temp
 """
-    
+
     with open(".gitignore", "w") as f:
         f.write(gitignore_content.strip())
-    
+
     print("✅ .gitignore created")
     return True
+
 
 def setup_pre_commit_hooks():
     """Set up pre-commit hooks."""
     print("🔧 Setting up pre-commit hooks...")
-    
+
     # Install pre-commit if not already installed
     success, _, _ = run_command("pip install pre-commit", check=False)
     if not success:
         print("❌ Failed to install pre-commit")
         return False
-    
+
     # Install pre-commit hooks
     success, _, _ = run_command("pre-commit install", check=False)
     if not success:
         print("⚠️  Could not install pre-commit hooks (Git may not be available)")
         return False
-    
+
     print("✅ Pre-commit hooks installed")
     return True
+
 
 def create_test_infrastructure():
     """Create comprehensive test infrastructure."""
     print("🔧 Setting up test infrastructure...")
-    
+
     # Create pytest configuration
     pytest_ini = """
 [tool:pytest]
@@ -180,10 +186,10 @@ markers =
     gpu: Tests requiring GPU
     network: Tests requiring network access
 """
-    
+
     with open("pytest.ini", "w") as f:
         f.write(pytest_ini.strip())
-    
+
     # Create test requirements
     test_requirements = """
 pytest>=7.4.0
@@ -202,28 +208,29 @@ bandit>=1.7.5
 mypy>=1.5.1
 pre-commit>=3.3.3
 """
-    
+
     with open("requirements-test.txt", "w") as f:
         f.write(test_requirements.strip())
-    
+
     # Install test dependencies
     success, _, _ = run_command("pip install -r requirements-test.txt", check=False)
     if success:
         print("✅ Test dependencies installed")
     else:
         print("⚠️  Some test dependencies may not have installed correctly")
-    
+
     print("✅ Test infrastructure created")
     return True
+
 
 def create_ci_cd_pipeline():
     """Create CI/CD pipeline configuration."""
     print("🔧 Setting up CI/CD pipeline...")
-    
+
     # Create GitHub Actions directory
     github_dir = Path(".github/workflows")
     github_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Create main CI/CD workflow
     workflow_content = """
 name: Prometheus AI Platform CI/CD
@@ -349,10 +356,10 @@ jobs:
         echo "Deploying to staging environment..."
         # Add deployment commands here
 """
-    
-    with open(github_dir / "ci-cd.yml", "w", encoding='utf-8') as f:
+
+    with open(github_dir / "ci-cd.yml", "w", encoding="utf-8") as f:
         f.write(workflow_content.strip())
-    
+
     # Create quality gates workflow
     quality_gates_content = """
 name: Quality Gates
@@ -405,17 +412,18 @@ jobs:
             body: 'Quality gates failed. Please fix the issues before merging.'
           })
 """
-    
-    with open(github_dir / "quality-gates.yml", "w", encoding='utf-8') as f:
+
+    with open(github_dir / "quality-gates.yml", "w", encoding="utf-8") as f:
         f.write(quality_gates_content.strip())
-    
+
     print("✅ CI/CD pipeline configuration created")
     return True
+
 
 def create_comprehensive_test_suite():
     """Create comprehensive test coverage."""
     print("🔧 Creating comprehensive test suite...")
-    
+
     # Create test runner script
     test_runner_content = """#!/usr/bin/env python3
 \"\"\"
@@ -478,44 +486,45 @@ if __name__ == "__main__":
     success = run_tests()
     sys.exit(0 if success else 1)
 """
-    
-    with open("scripts/run_tests.py", "w", encoding='utf-8') as f:
+
+    with open("scripts/run_tests.py", "w", encoding="utf-8") as f:
         f.write(test_runner_content)
-    
+
     # Make it executable
     os.chmod("scripts/run_tests.py", 0o755)
-    
+
     print("✅ Comprehensive test suite created")
     return True
+
 
 def main():
     """Main setup function."""
     print("🚀 Setting up Prometheus AI development environment...")
-    
+
     # Create scripts directory if it doesn't exist
     Path("scripts").mkdir(exist_ok=True)
-    
+
     success = True
-    
+
     # Setup Git repository
     if not setup_git_repository():
         success = False
-    
+
     # Setup pre-commit hooks (may fail if Git not available)
     setup_pre_commit_hooks()
-    
+
     # Create test infrastructure
     if not create_test_infrastructure():
         success = False
-    
+
     # Create CI/CD pipeline
     if not create_ci_cd_pipeline():
         success = False
-    
+
     # Create comprehensive test suite
     if not create_comprehensive_test_suite():
         success = False
-    
+
     if success:
         print("\\n✅ Development environment setup completed successfully!")
         print("\\n📋 Next steps:")
@@ -525,8 +534,9 @@ def main():
         print("4. Run: pre-commit run --all-files")
     else:
         print("\\n⚠️  Setup completed with some issues. Please review the output above.")
-    
+
     return success
+
 
 if __name__ == "__main__":
     main()

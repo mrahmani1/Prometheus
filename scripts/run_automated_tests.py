@@ -4,16 +4,16 @@ Automated Test Execution Script for Prometheus AI Platform
 Runs comprehensive test suites across all services with intelligent test selection
 """
 
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 import asyncio
 import json
 import logging
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 

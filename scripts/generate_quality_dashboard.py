@@ -4,17 +4,17 @@ Quality Dashboard Generator for Prometheus AI Platform
 Generates HTML dashboard for QA metrics visualization
 """
 
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 import base64
 import io
 import json
 import logging
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 # Configure logging
 logging.basicConfig(
