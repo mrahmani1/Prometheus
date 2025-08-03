@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   quality-check:
     runs-on: ubuntu-latest
@@ -25,7 +30,7 @@ jobs:
       run: |
         black --check services
         isort --check-only services
-        flake8 services
+        flake8 services --count --statistics --show-source
         pylint services --fail-under=8.0
     
     - name: Security check
