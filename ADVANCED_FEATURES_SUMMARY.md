@@ -32,7 +32,7 @@ This document summarizes the extensive advanced features implemented to replace 
 - **Magnitude Estimation**: Neural network with uncertainty quantification for magnitude prediction
 - **Comprehensive Preprocessing**: Instrument response removal, adaptive noise filtering, wavelet denoising
 - **Advanced Feature Extraction**: Time-domain, frequency-domain, polarization, and complexity features
-- **Multi-Scale Velocity Models**: Region-specific velocity models for Yellowstone, Kilauea, and global
+- **Multi-Scale Velocity Models**: Region-specific velocity models for Yellowstone, Kilauea, and global volcanic systems
 - **Source Mechanism Analysis**: Focal mechanism determination from waveform analysis
 - **Real-Time Processing**: Optimized for continuous real-time seismic monitoring
 
