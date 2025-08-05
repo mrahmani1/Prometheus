@@ -19,7 +19,8 @@
       "Bash(az:*)",
       "Bash(powershell:*)",
       "Bash(winget install:*)",
-      "Bash(choco install:*)"
+      "Bash(choco install:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
