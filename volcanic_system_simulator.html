@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI - 3D Volcanic System Internal Dynamics</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #volcano-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        #monitoring-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 320px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        #system-status {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group h3 {
+            margin: 0 0 15px 0;
+            color: #FF5722;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(255, 87, 34, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FF5722;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
+        }
+        
+        .button {
+            background: linear-gradient(45deg, #FF5722, #E64A19);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);
+        }
+        
+        .button.warning {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+        
+        .button.danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        .monitoring-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .monitor-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 5px;
+            border-left: 3px solid #FF5722;
+        }
+        
+        .monitor-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FF5722;
+        }
+        
+        .monitor-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .alert-level {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .alert-green { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
+        .alert-yellow { background: rgba(255, 193, 7, 0.2); color: #FFC107; }
+        .alert-orange { background: rgba(255, 152, 0, 0.2); color: #FF9800; }
+        .alert-red { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        
+        .volcano-view-mode {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        
+        .view-button {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .view-button.active {
+            background: #FF5722;
+            border-color: #FF5722;
+        }
+        
+        .chamber-info {
+            background: rgba(255, 87, 34, 0.1);
+            border: 1px solid rgba(255, 87, 34, 0.3);
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        
+        .process-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .process-bar {
+            width: 60px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .process-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FF5722);
+            transition: width 0.3s;
+        }
+        
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .volcano-selector {
+            margin-bottom: 20px;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .depth-profile {
+            width: 100%;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .seismic-trace {
+            width: 100%;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            margin: 5px 0;
+            position: relative;
+        }
+        
+        .gas-composition {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        
+        .gas-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div id="volcano-controls">
+            <h2>🌋 Volcanic System Control Center</h2>
+            
+            <div class="volcano-selector">
+                <label>Select Volcano:</label>
+                <select id="volcano-select">
+                    <option value="etna">Mount Etna (Sicily)</option>
+                    <option value="kilauea">Kilauea (Hawaii)</option>
+                    <option value="vesuvius">Vesuvius (Italy)</option>
+                    <option value="yellowstone">Yellowstone (USA)</option>
+                    <option value="pinatubo">Pinatubo (Philippines)</option>
+                    <option value="custom">Custom Volcano</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎨 Visualization Mode</h3>
+                <div class="volcano-view-mode">
+                    <div class="view-button active" data-mode="cross-section">Cross Section</div>
+                    <div class="view-button" data-mode="magma-chamber">Magma Chamber</div>
+                    <div class="view-button" data-mode="hydrothermal">Hydrothermal</div>
+                    <div class="view-button" data-mode="stress-field">Stress Field</div>
+                    <div class="view-button" data-mode="gas-flow">Gas Flow</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔥 Magma Chamber Parameters</h3>
+                
+                <div class="slider-container">
+                    <label>Chamber Depth (km): <span id="chamber-depth-value">6.0</span></label>
+                    <input type="range" id="chamber-depth" class="slider" min="2" max="30" step="0.5" value="6">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Chamber Volume (km³): <span id="chamber-volume-value">50</span></label>
+                    <input type="range" id="chamber-volume" class="slider" min="1" max="1000" step="5" value="50">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Magma Temperature (°C): <span id="magma-temp-value">1100</span></label>
+                    <input type="range" id="magma-temperature" class="slider" min="800" max="1300" step="10" value="1100">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Crystal Content (%): <span id="crystal-content-value">30</span></label>
+                    <input type="range" id="crystal-content" class="slider" min="0" max="80" step="5" value="30">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Gas Content (wt%): <span id="gas-content-value">4.0</span></label>
+                    <input type="range" id="gas-content" class="slider" min="0" max="8" step="0.1" value="4">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Pressure (MPa): <span id="chamber-pressure-value">150</span></label>
+                    <input type="range" id="chamber-pressure" class="slider" min="50" max="800" step="10" value="150">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>💉 Dike Intrusion Model</h3>
+                
+                <div class="slider-container">
+                    <label>Intrusion Rate (m³/s): <span id="intrusion-rate-value">0.1</span></label>
+                    <input type="range" id="intrusion-rate" class="slider" min="0" max="10" step="0.1" value="0.1">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Dike Thickness (m): <span id="dike-thickness-value">2.0</span></label>
+                    <input type="range" id="dike-thickness" class="slider" min="0.5" max="20" step="0.5" value="2">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Propagation Depth (km): <span id="dike-depth-value">3.0</span></label>
+                    <input type="range" id="dike-depth" class="slider" min="0.5" max="15" step="0.5" value="3">
+                </div>
+                
+                <button class="button" onclick="triggerIntrusion()">🚀 Trigger Dike Intrusion</button>
+                <button class="button warning" onclick="stopIntrusion()">⏹️ Stop Intrusion</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>💧 Hydrothermal System</h3>
+                
+                <div class="slider-container">
+                    <label>Water Table Depth (m): <span id="water-table-value">200</span></label>
+                    <input type="range" id="water-table" class="slider" min="50" max="1000" step="10" value="200">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Permeability (mD): <span id="permeability-value">100</span></label>
+                    <input type="range" id="permeability" class="slider" min="1" max="1000" step="10" value="100">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Heat Source Temp (°C): <span id="heat-source-value">600</span></label>
+                    <input type="range" id="heat-source" class="slider" min="200" max="1000" step="20" value="600">
+                </div>
+                
+                <button class="button" onclick="activateHydrothermal()">♨️ Activate System</button>
+                <button class="button danger" onclick="simulatePhreatomagmatic()">💥 Phreatomagmatic</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>⚡ Scenario Controls</h3>
+                <button class="button" onclick="resetSystem()">🔄 Reset System</button>
+                <button class="button" onclick="loadPreset('effusive')">🌋 Effusive Eruption</button>
+                <button class="button" onclick="loadPreset('explosive')">💥 Explosive Eruption</button>
+                <button class="button" onclick="exportModel()">💾 Export Model</button>
+            </div>
+        </div>
+        
+        <div id="monitoring-panel">
+            <h3>📡 Real-Time Monitoring</h3>
+            
+            <div class="alert-level" id="alert-status">
+                <span id="alert-text">Normal - Green</span>
+            </div>
+            
+            <div class="monitoring-grid">
+                <div class="monitor-item">
+                    <div class="monitor-value" id="seismic-rate">12</div>
+                    <div class="monitor-label">Earthquakes/day</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-value" id="deformation-rate">0.3</div>
+                    <div class="monitor-label">Uplift (mm/day)</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-value" id="so2-flux">450</div>
+                    <div class="monitor-label">SO₂ Flux (t/day)</div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-value" id="thermal-anomaly">2.3</div>
+                    <div class="monitor-label">Thermal (MW)</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📊 Seismic Activity</h3>
+                <div class="seismic-trace" id="seismic-trace"></div>
+                <div style="font-size: 12px; color: #aaa;">
+                    Depth: <span id="seismic-depth">5.2 km</span> | 
+                    Magnitude: <span id="seismic-magnitude">M 2.1</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🏔️ Ground Deformation</h3>
+                <div class="depth-profile" id="deformation-profile"></div>
+                <div style="font-size: 12px; color: #aaa;">
+                    InSAR: <span id="insar-los">+2.3 cm</span> | 
+                    GPS: <span id="gps-displacement">1.8 mm/day</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>💨 Gas Composition</h3>
+                <div class="gas-composition">
+                    <div class="gas-item">
+                        <span>H₂O</span>
+                        <span id="h2o-content">85%</span>
+                    </div>
+                    <div class="gas-item">
+                        <span>CO₂</span>
+                        <span id="co2-content">8%</span>
+                    </div>
+                    <div class="gas-item">
+                        <span>SO₂</span>
+                        <span id="so2-content">4%</span>
+                    </div>
+                    <div class="gas-item">
+                        <span>H₂S</span>
+                        <span id="h2s-content">2%</span>
+                    </div>
+                    <div class="gas-item">
+                        <span>HCl</span>
+                        <span id="hcl-content">0.8%</span>
+                    </div>
+                    <div class="gas-item">
+                        <span>HF</span>
+                        <span id="hf-content">0.2%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔥 Thermal State</h3>
+                <div class="process-indicator">
+                    <span>Surface Temperature</span>
+                    <div class="process-bar">
+                        <div class="process-fill" id="surface-temp-bar" style="width: 20%;"></div>
+                    </div>
+                    <span id="surface-temp">45°C</span>
+                </div>
+                <div class="process-indicator">
+                    <span>Fumarole Activity</span>
+                    <div class="process-bar">
+                        <div class="process-fill" id="fumarole-bar" style="width: 35%;"></div>
+                    </div>
+                    <span id="fumarole-temp">280°C</span>
+                </div>
+                <div class="process-indicator">
+                    <span>Lava Lake Level</span>
+                    <div class="process-bar">
+                        <div class="process-fill" id="lava-level-bar" style="width: 60%;"></div>
+                    </div>
+                    <span id="lava-level">-45m</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>⚖️ System Processes</h3>
+                <div class="process-indicator">
+                    <span>Magma Differentiation</span>
+                    <div class="process-bar">
+                        <div class="process-fill" id="differentiation-bar" style="width: 25%;"></div>
+                    </div>
+                    <span>25%</span>
+                </div>
+                <div class="process-indicator">
+                    <span>Gas Exsolution</span>
+                    <div class="process-bar">
+                        <div class="process-fill" id="exsolution-bar" style="width: 70%;"></div>
+                    </div>
+                    <span>High</span>
+                </div>
+                <div class="process-indicator">
+                    <span>Crystallization</span>
+                    <div class="process-bar">
+                        <div class="process-fill" id="crystallization-bar" style="width: 40%;"></div>
+                    </div>
+                    <span>Moderate</span>
+                </div>
+                <div class="process-indicator">
+                    <span>Hydrothermal Activity</span>
+                    <div class="process-bar">
+                        <div class="process-fill" id="hydrothermal-bar" style="width: 55%;"></div>
+                    </div>
+                    <span>Active</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="system-status">
+            <div class="timeline-controls">
+                <button class="button" onclick="startSimulation()" id="sim-start">▶️ Start</button>
+                <button class="button" onclick="pauseSimulation()" id="sim-pause" style="display:none;">⏸️ Pause</button>
+                <button class="button" onclick="stepSimulation()">⏭️ Step</button>
+            </div>
+            
+            <div style="text-align: center;">
+                <div style="color: #FF5722; font-weight: bold; font-size: 18px;" id="simulation-time">Day 0</div>
+                <div style="color: #aaa; font-size: 12px;">Simulation Time</div>
+            </div>
+            
+            <div class="timeline-controls">
+                <label style="color: #aaa;">Speed:</label>
+                <select id="sim-speed">
+                    <option value="0.1">0.1x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="2">2x</option>
+                    <option value="5">5x</option>
+                    <option value="10">10x</option>
+                </select>
+            </div>
+            
+            <div style="text-align: center;">
+                <div style="color: #FF5722; font-weight: bold;" id="eruption-probability">15%</div>
+                <div style="color: #aaa; font-size: 12px;">Eruption Probability</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global simulation state
+        let scene, camera, renderer;
+        let volcanoMesh, magmaChamber, dikeIntrusions = [], hydrothermalSystem;
+        let isSimulationRunning = false;
+        let simulationTime = 0; // in days
+        let currentView = 'cross-section';
+        let selectedVolcano = 'etna';
+        let alertLevel = 'green';
+        
+        // Volcano parameters
+        let volcanoParams = {
+            chamberDepth: 6.0,        // km
+            chamberVolume: 50,        // km³
+            magmaTemperature: 1100,   // °C
+            crystalContent: 30,       // %
+            gasContent: 4.0,          // wt%
+            chamberPressure: 150,     // MPa
+            intrusionRate: 0.1,       // m³/s
+            dikeThickness: 2.0,       // m
+            dikeDepth: 3.0,          // km
+            waterTable: 200,          // m
+            permeability: 100,        // mD
+            heatSource: 600           // °C
+        };
+        
+        // Monitoring data
+        let monitoringData = {
+            seismicRate: 12,
+            deformationRate: 0.3,
+            so2Flux: 450,
+            thermalAnomaly: 2.3,
+            eruptionProbability: 15
+        };
+        
+        // Volcano presets
+        const VOLCANO_PRESETS = {
+            etna: {
+                name: "Mount Etna",
+                type: "Stratovolcano",
+                chamberDepth: 3.0,
+                chamberVolume: 15,
+                magmaTemperature: 1100,
+                crystalContent: 25,
+                gasContent: 2.5,
+                eruptionStyle: "Strombolian"
+            },
+            kilauea: {
+                name: "Kilauea",
+                type: "Shield Volcano",
+                chamberDepth: 1.5,
+                chamberVolume: 200,
+                magmaTemperature: 1200,
+                crystalContent: 15,
+                gasContent: 0.8,
+                eruptionStyle: "Hawaiian"
+            },
+            vesuvius: {
+                name: "Mount Vesuvius",
+                type: "Stratovolcano",
+                chamberDepth: 8.0,
+                chamberVolume: 80,
+                magmaTemperature: 950,
+                crystalContent: 50,
+                gasContent: 6.0,
+                eruptionStyle: "Plinian"
+            },
+            yellowstone: {
+                name: "Yellowstone",
+                type: "Supervolcano",
+                chamberDepth: 12.0,
+                chamberVolume: 15000,
+                magmaTemperature: 750,
+                crystalContent: 70,
+                gasContent: 4.5,
+                eruptionStyle: "Caldera-forming"
+            },
+            pinatubo: {
+                name: "Mount Pinatubo",
+                type: "Stratovolcano",
+                chamberDepth: 6.0,
+                chamberVolume: 5,
+                magmaTemperature: 850,
+                crystalContent: 60,
+                gasContent: 7.0,
+                eruptionStyle: "Plinian"
+            }
+        };
+        
+        function initVolcanicSystem() {
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000510, 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Camera positioning
+            camera.position.set(15, 10, 15);
+            camera.lookAt(0, 0, 0);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(20, 20, 10);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // Add volcanic glow lighting
+            const volcanicLight = new THREE.PointLight(0xff4400, 1, 50);
+            volcanicLight.position.set(0, 2, 0);
+            scene.add(volcanicLight);
+            
+            // Create initial volcano
+            createVolcanoVisualization();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Initialize monitoring displays
+            updateMonitoringDisplays();
+            
+            // Start animation loop
+            animate();
+            
+            console.log("Volcanic system simulation initialized");
+        }
+        
+        function createVolcanoVisualization() {
+            // Clear existing visualization
+            while (scene.children.length > 3) { // Keep lights
+                scene.remove(scene.children[3]);
+            }
+            
+            if (currentView === 'cross-section') {
+                createCrossSectionView();
+            } else if (currentView === 'magma-chamber') {
+                createMagmaChamberView();
+            } else if (currentView === 'hydrothermal') {
+                createHydrothermalView();
+            } else if (currentView === 'stress-field') {
+                createStressFieldView();
+            } else if (currentView === 'gas-flow') {
+                createGasFlowView();
+            }
+        }
+        
+        function createCrossSectionView() {
+            // Create volcanic edifice
+            const coneGeometry = new THREE.ConeGeometry(5, 8, 32);
+            const coneMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+            volcanoMesh = new THREE.Mesh(coneGeometry, coneMaterial);
+            volcanoMesh.position.y = 4;
+            scene.add(volcanoMesh);
+            
+            // Create magma chamber
+            const chamberGeometry = new THREE.SphereGeometry(volcanoParams.chamberVolume / 20, 16, 16);
+            const chamberMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xff4400, 
+                transparent: true, 
+                opacity: 0.8 
+            });
+            magmaChamber = new THREE.Mesh(chamberGeometry, chamberMaterial);
+            magmaChamber.position.y = -volcanoParams.chamberDepth;
+            scene.add(magmaChamber);
+            
+            // Create conduit
+            const conduitGeometry = new THREE.CylinderGeometry(0.2, 0.5, volcanoParams.chamberDepth + 4, 8);
+            const conduitMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xff6600, 
+                transparent: true, 
+                opacity: 0.6 
+            });
+            const conduit = new THREE.Mesh(conduitGeometry, conduitMaterial);
+            conduit.position.y = (4 - volcanoParams.chamberDepth) / 2;
+            scene.add(conduit);
+            
+            // Create ground surface
+            const groundGeometry = new THREE.PlaneGeometry(30, 30);
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = 0;
+            scene.add(ground);
+            
+            // Add geological layers
+            createGeologicalLayers();
+            
+            // Add current dike intrusions
+            dikeIntrusions.forEach(dike => {
+                scene.add(dike.mesh);
+            });
+        }
+        
+        function createMagmaChamberView() {
+            // Detailed magma chamber with internal processes
+            const chamberGeometry = new THREE.SphereGeometry(8, 32, 32);
+            const chamberMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    temperature: { value: volcanoParams.magmaTemperature },
+                    crystalContent: { value: volcanoParams.crystalContent / 100 },
+                    gasContent: { value: volcanoParams.gasContent / 10 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    uniform float time;
+                    
+                    void main() {
+                        vUv = uv;
+                        vNormal = normalize(normalMatrix * normal);
+                        
+                        vec3 pos = position;
+                        pos += normal * sin(time * 2.0 + position.x * 0.5) * 0.1;
+                        
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float temperature;
+                    uniform float crystalContent;
+                    uniform float gasContent;
+                    uniform float time;
+                    
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    
+                    vec3 temperatureToColor(float temp) {
+                        temp = (temp - 800.0) / 500.0; // Normalize 800-1300°C
+                        vec3 cold = vec3(0.8, 0.2, 0.0);
+                        vec3 hot = vec3(1.0, 1.0, 0.3);
+                        return mix(cold, hot, temp);
+                    }
+                    
+                    void main() {
+                        vec3 baseColor = temperatureToColor(temperature);
+                        
+                        // Add crystal texture
+                        float crystalNoise = sin(vUv.x * 50.0) * sin(vUv.y * 50.0) * 0.1;
+                        baseColor += vec3(crystalNoise * crystalContent);
+                        
+                        // Add gas bubbles
+                        float gasNoise = sin(vUv.x * 20.0 + time) * sin(vUv.y * 20.0 + time) * 0.2;
+                        baseColor += vec3(gasNoise * gasContent * 0.3);
+                        
+                        // Lighting
+                        float lightIntensity = max(0.0, dot(vNormal, normalize(vec3(1.0, 1.0, 1.0))));
+                        baseColor *= (0.4 + 0.6 * lightIntensity);
+                        
+                        gl_FragColor = vec4(baseColor, 0.9);
+                    }
+                `,
+                transparent: true
+            });
+            
+            magmaChamber = new THREE.Mesh(chamberGeometry, chamberMaterial);
+            scene.add(magmaChamber);
+            
+            // Add convection currents
+            createConvectionCurrents();
+            
+            // Add gas bubbles
+            createGasBubbles();
+            
+            // Add crystal clusters
+            createCrystalClusters();
+        }
+        
+        function createHydrothermalView() {
+            // Create cross-section with hydrothermal features
+            createCrossSectionView();
+            
+            // Add water table
+            const waterGeometry = new THREE.PlaneGeometry(25, 25);
+            const waterMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x0066cc, 
+                transparent: true, 
+                opacity: 0.3 
+            });
+            const waterTable = new THREE.Mesh(waterGeometry, waterMaterial);
+            waterTable.rotation.x = -Math.PI / 2;
+            waterTable.position.y = -volcanoParams.waterTable / 1000; // Convert to km scale
+            scene.add(waterTable);
+            
+            // Add hot springs
+            createHotSprings();
+            
+            // Add geothermal gradient visualization
+            createGeothermalGradient();
+            
+            // Add hydrothermal alteration zones
+            createAlterationZones();
+            
+            // Add fumaroles
+            createFumaroles();
+        }
+        
+        function createStressFieldView() {
+            createCrossSectionView();
+            
+            // Create stress field vectors
+            for (let x = -10; x <= 10; x += 2) {
+                for (let y = -5; y <= 5; y += 2) {
+                    for (let z = -10; z <= 10; z += 2) {
+                        const distance = Math.sqrt(x*x + (y + volcanoParams.chamberDepth)*(y + volcanoParams.chamberDepth) + z*z);
+                        
+                        if (distance > 1 && distance < 15) {
+                            const stress = calculateStress(x, y, z);
+                            createStressVector(x, y, z, stress);
+                        }
+                    }
+                }
+            }
+        }
+        
+        function createGasFlowView() {
+            createCrossSectionView();
+            
+            // Create gas flow streamlines
+            createGasStreamlines();
+            
+            // Add degassing zones
+            createDegassingZones();
+        }
+        
+        function createGeologicalLayers() {
+            const layers = [
+                { depth: -1, thickness: 1, color: 0x8B7355, name: "Sedimentary" },
+                { depth: -3, thickness: 2, color: 0x696969, name: "Volcanic" },
+                { depth: -8, thickness: 5, color: 0x2F4F4F, name: "Basement" },
+            ];
+            
+            layers.forEach(layer => {
+                const geometry = new THREE.PlaneGeometry(30, layer.thickness);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: layer.color, 
+                    transparent: true, 
+                    opacity: 0.6 
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.rotation.x = -Math.PI / 2;
+                mesh.position.y = layer.depth - layer.thickness / 2;
+                scene.add(mesh);
+            });
+        }
+        
+        function createConvectionCurrents() {
+            const numCurrents = 20;
+            
+            for (let i = 0; i < numCurrents; i++) {
+                const angle = (i / numCurrents) * Math.PI * 2;
+                const radius = 3 + Math.random() * 4;
+                
+                const curve = new THREE.QuadraticBezierCurve3(
+                    new THREE.Vector3(Math.cos(angle) * radius, -3, Math.sin(angle) * radius),
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(Math.cos(angle + Math.PI) * radius, 3, Math.sin(angle + Math.PI) * radius)
+                );
+                
+                const geometry = new THREE.TubeGeometry(curve, 20, 0.1, 8, false);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: new THREE.Color().setHSL(0.05, 0.8, 0.6),
+                    transparent: true,
+                    opacity: 0.7
+                });
+                
+                const current = new THREE.Mesh(geometry, material);
+                scene.add(current);
+            }
+        }
+        
+        function createGasBubbles() {
+            const numBubbles = 50;
+            
+            for (let i = 0; i < numBubbles; i++) {
+                const bubbleGeometry = new THREE.SphereGeometry(0.1 + Math.random() * 0.2, 8, 8);
+                const bubbleMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xffffcc, 
+                    transparent: true, 
+                    opacity: 0.4 
+                });
+                
+                const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
+                bubble.position.set(
+                    (Math.random() - 0.5) * 15,
+                    (Math.random() - 0.5) * 15,
+                    (Math.random() - 0.5) * 15
+                );
+                
+                scene.add(bubble);
+            }
+        }
+        
+        function createCrystalClusters() {
+            const numClusters = Math.floor(volcanoParams.crystalContent / 5);
+            
+            for (let i = 0; i < numClusters; i++) {
+                const clusterGeometry = new THREE.OctahedronGeometry(0.3 + Math.random() * 0.5);
+                const clusterMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xcccccc, 
+                    transparent: true, 
+                    opacity: 0.6 
+                });
+                
+                const cluster = new THREE.Mesh(clusterGeometry, clusterMaterial);
+                cluster.position.set(
+                    (Math.random() - 0.5) * 12,
+                    (Math.random() - 0.5) * 12,
+                    (Math.random() - 0.5) * 12
+                );
+                
+                cluster.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+                
+                scene.add(cluster);
+            }
+        }
+        
+        function createHotSprings() {
+            const numSprings = 5;
+            
+            for (let i = 0; i < numSprings; i++) {
+                const springGeometry = new THREE.CylinderGeometry(0.1, 0.3, 2, 8);
+                const springMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x00aaff, 
+                    transparent: true, 
+                    opacity: 0.6 
+                });
+                
+                const spring = new THREE.Mesh(springGeometry, springMaterial);
+                spring.position.set(
+                    (Math.random() - 0.5) * 20,
+                    -volcanoParams.waterTable / 1000 + 1,
+                    (Math.random() - 0.5) * 20
+                );
+                
+                scene.add(spring);
+            }
+        }
+        
+        function createGeothermalGradient() {
+            // Visual representation of temperature gradient
+            const gradientGeometry = new THREE.PlaneGeometry(1, 20);
+            const gradientMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    surfaceTemp: { value: 20 },
+                    heatSourceTemp: { value: volcanoParams.heatSource }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float surfaceTemp;
+                    uniform float heatSourceTemp;
+                    varying vec2 vUv;
+                    
+                    vec3 temperatureToColor(float temp) {
+                        temp = (temp - 20.0) / 580.0; // Normalize 20-600°C
+                        vec3 cold = vec3(0.0, 0.0, 1.0);
+                        vec3 warm = vec3(0.0, 1.0, 0.0);
+                        vec3 hot = vec3(1.0, 0.0, 0.0);
+                        
+                        if (temp < 0.5) {
+                            return mix(cold, warm, temp * 2.0);
+                        } else {
+                            return mix(warm, hot, (temp - 0.5) * 2.0);
+                        }
+                    }
+                    
+                    void main() {
+                        float temp = mix(surfaceTemp, heatSourceTemp, 1.0 - vUv.y);
+                        vec3 color = temperatureToColor(temp);
+                        gl_FragColor = vec4(color, 0.7);
+                    }
+                `,
+                transparent: true
+            });
+            
+            const gradient = new THREE.Mesh(gradientGeometry, gradientMaterial);
+            gradient.position.set(12, -5, 0);
+            scene.add(gradient);
+        }
+        
+        function createAlterationZones() {
+            const zones = [
+                { radius: 2, color: 0xff6600, name: "Propylitic" },
+                { radius: 1.5, color: 0xffaa00, name: "Argillic" },
+                { radius: 1, color: 0xffff00, name: "Silicic" }
+            ];
+            
+            zones.forEach((zone, index) => {
+                const geometry = new THREE.SphereGeometry(zone.radius, 16, 16);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: zone.color, 
+                    transparent: true, 
+                    opacity: 0.2 
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.y = -volcanoParams.chamberDepth + index * 0.5;
+                scene.add(mesh);
+            });
+        }
+        
+        function createFumaroles() {
+            const numFumaroles = 8;
+            
+            for (let i = 0; i < numFumaroles; i++) {
+                const angle = (i / numFumaroles) * Math.PI * 2;
+                const radius = 3 + Math.random() * 2;
+                
+                const fumaroleGeometry = new THREE.CylinderGeometry(0.05, 0.1, 5, 8);
+                const fumaroleMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xffffaa, 
+                    transparent: true, 
+                    opacity: 0.8 
+                });
+                
+                const fumarole = new THREE.Mesh(fumaroleGeometry, fumaroleMaterial);
+                fumarole.position.set(
+                    Math.cos(angle) * radius,
+                    2.5,
+                    Math.sin(angle) * radius
+                );
+                
+                scene.add(fumarole);
+            }
+        }
+        
+        function calculateStress(x, y, z) {
+            // Simplified stress calculation around magma chamber
+            const distance = Math.sqrt(x*x + (y + volcanoParams.chamberDepth)*(y + volcanoParams.chamberDepth) + z*z);
+            const pressure = volcanoParams.chamberPressure / (distance * distance);
+            
+            return {
+                magnitude: pressure,
+                direction: {
+                    x: x / distance,
+                    y: (y + volcanoParams.chamberDepth) / distance,
+                    z: z / distance
+                }
+            };
+        }
+        
+        function createStressVector(x, y, z, stress) {
+            const arrowGeometry = new THREE.ConeGeometry(0.1, 0.5, 8);
+            const color = new THREE.Color().setHSL(0.7 - Math.min(stress.magnitude / 50, 0.7), 0.8, 0.5);
+            const arrowMaterial = new THREE.MeshBasicMaterial({ color: color });
+            
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            arrow.position.set(x, y, z);
+            
+            // Orient arrow in stress direction
+            const direction = new THREE.Vector3(stress.direction.x, stress.direction.y, stress.direction.z);
+            arrow.lookAt(arrow.position.clone().add(direction));
+            arrow.rotateX(Math.PI / 2);
+            
+            scene.add(arrow);
+        }
+        
+        function createGasStreamlines() {
+            const numStreamlines = 15;
+            
+            for (let i = 0; i < numStreamlines; i++) {
+                const startX = (Math.random() - 0.5) * 4;
+                const startZ = (Math.random() - 0.5) * 4;
+                const startY = -volcanoParams.chamberDepth;
+                
+                const points = [];
+                let x = startX, y = startY, z = startZ;
+                
+                for (let step = 0; step < 50; step++) {
+                    points.push(new THREE.Vector3(x, y, z));
+                    
+                    // Simulate gas flow (rising with some lateral drift)
+                    y += 0.3;
+                    x += (Math.random() - 0.5) * 0.1;
+                    z += (Math.random() - 0.5) * 0.1;
+                    
+                    if (y > 8) break;
+                }
+                
+                const curve = new THREE.CatmullRomCurve3(points);
+                const geometry = new THREE.TubeGeometry(curve, points.length-1, 0.02, 8, false);
+                const material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color().setHSL(0.15, 0.8, 0.6),
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                const streamline = new THREE.Mesh(geometry, material);
+                scene.add(streamline);
+            }
+        }
+        
+        function createDegassingZones() {
+            const zoneGeometry = new THREE.SphereGeometry(1.5, 16, 16);
+            const zoneMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffff66, 
+                transparent: true, 
+                opacity: 0.3 
+            });
+            
+            const zone = new THREE.Mesh(zoneGeometry, zoneMaterial);
+            zone.position.y = -volcanoParams.chamberDepth + 1;
+            scene.add(zone);
+        }
+        
+        function triggerIntrusion() {
+            // Create new dike intrusion
+            const dikeGeometry = new THREE.BoxGeometry(
+                volcanoParams.dikeThickness / 1000,
+                volcanoParams.dikeDepth,
+                0.5
+            );
+            const dikeMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xff3300, 
+                transparent: true, 
+                opacity: 0.8 
+            });
+            
+            const dike = new THREE.Mesh(dikeGeometry, dikeMaterial);
+            dike.position.set(
+                (Math.random() - 0.5) * 6,
+                -volcanoParams.dikeDepth / 2,
+                (Math.random() - 0.5) * 6
+            );
+            
+            const intrusionObj = {
+                mesh: dike,
+                age: 0,
+                volume: volcanoParams.intrusionRate,
+                active: true
+            };
+            
+            dikeIntrusions.push(intrusionObj);
+            scene.add(dike);
+            
+            // Update monitoring parameters
+            monitoringData.seismicRate += 15;
+            monitoringData.deformationRate += 0.8;
+            monitoringData.eruptionProbability += 10;
+            
+            updateAlertLevel();
+            console.log("Dike intrusion triggered");
+        }
+        
+        function stopIntrusion() {
+            dikeIntrusions.forEach(dike => {
+                dike.active = false;
+            });
+            
+            // Gradually reduce monitoring parameters
+            monitoringData.seismicRate = Math.max(5, monitoringData.seismicRate - 10);
+            monitoringData.deformationRate = Math.max(0.1, monitoringData.deformationRate - 0.5);
+            
+            console.log("Intrusion stopped");
+        }
+        
+        function activateHydrothermal() {
+            // Increase hydrothermal activity
+            monitoringData.thermalAnomaly += 1.5;
+            monitoringData.so2Flux += 200;
+            
+            // Update gas composition
+            document.getElementById('h2s-content').textContent = '4%';
+            document.getElementById('so2-content').textContent = '6%';
+            
+            updateMonitoringDisplays();
+            console.log("Hydrothermal system activated");
+        }
+        
+        function simulatePhreatomagmatic() {
+            // Simulate explosive interaction between magma and water
+            monitoringData.seismicRate += 50;
+            monitoringData.eruptionProbability += 30;
+            
+            // Create explosion visualization
+            const explosionGeometry = new THREE.SphereGeometry(2, 16, 16);
+            const explosionMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff, 
+                transparent: true, 
+                opacity: 0.9 
+            });
+            
+            const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
+            explosion.position.y = -volcanoParams.waterTable / 1000;
+            scene.add(explosion);
+            
+            // Remove explosion after animation
+            setTimeout(() => {
+                scene.remove(explosion);
+            }, 2000);
+            
+            updateAlertLevel();
+            console.log("Phreatomagmatic eruption simulated");
+        }
+        
+        function updateAlertLevel() {
+            let level = 'green';
+            let text = 'Normal - Green';
+            
+            if (monitoringData.eruptionProbability > 25) {
+                level = 'yellow';
+                text = 'Advisory - Yellow';
+            }
+            if (monitoringData.eruptionProbability > 50) {
+                level = 'orange';
+                text = 'Watch - Orange';
+            }
+            if (monitoringData.eruptionProbability > 75) {
+                level = 'red';
+                text = 'Warning - Red';
+            }
+            
+            alertLevel = level;
+            document.getElementById('alert-status').className = `alert-level alert-${level}`;
+            document.getElementById('alert-text').textContent = text;
+        }
+        
+        function updateMonitoringDisplays() {
+            // Update monitoring values
+            document.getElementById('seismic-rate').textContent = Math.round(monitoringData.seismicRate);
+            document.getElementById('deformation-rate').textContent = monitoringData.deformationRate.toFixed(1);
+            document.getElementById('so2-flux').textContent = Math.round(monitoringData.so2Flux);
+            document.getElementById('thermal-anomaly').textContent = monitoringData.thermalAnomaly.toFixed(1);
+            document.getElementById('eruption-probability').textContent = Math.round(monitoringData.eruptionProbability) + '%';
+            
+            // Update seismic trace (simplified visualization)
+            updateSeismicTrace();
+            
+            // Update deformation profile
+            updateDeformationProfile();
+            
+            // Update process bars
+            updateProcessBars();
+        }
+        
+        function updateSeismicTrace() {
+            const canvas = document.getElementById('seismic-trace');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#FF5722';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            const amplitude = monitoringData.seismicRate / 100;
+            for (let x = 0; x < canvas.width; x++) {
+                const y = canvas.height/2 + Math.sin(x * 0.1 + simulationTime * 0.1) * amplitude * 20;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+        }
+        
+        function updateDeformationProfile() {
+            const canvas = document.getElementById('deformation-profile');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw uplift pattern
+            ctx.fillStyle = 'rgba(255, 87, 34, 0.3)';
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            
+            for (let x = 0; x < canvas.width; x++) {
+                const distance = Math.abs(x - canvas.width/2) / (canvas.width/2);
+                const uplift = Math.exp(-distance * 3) * monitoringData.deformationRate * 10;
+                const y = canvas.height - uplift;
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function updateProcessBars() {
+            const bars = {
+                'differentiation-bar': volcanoParams.crystalContent,
+                'exsolution-bar': volcanoParams.gasContent * 12.5,
+                'crystallization-bar': volcanoParams.crystalContent * 0.8,
+                'hydrothermal-bar': monitoringData.thermalAnomaly * 20,
+                'surface-temp-bar': Math.min(100, monitoringData.thermalAnomaly * 15),
+                'fumarole-bar': Math.min(100, monitoringData.so2Flux / 10),
+                'lava-level-bar': Math.min(100, monitoringData.eruptionProbability)
+            };
+            
+            Object.entries(bars).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.width = `${Math.max(0, Math.min(100, value))}%`;
+                }
+            });
+        }
+        
+        function setupEventListeners() {
+            // Parameter sliders
+            const sliders = [
+                'chamber-depth', 'chamber-volume', 'magma-temperature', 'crystal-content',
+                'gas-content', 'chamber-pressure', 'intrusion-rate', 'dike-thickness',
+                'dike-depth', 'water-table', 'permeability', 'heat-source'
+            ];
+            
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                if (slider) {
+                    slider.addEventListener('input', function(e) {
+                        const param = id.replace('-', '');
+                        volcanoParams[param] = parseFloat(e.target.value);
+                        document.getElementById(id + '-value').textContent = e.target.value;
+                        createVolcanoVisualization();
+                    });
+                }
+            });
+            
+            // Volcano selector
+            document.getElementById('volcano-select').addEventListener('change', function(e) {
+                selectedVolcano = e.target.value;
+                if (selectedVolcano !== 'custom') {
+                    loadVolcanoPreset(selectedVolcano);
+                }
+            });
+            
+            // View mode buttons
+            document.querySelectorAll('.view-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.view-button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentView = this.dataset.mode;
+                    createVolcanoVisualization();
+                });
+            });
+            
+            // Mouse controls
+            let mouseDown = false;
+            let mouseX = 0, mouseY = 0;
+            
+            renderer.domElement.addEventListener('mousedown', function(e) {
+                mouseDown = true;
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            document.addEventListener('mouseup', function() {
+                mouseDown = false;
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!mouseDown) return;
+                
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                
+                scene.rotation.y += deltaX * 0.01;
+                scene.rotation.x += deltaY * 0.01;
+                
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            // Zoom with mouse wheel
+            renderer.domElement.addEventListener('wheel', function(e) {
+                camera.position.multiplyScalar(1 + e.deltaY * 0.001);
+            });
+        }
+        
+        function loadVolcanoPreset(presetName) {
+            const preset = VOLCANO_PRESETS[presetName];
+            if (!preset) return;
+            
+            // Update parameters
+            volcanoParams.chamberDepth = preset.chamberDepth;
+            volcanoParams.chamberVolume = preset.chamberVolume;
+            volcanoParams.magmaTemperature = preset.magmaTemperature;
+            volcanoParams.crystalContent = preset.crystalContent;
+            volcanoParams.gasContent = preset.gasContent;
+            
+            // Update UI sliders
+            document.getElementById('chamber-depth').value = preset.chamberDepth;
+            document.getElementById('chamber-volume').value = preset.chamberVolume;
+            document.getElementById('magma-temperature').value = preset.magmaTemperature;
+            document.getElementById('crystal-content').value = preset.crystalContent;
+            document.getElementById('gas-content').value = preset.gasContent;
+            
+            // Update display values
+            document.getElementById('chamber-depth-value').textContent = preset.chamberDepth;
+            document.getElementById('chamber-volume-value').textContent = preset.chamberVolume;
+            document.getElementById('magma-temp-value').textContent = preset.magmaTemperature;
+            document.getElementById('crystal-content-value').textContent = preset.crystalContent;
+            document.getElementById('gas-content-value').textContent = preset.gasContent;
+            
+            createVolcanoVisualization();
+            console.log(`Loaded preset: ${preset.name}`);
+        }
+        
+        function loadPreset(type) {
+            if (type === 'effusive') {
+                volcanoParams.gasContent = 1.0;
+                volcanoParams.crystalContent = 40;
+                volcanoParams.magmaTemperature = 1200;
+                monitoringData.eruptionProbability = 60;
+            } else if (type === 'explosive') {
+                volcanoParams.gasContent = 6.0;
+                volcanoParams.crystalContent = 60;
+                volcanoParams.magmaTemperature = 900;
+                monitoringData.eruptionProbability = 80;
+            }
+            
+            updateAlertLevel();
+            updateMonitoringDisplays();
+            createVolcanoVisualization();
+        }
+        
+        function resetSystem() {
+            // Reset all parameters to defaults
+            volcanoParams = {
+                chamberDepth: 6.0,
+                chamberVolume: 50,
+                magmaTemperature: 1100,
+                crystalContent: 30,
+                gasContent: 4.0,
+                chamberPressure: 150,
+                intrusionRate: 0.1,
+                dikeThickness: 2.0,
+                dikeDepth: 3.0,
+                waterTable: 200,
+                permeability: 100,
+                heatSource: 600
+            };
+            
+            monitoringData = {
+                seismicRate: 12,
+                deformationRate: 0.3,
+                so2Flux: 450,
+                thermalAnomaly: 2.3,
+                eruptionProbability: 15
+            };
+            
+            // Clear dike intrusions
+            dikeIntrusions.forEach(dike => scene.remove(dike.mesh));
+            dikeIntrusions = [];
+            
+            simulationTime = 0;
+            isSimulationRunning = false;
+            
+            updateAlertLevel();
+            updateMonitoringDisplays();
+            createVolcanoVisualization();
+            
+            console.log("System reset");
+        }
+        
+        function exportModel() {
+            const data = {
+                volcanoType: selectedVolcano,
+                parameters: volcanoParams,
+                monitoringData: monitoringData,
+                alertLevel: alertLevel,
+                simulationTime: simulationTime,
+                dikeIntrusions: dikeIntrusions.length,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `volcanic_system_${selectedVolcano}_${Date.now()}.json`;
+            a.click();
+            
+            console.log("Model exported");
+        }
+        
+        function startSimulation() {
+            isSimulationRunning = true;
+            document.getElementById('sim-start').style.display = 'none';
+            document.getElementById('sim-pause').style.display = 'inline-block';
+        }
+        
+        function pauseSimulation() {
+            isSimulationRunning = false;
+            document.getElementById('sim-start').style.display = 'inline-block';
+            document.getElementById('sim-pause').style.display = 'none';
+        }
+        
+        function stepSimulation() {
+            simulationTime += 1;
+            updateSimulationStep();
+        }
+        
+        function updateSimulationStep() {
+            // Update dike intrusions
+            dikeIntrusions.forEach(dike => {
+                if (dike.active) {
+                    dike.age += 1;
+                    dike.volume += volcanoParams.intrusionRate;
+                    
+                    // Update dike visualization
+                    const scale = 1 + dike.age * 0.1;
+                    dike.mesh.scale.set(scale, 1, scale);
+                }
+            });
+            
+            // Update monitoring parameters with some randomness
+            monitoringData.seismicRate += (Math.random() - 0.5) * 2;
+            monitoringData.deformationRate += (Math.random() - 0.5) * 0.1;
+            monitoringData.so2Flux += (Math.random() - 0.5) * 50;
+            monitoringData.thermalAnomaly += (Math.random() - 0.5) * 0.2;
+            
+            // Clamp values to reasonable ranges
+            monitoringData.seismicRate = Math.max(1, Math.min(200, monitoringData.seismicRate));
+            monitoringData.deformationRate = Math.max(0, Math.min(10, monitoringData.deformationRate));
+            monitoringData.so2Flux = Math.max(100, Math.min(5000, monitoringData.so2Flux));
+            monitoringData.thermalAnomaly = Math.max(0.5, Math.min(20, monitoringData.thermalAnomaly));
+            
+            // Update eruption probability based on other parameters
+            monitoringData.eruptionProbability = Math.min(95, 
+                (monitoringData.seismicRate / 10) + 
+                (monitoringData.deformationRate * 5) + 
+                (volcanoParams.gasContent * 3) + 
+                (dikeIntrusions.filter(d => d.active).length * 10)
+            );
+            
+            updateAlertLevel();
+            updateMonitoringDisplays();
+            
+            document.getElementById('simulation-time').textContent = `Day ${simulationTime}`;
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isSimulationRunning) {
+                const speed = parseFloat(document.getElementById('sim-speed').value);
+                if (simulationTime % Math.max(1, Math.floor(10/speed)) === 0) {
+                    updateSimulationStep();
+                }
+                simulationTime += speed;
+            }
+            
+            // Animate magma chamber if it exists
+            if (magmaChamber && magmaChamber.material.uniforms) {
+                magmaChamber.material.uniforms.time.value = simulationTime * 0.01;
+            }
+            
+            // Rotate volcano for better view
+            if (volcanoMesh) {
+                volcanoMesh.rotation.y += 0.001;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Resize handler
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initVolcanicSystem();
+        });
+    </script>
+</body>
+</html>

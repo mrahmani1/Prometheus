@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Stress & Focal Mechanism Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: #ffffff;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            min-width: 380px;
+            border: 2px solid #E91E63;
+            box-shadow: 0 8px 32px rgba(233, 30, 99, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .control-section h3 {
+            color: #E91E63;
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-container {
+            margin: 10px 0;
+        }
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        .slider-container input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .slider-value {
+            font-size: 11px;
+            color: #E91E63;
+            text-align: right;
+        }
+        select, button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #E91E63;
+            border-radius: 6px;
+            color: white;
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: rgba(233, 30, 99, 0.3);
+            transform: translateY(-1px);
+        }
+        .stats-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #FF5722;
+            min-width: 350px;
+            backdrop-filter: blur(10px);
+        }
+        .legend-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #2196F3;
+            width: 300px;
+            backdrop-filter: blur(10px);
+        }
+        .stress-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #4CAF50;
+            width: 400px;
+            height: 300px;
+            backdrop-filter: blur(10px);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            border: 1px solid #fff;
+            border-radius: 4px;
+        }
+        .focal-mechanism {
+            width: 30px;
+            height: 30px;
+            margin-right: 12px;
+            border: 1px solid #fff;
+            border-radius: 50%;
+        }
+        .magnitude-scale {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .magnitude-circle {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 1px solid #fff;
+        }
+        .stress-arrow {
+            position: absolute;
+            width: 3px;
+            height: 20px;
+            background: #ff0000;
+            transform-origin: center bottom;
+        }
+        @keyframes seismicPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.7; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .earthquake-marker {
+            animation: seismicPulse 3s infinite;
+        }
+        .magnitude-label {
+            font-size: 10px;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas"></canvas>
+        
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>🌍 Seismic Data</h3>
+                <select id="dataSource">
+                    <option value="usgs">USGS Global Catalog</option>
+                    <option value="emsc">EMSC European Catalog</option>
+                    <option value="jma">JMA Japan Catalog</option>
+                    <option value="synthetic">Synthetic Test Data</option>
+                </select>
+                
+                <div class="slider-container">
+                    <label>📅 Time Range (days)</label>
+                    <input type="range" id="timeRange" min="1" max="365" value="30">
+                    <div class="slider-value" id="timeValue">30 days</div>
+                </div>
+                
+                <div class="slider-container">
+                    <label>📏 Minimum Magnitude</label>
+                    <input type="range" id="minMagnitude" min="2.0" max="8.0" step="0.1" value="4.0">
+                    <div class="slider-value" id="magValue">M 4.0</div>
+                </div>
+                
+                <div class="slider-container">
+                    <label>🕳️ Maximum Depth (km)</label>
+                    <input type="range" id="maxDepth" min="10" max="700" value="200">
+                    <div class="slider-value" id="depthValue">200 km</div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>⚡ Stress Analysis</h3>
+                <select id="stressModel">
+                    <option value="coulomb">Coulomb Stress Transfer</option>
+                    <option value="principal">Principal Stress</option>
+                    <option value="shear">Maximum Shear Stress</option>
+                    <option value="compression">Compressive Stress</option>
+                </select>
+                
+                <div class="slider-container">
+                    <label>🔧 Friction Coefficient</label>
+                    <input type="range" id="friction" min="0.1" max="1.0" step="0.1" value="0.4">
+                    <div class="slider-value" id="frictionValue">μ = 0.4</div>
+                </div>
+                
+                <button id="calculateStress">🧮 Calculate Stress Field</button>
+                <button id="animateSequence">🎬 Animate Sequence</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>🎯 Focal Mechanisms</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button id="showNormal">⬇️ Normal</button>
+                    <button id="showReverse">⬆️ Reverse</button>
+                    <button id="showStrike">↔️ Strike-slip</button>
+                </div>
+                
+                <div class="slider-container">
+                    <label>📐 Beach Ball Size</label>
+                    <input type="range" id="beachBallSize" min="0.5" max="3.0" step="0.1" value="1.0">
+                    <div class="slider-value" id="sizeValue">1.0x</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-panel">
+            <h3>📊 Seismic Statistics</h3>
+            <div id="earthquakeStats">
+                <div>Total Events: <span id="totalEvents">0</span></div>
+                <div>Largest Magnitude: <span id="largestMag">-</span></div>
+                <div>Average Depth: <span id="avgDepth">-</span></div>
+                <div>Energy Released: <span id="energyReleased">-</span></div>
+            </div>
+            
+            <h4>🏔️ Plate Boundaries</h4>
+            <div id="boundaryStats">
+                <div>Convergent: <span id="convergentCount">0</span> events</div>
+                <div>Divergent: <span id="divergentCount">0</span> events</div>
+                <div>Transform: <span id="transformCount">0</span> events</div>
+                <div>Intraplate: <span id="intraplateCount">0</span> events</div>
+            </div>
+        </div>
+        
+        <div class="legend-panel">
+            <h3>🗂️ Legend</h3>
+            
+            <h4>Magnitude Scale</h4>
+            <div class="magnitude-scale">
+                <div class="magnitude-circle" style="background: #00ff00; width: 8px; height: 8px;"></div>
+                <span>M 2.0-3.9 (Minor)</span>
+            </div>
+            <div class="magnitude-scale">
+                <div class="magnitude-circle" style="background: #ffff00; width: 12px; height: 12px;"></div>
+                <span>M 4.0-4.9 (Light)</span>
+            </div>
+            <div class="magnitude-scale">
+                <div class="magnitude-circle" style="background: #ff8800; width: 16px; height: 16px;"></div>
+                <span>M 5.0-5.9 (Moderate)</span>
+            </div>
+            <div class="magnitude-scale">
+                <div class="magnitude-circle" style="background: #ff0000; width: 20px; height: 20px;"></div>
+                <span>M 6.0-6.9 (Strong)</span>
+            </div>
+            <div class="magnitude-scale">
+                <div class="magnitude-circle" style="background: #aa0000; width: 24px; height: 24px;"></div>
+                <span>M 7.0+ (Major/Great)</span>
+            </div>
+            
+            <h4>Focal Mechanisms</h4>
+            <div class="legend-item">
+                <canvas class="focal-mechanism" id="normalFM" width="30" height="30"></canvas>
+                <span>Normal Faulting</span>
+            </div>
+            <div class="legend-item">
+                <canvas class="focal-mechanism" id="reverseFM" width="30" height="30"></canvas>
+                <span>Reverse Faulting</span>
+            </div>
+            <div class="legend-item">
+                <canvas class="focal-mechanism" id="strikeFM" width="30" height="30"></canvas>
+                <span>Strike-slip Faulting</span>
+            </div>
+            
+            <h4>Stress Field</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff0000;"></div>
+                <span>Increased Stress (>0.1 bar)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0000ff;"></div>
+                <span>Decreased Stress (<-0.1 bar)</span>
+            </div>
+        </div>
+        
+        <div class="stress-panel">
+            <h3>📈 Stress Analysis</h3>
+            <div id="stressChart" style="height: 200px;"></div>
+            <div id="stressInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let earthquakeGroup, stressGroup, plateGroup;
+        let gui;
+
+        // Comprehensive earthquake database with focal mechanisms
+        const EARTHQUAKE_DATABASE = [
+            // Japan - Ring of Fire
+            {
+                id: 'tohoku2011',
+                lat: 38.297, lon: 142.373, depth: 32, magnitude: 9.1,
+                date: '2011-03-11',
+                mechanism: { strike: 193, dip: 14, rake: 88 },
+                type: 'reverse',
+                region: 'Japan Trench',
+                description: 'Tohoku-Oki Earthquake - Generated devastating tsunami'
+            },
+            {
+                id: 'kobe1995',
+                lat: 34.595, lon: 135.038, depth: 16, magnitude: 6.9,
+                date: '1995-01-17',
+                mechanism: { strike: 233, dip: 89, rake: 181 },
+                type: 'strike_slip',
+                region: 'Kansai, Japan',
+                description: 'Great Hanshin Earthquake - Urban disaster'
+            },
+            
+            // Indonesia - Extremely active region
+            {
+                id: 'sumatra2004',
+                lat: 3.295, lon: 95.982, depth: 30, magnitude: 9.3,
+                date: '2004-12-26',
+                mechanism: { strike: 329, dip: 8, rake: 110 },
+                type: 'reverse',
+                region: 'Sumatra-Andaman',
+                description: 'Indian Ocean Earthquake - Generated massive tsunami'
+            },
+            {
+                id: 'lombok2018',
+                lat: -8.256, lon: 116.454, depth: 15, magnitude: 7.0,
+                date: '2018-08-05',
+                mechanism: { strike: 95, dip: 82, rake: 178 },
+                type: 'strike_slip',
+                region: 'Lombok, Indonesia',
+                description: 'Lombok Earthquake sequence'
+            },
+            
+            // Chile - Nazca Plate subduction
+            {
+                id: 'chile2010',
+                lat: -36.122, lon: -72.898, depth: 35, magnitude: 8.8,
+                date: '2010-02-27',
+                mechanism: { strike: 18, dip: 18, rake: 104 },
+                type: 'reverse',
+                region: 'Maule, Chile',
+                description: 'Maule Earthquake - Major megathrust event'
+            },
+            {
+                id: 'chile1960',
+                lat: -38.24, lon: -73.05, depth: 25, magnitude: 9.5,
+                date: '1960-05-22',
+                mechanism: { strike: 10, dip: 20, rake: 90 },
+                type: 'reverse',
+                region: 'Valdivia, Chile',
+                description: 'Great Chilean Earthquake - Largest recorded earthquake'
+            },
+            
+            // Turkey - North Anatolian Fault
+            {
+                id: 'turkey2023',
+                lat: 37.166, lon: 37.032, depth: 10, magnitude: 7.8,
+                date: '2023-02-06',
+                mechanism: { strike: 55, dip: 85, rake: 180 },
+                type: 'strike_slip',
+                region: 'Kahramanmaras, Turkey',
+                description: 'Turkey-Syria Earthquake - Devastating strike-slip event'
+            },
+            {
+                id: 'izmit1999',
+                lat: 40.748, lon: 29.864, depth: 15, magnitude: 7.6,
+                date: '1999-08-17',
+                mechanism: { strike: 265, dip: 87, rake: 180 },
+                type: 'strike_slip',
+                region: 'Izmit, Turkey',
+                description: 'Izmit Earthquake - North Anatolian Fault rupture'
+            },
+            
+            // California - San Andreas System
+            {
+                id: 'northridge1994',
+                lat: 34.213, lon: -118.537, depth: 19, magnitude: 6.7,
+                date: '1994-01-17',
+                mechanism: { strike: 122, dip: 40, rake: 92 },
+                type: 'reverse',
+                region: 'Los Angeles, USA',
+                description: 'Northridge Earthquake - Blind thrust fault'
+            },
+            {
+                id: 'loma_prieta1989',
+                lat: 37.036, lon: -121.883, depth: 18, magnitude: 6.9,
+                date: '1989-10-17',
+                mechanism: { strike: 128, dip: 70, rake: 142 },
+                type: 'reverse',
+                region: 'San Francisco Bay Area, USA',
+                description: 'Loma Prieta Earthquake - World Series Earthquake'
+            },
+            
+            // Italy - Complex tectonics
+            {
+                id: 'amatrice2016',
+                lat: 42.698, lon: 13.234, depth: 8, magnitude: 6.2,
+                date: '2016-08-24',
+                mechanism: { strike: 155, dip: 50, rake: -90 },
+                type: 'normal',
+                region: 'Central Italy',
+                description: 'Amatrice Earthquake - Extensional tectonics'
+            },
+            {
+                id: 'laquila2009',
+                lat: 42.334, lon: 13.334, depth: 8.8, magnitude: 6.3,
+                date: '2009-04-06',
+                mechanism: { strike: 135, dip: 45, rake: -90 },
+                type: 'normal',
+                region: 'L\'Aquila, Italy',
+                description: 'L\'Aquila Earthquake - Apennine extension'
+            },
+            
+            // Greece - Hellenic Arc
+            {
+                id: 'samos2020',
+                lat: 37.894, lon: 26.790, depth: 21, magnitude: 7.0,
+                date: '2020-10-30',
+                mechanism: { strike: 287, dip: 34, rake: -72 },
+                type: 'normal',
+                region: 'Samos, Greece',
+                description: 'Samos Earthquake - Aegean Sea extension'
+            },
+            
+            // New Zealand - Pacific-Australian boundary
+            {
+                id: 'christchurch2011',
+                lat: -43.583, lon: 172.680, depth: 5, magnitude: 6.3,
+                date: '2011-02-22',
+                mechanism: { strike: 62, dip: 68, rake: 162 },
+                type: 'reverse',
+                region: 'Christchurch, New Zealand',
+                description: 'Christchurch Earthquake - Shallow reverse faulting'
+            },
+            {
+                id: 'kaikoura2016',
+                lat: -42.693, lon: 173.021, depth: 15, magnitude: 7.8,
+                date: '2016-11-13',
+                mechanism: { strike: 35, dip: 65, rake: 165 },
+                type: 'reverse',
+                region: 'Kaikoura, New Zealand',
+                description: 'Kaikoura Earthquake - Complex rupture sequence'
+            },
+            
+            // Mexico - Cocos Plate subduction
+            {
+                id: 'mexico2017',
+                lat: 18.40, lon: -98.72, depth: 57, magnitude: 7.1,
+                date: '2017-09-19',
+                mechanism: { strike: 295, dip: 53, rake: -74 },
+                type: 'normal',
+                region: 'Puebla, Mexico',
+                description: 'Puebla Earthquake - Intraslab normal faulting'
+            },
+            
+            // Peru - Nazca subduction
+            {
+                id: 'peru2007',
+                lat: -13.386, lon: -76.603, depth: 40, magnitude: 8.0,
+                date: '2007-08-15',
+                mechanism: { strike: 323, dip: 22, rake: 78 },
+                type: 'reverse',
+                region: 'Pisco, Peru',
+                description: 'Pisco Earthquake - Megathrust rupture'
+            },
+            
+            // Iran - Arabia-Eurasia collision
+            {
+                id: 'bam2003',
+                lat: 29.010, lon: 58.337, depth: 10, magnitude: 6.6,
+                date: '2003-12-26',
+                mechanism: { strike: 170, dip: 85, rake: 180 },
+                type: 'strike_slip',
+                region: 'Bam, Iran',
+                description: 'Bam Earthquake - Strike-slip in collision zone'
+            },
+            
+            // Mid-Atlantic Ridge - Spreading center
+            {
+                id: 'iceland2008',
+                lat: 63.992, lon: -21.032, depth: 5, magnitude: 6.3,
+                date: '2008-05-29',
+                mechanism: { strike: 15, dip: 89, rake: 180 },
+                type: 'strike_slip',
+                region: 'Reykjanes Peninsula, Iceland',
+                description: 'Iceland Transform - Mid-Atlantic Ridge'
+            },
+            
+            // Additional synthetic events for demonstration
+            {
+                id: 'synthetic1',
+                lat: 35.0, lon: 140.0, depth: 45, magnitude: 5.8,
+                date: '2024-01-15',
+                mechanism: { strike: 180, dip: 30, rake: 90 },
+                type: 'reverse',
+                region: 'Synthetic Event 1',
+                description: 'Test reverse fault mechanism'
+            },
+            {
+                id: 'synthetic2',
+                lat: -10.0, lon: 120.0, depth: 15, magnitude: 6.2,
+                date: '2024-02-20',
+                mechanism: { strike: 90, dip: 45, rake: -90 },
+                type: 'normal',
+                region: 'Synthetic Event 2',
+                description: 'Test normal fault mechanism'
+            }
+        ];
+
+        // Plate boundary data for stress analysis
+        const PLATE_BOUNDARIES = [
+            { type: 'convergent', lat1: 36, lon1: 140, lat2: 42, lon2: 145, name: 'Japan Trench' },
+            { type: 'transform', lat1: 35, lon1: -125, lat2: 40, lon2: -120, name: 'San Andreas' },
+            { type: 'divergent', lat1: 63, lon1: -22, lat2: 67, lon2: -18, name: 'Mid-Atlantic Ridge' },
+            { type: 'convergent', lat1: -15, lon1: -75, lat2: -40, lon2: -70, name: 'Peru-Chile Trench' }
+        ];
+
+        function init() {
+            // Initialize Three.js scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000011);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 50, 100);
+
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('canvas'), 
+                antialias: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 100, 50);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Initialize groups
+            earthquakeGroup = new THREE.Group();
+            stressGroup = new THREE.Group();
+            plateGroup = new THREE.Group();
+
+            scene.add(earthquakeGroup);
+            scene.add(stressGroup);
+            scene.add(plateGroup);
+
+            // Create Earth sphere
+            createEarth();
+            
+            // Create plate boundaries
+            createPlateBoundaries();
+            
+            // Load earthquake data
+            loadEarthquakeData();
+            
+            // Draw focal mechanism examples
+            drawFocalMechanismExamples();
+            
+            // Setup controls
+            setupControls();
+            
+            // Update statistics
+            updateStatistics();
+            
+            // Start animation
+            animate();
+        }
+
+        function createEarth() {
+            const earthGeometry = new THREE.SphereGeometry(50, 64, 64);
+            
+            // Create earth texture with continents
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient for ocean
+            const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+            gradient.addColorStop(0, '#001133');
+            gradient.addColorStop(1, '#003366');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 512, 256);
+            
+            // Add simplified continents
+            ctx.fillStyle = '#2d5a2d';
+            
+            // North America
+            ctx.fillRect(50, 80, 80, 60);
+            // South America
+            ctx.fillRect(90, 150, 40, 80);
+            // Europe/Asia
+            ctx.fillRect(200, 60, 180, 80);
+            // Africa
+            ctx.fillRect(220, 100, 60, 100);
+            // Australia
+            ctx.fillRect(380, 180, 60, 40);
+            // Antarctica
+            ctx.fillRect(0, 220, 512, 36);
+            
+            const earthTexture = new THREE.CanvasTexture(canvas);
+            
+            const earthMaterial = new THREE.MeshPhongMaterial({
+                map: earthTexture,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            scene.add(earth);
+        }
+
+        function createPlateBoundaries() {
+            PLATE_BOUNDARIES.forEach(boundary => {
+                const points = [];
+                
+                // Create curved line between points
+                const lat1 = boundary.lat1 * Math.PI / 180;
+                const lon1 = boundary.lon1 * Math.PI / 180;
+                const lat2 = boundary.lat2 * Math.PI / 180;
+                const lon2 = boundary.lon2 * Math.PI / 180;
+                
+                for (let i = 0; i <= 50; i++) {
+                    const t = i / 50;
+                    const lat = lat1 + (lat2 - lat1) * t;
+                    const lon = lon1 + (lon2 - lon1) * t;
+                    
+                    const x = 51 * Math.cos(lat) * Math.cos(lon);
+                    const y = 51 * Math.sin(lat);
+                    const z = 51 * Math.cos(lat) * Math.sin(lon);
+                    
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+                
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                
+                let color;
+                switch (boundary.type) {
+                    case 'convergent': color = 0xff0000; break;
+                    case 'divergent': color = 0x00ff00; break;
+                    case 'transform': color = 0xffff00; break;
+                    default: color = 0xffffff;
+                }
+                
+                const material = new THREE.LineBasicMaterial({ 
+                    color: color,
+                    linewidth: 3,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const line = new THREE.Line(geometry, material);
+                line.userData = boundary;
+                plateGroup.add(line);
+            });
+        }
+
+        function loadEarthquakeData() {
+            // Clear existing earthquakes
+            earthquakeGroup.clear();
+            
+            const minMag = parseFloat(document.getElementById('minMagnitude').value);
+            const maxDepth = parseFloat(document.getElementById('maxDepth').value);
+            
+            EARTHQUAKE_DATABASE.forEach(eq => {
+                if (eq.magnitude >= minMag && eq.depth <= maxDepth) {
+                    createEarthquakeMarker(eq);
+                }
+            });
+        }
+
+        function createEarthquakeMarker(earthquake) {
+            // Convert lat/lon to 3D position
+            const lat = earthquake.lat * Math.PI / 180;
+            const lon = earthquake.lon * Math.PI / 180;
+            const radius = 51 - (earthquake.depth * 0.1); // Adjust radius for depth
+            
+            const x = radius * Math.cos(lat) * Math.cos(lon);
+            const y = radius * Math.sin(lat);
+            const z = radius * Math.cos(lat) * Math.sin(lon);
+            
+            // Create earthquake sphere
+            const size = Math.max(0.5, (earthquake.magnitude - 4) * 0.5);
+            const geometry = new THREE.SphereGeometry(size, 16, 16);
+            
+            // Color based on magnitude
+            let color;
+            if (earthquake.magnitude < 4) color = 0x00ff00;
+            else if (earthquake.magnitude < 5) color = 0xffff00;
+            else if (earthquake.magnitude < 6) color = 0xff8800;
+            else if (earthquake.magnitude < 7) color = 0xff0000;
+            else color = 0xaa0000;
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.3,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.set(x, y, z);
+            sphere.userData = earthquake;
+            
+            // Add pulsing animation for recent events
+            const daysSince = (Date.now() - new Date(earthquake.date).getTime()) / (1000 * 60 * 60 * 24);
+            if (daysSince < 30) {
+                sphere.userData.animate = true;
+            }
+            
+            earthquakeGroup.add(sphere);
+            
+            // Create focal mechanism beach ball
+            createFocalMechanism(earthquake, new THREE.Vector3(x, y, z));
+        }
+
+        function createFocalMechanism(earthquake, position) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw beach ball based on fault mechanism
+            drawBeachBall(ctx, earthquake.mechanism, earthquake.type);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            
+            const size = Math.max(1, earthquake.magnitude - 3) * 
+                        parseFloat(document.getElementById('beachBallSize').value);
+            const geometry = new THREE.PlaneGeometry(size, size);
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            
+            const plane = new THREE.Mesh(geometry, material);
+            plane.position.copy(position);
+            plane.position.multiplyScalar(1.1); // Slightly outside Earth
+            plane.lookAt(new THREE.Vector3(0, 0, 0));
+            plane.userData = { earthquake: earthquake, type: 'focal_mechanism' };
+            
+            earthquakeGroup.add(plane);
+        }
+
+        function drawBeachBall(ctx, mechanism, type) {
+            const centerX = 32;
+            const centerY = 32;
+            const radius = 30;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, 64, 64);
+            
+            // Draw outer circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw quadrants based on fault type
+            ctx.fillStyle = 'black';
+            
+            switch (type) {
+                case 'normal':
+                    // Normal fault - tension quadrants
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius - 2, 0, Math.PI);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    
+                case 'reverse':
+                    // Reverse fault - compression quadrants
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius - 2, Math.PI / 2, 3 * Math.PI / 2);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius - 2, -Math.PI / 2, Math.PI / 2);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    
+                case 'strike_slip':
+                    // Strike-slip fault - alternating quadrants
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY - radius + 2);
+                    ctx.lineTo(centerX + radius - 2, centerY);
+                    ctx.lineTo(centerX, centerY + radius - 2);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY - radius + 2);
+                    ctx.lineTo(centerX - radius + 2, centerY);
+                    ctx.lineTo(centerX, centerY + radius - 2);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+            }
+            
+            // Add nodal lines
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+            
+            // Simplified nodal lines based on strike/dip
+            const strike = mechanism.strike * Math.PI / 180;
+            const dip = mechanism.dip * Math.PI / 180;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX - radius * Math.cos(strike), centerY - radius * Math.sin(strike));
+            ctx.lineTo(centerX + radius * Math.cos(strike), centerY + radius * Math.sin(strike));
+            ctx.stroke();
+        }
+
+        function drawFocalMechanismExamples() {
+            // Draw example focal mechanisms in legend
+            const mechanisms = [
+                { id: 'normalFM', type: 'normal', mechanism: { strike: 0, dip: 90, rake: -90 } },
+                { id: 'reverseFM', type: 'reverse', mechanism: { strike: 0, dip: 45, rake: 90 } },
+                { id: 'strikeFM', type: 'strike_slip', mechanism: { strike: 0, dip: 90, rake: 180 } }
+            ];
+            
+            mechanisms.forEach(mech => {
+                const canvas = document.getElementById(mech.id);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    drawBeachBall(ctx, mech.mechanism, mech.type);
+                }
+            });
+        }
+
+        function calculateStressField() {
+            // Clear existing stress visualization
+            stressGroup.clear();
+            
+            const model = document.getElementById('stressModel').value;
+            const friction = parseFloat(document.getElementById('friction').value);
+            
+            // Create stress field grid
+            const gridSize = 20;
+            const spacing = 10;
+            
+            for (let i = -gridSize; i <= gridSize; i += spacing) {
+                for (let j = -gridSize; j <= gridSize; j += spacing) {
+                    for (let k = -gridSize; k <= gridSize; k += spacing) {
+                        const position = new THREE.Vector3(i, j, k);
+                        const distance = position.length();
+                        
+                        if (distance > 45 && distance < 65) { // Around Earth's surface
+                            const stress = calculateStressAtPoint(position, model, friction);
+                            if (Math.abs(stress) > 0.1) {
+                                createStressVisualization(position, stress);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Update stress chart
+            updateStressChart();
+        }
+
+        function calculateStressAtPoint(position, model, friction) {
+            let totalStress = 0;
+            
+            // Calculate cumulative stress from all earthquakes
+            EARTHQUAKE_DATABASE.forEach(eq => {
+                const eqLat = eq.lat * Math.PI / 180;
+                const eqLon = eq.lon * Math.PI / 180;
+                const eqRadius = 51 - (eq.depth * 0.1);
+                
+                const eqPos = new THREE.Vector3(
+                    eqRadius * Math.cos(eqLat) * Math.cos(eqLon),
+                    eqRadius * Math.sin(eqLat),
+                    eqRadius * Math.cos(eqLat) * Math.sin(eqLon)
+                );
+                
+                const distance = position.distanceTo(eqPos);
+                if (distance > 0) {
+                    const magnitude = eq.magnitude;
+                    const moment = Math.pow(10, 1.5 * magnitude + 9.1); // Seismic moment
+                    
+                    let stress = 0;
+                    
+                    switch (model) {
+                        case 'coulomb':
+                            // Simplified Coulomb stress transfer
+                            stress = (moment / (4 * Math.PI * Math.pow(distance * 1000, 3))) * 
+                                    (1 + friction * 0.5);
+                            break;
+                        case 'principal':
+                            // Principal stress
+                            stress = moment / (4 * Math.PI * Math.pow(distance * 1000, 2));
+                            break;
+                        case 'shear':
+                            // Maximum shear stress
+                            stress = moment / (8 * Math.PI * Math.pow(distance * 1000, 3));
+                            break;
+                        case 'compression':
+                            // Compressive stress
+                            stress = -moment / (4 * Math.PI * Math.pow(distance * 1000, 3));
+                            break;
+                    }
+                    
+                    totalStress += stress;
+                }
+            });
+            
+            return totalStress / 1e5; // Convert to bars
+        }
+
+        function createStressVisualization(position, stress) {
+            const absStress = Math.abs(stress);
+            const size = Math.min(2, absStress * 10);
+            
+            const geometry = new THREE.SphereGeometry(size, 8, 8);
+            const color = stress > 0 ? 0xff0000 : 0x0000ff; // Red for positive, blue for negative
+            
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: Math.min(0.8, absStress * 5)
+            });
+            
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.copy(position);
+            sphere.userData = { stress: stress };
+            
+            stressGroup.add(sphere);
+        }
+
+        function updateStressChart() {
+            // Create stress distribution chart
+            const stressValues = [];
+            const distances = [];
+            
+            stressGroup.children.forEach(child => {
+                if (child.userData.stress !== undefined) {
+                    stressValues.push(child.userData.stress);
+                    distances.push(child.position.length() - 51); // Distance from surface
+                }
+            });
+            
+            const trace = {
+                x: distances,
+                y: stressValues,
+                type: 'scatter',
+                mode: 'markers',
+                marker: {
+                    color: stressValues.map(s => s > 0 ? 'red' : 'blue'),
+                    size: 8
+                },
+                name: 'Stress Field'
+            };
+            
+            const layout = {
+                title: 'Stress vs Distance from Surface',
+                xaxis: { title: 'Distance (km)' },
+                yaxis: { title: 'Stress (bar)' },
+                height: 200,
+                margin: { l: 40, r: 40, t: 40, b: 40 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: 'white' }
+            };
+            
+            Plotly.newPlot('stressChart', [trace], layout, { responsive: true });
+            
+            // Update stress info
+            const avgStress = stressValues.reduce((a, b) => a + b, 0) / stressValues.length || 0;
+            const maxStress = Math.max(...stressValues.map(Math.abs), 0);
+            
+            document.getElementById('stressInfo').innerHTML = `
+                <strong>Field Statistics:</strong><br>
+                Average Stress: ${avgStress.toFixed(3)} bar<br>
+                Maximum Stress: ${maxStress.toFixed(3)} bar<br>
+                Grid Points: ${stressValues.length}
+            `;
+        }
+
+        function updateStatistics() {
+            const minMag = parseFloat(document.getElementById('minMagnitude').value);
+            const maxDepth = parseFloat(document.getElementById('maxDepth').value);
+            
+            const filteredEqs = EARTHQUAKE_DATABASE.filter(eq => 
+                eq.magnitude >= minMag && eq.depth <= maxDepth
+            );
+            
+            const totalEvents = filteredEqs.length;
+            const largestMag = Math.max(...filteredEqs.map(eq => eq.magnitude));
+            const avgDepth = filteredEqs.reduce((sum, eq) => sum + eq.depth, 0) / totalEvents || 0;
+            
+            // Calculate total energy released (simplified)
+            const totalEnergy = filteredEqs.reduce((sum, eq) => {
+                return sum + Math.pow(10, 1.5 * eq.magnitude + 4.8);
+            }, 0);
+            
+            // Count by boundary type
+            let convergentCount = 0, divergentCount = 0, transformCount = 0, intraplateCount = 0;
+            
+            filteredEqs.forEach(eq => {
+                switch (eq.type) {
+                    case 'reverse': convergentCount++; break;
+                    case 'normal': divergentCount++; break;
+                    case 'strike_slip': transformCount++; break;
+                    default: intraplateCount++;
+                }
+            });
+            
+            // Update display
+            document.getElementById('totalEvents').textContent = totalEvents;
+            document.getElementById('largestMag').textContent = `M ${largestMag.toFixed(1)}`;
+            document.getElementById('avgDepth').textContent = `${avgDepth.toFixed(1)} km`;
+            document.getElementById('energyReleased').textContent = `${(totalEnergy / 1e15).toFixed(2)} PJ`;
+            
+            document.getElementById('convergentCount').textContent = convergentCount;
+            document.getElementById('divergentCount').textContent = divergentCount;
+            document.getElementById('transformCount').textContent = transformCount;
+            document.getElementById('intraplateCount').textContent = intraplateCount;
+        }
+
+        function setupControls() {
+            // Slider event listeners
+            document.getElementById('timeRange').addEventListener('input', (e) => {
+                document.getElementById('timeValue').textContent = e.target.value + ' days';
+            });
+            
+            document.getElementById('minMagnitude').addEventListener('input', (e) => {
+                document.getElementById('magValue').textContent = `M ${e.target.value}`;
+                loadEarthquakeData();
+                updateStatistics();
+            });
+            
+            document.getElementById('maxDepth').addEventListener('input', (e) => {
+                document.getElementById('depthValue').textContent = e.target.value + ' km';
+                loadEarthquakeData();
+                updateStatistics();
+            });
+            
+            document.getElementById('friction').addEventListener('input', (e) => {
+                document.getElementById('frictionValue').textContent = `μ = ${e.target.value}`;
+            });
+            
+            document.getElementById('beachBallSize').addEventListener('input', (e) => {
+                document.getElementById('sizeValue').textContent = `${e.target.value}x`;
+                loadEarthquakeData(); // Reload to update beach ball sizes
+            });
+            
+            // Button event listeners
+            document.getElementById('calculateStress').addEventListener('click', calculateStressField);
+            
+            document.getElementById('animateSequence').addEventListener('click', () => {
+                animateEarthquakeSequence();
+            });
+            
+            document.getElementById('showNormal').addEventListener('click', () => {
+                highlightFaultType('normal');
+            });
+            
+            document.getElementById('showReverse').addEventListener('click', () => {
+                highlightFaultType('reverse');
+            });
+            
+            document.getElementById('showStrike').addEventListener('click', () => {
+                highlightFaultType('strike_slip');
+            });
+            
+            // Select event listeners
+            document.getElementById('dataSource').addEventListener('change', (e) => {
+                console.log('Data source changed to:', e.target.value);
+                // In real implementation, would load different datasets
+            });
+            
+            document.getElementById('stressModel').addEventListener('change', () => {
+                if (stressGroup.children.length > 0) {
+                    calculateStressField();
+                }
+            });
+        }
+
+        function highlightFaultType(type) {
+            earthquakeGroup.children.forEach(child => {
+                if (child.userData.earthquake) {
+                    const isTargetType = child.userData.earthquake.type === type;
+                    child.material.opacity = isTargetType ? 1.0 : 0.2;
+                    child.material.emissiveIntensity = isTargetType ? 0.5 : 0.1;
+                } else if (child.userData.type === 'focal_mechanism') {
+                    const isTargetType = child.userData.earthquake.type === type;
+                    child.material.opacity = isTargetType ? 1.0 : 0.2;
+                }
+            });
+        }
+
+        function animateEarthquakeSequence() {
+            // Sort earthquakes by date
+            const sortedEqs = [...EARTHQUAKE_DATABASE].sort((a, b) => 
+                new Date(a.date) - new Date(b.date)
+            );
+            
+            // Hide all earthquakes initially
+            earthquakeGroup.children.forEach(child => {
+                child.visible = false;
+            });
+            
+            // Animate sequence
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index >= sortedEqs.length) {
+                    clearInterval(interval);
+                    // Show all earthquakes again
+                    earthquakeGroup.children.forEach(child => {
+                        child.visible = true;
+                    });
+                    return;
+                }
+                
+                const eq = sortedEqs[index];
+                earthquakeGroup.children.forEach(child => {
+                    if (child.userData.earthquake && child.userData.earthquake.id === eq.id) {
+                        child.visible = true;
+                        
+                        // Add flash effect
+                        const originalEmissive = child.material.emissiveIntensity;
+                        child.material.emissiveIntensity = 1.0;
+                        setTimeout(() => {
+                            child.material.emissiveIntensity = originalEmissive;
+                        }, 500);
+                    }
+                });
+                
+                index++;
+            }, 200);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Animate pulsing earthquakes
+            earthquakeGroup.children.forEach(child => {
+                if (child.userData.animate) {
+                    const time = Date.now() * 0.001;
+                    const scale = 1 + 0.3 * Math.sin(time * 3);
+                    child.scale.setScalar(scale);
+                }
+            });
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>

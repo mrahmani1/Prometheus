@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI - Advanced InSAR Deformation Analysis System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #insar-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        #analysis-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        #processing-status {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group h3 {
+            margin: 0 0 15px 0;
+            color: #2196F3;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(33, 150, 243, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+        }
+        
+        .button {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+        }
+        
+        .button.secondary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+        
+        .button.warning {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+        
+        .button.danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .analysis-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 5px;
+            border-left: 3px solid #2196F3;
+        }
+        
+        .analysis-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .analysis-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .volcano-selector {
+            margin-bottom: 20px;
+        }
+        
+        .deformation-map {
+            width: 100%;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .time-series-chart {
+            width: 100%;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .interferogram-display {
+            width: 100%;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            margin: 10px 0;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .processing-mode {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        
+        .mode-button {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .mode-button.active {
+            background: #2196F3;
+            border-color: #2196F3;
+        }
+        
+        .model-parameters {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        
+        .dike-model {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .parameter-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .confidence-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .confidence-bar {
+            width: 80px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f44336, #FF9800, #4CAF50);
+            transition: width 0.3s;
+        }
+        
+        .processing-pipeline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        
+        .pipeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .pipeline-step.active {
+            background: rgba(33, 150, 243, 0.2);
+        }
+        
+        .pipeline-step.completed {
+            background: rgba(76, 175, 80, 0.2);
+        }
+        
+        .step-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .step-label {
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .error-analysis {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .coherence-threshold {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .atmospheric-correction {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .correction-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .unwrapping-quality {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div id="insar-controls">
+            <h2>📡 InSAR Analysis Control Center</h2>
+            
+            <div class="volcano-selector">
+                <label>Target Volcano:</label>
+                <select id="volcano-select">
+                    <option value="etna">Mount Etna (Sicily)</option>
+                    <option value="kilauea">Kilauea (Hawaii)</option>
+                    <option value="vesuvius">Vesuvius (Italy)</option>
+                    <option value="pinatubo">Pinatubo (Philippines)</option>
+                    <option value="yellowstone">Yellowstone (USA)</option>
+                    <option value="custom">Custom Location</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <h3>🛰️ SAR Data Parameters</h3>
+                
+                <label>Satellite Mission:</label>
+                <select id="satellite-mission">
+                    <option value="sentinel1">Sentinel-1 (C-band)</option>
+                    <option value="alos2">ALOS-2 (L-band)</option>
+                    <option value="terrasar">TerraSAR-X (X-band)</option>
+                    <option value="cosmo">COSMO-SkyMed (X-band)</option>
+                </select>
+                
+                <div class="slider-container">
+                    <label>Temporal Baseline (days): <span id="temporal-baseline-value">12</span></label>
+                    <input type="range" id="temporal-baseline" class="slider" min="6" max="360" step="6" value="12">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Perpendicular Baseline (m): <span id="perp-baseline-value">150</span></label>
+                    <input type="range" id="perp-baseline" class="slider" min="10" max="1000" step="10" value="150">
+                </div>
+                
+                <div class="coherence-threshold">
+                    <label>Coherence Threshold:</label>
+                    <input type="range" id="coherence-threshold" class="slider" min="0.1" max="0.9" step="0.05" value="0.3" style="width: 100px;">
+                    <span id="coherence-value">0.3</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔧 Processing Pipeline</h3>
+                
+                <div class="processing-pipeline" id="pipeline-status">
+                    <div class="pipeline-step" id="step-coregistration">
+                        <div class="step-icon">📐</div>
+                        <div class="step-label">Coregistration</div>
+                    </div>
+                    <div class="pipeline-step" id="step-interferogram">
+                        <div class="step-icon">🌊</div>
+                        <div class="step-label">Interferogram</div>
+                    </div>
+                    <div class="pipeline-step" id="step-filtering">
+                        <div class="step-icon">🔍</div>
+                        <div class="step-label">Filtering</div>
+                    </div>
+                    <div class="pipeline-step" id="step-unwrapping">
+                        <div class="step-icon">🧩</div>
+                        <div class="step-label">Unwrapping</div>
+                    </div>
+                    <div class="pipeline-step" id="step-geocoding">
+                        <div class="step-icon">🗺️</div>
+                        <div class="step-label">Geocoding</div>
+                    </div>
+                </div>
+                
+                <button class="button" onclick="startProcessing()">🚀 Process SAR Data</button>
+                <button class="button secondary" onclick="loadSampleData()">📂 Load Sample</button>
+                <button class="button warning" onclick="resetProcessing()">🔄 Reset</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎨 Display Options</h3>
+                <div class="processing-mode">
+                    <div class="mode-button active" data-mode="deformation">Deformation</div>
+                    <div class="mode-button" data-mode="coherence">Coherence</div>
+                    <div class="mode-button" data-mode="interferogram">Interferogram</div>
+                    <div class="mode-button" data-mode="wrapped">Wrapped Phase</div>
+                    <div class="mode-button" data-mode="unwrapped">Unwrapped Phase</div>
+                </div>
+                
+                <div class="slider-container">
+                    <label>Color Scale (cm): <span id="color-scale-value">±5</span></label>
+                    <input type="range" id="color-scale" class="slider" min="1" max="50" step="1" value="5">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Transparency: <span id="transparency-value">80%</span></label>
+                    <input type="range" id="transparency" class="slider" min="10" max="100" step="10" value="80">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>⚙️ Atmospheric Corrections</h3>
+                
+                <div class="atmospheric-correction">
+                    <div class="correction-item">
+                        <label><input type="checkbox" id="aps-correction" checked> APS Correction</label>
+                    </div>
+                    <div class="correction-item">
+                        <label><input type="checkbox" id="ionosphere-correction"> Ionospheric</label>
+                    </div>
+                    <div class="correction-item">
+                        <label><input type="checkbox" id="troposphere-correction" checked> Tropospheric</label>
+                    </div>
+                    <div class="correction-item">
+                        <label><input type="checkbox" id="orbit-correction" checked> Orbital</label>
+                    </div>
+                </div>
+                
+                <div class="slider-container">
+                    <label>Atmosphere Model Strength: <span id="atm-strength-value">0.5</span></label>
+                    <input type="range" id="atm-strength" class="slider" min="0" max="1" step="0.1" value="0.5">
+                </div>
+            </div>
+        </div>
+        
+        <div id="analysis-panel">
+            <h3>📊 Deformation Analysis Results</h3>
+            
+            <div class="analysis-grid">
+                <div class="analysis-item">
+                    <div class="analysis-value" id="max-deformation">+2.3</div>
+                    <div class="analysis-label">Max Uplift (cm)</div>
+                </div>
+                <div class="analysis-item">
+                    <div class="analysis-value" id="min-deformation">-1.8</div>
+                    <div class="analysis-label">Max Subsidence (cm)</div>
+                </div>
+                <div class="analysis-item">
+                    <div class="analysis-value" id="deformation-rate">0.15</div>
+                    <div class="analysis-label">Rate (mm/day)</div>
+                </div>
+                <div class="analysis-item">
+                    <div class="analysis-value" id="coherence-quality">0.76</div>
+                    <div class="analysis-label">Avg Coherence</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📈 Time Series Analysis</h3>
+                <div class="time-series-chart">
+                    <canvas id="time-series-canvas" width="300" height="120"></canvas>
+                </div>
+                <div style="font-size: 12px; color: #aaa; text-align: center;">
+                    Cumulative deformation over time at central point
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎯 Deformation Source Modeling</h3>
+                
+                <div class="model-parameters">
+                    <h4>Best-Fit Dike Model:</h4>
+                    <div class="dike-model">
+                        <div class="parameter-item">
+                            <span>Depth (km):</span>
+                            <span id="dike-depth">3.2 ± 0.5</span>
+                        </div>
+                        <div class="parameter-item">
+                            <span>Length (km):</span>
+                            <span id="dike-length">2.8 ± 0.3</span>
+                        </div>
+                        <div class="parameter-item">
+                            <span>Width (m):</span>
+                            <span id="dike-width">1.5 ± 0.2</span>
+                        </div>
+                        <div class="parameter-item">
+                            <span>Opening (m):</span>
+                            <span id="dike-opening">0.8 ± 0.1</span>
+                        </div>
+                        <div class="parameter-item">
+                            <span>Strike (°):</span>
+                            <span id="dike-strike">045 ± 5</span>
+                        </div>
+                        <div class="parameter-item">
+                            <span>Dip (°):</span>
+                            <span id="dike-dip">85 ± 3</span>
+                        </div>
+                    </div>
+                    
+                    <div class="confidence-indicator">
+                        <span>Model Confidence:</span>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="model-confidence" style="width: 78%;"></div>
+                        </div>
+                        <span id="confidence-percentage">78%</span>
+                    </div>
+                </div>
+                
+                <button class="button secondary" onclick="optimizeModel()">🎯 Optimize Model</button>
+                <button class="button" onclick="runMCMC()">📊 MCMC Analysis</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>⚠️ Quality Assessment</h3>
+                
+                <div class="unwrapping-quality">
+                    <span>Phase Unwrapping Quality:</span>
+                    <span style="color: #4CAF50;">Good</span>
+                </div>
+                
+                <div class="unwrapping-quality">
+                    <span>Atmospheric Artifacts:</span>
+                    <span style="color: #FF9800;">Moderate</span>
+                </div>
+                
+                <div class="unwrapping-quality">
+                    <span>Decorrelation Effects:</span>
+                    <span style="color: #4CAF50;">Low</span>
+                </div>
+                
+                <div class="unwrapping-quality">
+                    <span>Orbital Errors:</span>
+                    <span style="color: #4CAF50;">Corrected</span>
+                </div>
+                
+                <div class="error-analysis">
+                    <h4>Error Budget:</h4>
+                    <div class="parameter-item">
+                        <span>Measurement Error:</span>
+                        <span>±0.5 cm</span>
+                    </div>
+                    <div class="parameter-item">
+                        <span>Atmospheric Error:</span>
+                        <span>±1.2 cm</span>
+                    </div>
+                    <div class="parameter-item">
+                        <span>Model Error:</span>
+                        <span>±0.8 cm</span>
+                    </div>
+                    <div class="parameter-item">
+                        <span>Total Error:</span>
+                        <span style="color: #f44336;">±1.6 cm</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔍 Advanced Analysis</h3>
+                <button class="button" onclick="performPCA()">📊 PCA Analysis</button>
+                <button class="button secondary" onclick="detectOutliers()">🎯 Outlier Detection</button>
+                <button class="button warning" onclick="validateModel()">✅ Model Validation</button>
+                <button class="button danger" onclick="exportResults()">💾 Export Results</button>
+            </div>
+        </div>
+        
+        <div id="processing-status">
+            <div class="confidence-indicator">
+                <span style="color: #2196F3; font-weight: bold;">Processing Status:</span>
+                <span id="status-text">Ready</span>
+            </div>
+            
+            <div style="text-align: center;">
+                <div style="color: #2196F3; font-weight: bold; font-size: 18px;" id="processing-progress">0%</div>
+                <div style="color: #aaa; font-size: 12px;">Completion</div>
+            </div>
+            
+            <div class="confidence-indicator">
+                <span style="color: #aaa;">Data Quality:</span>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="data-quality" style="width: 85%;"></div>
+                </div>
+                <span id="quality-score">85%</span>
+            </div>
+        </div>
+        
+        <!-- Hidden interferogram display -->
+        <div class="interferogram-display" id="interferogram-display" style="display: none;">
+            <canvas id="interferogram-canvas" width="300" height="200"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer;
+        let deformationMesh, volcanoTerrain;
+        let currentDisplayMode = 'deformation';
+        let selectedVolcano = 'etna';
+        let processingStep = 0;
+        let isProcessing = false;
+        let timeSeriesChart;
+        
+        // InSAR processing parameters
+        let insarParams = {
+            temporalBaseline: 12,
+            perpendicular: 150,
+            coherenceThreshold: 0.3,
+            colorScale: 5,
+            transparency: 80,
+            atmosphereStrength: 0.5
+        };
+        
+        // Volcano locations and characteristics
+        const VOLCANO_DATA = {
+            etna: {
+                name: "Mount Etna",
+                lat: 37.7510,
+                lon: 14.9934,
+                typical_deformation: { max: 15, min: -8, rate: 0.8 },
+                dike_characteristics: {
+                    depth: 3.2,
+                    length: 2.8,
+                    width: 1.5,
+                    opening: 0.8,
+                    strike: 45,
+                    dip: 85
+                }
+            },
+            kilauea: {
+                name: "Kilauea",
+                lat: 19.4069,
+                lon: -155.2834,
+                typical_deformation: { max: 25, min: -15, rate: 1.2 },
+                dike_characteristics: {
+                    depth: 1.5,
+                    length: 5.0,
+                    width: 2.0,
+                    opening: 1.5,
+                    strike: 60,
+                    dip: 80
+                }
+            },
+            vesuvius: {
+                name: "Mount Vesuvius",
+                lat: 40.8210,
+                lon: 14.4260,
+                typical_deformation: { max: 5, min: -3, rate: 0.2 },
+                dike_characteristics: {
+                    depth: 8.0,
+                    length: 1.2,
+                    width: 0.8,
+                    opening: 0.3,
+                    strike: 120,
+                    dip: 90
+                }
+            },
+            pinatubo: {
+                name: "Mount Pinatubo",
+                lat: 15.1429,
+                lon: 120.3496,
+                typical_deformation: { max: 8, min: -12, rate: 0.5 },
+                dike_characteristics: {
+                    depth: 6.0,
+                    length: 2.0,
+                    width: 1.0,
+                    opening: 0.5,
+                    strike: 90,
+                    dip: 85
+                }
+            },
+            yellowstone: {
+                name: "Yellowstone",
+                lat: 44.4280,
+                lon: -110.5885,
+                typical_deformation: { max: 20, min: -10, rate: 0.3 },
+                dike_characteristics: {
+                    depth: 12.0,
+                    length: 8.0,
+                    width: 3.0,
+                    opening: 2.0,
+                    strike: 30,
+                    dip: 75
+                }
+            }
+        };
+        
+        // Simulated deformation data
+        let deformationData = [];
+        let timeSeriesData = [];
+        
+        function initInSARSystem() {
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000510, 1);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Camera positioning - bird's eye view
+            camera.position.set(0, 20, 20);
+            camera.lookAt(0, 0, 0);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(20, 20, 10);
+            scene.add(directionalLight);
+            
+            // Create initial visualization
+            createTerrainVisualization();
+            
+            // Initialize time series chart
+            initTimeSeriesChart();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Generate initial data
+            loadSampleData();
+            
+            // Start animation loop
+            animate();
+            
+            console.log("InSAR analysis system initialized");
+        }
+        
+        function createTerrainVisualization() {
+            // Create terrain mesh for deformation display
+            const terrainGeometry = new THREE.PlaneGeometry(20, 20, 63, 63);
+            const vertices = terrainGeometry.attributes.position.array;
+            const colors = new Float32Array(vertices.length);
+            
+            // Generate synthetic topography and deformation
+            generateDeformationData();
+            
+            // Apply deformation to terrain
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const z = vertices[i + 2];
+                const gridX = Math.floor((x + 10) / 20 * 64);
+                const gridZ = Math.floor((z + 10) / 20 * 64);
+                
+                if (gridX >= 0 && gridX < 64 && gridZ >= 0 && gridZ < 64) {
+                    const deformation = deformationData[gridZ * 64 + gridX] || 0;
+                    vertices[i + 1] = deformation * 0.1; // Scale deformation for visibility
+                    
+                    // Color based on deformation
+                    const color = deformationToColor(deformation);
+                    colors[i] = color.r;
+                    colors[i + 1] = color.g;
+                    colors[i + 2] = color.b;
+                }
+            }
+            
+            terrainGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            terrainGeometry.attributes.position.needsUpdate = true;
+            
+            const terrainMaterial = new THREE.MeshLambertMaterial({
+                vertexColors: true,
+                transparent: true,
+                opacity: insarParams.transparency / 100,
+                wireframe: false
+            });
+            
+            if (deformationMesh) {
+                scene.remove(deformationMesh);
+            }
+            
+            deformationMesh = new THREE.Mesh(terrainGeometry, terrainMaterial);
+            scene.add(deformationMesh);
+            
+            // Add reference grid
+            createReferenceGrid();
+            
+            // Add volcano marker
+            createVolcanoMarker();
+        }
+        
+        function generateDeformationData() {
+            const volcano = VOLCANO_DATA[selectedVolcano];
+            const gridSize = 64;
+            deformationData = new Array(gridSize * gridSize);
+            
+            const centerX = gridSize / 2;
+            const centerY = gridSize / 2;
+            
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const index = y * gridSize + x;
+                    
+                    // Distance from volcano center
+                    const dx = x - centerX;
+                    const dy = y - centerY;
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    // Simulate Mogi source deformation
+                    let deformation = 0;
+                    
+                    if (distance < 30) {
+                        // Primary deformation source
+                        const depth = volcano.dike_characteristics.depth;
+                        const volume = volcano.dike_characteristics.opening * 
+                                     volcano.dike_characteristics.length * 
+                                     volcano.dike_characteristics.width;
+                        
+                        // Mogi model approximation
+                        const r = Math.max(0.5, distance * 0.3); // km
+                        deformation = (3 * volume * depth) / (4 * Math.PI * Math.pow(r*r + depth*depth, 1.5));
+                        
+                        // Add dike-specific directional component
+                        const strike_rad = volcano.dike_characteristics.strike * Math.PI / 180;
+                        const directional = Math.cos(Math.atan2(dy, dx) - strike_rad);
+                        deformation += directional * volume * 0.5 / (r + 1);
+                    }
+                    
+                    // Add noise and atmospheric effects
+                    deformation += (Math.random() - 0.5) * 0.5; // Measurement noise
+                    
+                    // Add atmospheric phase screen
+                    const atmNoise = Math.sin(x * 0.2) * Math.cos(y * 0.15) * 
+                                    insarParams.atmosphereStrength * 2;
+                    deformation += atmNoise;
+                    
+                    // Add topography-correlated noise
+                    const topoNoise = Math.sin(distance * 0.1) * 0.3;
+                    deformation += topoNoise;
+                    
+                    deformationData[index] = deformation;
+                }
+            }
+            
+            // Update analysis values
+            updateAnalysisValues();
+        }
+        
+        function updateAnalysisValues() {
+            const maxDef = Math.max(...deformationData);
+            const minDef = Math.min(...deformationData);
+            const avgDef = deformationData.reduce((a, b) => a + b, 0) / deformationData.length;
+            
+            document.getElementById('max-deformation').textContent = `+${maxDef.toFixed(1)}`;
+            document.getElementById('min-deformation').textContent = minDef.toFixed(1);
+            document.getElementById('deformation-rate').textContent = (maxDef / 30).toFixed(2); // Assume 30-day period
+            
+            // Calculate coherence quality
+            const coherence = Math.random() * 0.3 + 0.6; // 0.6-0.9 range
+            document.getElementById('coherence-quality').textContent = coherence.toFixed(2);
+            
+            // Update dike model parameters
+            const volcano = VOLCANO_DATA[selectedVolcano];
+            const dike = volcano.dike_characteristics;
+            
+            document.getElementById('dike-depth').textContent = `${dike.depth.toFixed(1)} ± 0.5`;
+            document.getElementById('dike-length').textContent = `${dike.length.toFixed(1)} ± 0.3`;
+            document.getElementById('dike-width').textContent = `${dike.width.toFixed(1)} ± 0.2`;
+            document.getElementById('dike-opening').textContent = `${dike.opening.toFixed(1)} ± 0.1`;
+            document.getElementById('dike-strike').textContent = `${String(dike.strike).padStart(3, '0')} ± 5`;
+            document.getElementById('dike-dip').textContent = `${dike.dip} ± 3`;
+            
+            // Generate time series data
+            generateTimeSeriesData();
+        }
+        
+        function generateTimeSeriesData() {
+            timeSeriesData = [];
+            const numPoints = 20;
+            const volcano = VOLCANO_DATA[selectedVolcano];
+            
+            for (let i = 0; i < numPoints; i++) {
+                const days = i * 6; // Every 6 days
+                const baseDeformation = volcano.typical_deformation.rate * days / 10;
+                const noise = (Math.random() - 0.5) * 1.0;
+                const seasonal = Math.sin(days * 0.1) * 0.5; // Seasonal atmospheric effects
+                
+                timeSeriesData.push({
+                    day: days,
+                    deformation: baseDeformation + noise + seasonal
+                });
+            }
+            
+            updateTimeSeriesChart();
+        }
+        
+        function deformationToColor(deformation) {
+            const scale = insarParams.colorScale;
+            const normalized = Math.max(-1, Math.min(1, deformation / scale));
+            
+            if (currentDisplayMode === 'deformation') {
+                // Blue to red color scale
+                if (normalized < 0) {
+                    // Subsidence: blue
+                    const intensity = Math.abs(normalized);
+                    return new THREE.Color(1 - intensity, 1 - intensity, 1);
+                } else {
+                    // Uplift: red
+                    return new THREE.Color(1, 1 - normalized, 1 - normalized);
+                }
+            } else if (currentDisplayMode === 'coherence') {
+                // Coherence: black to white
+                const coherence = 0.3 + Math.abs(normalized) * 0.7;
+                return new THREE.Color(coherence, coherence, coherence);
+            } else if (currentDisplayMode === 'interferogram') {
+                // Phase: rainbow colors
+                const hue = (normalized + 1) * 0.5; // 0 to 1
+                return new THREE.Color().setHSL(hue * 0.8, 0.8, 0.5);
+            } else {
+                // Default: grayscale
+                const gray = 0.5 + normalized * 0.5;
+                return new THREE.Color(gray, gray, gray);
+            }
+        }
+        
+        function createReferenceGrid() {
+            // Create coordinate grid
+            const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x444444);
+            gridHelper.position.y = -0.1;
+            scene.add(gridHelper);
+            
+            // Add scale bar
+            const scaleGeometry = new THREE.BoxGeometry(2, 0.1, 0.1);
+            const scaleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const scale = new THREE.Mesh(scaleGeometry, scaleMaterial);
+            scale.position.set(-8, 0, 8);
+            scene.add(scale);
+            
+            // Add north arrow
+            const arrowGeometry = new THREE.ConeGeometry(0.2, 0.8, 8);
+            const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            arrow.position.set(8, 0.4, 8);
+            arrow.rotation.z = Math.PI;
+            scene.add(arrow);
+        }
+        
+        function createVolcanoMarker() {
+            // Create volcano cone marker
+            const coneGeometry = new THREE.ConeGeometry(0.5, 1, 8);
+            const coneMaterial = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+            const volcanoMarker = new THREE.Mesh(coneGeometry, coneMaterial);
+            volcanoMarker.position.set(0, 0.5, 0);
+            scene.add(volcanoMarker);
+            
+            // Add volcano label
+            // Note: In a real implementation, you'd use a text geometry or canvas texture
+        }
+        
+        function initTimeSeriesChart() {
+            const canvas = document.getElementById('time-series-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Create Chart.js time series
+            timeSeriesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'LOS Deformation (cm)',
+                        data: [],
+                        borderColor: '#2196F3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Days',
+                                color: 'white'
+                            },
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Deformation (cm)',
+                                color: 'white'
+                            },
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateTimeSeriesChart() {
+            if (!timeSeriesChart) return;
+            
+            const labels = timeSeriesData.map(d => d.day);
+            const data = timeSeriesData.map(d => d.deformation);
+            
+            timeSeriesChart.data.labels = labels;
+            timeSeriesChart.data.datasets[0].data = data;
+            timeSeriesChart.update();
+        }
+        
+        function startProcessing() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            processingStep = 0;
+            
+            const steps = ['coregistration', 'interferogram', 'filtering', 'unwrapping', 'geocoding'];
+            
+            function processNextStep() {
+                if (processingStep < steps.length) {
+                    // Reset all steps
+                    steps.forEach(step => {
+                        const element = document.getElementById(`step-${step}`);
+                        element.classList.remove('active', 'completed');
+                    });
+                    
+                    // Set current step as active
+                    const currentStep = steps[processingStep];
+                    document.getElementById(`step-${currentStep}`).classList.add('active');
+                    
+                    // Update status
+                    const stepNames = ['Coregistration', 'Interferogram Generation', 'Adaptive Filtering', 'Phase Unwrapping', 'Geocoding'];
+                    document.getElementById('status-text').textContent = `Processing: ${stepNames[processingStep]}`;
+                    document.getElementById('processing-progress').textContent = `${Math.round((processingStep + 1) / steps.length * 100)}%`;
+                    
+                    // Simulate processing time
+                    setTimeout(() => {
+                        // Mark as completed
+                        document.getElementById(`step-${currentStep}`).classList.remove('active');
+                        document.getElementById(`step-${currentStep}`).classList.add('completed');
+                        
+                        processingStep++;
+                        processNextStep();
+                    }, 1500 + Math.random() * 1000);
+                } else {
+                    // Processing complete
+                    isProcessing = false;
+                    document.getElementById('status-text').textContent = 'Processing Complete';
+                    document.getElementById('processing-progress').textContent = '100%';
+                    
+                    // Update visualization with processed data
+                    generateDeformationData();
+                    createTerrainVisualization();
+                    
+                    // Update quality indicators
+                    const quality = 70 + Math.random() * 25;
+                    document.getElementById('data-quality').style.width = `${quality}%`;
+                    document.getElementById('quality-score').textContent = `${Math.round(quality)}%`;
+                    
+                    console.log('InSAR processing completed');
+                }
+            }
+            
+            processNextStep();
+        }
+        
+        function loadSampleData() {
+            // Load synthetic data for selected volcano
+            generateDeformationData();
+            createTerrainVisualization();
+            
+            // Mark all processing steps as completed
+            const steps = ['coregistration', 'interferogram', 'filtering', 'unwrapping', 'geocoding'];
+            steps.forEach(step => {
+                const element = document.getElementById(`step-${step}`);
+                element.classList.remove('active');
+                element.classList.add('completed');
+            });
+            
+            document.getElementById('status-text').textContent = 'Sample Data Loaded';
+            document.getElementById('processing-progress').textContent = '100%';
+            
+            console.log('Sample data loaded for', VOLCANO_DATA[selectedVolcano].name);
+        }
+        
+        function resetProcessing() {
+            isProcessing = false;
+            processingStep = 0;
+            
+            // Reset all processing steps
+            const steps = ['coregistration', 'interferogram', 'filtering', 'unwrapping', 'geocoding'];
+            steps.forEach(step => {
+                const element = document.getElementById(`step-${step}`);
+                element.classList.remove('active', 'completed');
+            });
+            
+            // Reset status
+            document.getElementById('status-text').textContent = 'Ready';
+            document.getElementById('processing-progress').textContent = '0%';
+            
+            // Clear visualization
+            if (deformationMesh) {
+                scene.remove(deformationMesh);
+                deformationMesh = null;
+            }
+            
+            console.log('Processing reset');
+        }
+        
+        function optimizeModel() {
+            // Simulate model optimization
+            document.getElementById('status-text').textContent = 'Optimizing Model...';
+            
+            setTimeout(() => {
+                // Update model parameters with optimization results
+                const confidence = 65 + Math.random() * 25;
+                document.getElementById('model-confidence').style.width = `${confidence}%`;
+                document.getElementById('confidence-percentage').textContent = `${Math.round(confidence)}%`;
+                
+                // Slightly adjust dike parameters
+                const volcano = VOLCANO_DATA[selectedVolcano];
+                const adjustments = {
+                    depth: volcano.dike_characteristics.depth + (Math.random() - 0.5) * 0.5,
+                    length: volcano.dike_characteristics.length + (Math.random() - 0.5) * 0.3,
+                    opening: volcano.dike_characteristics.opening + (Math.random() - 0.5) * 0.2
+                };
+                
+                document.getElementById('dike-depth').textContent = `${adjustments.depth.toFixed(1)} ± 0.3`;
+                document.getElementById('dike-length').textContent = `${adjustments.length.toFixed(1)} ± 0.2`;
+                document.getElementById('dike-opening').textContent = `${adjustments.opening.toFixed(1)} ± 0.1`;
+                
+                document.getElementById('status-text').textContent = 'Model Optimized';
+                console.log('Model optimization completed');
+            }, 3000);
+        }
+        
+        function runMCMC() {
+            // Simulate MCMC uncertainty analysis
+            document.getElementById('status-text').textContent = 'Running MCMC Analysis...';
+            
+            setTimeout(() => {
+                // Update error estimates
+                const errors = ['±0.3', '±0.2', '±0.1', '±0.05', '±3', '±2'];
+                const params = ['dike-depth', 'dike-length', 'dike-width', 'dike-opening', 'dike-strike', 'dike-dip'];
+                
+                params.forEach((param, index) => {
+                    const element = document.getElementById(param);
+                    const currentText = element.textContent;
+                    const baseValue = currentText.split(' ±')[0];
+                    element.textContent = `${baseValue} ${errors[index]}`;
+                });
+                
+                document.getElementById('status-text').textContent = 'MCMC Analysis Complete';
+                console.log('MCMC analysis completed');
+            }, 4000);
+        }
+        
+        function performPCA() {
+            document.getElementById('status-text').textContent = 'Performing PCA...';
+            
+            setTimeout(() => {
+                alert('PCA Analysis Results:\n\nFirst Component: 78% variance\nSecond Component: 15% variance\nThird Component: 4% variance\n\nPrimary deformation pattern: Radial uplift\nSecondary pattern: Asymmetric subsidence');
+                document.getElementById('status-text').textContent = 'PCA Complete';
+            }, 2000);
+        }
+        
+        function detectOutliers() {
+            document.getElementById('status-text').textContent = 'Detecting Outliers...';
+            
+            setTimeout(() => {
+                const outlierCount = Math.floor(Math.random() * 50) + 10;
+                alert(`Outlier Detection Results:\n\n${outlierCount} outlier pixels detected (${(outlierCount/4096*100).toFixed(1)}%)\n\nPrimary causes:\n- Atmospheric artifacts (60%)\n- Vegetation decorrelation (25%)\n- Phase unwrapping errors (15%)`);
+                document.getElementById('status-text').textContent = 'Outlier Detection Complete';
+            }, 1500);
+        }
+        
+        function validateModel() {
+            document.getElementById('status-text').textContent = 'Validating Model...';
+            
+            setTimeout(() => {
+                const rmse = (Math.random() * 0.5 + 0.3).toFixed(2);
+                const r2 = (0.7 + Math.random() * 0.25).toFixed(3);
+                alert(`Model Validation Results:\n\nRMSE: ${rmse} cm\nR²: ${r2}\nChi-squared: ${(Math.random() * 2 + 0.8).toFixed(2)}\n\nModel fits observed data well.\nResiduals show minimal systematic patterns.`);
+                document.getElementById('status-text').textContent = 'Validation Complete';
+            }, 2500);
+        }
+        
+        function exportResults() {
+            const volcano = VOLCANO_DATA[selectedVolcano];
+            const results = {
+                volcano: volcano.name,
+                coordinates: {
+                    lat: volcano.lat,
+                    lon: volcano.lon
+                },
+                processing_parameters: insarParams,
+                deformation_analysis: {
+                    max_uplift: document.getElementById('max-deformation').textContent,
+                    max_subsidence: document.getElementById('min-deformation').textContent,
+                    deformation_rate: document.getElementById('deformation-rate').textContent,
+                    coherence_quality: document.getElementById('coherence-quality').textContent
+                },
+                dike_model: {
+                    depth: document.getElementById('dike-depth').textContent,
+                    length: document.getElementById('dike-length').textContent,
+                    width: document.getElementById('dike-width').textContent,
+                    opening: document.getElementById('dike-opening').textContent,
+                    strike: document.getElementById('dike-strike').textContent,
+                    dip: document.getElementById('dike-dip').textContent
+                },
+                model_confidence: document.getElementById('confidence-percentage').textContent,
+                time_series: timeSeriesData,
+                processing_date: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `insar_analysis_${selectedVolcano}_${Date.now()}.json`;
+            a.click();
+            
+            console.log('Results exported');
+        }
+        
+        function setupEventListeners() {
+            // Parameter sliders
+            const sliders = [
+                'temporal-baseline', 'perp-baseline', 'coherence-threshold',
+                'color-scale', 'transparency', 'atm-strength'
+            ];
+            
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                if (slider) {
+                    slider.addEventListener('input', function(e) {
+                        const param = id.replace('-', '');
+                        if (param === 'temporalbaseline') insarParams.temporalBaseline = parseFloat(e.target.value);
+                        else if (param === 'perpbaseline') insarParams.perpendicular = parseFloat(e.target.value);
+                        else if (param === 'coherencethreshold') insarParams.coherenceThreshold = parseFloat(e.target.value);
+                        else if (param === 'colorscale') insarParams.colorScale = parseFloat(e.target.value);
+                        else if (param === 'transparency') insarParams.transparency = parseFloat(e.target.value);
+                        else if (param === 'atmstrength') insarParams.atmosphereStrength = parseFloat(e.target.value);
+                        
+                        // Update display values
+                        if (id === 'temporal-baseline') document.getElementById('temporal-baseline-value').textContent = e.target.value;
+                        else if (id === 'perp-baseline') document.getElementById('perp-baseline-value').textContent = e.target.value;
+                        else if (id === 'coherence-threshold') document.getElementById('coherence-value').textContent = e.target.value;
+                        else if (id === 'color-scale') document.getElementById('color-scale-value').textContent = `±${e.target.value}`;
+                        else if (id === 'transparency') document.getElementById('transparency-value').textContent = `${e.target.value}%`;
+                        else if (id === 'atm-strength') document.getElementById('atm-strength-value').textContent = e.target.value;
+                        
+                        // Update visualization
+                        if (deformationMesh) {
+                            if (id === 'color-scale' || id === 'transparency') {
+                                createTerrainVisualization();
+                            } else if (id === 'atm-strength') {
+                                generateDeformationData();
+                                createTerrainVisualization();
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Volcano selector
+            document.getElementById('volcano-select').addEventListener('change', function(e) {
+                selectedVolcano = e.target.value;
+                if (selectedVolcano !== 'custom') {
+                    generateDeformationData();
+                    createTerrainVisualization();
+                }
+            });
+            
+            // Display mode buttons
+            document.querySelectorAll('.mode-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.mode-button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentDisplayMode = this.dataset.mode;
+                    createTerrainVisualization();
+                });
+            });
+            
+            // Mouse controls
+            let mouseDown = false;
+            let mouseX = 0, mouseY = 0;
+            
+            renderer.domElement.addEventListener('mousedown', function(e) {
+                mouseDown = true;
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            document.addEventListener('mouseup', function() {
+                mouseDown = false;
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!mouseDown) return;
+                
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                
+                camera.position.x += deltaX * 0.02;
+                camera.position.y -= deltaY * 0.02;
+                camera.lookAt(0, 0, 0);
+                
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            // Zoom with mouse wheel
+            renderer.domElement.addEventListener('wheel', function(e) {
+                const zoomFactor = 1 + e.deltaY * 0.001;
+                camera.position.multiplyScalar(zoomFactor);
+                camera.lookAt(0, 0, 0);
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate deformation mesh slowly for better viewing
+            if (deformationMesh) {
+                deformationMesh.rotation.z += 0.001;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Resize handler
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initInSARSystem();
+        });
+    </script>
+</body>
+</html>

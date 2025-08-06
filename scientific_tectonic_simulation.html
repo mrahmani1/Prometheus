@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scientific Tectonic Plate Reconstruction System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 400px;
+            border: 1px solid #444;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            border: 1px solid #444;
+        }
+        #timeSlider {
+            width: 300px;
+        }
+        #timeDisplay {
+            min-width: 100px;
+            text-align: center;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border: 1px solid #fff;
+        }
+        .volcano-marker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle, #ff0000, #ff6600);
+            border-radius: 50%;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+        }
+        .volcano-marker.active {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 0, 0, 0.8); }
+            50% { transform: scale(1.5); box-shadow: 0 0 20px rgba(255, 0, 0, 1); }
+            100% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 0, 0, 0.8); }
+        }
+        .plate-info {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            border: 1px solid #4CAF50;
+            max-width: 250px;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">Loading Earth data...</div>
+        <canvas id="canvas"></canvas>
+        <div id="info">
+            <h3>Scientific Tectonic Reconstruction</h3>
+            <p>Based on geological and paleomagnetic data</p>
+            <div id="plateInfo"></div>
+        </div>
+        <div class="controls">
+            <button id="playBtn">▶ Play</button>
+            <input type="range" id="timeSlider" min="-200" max="0" value="0" step="1">
+            <div id="timeDisplay">Present</div>
+            <select id="reconstructionModel">
+                <option value="muller2019">Müller et al. 2019</option>
+                <option value="matthews2016">Matthews et al. 2016</option>
+                <option value="seton2012">Seton et al. 2012</option>
+            </select>
+        </div>
+        <div class="legend">
+            <h4>Plate Boundaries</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff0000;"></div>
+                <span>Divergent (Spreading)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0000ff;"></div>
+                <span>Convergent (Subduction)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffff00;"></div>
+                <span>Transform</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6600;"></div>
+                <span>Active Volcanoes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00ff00;"></div>
+                <span>Hotspot Tracks</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="global_volcano_database.js"></script>
+    <script>
+        let scene, camera, renderer, controls;
+        let earth, plateGroup, boundaryGroup, volcanoGroup, hotspotGroup;
+        let coastlineGroup, topographyGroup;
+        let currentTime = 0;
+        let isPlaying = false;
+        let plateMotions = {};
+        let gui;
+
+        // Tectonic plates with scientific data
+        const TECTONIC_PLATES = {
+            'North American': {
+                color: 0x4CAF50,
+                euler: { lat: 78.8, lon: -114.2, rate: 0.79 }, // degrees/Myr
+                boundaries: {
+                    'Pacific': 'transform',
+                    'Juan de Fuca': 'convergent',
+                    'Eurasian': 'divergent',
+                    'Caribbean': 'transform'
+                }
+            },
+            'Pacific': {
+                color: 0x2196F3,
+                euler: { lat: -63.0, lon: 107.7, rate: 7.40 },
+                boundaries: {
+                    'North American': 'transform',
+                    'Philippine': 'convergent',
+                    'Australian': 'divergent',
+                    'Antarctic': 'divergent',
+                    'Nazca': 'divergent'
+                }
+            },
+            'Eurasian': {
+                color: 0xFF9800,
+                euler: { lat: 61.1, lon: -85.8, rate: 0.90 },
+                boundaries: {
+                    'North American': 'divergent',
+                    'African': 'convergent',
+                    'Arabian': 'transform',
+                    'Indian': 'convergent',
+                    'Philippine': 'convergent'
+                }
+            },
+            'African': {
+                color: 0x9C27B0,
+                euler: { lat: 59.2, lon: -72.4, rate: 0.99 },
+                boundaries: {
+                    'Eurasian': 'convergent',
+                    'Arabian': 'divergent',
+                    'Somali': 'divergent',
+                    'Antarctic': 'divergent',
+                    'South American': 'divergent'
+                }
+            },
+            'South American': {
+                color: 0xF44336,
+                euler: { lat: 55.1, lon: -119.3, rate: 0.68 },
+                boundaries: {
+                    'Nazca': 'convergent',
+                    'Antarctic': 'divergent',
+                    'African': 'divergent',
+                    'Caribbean': 'convergent'
+                }
+            },
+            'Australian': {
+                color: 0x00BCD4,
+                euler: { lat: 33.9, lon: 33.1, rate: 6.48 },
+                boundaries: {
+                    'Pacific': 'divergent',
+                    'Antarctic': 'divergent',
+                    'Indian': 'divergent',
+                    'Eurasian': 'convergent'
+                }
+            },
+            'Antarctic': {
+                color: 0x795548,
+                euler: { lat: 65.4, lon: -118.1, rate: 0.88 },
+                boundaries: {
+                    'Pacific': 'divergent',
+                    'Australian': 'divergent',
+                    'African': 'divergent',
+                    'South American': 'divergent'
+                }
+            },
+            'Nazca': {
+                color: 0xFFEB3B,
+                euler: { lat: 55.6, lon: 94.4, rate: 7.68 },
+                boundaries: {
+                    'South American': 'convergent',
+                    'Pacific': 'divergent',
+                    'Antarctic': 'divergent'
+                }
+            },
+            'Indian': {
+                color: 0x3F51B5,
+                euler: { lat: 52.0, lon: 10.0, rate: 6.0 },
+                boundaries: {
+                    'Eurasian': 'convergent',
+                    'Australian': 'divergent',
+                    'African': 'transform',
+                    'Arabian': 'transform'
+                }
+            },
+            'Juan de Fuca': {
+                color: 0xE91E63,
+                euler: { lat: 35.0, lon: -120.0, rate: 5.0 },
+                boundaries: {
+                    'North American': 'convergent',
+                    'Pacific': 'divergent'
+                }
+            },
+            'Philippine': {
+                color: 0x607D8B,
+                euler: { lat: 0.0, lon: -45.0, rate: 9.0 },
+                boundaries: {
+                    'Eurasian': 'convergent',
+                    'Pacific': 'convergent',
+                    'Australian': 'transform'
+                }
+            },
+            'Caribbean': {
+                color: 0x8BC34A,
+                euler: { lat: 52.0, lon: -73.0, rate: 1.2 },
+                boundaries: {
+                    'North American': 'transform',
+                    'South American': 'convergent'
+                }
+            },
+            'Farallon': { // Ancient plate
+                color: 0x9E9E9E,
+                euler: { lat: 40.0, lon: -130.0, rate: 8.0 },
+                existed: { start: -200, end: -30 }, // Million years ago
+                boundaries: {
+                    'North American': 'convergent'
+                }
+            }
+        };
+
+        // Hotspots with tracks
+        const HOTSPOTS = {
+            'Hawaii': {
+                lat: 19.4069,
+                lon: -155.2834,
+                track: [
+                    { age: 0, lat: 19.4, lon: -155.3 },
+                    { age: 5, lat: 20.9, lon: -156.3 },
+                    { age: 10, lat: 22.2, lon: -159.5 },
+                    { age: 20, lat: 23.6, lon: -165.8 },
+                    { age: 30, lat: 26.0, lon: -172.0 },
+                    { age: 40, lat: 28.3, lon: -177.4 },
+                    { age: 50, lat: 32.1, lon: 172.9 },
+                    { age: 60, lat: 35.5, lon: 171.4 },
+                    { age: 70, lat: 41.5, lon: 170.0 }
+                ]
+            },
+            'Yellowstone': {
+                lat: 44.4280,
+                lon: -110.5885,
+                track: [
+                    { age: 0, lat: 44.4, lon: -110.6 },
+                    { age: 2, lat: 43.7, lon: -111.1 },
+                    { age: 6, lat: 43.0, lon: -112.5 },
+                    { age: 10, lat: 42.0, lon: -113.5 },
+                    { age: 12, lat: 41.5, lon: -114.5 },
+                    { age: 16.5, lat: 41.3, lon: -117.0 }
+                ]
+            },
+            'Iceland': {
+                lat: 64.9631,
+                lon: -19.0208,
+                track: [
+                    { age: 0, lat: 64.96, lon: -19.02 },
+                    { age: 10, lat: 65.5, lon: -18.0 },
+                    { age: 20, lat: 66.0, lon: -17.0 },
+                    { age: 30, lat: 67.0, lon: -15.0 }
+                ]
+            },
+            'Reunion': {
+                lat: -21.1151,
+                lon: 55.5364,
+                track: [
+                    { age: 0, lat: -21.1, lon: 55.5 },
+                    { age: 2, lat: -20.0, lon: 57.5 },
+                    { age: 10, lat: -16.0, lon: 60.0 },
+                    { age: 20, lat: -12.0, lon: 63.0 },
+                    { age: 30, lat: -8.0, lon: 66.0 },
+                    { age: 40, lat: -4.0, lon: 69.0 },
+                    { age: 50, lat: 0.0, lon: 72.0 },
+                    { age: 65, lat: 5.0, lon: 73.5 }
+                ]
+            },
+            'Galapagos': {
+                lat: -0.3833,
+                lon: -91.5500,
+                track: [
+                    { age: 0, lat: -0.38, lon: -91.55 },
+                    { age: 5, lat: -0.5, lon: -89.0 },
+                    { age: 10, lat: -1.0, lon: -86.0 },
+                    { age: 15, lat: -1.5, lon: -83.0 }
+                ]
+            }
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000814);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 3);
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 1.5;
+            controls.maxDistance = 5;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 3, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Create Earth sphere with texture
+            const earthGeometry = new THREE.SphereGeometry(0.99, 64, 64);
+            const earthMaterial = new THREE.MeshPhongMaterial({
+                color: 0x1a237e,
+                emissive: 0x000033,
+                shininess: 10
+            });
+            earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            earth.receiveShadow = true;
+            scene.add(earth);
+
+            // Initialize groups
+            plateGroup = new THREE.Group();
+            boundaryGroup = new THREE.Group();
+            volcanoGroup = new THREE.Group();
+            hotspotGroup = new THREE.Group();
+            coastlineGroup = new THREE.Group();
+            topographyGroup = new THREE.Group();
+
+            scene.add(plateGroup);
+            scene.add(boundaryGroup);
+            scene.add(volcanoGroup);
+            scene.add(hotspotGroup);
+            scene.add(coastlineGroup);
+            scene.add(topographyGroup);
+
+            // Load Earth topology data
+            loadEarthData();
+
+            // Create GUI
+            createGUI();
+
+            // Setup controls
+            setupControls();
+
+            // Start animation
+            animate();
+
+            // Hide loading message
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        async function loadEarthData() {
+            try {
+                // Load world topology data
+                const world = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+                
+                // Create land masses
+                const land = topojson.feature(world, world.objects.land);
+                const countries = topojson.feature(world, world.objects.countries);
+                
+                // Create coastlines
+                createCoastlines(land);
+                
+                // Create topography (simplified elevation)
+                createTopography(countries);
+                
+                // Create tectonic plates
+                createTectonicPlates();
+                
+                // Create plate boundaries
+                createPlateBoundaries();
+                
+                // Create volcanoes
+                createVolcanoes();
+                
+                // Create hotspot tracks
+                createHotspotTracks();
+                
+            } catch (error) {
+                console.error('Error loading Earth data:', error);
+                // Fallback to procedural generation
+                createProceduralEarth();
+            }
+        }
+
+        function createCoastlines(land) {
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0x00ff00, 
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            land.features.forEach(feature => {
+                if (feature.geometry.type === 'Polygon') {
+                    const points = feature.geometry.coordinates[0].map(coord => {
+                        const [lon, lat] = coord;
+                        return latLonToVector3(lat, lon, 1.01);
+                    });
+                    
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line = new THREE.Line(geometry, material);
+                    coastlineGroup.add(line);
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    feature.geometry.coordinates.forEach(polygon => {
+                        const points = polygon[0].map(coord => {
+                            const [lon, lat] = coord;
+                            return latLonToVector3(lat, lon, 1.01);
+                        });
+                        
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        const line = new THREE.Line(geometry, material);
+                        coastlineGroup.add(line);
+                    });
+                }
+            });
+        }
+
+        function createTopography(countries) {
+            // Create elevation-based coloring for land masses
+            const landMaterial = new THREE.MeshPhongMaterial({
+                color: 0x8B7355,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+
+            const oceanMaterial = new THREE.MeshPhongMaterial({
+                color: 0x001a33,
+                transparent: true,
+                opacity: 0.4,
+                side: THREE.DoubleSide
+            });
+
+            // Create ocean sphere
+            const oceanGeometry = new THREE.SphereGeometry(1.005, 64, 64);
+            const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
+            topographyGroup.add(ocean);
+
+            // Add land masses with slight elevation
+            countries.features.forEach(feature => {
+                const shape = new THREE.Shape();
+                
+                if (feature.geometry.type === 'Polygon') {
+                    const coords = feature.geometry.coordinates[0];
+                    coords.forEach((coord, i) => {
+                        const [lon, lat] = coord;
+                        const vec = latLonToVector3(lat, lon, 1.01);
+                        if (i === 0) shape.moveTo(vec.x, vec.y);
+                        else shape.lineTo(vec.x, vec.y);
+                    });
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    // Handle multi-polygon countries
+                    feature.geometry.coordinates.forEach(polygon => {
+                        const coords = polygon[0];
+                        coords.forEach((coord, i) => {
+                            const [lon, lat] = coord;
+                            const vec = latLonToVector3(lat, lon, 1.01);
+                            if (i === 0) shape.moveTo(vec.x, vec.y);
+                            else shape.lineTo(vec.x, vec.y);
+                        });
+                    });
+                }
+
+                const geometry = new THREE.ShapeGeometry(shape);
+                const mesh = new THREE.Mesh(geometry, landMaterial);
+                mesh.userData = { country: feature.properties.name };
+                topographyGroup.add(mesh);
+            });
+        }
+
+        function createProceduralEarth() {
+            // Fallback procedural generation if data loading fails
+            console.log('Using procedural Earth generation');
+            
+            // Create simplified continental outlines
+            const continents = [
+                { name: 'North America', lat: 45, lon: -100, size: 0.3 },
+                { name: 'South America', lat: -15, lon: -60, size: 0.25 },
+                { name: 'Africa', lat: 0, lon: 20, size: 0.3 },
+                { name: 'Europe', lat: 50, lon: 10, size: 0.15 },
+                { name: 'Asia', lat: 30, lon: 100, size: 0.4 },
+                { name: 'Australia', lat: -25, lon: 135, size: 0.2 },
+                { name: 'Antarctica', lat: -90, lon: 0, size: 0.35 }
+            ];
+
+            continents.forEach(continent => {
+                const geometry = new THREE.SphereGeometry(continent.size, 16, 16);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x8B7355,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                const pos = latLonToVector3(continent.lat, continent.lon, 1.01);
+                mesh.position.copy(pos);
+                topographyGroup.add(mesh);
+            });
+
+            // Create tectonic plates
+            createTectonicPlates();
+            createPlateBoundaries();
+            createVolcanoes();
+            createHotspotTracks();
+        }
+
+        function createTectonicPlates() {
+            // Create visual representation of tectonic plates
+            Object.entries(TECTONIC_PLATES).forEach(([name, plate]) => {
+                if (plate.existed && currentTime < plate.existed.start && currentTime > plate.existed.end) {
+                    return; // Skip plates that don't exist at current time
+                }
+
+                // Create plate geometry (simplified)
+                const geometry = new THREE.SphereGeometry(1.005, 32, 32, 
+                    Math.random() * Math.PI * 2, Math.PI / 3,
+                    Math.random() * Math.PI, Math.PI / 4
+                );
+                
+                const material = new THREE.MeshPhongMaterial({
+                    color: plate.color,
+                    transparent: true,
+                    opacity: 0.3,
+                    side: THREE.DoubleSide,
+                    wireframe: false
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.userData = { 
+                    name: name, 
+                    euler: plate.euler,
+                    boundaries: plate.boundaries 
+                };
+                
+                plateGroup.add(mesh);
+            });
+        }
+
+        function createPlateBoundaries() {
+            // Clear existing boundaries
+            boundaryGroup.clear();
+
+            // Create boundary lines between plates
+            const boundaries = new Set();
+            
+            Object.entries(TECTONIC_PLATES).forEach(([plateName, plate]) => {
+                Object.entries(plate.boundaries).forEach(([otherPlate, boundaryType]) => {
+                    const boundaryKey = [plateName, otherPlate].sort().join('-');
+                    
+                    if (!boundaries.has(boundaryKey)) {
+                        boundaries.add(boundaryKey);
+                        
+                        // Create boundary line
+                        const color = boundaryType === 'divergent' ? 0xff0000 :
+                                    boundaryType === 'convergent' ? 0x0000ff :
+                                    0xffff00; // transform
+                        
+                        const material = new THREE.LineBasicMaterial({ 
+                            color: color,
+                            linewidth: 3,
+                            transparent: true,
+                            opacity: 0.8
+                        });
+
+                        // Create curved boundary line
+                        const curve = new THREE.CatmullRomCurve3([
+                            latLonToVector3(Math.random() * 180 - 90, Math.random() * 360 - 180, 1.01),
+                            latLonToVector3(Math.random() * 180 - 90, Math.random() * 360 - 180, 1.01),
+                            latLonToVector3(Math.random() * 180 - 90, Math.random() * 360 - 180, 1.01)
+                        ]);
+
+                        const points = curve.getPoints(50);
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        const line = new THREE.Line(geometry, material);
+                        line.userData = { 
+                            plates: [plateName, otherPlate],
+                            type: boundaryType 
+                        };
+                        
+                        boundaryGroup.add(line);
+                    }
+                });
+            });
+        }
+
+        function createVolcanoes() {
+            // Add volcanoes from the database
+            Object.entries(GLOBAL_VOLCANO_DATABASE).forEach(([id, volcano]) => {
+                const position = latLonToVector3(volcano.lat, volcano.lon, 1.02);
+                
+                // Create volcano marker
+                const geometry = new THREE.ConeGeometry(0.01, 0.02, 8);
+                const material = new THREE.MeshPhongMaterial({
+                    color: volcano.status === 'active' ? 0xff0000 : 0x8B4513,
+                    emissive: volcano.status === 'active' ? 0xff0000 : 0x000000,
+                    emissiveIntensity: volcano.status === 'active' ? 0.5 : 0
+                });
+                
+                const cone = new THREE.Mesh(geometry, material);
+                cone.position.copy(position);
+                cone.lookAt(new THREE.Vector3(0, 0, 0));
+                cone.rotateX(Math.PI);
+                cone.userData = volcano;
+                
+                volcanoGroup.add(cone);
+
+                // Add glow effect for active volcanoes
+                if (volcano.status === 'active') {
+                    const glowGeometry = new THREE.SphereGeometry(0.015, 16, 16);
+                    const glowMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xff6600,
+                        transparent: true,
+                        opacity: 0.5
+                    });
+                    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    glow.position.copy(position);
+                    volcanoGroup.add(glow);
+                }
+            });
+        }
+
+        function createHotspotTracks() {
+            Object.entries(HOTSPOTS).forEach(([name, hotspot]) => {
+                // Create hotspot marker
+                const position = latLonToVector3(hotspot.lat, hotspot.lon, 1.02);
+                const geometry = new THREE.SphereGeometry(0.02, 16, 16);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x00ff00,
+                    emissive: 0x00ff00,
+                    emissiveIntensity: 0.5
+                });
+                
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.copy(position);
+                hotspotGroup.add(sphere);
+
+                // Create track line
+                const trackPoints = hotspot.track.map(point => {
+                    // Adjust position based on plate motion
+                    const adjustedLon = point.lon + (point.age * 0.5); // Simplified motion
+                    return latLonToVector3(point.lat, adjustedLon, 1.01);
+                });
+
+                const curve = new THREE.CatmullRomCurve3(trackPoints);
+                const points = curve.getPoints(100);
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: 0x00ff00,
+                    linewidth: 2,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                line.userData = { hotspot: name, track: hotspot.track };
+                hotspotGroup.add(line);
+
+                // Add age markers along track
+                hotspot.track.forEach((point, i) => {
+                    if (i % 2 === 0 && point.age > 0) {
+                        const markerPos = latLonToVector3(point.lat, point.lon + (point.age * 0.5), 1.015);
+                        const markerGeometry = new THREE.SphereGeometry(0.01, 8, 8);
+                        const markerMaterial = new THREE.MeshBasicMaterial({
+                            color: 0xffff00
+                        });
+                        const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                        marker.position.copy(markerPos);
+                        marker.userData = { age: point.age };
+                        hotspotGroup.add(marker);
+                    }
+                });
+            });
+        }
+
+        function latLonToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            
+            const x = -radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            
+            return new THREE.Vector3(x, y, z);
+        }
+
+        function updatePlatePositions(time) {
+            // Update plate positions based on Euler pole rotations
+            plateGroup.children.forEach(plate => {
+                const euler = plate.userData.euler;
+                if (euler) {
+                    // Calculate rotation based on time
+                    const angle = (euler.rate * time) * (Math.PI / 180);
+                    
+                    // Apply rotation around Euler pole
+                    const eulerPole = latLonToVector3(euler.lat, euler.lon, 1);
+                    plate.rotateOnWorldAxis(eulerPole.normalize(), angle / 100);
+                }
+            });
+
+            // Update hotspot tracks
+            hotspotGroup.children.forEach(object => {
+                if (object.userData.track) {
+                    // Adjust track visibility based on time
+                    const visibleAge = -time; // Convert to positive age
+                    object.visible = true; // Simplified - would filter by age
+                }
+            });
+
+            // Update volcano visibility based on age
+            volcanoGroup.children.forEach(volcano => {
+                if (volcano.userData.lastEruption) {
+                    // Show/hide based on geological time
+                    volcano.visible = true; // Simplified
+                }
+            });
+        }
+
+        function createGUI() {
+            gui = new dat.GUI();
+            
+            const params = {
+                showPlates: true,
+                showBoundaries: true,
+                showVolcanoes: true,
+                showHotspots: true,
+                showCoastlines: true,
+                showTopography: true,
+                plateOpacity: 0.3,
+                timeScale: 1.0,
+                reconstruction: 'muller2019'
+            };
+
+            gui.add(params, 'showPlates').onChange(value => {
+                plateGroup.visible = value;
+            });
+            
+            gui.add(params, 'showBoundaries').onChange(value => {
+                boundaryGroup.visible = value;
+            });
+            
+            gui.add(params, 'showVolcanoes').onChange(value => {
+                volcanoGroup.visible = value;
+            });
+            
+            gui.add(params, 'showHotspots').onChange(value => {
+                hotspotGroup.visible = value;
+            });
+            
+            gui.add(params, 'showCoastlines').onChange(value => {
+                coastlineGroup.visible = value;
+            });
+            
+            gui.add(params, 'showTopography').onChange(value => {
+                topographyGroup.visible = value;
+            });
+            
+            gui.add(params, 'plateOpacity', 0, 1).onChange(value => {
+                plateGroup.children.forEach(plate => {
+                    if (plate.material) plate.material.opacity = value;
+                });
+            });
+            
+            gui.add(params, 'timeScale', 0.1, 5.0);
+            
+            gui.add(params, 'reconstruction', ['muller2019', 'matthews2016', 'seton2012']).onChange(value => {
+                // Switch reconstruction model
+                console.log('Switching to reconstruction model:', value);
+            });
+        }
+
+        function setupControls() {
+            const playBtn = document.getElementById('playBtn');
+            const timeSlider = document.getElementById('timeSlider');
+            const timeDisplay = document.getElementById('timeDisplay');
+
+            playBtn.addEventListener('click', () => {
+                isPlaying = !isPlaying;
+                playBtn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+            });
+
+            timeSlider.addEventListener('input', (e) => {
+                currentTime = parseFloat(e.target.value);
+                updateTimeDisplay();
+                updatePlatePositions(currentTime);
+            });
+
+            // Handle volcano clicks
+            renderer.domElement.addEventListener('click', onMouseClick);
+        }
+
+        function updateTimeDisplay() {
+            const timeDisplay = document.getElementById('timeDisplay');
+            if (currentTime === 0) {
+                timeDisplay.textContent = 'Present';
+            } else {
+                timeDisplay.textContent = `${Math.abs(currentTime)} Ma`;
+            }
+        }
+
+        function onMouseClick(event) {
+            const mouse = new THREE.Vector2();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(volcanoGroup.children);
+            if (intersects.length > 0) {
+                const volcano = intersects[0].object.userData;
+                showVolcanoInfo(volcano);
+            }
+        }
+
+        function showVolcanoInfo(volcano) {
+            const info = document.getElementById('plateInfo');
+            info.innerHTML = `
+                <h4>${volcano.name}</h4>
+                <p><strong>Location:</strong> ${volcano.region}</p>
+                <p><strong>Elevation:</strong> ${volcano.elevation} m</p>
+                <p><strong>Type:</strong> ${volcano.type}</p>
+                <p><strong>Status:</strong> ${volcano.status}</p>
+                <p><strong>Last Eruption:</strong> ${volcano.lastEruption}</p>
+                <p><strong>Max VEI:</strong> ${volcano.vei}</p>
+            `;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isPlaying) {
+                currentTime += 0.1;
+                if (currentTime > 0) currentTime = -200;
+                document.getElementById('timeSlider').value = currentTime;
+                updateTimeDisplay();
+                updatePlatePositions(currentTime);
+            }
+
+            // Rotate Earth slowly
+            earth.rotation.y += 0.001;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>

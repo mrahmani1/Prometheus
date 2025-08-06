@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI - 3D Mantle Convection Dynamics Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #controls-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 320px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        #analysis-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 300px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        #simulation-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group h3 {
+            margin: 0 0 15px 0;
+            color: #FF6B35;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FF6B35;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+        }
+        
+        .button {
+            background: linear-gradient(45deg, #FF6B35, #f85125);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
+        }
+        
+        .button.secondary {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FF6B35;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        select, input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+            width: 100%;
+        }
+        
+        .visualization-mode {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        
+        .mode-button {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .mode-button.active {
+            background: #FF6B35;
+            border-color: #FF6B35;
+        }
+        
+        .plume-info {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .layer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .temperature-scale {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .depth-indicator {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div id="controls-panel">
+            <h2>🌋 Mantle Dynamics Control Center</h2>
+            
+            <div class="control-group">
+                <h3>🔥 Convection Parameters</h3>
+                
+                <div class="slider-container">
+                    <label>Rayleigh Number: <span id="rayleigh-value">1.0e6</span></label>
+                    <input type="range" id="rayleigh-number" class="slider" min="4" max="8" step="0.1" value="6">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Viscosity Contrast: <span id="viscosity-value">100</span></label>
+                    <input type="range" id="viscosity-contrast" class="slider" min="1" max="1000" step="10" value="100">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Internal Heating: <span id="heating-value">0.0</span></label>
+                    <input type="range" id="internal-heating" class="slider" min="0" max="1" step="0.1" value="0">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Core Temperature (K): <span id="core-temp-value">4000</span></label>
+                    <input type="range" id="core-temperature" class="slider" min="3000" max="5000" step="50" value="4000">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Surface Temperature (K): <span id="surface-temp-value">300</span></label>
+                    <input type="range" id="surface-temperature" class="slider" min="250" max="400" step="10" value="300">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🌍 Mantle Structure</h3>
+                
+                <div class="layer-info">
+                    <span>Upper Mantle (0-410 km)</span>
+                    <span id="upper-mantle-temp">1600K</span>
+                </div>
+                <div class="layer-info">
+                    <span>Transition Zone (410-660 km)</span>
+                    <span id="transition-temp">1800K</span>
+                </div>
+                <div class="layer-info">
+                    <span>Lower Mantle (660-2900 km)</span>
+                    <span id="lower-mantle-temp">2500K</span>
+                </div>
+                <div class="layer-info">
+                    <span>D" Layer (2700-2900 km)</span>
+                    <span id="d-layer-temp">3500K</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎨 Visualization Mode</h3>
+                <div class="visualization-mode">
+                    <div class="mode-button active" data-mode="temperature">Temperature</div>
+                    <div class="mode-button" data-mode="velocity">Velocity Field</div>
+                    <div class="mode-button" data-mode="streamlines">Streamlines</div>
+                    <div class="mode-button" data-mode="plumes">Plume Tracking</div>
+                    <div class="mode-button" data-mode="composition">Composition</div>
+                </div>
+                
+                <div class="temperature-scale"></div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                    <span>1300K (Cold)</span>
+                    <span>4000K (Hot)</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>⚙️ Simulation Settings</h3>
+                
+                <label>Grid Resolution:</label>
+                <select id="grid-resolution">
+                    <option value="32">32x32 (Fast)</option>
+                    <option value="64" selected>64x64 (Standard)</option>
+                    <option value="128">128x128 (High Quality)</option>
+                    <option value="256">256x256 (Ultra)</option>
+                </select>
+                
+                <label>Time Step (Ma):</label>
+                <select id="time-step">
+                    <option value="0.1">0.1 Ma</option>
+                    <option value="0.5" selected>0.5 Ma</option>
+                    <option value="1.0">1.0 Ma</option>
+                    <option value="2.0">2.0 Ma</option>
+                </select>
+                
+                <button class="button" onclick="resetSimulation()">Reset Simulation</button>
+                <button class="button secondary" onclick="exportData()">Export Data</button>
+            </div>
+        </div>
+        
+        <div id="analysis-panel">
+            <h3>📊 Real-Time Analysis</h3>
+            
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="nusselt-number">12.5</div>
+                    <div class="stat-label">Nusselt Number</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="heat-flux">85</div>
+                    <div class="stat-label">Heat Flux (mW/m²)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="rms-velocity">2.3</div>
+                    <div class="stat-label">RMS Velocity (cm/yr)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="active-plumes">6</div>
+                    <div class="stat-label">Active Plumes</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🌋 Plume Analysis</h3>
+                <div id="plume-list"></div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📈 Thermal Evolution</h3>
+                <canvas id="thermal-chart" width="260" height="150" style="background: rgba(255,255,255,0.1); border-radius: 5px;"></canvas>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔬 Phase Transitions</h3>
+                <div class="layer-info">
+                    <span>Olivine → Wadsleyite (410 km)</span>
+                    <span style="color: #4CAF50;">Active</span>
+                </div>
+                <div class="layer-info">
+                    <span>Wadsleyite → Ringwoodite (520 km)</span>
+                    <span style="color: #4CAF50;">Active</span>
+                </div>
+                <div class="layer-info">
+                    <span>Ringwoodite → Perovskite (660 km)</span>
+                    <span style="color: #4CAF50;">Active</span>
+                </div>
+                <div class="layer-info">
+                    <span>Perovskite → Post-Perovskite (2700 km)</span>
+                    <span style="color: #FF9800;">Weak</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎯 Model Validation</h3>
+                <div class="stat-item">
+                    <div class="stat-value" id="seismic-match">87%</div>
+                    <div class="stat-label">Seismic Tomography Match</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="geoid-match">92%</div>
+                    <div class="stat-label">Geoid Anomaly Match</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="heat-flow-match">78%</div>
+                    <div class="stat-label">Surface Heat Flow Match</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="simulation-controls">
+            <button class="button" onclick="startSimulation()" id="start-btn">▶️ Start</button>
+            <button class="button" onclick="pauseSimulation()" id="pause-btn" style="display:none;">⏸️ Pause</button>
+            <button class="button secondary" onclick="stepSimulation()">⏭️ Step</button>
+            
+            <div style="margin: 0 20px;">
+                <span style="color: #FF6B35; font-weight: bold;" id="simulation-time">0.0 Ma</span>
+            </div>
+            
+            <div class="slider-container" style="width: 200px;">
+                <label style="color: #aaa;">Simulation Speed</label>
+                <input type="range" id="sim-speed" class="slider" min="0.1" max="5" step="0.1" value="1">
+            </div>
+            
+            <button class="button secondary" onclick="saveSnapshot()">📸 Snapshot</button>
+        </div>
+        
+        <div class="depth-indicator">
+            <div style="font-size: 14px; font-weight: bold;">Depth: <span id="current-depth">0 km</span></div>
+            <div style="font-size: 12px; color: #aaa;">Layer: <span id="current-layer">Surface</span></div>
+        </div>
+    </div>
+
+    <script>
+        // Global simulation variables
+        let scene, camera, renderer;
+        let mantleGrid, temperatureField, velocityField;
+        let isSimulationRunning = false;
+        let simulationTime = 0;
+        let currentVisualizationMode = 'temperature';
+        let gridResolution = 64;
+        let plumes = [];
+        let convectionCells = [];
+        
+        // Physical constants
+        const EARTH_RADIUS = 6371; // km
+        const MANTLE_THICKNESS = 2900; // km
+        const CORE_RADIUS = 3471; // km
+        
+        // Mantle layer boundaries (depth in km)
+        const LAYERS = {
+            upperMantle: { start: 0, end: 410, name: "Upper Mantle" },
+            transitionZone: { start: 410, end: 660, name: "Transition Zone" },
+            lowerMantle: { start: 660, end: 2700, name: "Lower Mantle" },
+            dLayer: { start: 2700, end: 2900, name: "D'' Layer" }
+        };
+        
+        // Simulation parameters
+        let params = {
+            rayleighNumber: 1e6,
+            viscosityContrast: 100,
+            internalHeating: 0.0,
+            coreTemperature: 4000,
+            surfaceTemperature: 300,
+            gridResolution: 64,
+            timeStep: 0.5
+        };
+        
+        function initMantleSimulation() {
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000510, 1);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Camera positioning for cross-section view
+            camera.position.set(0, 0, 15);
+            camera.lookAt(0, 0, 0);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Initialize simulation grids
+            initializeGrids();
+            
+            // Create initial visualization
+            createMantleVisualization();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Start animation loop
+            animate();
+            
+            console.log("Mantle dynamics simulation initialized");
+        }
+        
+        function initializeGrids() {
+            const res = params.gridResolution;
+            
+            // Initialize temperature field
+            temperatureField = new Array(res);
+            velocityField = new Array(res);
+            
+            for (let i = 0; i < res; i++) {
+                temperatureField[i] = new Array(res);
+                velocityField[i] = new Array(res);
+                
+                for (let j = 0; j < res; j++) {
+                    // Depth from surface (0 to 2900 km)
+                    const depth = (j / res) * MANTLE_THICKNESS;
+                    
+                    // Initial temperature profile (adiabatic + boundary layers)
+                    let temperature = params.surfaceTemperature + 
+                        (params.coreTemperature - params.surfaceTemperature) * (depth / MANTLE_THICKNESS);
+                    
+                    // Add thermal boundary layers
+                    if (depth < 100) {
+                        temperature += 500 * Math.exp(-depth / 50); // Surface cooling
+                    }
+                    if (depth > 2800) {
+                        temperature += 200 * Math.exp(-(2900-depth) / 50); // Core heating
+                    }
+                    
+                    // Add small random perturbations to trigger convection
+                    temperature += (Math.random() - 0.5) * 50;
+                    
+                    temperatureField[i][j] = {
+                        temperature: temperature,
+                        pressure: depth * 0.035, // GPa
+                        density: calculateDensity(temperature, depth),
+                        viscosity: calculateViscosity(temperature, depth)
+                    };
+                    
+                    velocityField[i][j] = {
+                        vx: (Math.random() - 0.5) * 0.1, // cm/yr
+                        vy: (Math.random() - 0.5) * 0.1,
+                        vz: 0
+                    };
+                }
+            }
+            
+            // Initialize plumes
+            generateInitialPlumes();
+        }
+        
+        function calculateDensity(temperature, depth) {
+            // Simplified density calculation
+            const referenceDensity = 3300 + depth * 0.3; // kg/m³
+            const thermalExpansion = 3e-5; // K⁻¹
+            const referenceTemp = 1600; // K
+            
+            return referenceDensity * (1 - thermalExpansion * (temperature - referenceTemp));
+        }
+        
+        function calculateViscosity(temperature, depth) {
+            // Arrhenius viscosity law
+            const referenceViscosity = 1e21; // Pa·s
+            const activationEnergy = 300000; // J/mol
+            const gasConstant = 8.314; // J/(mol·K)
+            const referenceTemp = 1600; // K
+            
+            const viscosity = referenceViscosity * Math.exp(
+                (activationEnergy / gasConstant) * (1/temperature - 1/referenceTemp)
+            );
+            
+            // Depth-dependent component
+            const depthFactor = 1 + depth / 2900;
+            
+            return Math.min(1e25, viscosity * depthFactor);
+        }
+        
+        function generateInitialPlumes() {
+            plumes = [];
+            const numPlumes = Math.floor(3 + Math.random() * 5);
+            
+            for (let i = 0; i < numPlumes; i++) {
+                const plume = {
+                    id: i,
+                    x: Math.random() * gridResolution,
+                    y: gridResolution - 5, // Start near bottom
+                    z: Math.random() * gridResolution,
+                    temperature: params.coreTemperature - 100 + Math.random() * 200,
+                    radius: 2 + Math.random() * 3,
+                    buoyancy: 0.8 + Math.random() * 0.4,
+                    age: 0,
+                    velocity: { vx: 0, vy: -1, vz: 0 },
+                    flux: 0.1 + Math.random() * 0.3,
+                    active: true
+                };
+                
+                plumes.push(plume);
+            }
+        }
+        
+        function createMantleVisualization() {
+            // Clear existing visualization
+            while (scene.children.length > 2) { // Keep lights
+                scene.remove(scene.children[2]);
+            }
+            
+            const res = params.gridResolution;
+            
+            if (currentVisualizationMode === 'temperature') {
+                createTemperatureVisualization();
+            } else if (currentVisualizationMode === 'velocity') {
+                createVelocityVisualization();
+            } else if (currentVisualizationMode === 'streamlines') {
+                createStreamlineVisualization();
+            } else if (currentVisualizationMode === 'plumes') {
+                createPlumeVisualization();
+            } else if (currentVisualizationMode === 'composition') {
+                createCompositionVisualization();
+            }
+            
+            // Add layer boundaries
+            createLayerBoundaries();
+        }
+        
+        function createTemperatureVisualization() {
+            const res = params.gridResolution;
+            const geometry = new THREE.PlaneGeometry(10, 10, res-1, res-1);
+            const vertices = geometry.attributes.position.array;
+            const colors = new Float32Array(vertices.length);
+            
+            for (let i = 0; i < res; i++) {
+                for (let j = 0; j < res; j++) {
+                    const index = (i * res + j) * 3;
+                    const temp = temperatureField[i][j].temperature;
+                    
+                    // Map temperature to color
+                    const color = temperatureToColor(temp);
+                    colors[index] = color.r;
+                    colors[index + 1] = color.g;
+                    colors[index + 2] = color.b;
+                }
+            }
+            
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            
+            const material = new THREE.MeshBasicMaterial({
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const mantleMesh = new THREE.Mesh(geometry, material);
+            scene.add(mantleMesh);
+        }
+        
+        function createVelocityVisualization() {
+            const res = params.gridResolution;
+            
+            // Create velocity vectors
+            for (let i = 0; i < res; i += 4) {
+                for (let j = 0; j < res; j += 4) {
+                    const velocity = velocityField[i][j];
+                    const magnitude = Math.sqrt(velocity.vx**2 + velocity.vy**2);
+                    
+                    if (magnitude > 0.1) {
+                        const x = (i / res - 0.5) * 10;
+                        const y = (j / res - 0.5) * 10;
+                        
+                        const arrowGeometry = new THREE.ConeGeometry(0.05, 0.2, 8);
+                        const arrowMaterial = new THREE.MeshBasicMaterial({
+                            color: velocityToColor(magnitude)
+                        });
+                        
+                        const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                        arrow.position.set(x, y, 0);
+                        
+                        // Orient arrow in velocity direction
+                        const angle = Math.atan2(velocity.vy, velocity.vx);
+                        arrow.rotation.z = angle - Math.PI/2;
+                        
+                        scene.add(arrow);
+                    }
+                }
+            }
+        }
+        
+        function createStreamlineVisualization() {
+            const res = params.gridResolution;
+            const numStreamlines = 20;
+            
+            for (let s = 0; s < numStreamlines; s++) {
+                const startX = Math.random() * res;
+                const startY = Math.random() * res;
+                
+                const points = [];
+                let x = startX, y = startY;
+                
+                for (let step = 0; step < 100; step++) {
+                    const i = Math.floor(x), j = Math.floor(y);
+                    if (i < 0 || i >= res-1 || j < 0 || j >= res-1) break;
+                    
+                    const velocity = velocityField[i][j];
+                    points.push(new THREE.Vector3(
+                        (x / res - 0.5) * 10,
+                        (y / res - 0.5) * 10,
+                        Math.sin(step * 0.1) * 0.5
+                    ));
+                    
+                    x += velocity.vx * 0.1;
+                    y += velocity.vy * 0.1;
+                }
+                
+                if (points.length > 2) {
+                    const curve = new THREE.CatmullRomCurve3(points);
+                    const geometry = new THREE.TubeGeometry(curve, points.length-1, 0.02, 8, false);
+                    const material = new THREE.MeshBasicMaterial({
+                        color: new THREE.Color().setHSL(s / numStreamlines, 0.8, 0.6),
+                        transparent: true,
+                        opacity: 0.7
+                    });
+                    
+                    const streamline = new THREE.Mesh(geometry, material);
+                    scene.add(streamline);
+                }
+            }
+        }
+        
+        function createPlumeVisualization() {
+            plumes.forEach(plume => {
+                if (!plume.active) return;
+                
+                const x = (plume.x / gridResolution - 0.5) * 10;
+                const y = (plume.y / gridResolution - 0.5) * 10;
+                const z = (plume.z / gridResolution - 0.5) * 2;
+                
+                // Plume head
+                const headGeometry = new THREE.SphereGeometry(plume.radius * 0.1, 16, 16);
+                const headMaterial = new THREE.MeshBasicMaterial({
+                    color: temperatureToColor(plume.temperature),
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const head = new THREE.Mesh(headGeometry, headMaterial);
+                head.position.set(x, y, z);
+                scene.add(head);
+                
+                // Plume tail
+                const tailHeight = (gridResolution - plume.y) * 0.1;
+                const tailGeometry = new THREE.CylinderGeometry(
+                    plume.radius * 0.02, plume.radius * 0.05, tailHeight, 8
+                );
+                const tailMaterial = new THREE.MeshBasicMaterial({
+                    color: temperatureToColor(plume.temperature * 0.8),
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                const tail = new THREE.Mesh(tailGeometry, tailMaterial);
+                tail.position.set(x, y + tailHeight/2, z);
+                scene.add(tail);
+            });
+        }
+        
+        function createLayerBoundaries() {
+            Object.values(LAYERS).forEach(layer => {
+                const depth = layer.end;
+                const y = ((depth / MANTLE_THICKNESS) - 0.5) * 10;
+                
+                const geometry = new THREE.PlaneGeometry(10, 0.02);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                
+                const boundary = new THREE.Mesh(geometry, material);
+                boundary.position.y = y;
+                boundary.rotation.x = Math.PI / 2;
+                scene.add(boundary);
+            });
+        }
+        
+        function temperatureToColor(temperature) {
+            const minTemp = params.surfaceTemperature;
+            const maxTemp = params.coreTemperature;
+            const normalized = (temperature - minTemp) / (maxTemp - minTemp);
+            
+            // Blue to red color mapping
+            const hue = (1 - normalized) * 240 / 360; // 240° (blue) to 0° (red)
+            const color = new THREE.Color().setHSL(hue, 0.8, 0.5);
+            
+            return color;
+        }
+        
+        function velocityToColor(magnitude) {
+            const maxVelocity = 10; // cm/yr
+            const normalized = Math.min(magnitude / maxVelocity, 1);
+            
+            return new THREE.Color().setHSL(normalized * 0.3, 1, 0.5); // Green to yellow
+        }
+        
+        function updateSimulation() {
+            if (!isSimulationRunning) return;
+            
+            const dt = params.timeStep;
+            simulationTime += dt;
+            
+            // Update temperature field using simplified convection equations
+            updateTemperatureField(dt);
+            
+            // Update velocity field
+            updateVelocityField(dt);
+            
+            // Update plumes
+            updatePlumes(dt);
+            
+            // Update statistics
+            updateStatistics();
+            
+            // Recreate visualization
+            createMantleVisualization();
+            
+            // Update UI
+            document.getElementById('simulation-time').textContent = `${simulationTime.toFixed(1)} Ma`;
+        }
+        
+        function updateTemperatureField(dt) {
+            const res = params.gridResolution;
+            const newField = JSON.parse(JSON.stringify(temperatureField));
+            
+            for (let i = 1; i < res-1; i++) {
+                for (let j = 1; j < res-1; j++) {
+                    const current = temperatureField[i][j];
+                    const diffusion = calculateThermalDiffusion(i, j);
+                    const advection = calculateThermalAdvection(i, j);
+                    const heating = params.internalHeating * 1e-3;
+                    
+                    newField[i][j].temperature = current.temperature + dt * (diffusion + advection + heating);
+                    
+                    // Update density based on new temperature
+                    const depth = (j / res) * MANTLE_THICKNESS;
+                    newField[i][j].density = calculateDensity(newField[i][j].temperature, depth);
+                    newField[i][j].viscosity = calculateViscosity(newField[i][j].temperature, depth);
+                }
+            }
+            
+            temperatureField = newField;
+        }
+        
+        function calculateThermalDiffusion(i, j) {
+            const res = params.gridResolution;
+            const thermal_diffusivity = 1e-6; // m²/s, simplified
+            
+            const T = temperatureField;
+            const dx = MANTLE_THICKNESS / res * 1000; // Convert to meters
+            
+            const d2T_dx2 = (T[i+1][j].temperature - 2*T[i][j].temperature + T[i-1][j].temperature) / (dx*dx);
+            const d2T_dy2 = (T[i][j+1].temperature - 2*T[i][j].temperature + T[i][j-1].temperature) / (dx*dx);
+            
+            return thermal_diffusivity * (d2T_dx2 + d2T_dy2) * 3.15e7; // Convert to K/Ma
+        }
+        
+        function calculateThermalAdvection(i, j) {
+            const velocity = velocityField[i][j];
+            const res = params.gridResolution;
+            const dx = MANTLE_THICKNESS / res * 1000;
+            
+            // Simple upwind scheme
+            let dT_dx = 0, dT_dy = 0;
+            
+            if (velocity.vx > 0) {
+                dT_dx = (temperatureField[i][j].temperature - temperatureField[i-1][j].temperature) / dx;
+            } else {
+                dT_dx = (temperatureField[i+1][j].temperature - temperatureField[i][j].temperature) / dx;
+            }
+            
+            if (velocity.vy > 0) {
+                dT_dy = (temperatureField[i][j].temperature - temperatureField[i][j-1].temperature) / dx;
+            } else {
+                dT_dy = (temperatureField[i][j+1].temperature - temperatureField[i][j].temperature) / dx;
+            }
+            
+            return -(velocity.vx * dT_dx + velocity.vy * dT_dy) * (3.15e7 / 1e-2); // Convert cm/yr to K/Ma
+        }
+        
+        function updateVelocityField(dt) {
+            const res = params.gridResolution;
+            
+            for (let i = 1; i < res-1; i++) {
+                for (let j = 1; j < res-1; j++) {
+                    const buoyancy = calculateBuoyancy(i, j);
+                    const viscousForce = calculateViscousForce(i, j);
+                    
+                    // Update velocity (simplified Stokes flow)
+                    velocityField[i][j].vx += dt * (buoyancy.x + viscousForce.x) * 1e-3;
+                    velocityField[i][j].vy += dt * (buoyancy.y + viscousForce.y) * 1e-3;
+                    
+                    // Apply velocity limits
+                    velocityField[i][j].vx = Math.max(-20, Math.min(20, velocityField[i][j].vx));
+                    velocityField[i][j].vy = Math.max(-20, Math.min(20, velocityField[i][j].vy));
+                }
+            }
+        }
+        
+        function calculateBuoyancy(i, j) {
+            const depth = (j / params.gridResolution) * MANTLE_THICKNESS;
+            const current = temperatureField[i][j];
+            const reference_density = 3300 + depth * 0.3;
+            
+            const density_anomaly = current.density - reference_density;
+            const gravity = 9.8; // m/s²
+            
+            return {
+                x: 0,
+                y: -density_anomaly * gravity * 1e-6 // Simplified buoyancy force
+            };
+        }
+        
+        function calculateViscousForce(i, j) {
+            // Simplified viscous force calculation
+            const viscosity = temperatureField[i][j].viscosity;
+            const velocity = velocityField[i][j];
+            
+            return {
+                x: -velocity.vx / viscosity * 1e15,
+                y: -velocity.vy / viscosity * 1e15
+            };
+        }
+        
+        function updatePlumes(dt) {
+            plumes.forEach(plume => {
+                if (!plume.active) return;
+                
+                plume.age += dt;
+                
+                // Update plume position
+                plume.y -= plume.velocity.vy * dt * 10; // Move upward
+                plume.x += (Math.random() - 0.5) * 0.1; // Random lateral motion
+                
+                // Update plume properties
+                plume.temperature *= (1 - dt * 0.01); // Cooling
+                plume.radius *= (1 + dt * 0.005); // Spreading
+                
+                // Check if plume reaches surface
+                if (plume.y < 5) {
+                    plume.active = false;
+                }
+                
+                // Check if plume becomes too cold
+                if (plume.temperature < params.surfaceTemperature + 200) {
+                    plume.active = false;
+                }
+            });
+            
+            // Generate new plumes occasionally
+            if (Math.random() < 0.01 * dt) {
+                generateNewPlume();
+            }
+            
+            // Remove inactive plumes
+            plumes = plumes.filter(plume => plume.active);
+        }
+        
+        function generateNewPlume() {
+            const newPlume = {
+                id: plumes.length,
+                x: Math.random() * gridResolution,
+                y: gridResolution - 5,
+                z: Math.random() * gridResolution,
+                temperature: params.coreTemperature - 100 + Math.random() * 200,
+                radius: 2 + Math.random() * 3,
+                buoyancy: 0.8 + Math.random() * 0.4,
+                age: 0,
+                velocity: { vx: 0, vy: -1, vz: 0 },
+                flux: 0.1 + Math.random() * 0.3,
+                active: true
+            };
+            
+            plumes.push(newPlume);
+        }
+        
+        function updateStatistics() {
+            // Calculate Nusselt number
+            const surfaceHeatFlux = calculateSurfaceHeatFlux();
+            const conductiveHeatFlux = (params.coreTemperature - params.surfaceTemperature) / MANTLE_THICKNESS;
+            const nusseltNumber = surfaceHeatFlux / conductiveHeatFlux;
+            
+            // Calculate RMS velocity
+            const rmsVelocity = calculateRMSVelocity();
+            
+            // Update UI
+            document.getElementById('nusselt-number').textContent = nusseltNumber.toFixed(1);
+            document.getElementById('heat-flux').textContent = (surfaceHeatFlux * 1000).toFixed(0);
+            document.getElementById('rms-velocity').textContent = rmsVelocity.toFixed(1);
+            document.getElementById('active-plumes').textContent = plumes.filter(p => p.active).length;
+            
+            // Update plume list
+            updatePlumeList();
+            
+            // Update thermal chart
+            updateThermalChart();
+        }
+        
+        function calculateSurfaceHeatFlux() {
+            const res = params.gridResolution;
+            let totalFlux = 0;
+            
+            for (let i = 0; i < res; i++) {
+                const surfaceTemp = temperatureField[i][0].temperature;
+                const belowTemp = temperatureField[i][1].temperature;
+                const gradient = (belowTemp - surfaceTemp) / (MANTLE_THICKNESS / res);
+                totalFlux += gradient;
+            }
+            
+            return totalFlux / res * 0.001; // Simplified units
+        }
+        
+        function calculateRMSVelocity() {
+            const res = params.gridResolution;
+            let sumSquared = 0;
+            let count = 0;
+            
+            for (let i = 0; i < res; i++) {
+                for (let j = 0; j < res; j++) {
+                    const velocity = velocityField[i][j];
+                    const magnitude = Math.sqrt(velocity.vx**2 + velocity.vy**2);
+                    sumSquared += magnitude**2;
+                    count++;
+                }
+            }
+            
+            return Math.sqrt(sumSquared / count);
+        }
+        
+        function updatePlumeList() {
+            const plumeList = document.getElementById('plume-list');
+            plumeList.innerHTML = '';
+            
+            plumes.filter(p => p.active).forEach(plume => {
+                const plumeDiv = document.createElement('div');
+                plumeDiv.className = 'plume-info';
+                plumeDiv.innerHTML = `
+                    <strong>Plume ${plume.id}</strong><br>
+                    <small>Temp: ${plume.temperature.toFixed(0)}K | Age: ${plume.age.toFixed(1)}Ma</small><br>
+                    <small>Depth: ${((1 - plume.y/gridResolution) * MANTLE_THICKNESS).toFixed(0)}km</small>
+                `;
+                plumeList.appendChild(plumeDiv);
+            });
+        }
+        
+        function updateThermalChart() {
+            const canvas = document.getElementById('thermal-chart');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw temperature profile
+            ctx.strokeStyle = '#FF6B35';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            const res = params.gridResolution;
+            for (let j = 0; j < res; j++) {
+                const avgTemp = temperatureField.reduce((sum, row) => sum + row[j].temperature, 0) / res;
+                const x = j / res * canvas.width;
+                const y = canvas.height - (avgTemp - params.surfaceTemperature) / 
+                          (params.coreTemperature - params.surfaceTemperature) * canvas.height;
+                
+                if (j === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+            
+            // Add labels
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.fillText('Surface', 5, canvas.height - 5);
+            ctx.fillText('CMB', canvas.width - 30, 15);
+        }
+        
+        function setupEventListeners() {
+            // Parameter sliders
+            document.getElementById('rayleigh-number').addEventListener('input', function(e) {
+                params.rayleighNumber = Math.pow(10, parseFloat(e.target.value));
+                document.getElementById('rayleigh-value').textContent = params.rayleighNumber.toExponential(1);
+            });
+            
+            document.getElementById('viscosity-contrast').addEventListener('input', function(e) {
+                params.viscosityContrast = parseFloat(e.target.value);
+                document.getElementById('viscosity-value').textContent = params.viscosityContrast;
+            });
+            
+            document.getElementById('internal-heating').addEventListener('input', function(e) {
+                params.internalHeating = parseFloat(e.target.value);
+                document.getElementById('heating-value').textContent = params.internalHeating.toFixed(1);
+            });
+            
+            document.getElementById('core-temperature').addEventListener('input', function(e) {
+                params.coreTemperature = parseFloat(e.target.value);
+                document.getElementById('core-temp-value').textContent = params.coreTemperature;
+            });
+            
+            document.getElementById('surface-temperature').addEventListener('input', function(e) {
+                params.surfaceTemperature = parseFloat(e.target.value);
+                document.getElementById('surface-temp-value').textContent = params.surfaceTemperature;
+            });
+            
+            // Visualization mode buttons
+            document.querySelectorAll('.mode-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.mode-button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentVisualizationMode = this.dataset.mode;
+                    createMantleVisualization();
+                });
+            });
+            
+            // Mouse controls for 3D interaction
+            let mouseDown = false;
+            let mouseX = 0, mouseY = 0;
+            
+            renderer.domElement.addEventListener('mousedown', function(e) {
+                mouseDown = true;
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            document.addEventListener('mouseup', function() {
+                mouseDown = false;
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!mouseDown) return;
+                
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                
+                scene.rotation.y += deltaX * 0.01;
+                scene.rotation.x += deltaY * 0.01;
+                
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            // Zoom with mouse wheel
+            renderer.domElement.addEventListener('wheel', function(e) {
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(5, Math.min(50, camera.position.z));
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isSimulationRunning) {
+                const speed = parseFloat(document.getElementById('sim-speed').value);
+                if (simulationTime % (1/speed) < params.timeStep) {
+                    updateSimulation();
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Control functions
+        function startSimulation() {
+            isSimulationRunning = true;
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('pause-btn').style.display = 'inline-block';
+        }
+        
+        function pauseSimulation() {
+            isSimulationRunning = false;
+            document.getElementById('start-btn').style.display = 'inline-block';
+            document.getElementById('pause-btn').style.display = 'none';
+        }
+        
+        function stepSimulation() {
+            updateSimulation();
+        }
+        
+        function resetSimulation() {
+            isSimulationRunning = false;
+            simulationTime = 0;
+            initializeGrids();
+            createMantleVisualization();
+            updateStatistics();
+            
+            document.getElementById('start-btn').style.display = 'inline-block';
+            document.getElementById('pause-btn').style.display = 'none';
+        }
+        
+        function saveSnapshot() {
+            const canvas = renderer.domElement;
+            const link = document.createElement('a');
+            link.download = `mantle_dynamics_${simulationTime.toFixed(1)}Ma.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        function exportData() {
+            const data = {
+                simulationTime: simulationTime,
+                parameters: params,
+                temperatureField: temperatureField,
+                velocityField: velocityField,
+                plumes: plumes,
+                statistics: {
+                    nusseltNumber: parseFloat(document.getElementById('nusselt-number').textContent),
+                    heatFlux: parseFloat(document.getElementById('heat-flux').textContent),
+                    rmsVelocity: parseFloat(document.getElementById('rms-velocity').textContent),
+                    activePlumes: plumes.filter(p => p.active).length
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mantle_dynamics_${simulationTime.toFixed(1)}Ma.json`;
+            a.click();
+        }
+        
+        // Resize handler
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initMantleSimulation();
+        });
+    </script>
+</body>
+</html>

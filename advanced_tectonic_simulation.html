@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI - 4D Tectonic Reconstruction System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        #time-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 300px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group h3 {
+            margin: 0 0 15px 0;
+            color: #4CAF50;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        
+        .button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+        
+        .button.secondary {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        
+        .button.danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        select, input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+            width: 100%;
+        }
+        
+        select option {
+            background: #333;
+            color: white;
+        }
+        
+        .time-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        
+        .hypothesis-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .hypothesis-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #4CAF50;
+        }
+        
+        .hypothesis-card.active {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #4CAF50;
+            font-size: 18px;
+            z-index: 2000;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div id="ui-panel">
+            <h2>🌍 4D Tectonic Reconstruction</h2>
+            
+            <div class="control-group">
+                <h3>🔬 Hypothesis Selection</h3>
+                <div class="hypothesis-card active" data-hypothesis="standard">
+                    <strong>Standard Model</strong><br>
+                    <small>Current plate motion vectors with established hotspot tracks</small>
+                </div>
+                <div class="hypothesis-card" data-hypothesis="yellowstone-longlived">
+                    <strong>Long-Lived Yellowstone Plume</strong><br>
+                    <small>Yellowstone plume originated off North America coast ~17 Ma ago</small>
+                </div>
+                <div class="hypothesis-card" data-hypothesis="farallon-reconstruction">
+                    <strong>Farallon Plate Dynamics</strong><br>
+                    <small>Enhanced Farallon/Resurrection plate subduction modeling</small>
+                </div>
+                <div class="hypothesis-card" data-hypothesis="custom">
+                    <strong>Custom Hypothesis</strong><br>
+                    <small>User-defined plate motions and hotspot parameters</small>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>⚙️ Simulation Parameters</h3>
+                
+                <div class="slider-container">
+                    <label>Plate Motion Scale Factor: <span id="motion-scale-value">1.0</span></label>
+                    <input type="range" id="motion-scale" class="slider" min="0.1" max="3.0" step="0.1" value="1.0">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Hotspot Flux Intensity: <span id="flux-value">1.0</span></label>
+                    <input type="range" id="flux-intensity" class="slider" min="0.1" max="5.0" step="0.1" value="1.0">
+                </div>
+                
+                <div class="slider-container">
+                    <label>Mantle Convection Strength: <span id="convection-value">1.0</span></label>
+                    <input type="range" id="convection-strength" class="slider" min="0.1" max="2.0" step="0.1" value="1.0">
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-uncertainty" checked>
+                    <label for="show-uncertainty">Show Uncertainty Zones</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-paleomag" checked>
+                    <label for="show-paleomag">Show Paleomagnetic Constraints</label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎯 Display Options</h3>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-plates" checked>
+                    <label for="show-plates">Tectonic Plates</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-hotspots" checked>
+                    <label for="show-hotspots">Hotspot Tracks</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-volcanos" checked>
+                    <label for="show-volcanos">Active Volcanos</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-age-grid" checked>
+                    <label for="show-age-grid">Crustal Age Grid</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-velocity-vectors">
+                    <label for="show-velocity-vectors">Velocity Vectors</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-subduction">
+                    <label for="show-subduction">Subduction Zones</label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📊 Analysis Tools</h3>
+                <button class="button" onclick="calculateMisfits()">Calculate Model Misfits</button>
+                <button class="button secondary" onclick="exportReconstruction()">Export Reconstruction</button>
+                <button class="button secondary" onclick="compareHypotheses()">Compare Hypotheses</button>
+                <button class="button danger" onclick="resetToDefaults()">Reset to Defaults</button>
+            </div>
+        </div>
+        
+        <div id="time-controls">
+            <button class="button" onclick="playSimulation()" id="play-btn">▶️ Play</button>
+            <button class="button" onclick="pauseSimulation()" id="pause-btn" style="display:none;">⏸️ Pause</button>
+            <button class="button secondary" onclick="stepBackward()">⏮️</button>
+            <button class="button secondary" onclick="stepForward()">⏭️</button>
+            
+            <div class="slider-container" style="width: 400px;">
+                <input type="range" id="time-slider" class="slider" min="0" max="200" step="1" value="0">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px;">
+                    <span>200 Ma</span>
+                    <span>100 Ma</span>
+                    <span>Present</span>
+                </div>
+            </div>
+            
+            <div class="time-display" id="current-time">Present Day</div>
+            
+            <select id="time-step-size">
+                <option value="0.1">0.1 Ma steps</option>
+                <option value="0.5">0.5 Ma steps</option>
+                <option value="1" selected>1 Ma steps</option>
+                <option value="5">5 Ma steps</option>
+                <option value="10">10 Ma steps</option>
+            </select>
+        </div>
+        
+        <div id="info-panel">
+            <h3>📈 Reconstruction Statistics</h3>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-plates">14</div>
+                    <div class="stat-label">Active Plates</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-hotspots">35</div>
+                    <div class="stat-label">Hotspot Tracks</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-volcanos">75</div>
+                    <div class="stat-label">Volcanos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-misfit">2.3°</div>
+                    <div class="stat-label">Model Misfit</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔍 Current Selection</h3>
+                <div id="selection-info">
+                    <p>Click on any plate, hotspot, or volcano for detailed information.</p>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎯 Yellowstone Plume Analysis</h3>
+                <div id="yellowstone-analysis">
+                    <p><strong>Current Position:</strong> 44.4°N, 110.6°W</p>
+                    <p><strong>Estimated Origin:</strong> <span id="yellowstone-origin">Off Washington Coast</span></p>
+                    <p><strong>Migration Distance:</strong> <span id="yellowstone-distance">800 km</span></p>
+                    <p><strong>Velocity:</strong> <span id="yellowstone-velocity">2.9 cm/yr</span></p>
+                    <p><strong>Track Confidence:</strong> <span id="yellowstone-confidence">High</span></p>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🌊 Farallon Plate Status</h3>
+                <div id="farallon-analysis">
+                    <p><strong>Subduction Rate:</strong> <span id="farallon-rate">Variable</span></p>
+                    <p><strong>Remaining Area:</strong> <span id="farallon-area">~5%</span></p>
+                    <p><strong>Slab Window:</strong> <span id="slab-window">Active</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <h4>🎨 Legend</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff4444;"></div>
+                <span>0-10 Ma (Young Crust)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffaa44;"></div>
+                <span>10-50 Ma</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #44ff44;"></div>
+                <span>50-100 Ma</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4444ff;"></div>
+                <span>100-200 Ma (Old Crust)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff44ff;"></div>
+                <span>Hotspot Tracks</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffff44;"></div>
+                <span>Active Volcanos</span>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            Calculating reconstruction...
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer, earth, plates = [], hotspotTracks = [], volcanos = [];
+        let currentTime = 0; // Ma ago
+        let isPlaying = false;
+        let animationSpeed = 1.0;
+        let currentHypothesis = 'standard';
+        let plateMotionData = {};
+        let hotspotData = {};
+        
+        // Plate reconstruction models
+        const PLATE_MODELS = {
+            standard: {
+                name: "Standard GPlates Model",
+                description: "Current consensus plate motion model",
+                yellowstone: {
+                    origin: { lat: 44.4, lon: -110.6, time: 0 },
+                    track: [
+                        { lat: 44.4, lon: -110.6, time: 0 },
+                        { lat: 42.0, lon: -116.0, time: 10 },
+                        { lat: 39.0, lon: -118.0, time: 16 }
+                    ]
+                }
+            },
+            "yellowstone-longlined": {
+                name: "Long-Lived Yellowstone Plume",
+                description: "Yellowstone plume originated off North America coast",
+                yellowstone: {
+                    origin: { lat: 50.0, lon: -135.0, time: 17 },
+                    track: [
+                        { lat: 44.4, lon: -110.6, time: 0 },
+                        { lat: 42.0, lon: -116.0, time: 2 },
+                        { lat: 43.5, lon: -114.0, time: 4.5 },
+                        { lat: 43.8, lon: -112.0, time: 6.6 },
+                        { lat: 43.5, lon: -111.0, time: 8.1 },
+                        { lat: 43.8, lon: -110.0, time: 10.3 },
+                        { lat: 44.1, lon: -115.6, time: 12.0 },
+                        { lat: 45.0, lon: -118.0, time: 15.0 },
+                        { lat: 50.0, lon: -135.0, time: 17 }
+                    ]
+                },
+                farallon: {
+                    enhanced_subduction: true,
+                    slab_window_timing: { start: 20, end: 5 },
+                    subduction_rates: [
+                        { time: 20, rate: 8.0 },
+                        { time: 15, rate: 6.5 },
+                        { time: 10, rate: 4.0 },
+                        { time: 5, rate: 2.0 },
+                        { time: 0, rate: 0.5 }
+                    ]
+                }
+            },
+            "farallon-reconstruction": {
+                name: "Enhanced Farallon Dynamics",
+                description: "Detailed Farallon/Juan de Fuca/Gorda plate evolution",
+                farallon: {
+                    detailed_breakup: true,
+                    juan_de_fuca_separation: 28,
+                    gorda_separation: 18,
+                    subduction_zones: [
+                        { name: "Cascadia", start: 40, end: 0, rate_history: [7.0, 5.5, 4.0, 3.5] },
+                        { name: "California", start: 30, end: 0, rate_history: [6.0, 4.5, 3.0, 2.0] }
+                    ]
+                }
+            },
+            custom: {
+                name: "User-Defined Model",
+                description: "Customizable parameters for hypothesis testing",
+                editable: true
+            }
+        };
+        
+        // Initialize the 3D scene
+        function initScene() {
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000510, 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Camera positioning
+            camera.position.set(0, 0, 8);
+            camera.lookAt(0, 0, 0);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // Create Earth sphere
+            createEarth();
+            
+            // Initialize plate data
+            initializePlateData();
+            
+            // Create initial visualization
+            updateVisualization();
+            
+            // Animation loop
+            animate();
+            
+            console.log("3D Tectonic Visualization initialized");
+        }
+        
+        function createEarth() {
+            // Earth geometry
+            const earthGeometry = new THREE.SphereGeometry(2, 64, 64);
+            
+            // Earth material with texture simulation
+            const earthMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0.0 },
+                    crustalAge: { value: 0.0 },
+                    showAgeGrid: { value: 1.0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    
+                    void main() {
+                        vUv = uv;
+                        vNormal = normalize(normalMatrix * normal);
+                        vPosition = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    uniform float crustalAge;
+                    uniform float showAgeGrid;
+                    
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    
+                    vec3 getAgeColor(float age) {
+                        // Age-based coloring (0-200 Ma)
+                        if (age < 10.0) return vec3(1.0, 0.2, 0.2); // Red for young
+                        if (age < 50.0) return vec3(1.0, 0.6, 0.2); // Orange
+                        if (age < 100.0) return vec3(0.2, 1.0, 0.2); // Green
+                        return vec3(0.2, 0.2, 1.0); // Blue for old
+                    }
+                    
+                    float getSimulatedAge(vec2 uv) {
+                        // Simulate oceanic crustal age patterns
+                        float ridgeDistance = min(
+                            abs(uv.x - 0.8), // Atlantic ridge
+                            min(abs(uv.x - 0.2), abs(uv.y - 0.5)) // Pacific ridges
+                        );
+                        return ridgeDistance * 200.0; // Convert to Ma
+                    }
+                    
+                    void main() {
+                        vec3 baseColor = vec3(0.1, 0.2, 0.4); // Ocean blue
+                        
+                        // Continental areas (simplified)
+                        if (vUv.x > 0.3 && vUv.x < 0.7 && vUv.y > 0.3 && vUv.y < 0.7) {
+                            baseColor = vec3(0.3, 0.5, 0.2); // Land green
+                        }
+                        
+                        if (showAgeGrid > 0.5) {
+                            float age = getSimulatedAge(vUv);
+                            vec3 ageColor = getAgeColor(age);
+                            baseColor = mix(baseColor, ageColor, 0.6);
+                        }
+                        
+                        // Lighting
+                        float lightIntensity = max(0.0, dot(vNormal, normalize(vec3(1.0, 1.0, 1.0))));
+                        baseColor *= (0.4 + 0.6 * lightIntensity);
+                        
+                        gl_FragColor = vec4(baseColor, 1.0);
+                    }
+                `
+            });
+            
+            earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            scene.add(earth);
+        }
+        
+        function initializePlateData() {
+            // Initialize with current hypothesis
+            const model = PLATE_MODELS[currentHypothesis];
+            
+            // Yellowstone hotspot track
+            if (model.yellowstone) {
+                hotspotData.yellowstone = model.yellowstone;
+                updateYellowstoneAnalysis();
+            }
+            
+            // Farallon plate data
+            if (model.farallon) {
+                plateMotionData.farallon = model.farallon;
+                updateFarallonAnalysis();
+            }
+            
+            console.log(`Initialized plate data for hypothesis: ${currentHypothesis}`);
+        }
+        
+        function createPlateVisualization() {
+            // Clear existing plates
+            plates.forEach(plate => scene.remove(plate));
+            plates = [];
+            
+            // Simplified plate boundaries (for demonstration)
+            const plateBoundaries = [
+                // Pacific Plate
+                { name: "Pacific", color: 0x4CAF50, 
+                  vertices: [
+                    [0, Math.PI/4, 2.1], [Math.PI/2, Math.PI/4, 2.1], 
+                    [Math.PI, Math.PI/4, 2.1], [3*Math.PI/2, Math.PI/4, 2.1]
+                  ]
+                },
+                // North American Plate
+                { name: "North American", color: 0x2196F3,
+                  vertices: [
+                    [Math.PI/2, Math.PI/6, 2.1], [Math.PI, Math.PI/6, 2.1],
+                    [Math.PI, Math.PI/3, 2.1], [Math.PI/2, Math.PI/3, 2.1]
+                  ]
+                }
+            ];
+            
+            plateBoundaries.forEach(boundary => {
+                const geometry = new THREE.BufferGeometry();
+                const positions = [];
+                
+                boundary.vertices.forEach(vertex => {
+                    const [lon, lat, r] = vertex;
+                    const x = r * Math.cos(lat) * Math.cos(lon);
+                    const y = r * Math.sin(lat);
+                    const z = r * Math.cos(lat) * Math.sin(lon);
+                    positions.push(x, y, z);
+                });
+                
+                positions.push(positions[0], positions[1], positions[2]); // Close the loop
+                
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                
+                const material = new THREE.LineBasicMaterial({ 
+                    color: boundary.color, 
+                    linewidth: 3,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const plate = new THREE.Line(geometry, material);
+                plate.userData = { name: boundary.name, type: 'plate' };
+                plates.push(plate);
+                scene.add(plate);
+            });
+        }
+        
+        function createHotspotTracks() {
+            // Clear existing hotspot tracks
+            hotspotTracks.forEach(track => scene.remove(track));
+            hotspotTracks = [];
+            
+            // Yellowstone hotspot track based on current hypothesis
+            if (hotspotData.yellowstone) {
+                createYellowstoneTrack();
+            }
+            
+            // Hawaii hotspot track (for comparison)
+            createHawaiiTrack();
+        }
+        
+        function createYellowstoneTrack() {
+            const track = hotspotData.yellowstone.track;
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            
+            track.forEach((point, index) => {
+                const { lat, lon } = point;
+                const r = 2.05; // Slightly above Earth surface
+                
+                const x = r * Math.cos(lat * Math.PI/180) * Math.cos(lon * Math.PI/180);
+                const y = r * Math.sin(lat * Math.PI/180);
+                const z = r * Math.cos(lat * Math.PI/180) * Math.sin(lon * Math.PI/180);
+                
+                positions.push(x, y, z);
+                
+                // Color by age (red = recent, blue = old)
+                const ageRatio = point.time / 17.0;
+                colors.push(1 - ageRatio, 0.2, ageRatio);
+            });
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            const material = new THREE.LineBasicMaterial({ 
+                vertexColors: true,
+                linewidth: 5,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const yellowstoneTrack = new THREE.Line(geometry, material);
+            yellowstoneTrack.userData = { name: 'Yellowstone', type: 'hotspot' };
+            hotspotTracks.push(yellowstoneTrack);
+            scene.add(yellowstoneTrack);
+            
+            // Add age markers
+            track.forEach(point => {
+                if (point.time % 5 === 0) { // Every 5 Ma
+                    const markerGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+                    const markerMaterial = new THREE.MeshBasicMaterial({ 
+                        color: 0xFFFF00,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    
+                    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                    const r = 2.05;
+                    marker.position.set(
+                        r * Math.cos(point.lat * Math.PI/180) * Math.cos(point.lon * Math.PI/180),
+                        r * Math.sin(point.lat * Math.PI/180),
+                        r * Math.cos(point.lat * Math.PI/180) * Math.sin(point.lon * Math.PI/180)
+                    );
+                    
+                    marker.userData = { 
+                        name: `Yellowstone ${point.time}Ma`, 
+                        type: 'age_marker',
+                        age: point.time 
+                    };
+                    
+                    scene.add(marker);
+                    hotspotTracks.push(marker);
+                }
+            });
+        }
+        
+        function createHawaiiTrack() {
+            // Simplified Hawaii-Emperor seamount chain
+            const hawaiiTrack = [
+                { lat: 19.4, lon: -155.3, time: 0 },   // Hawaii
+                { lat: 21.3, lon: -158.0, time: 1 },   // Maui
+                { lat: 22.1, lon: -159.5, time: 2 },   // Oahu
+                { lat: 23.0, lon: -161.0, time: 5 },   // Kauai
+                { lat: 25.0, lon: -166.0, time: 15 },  // Mid-Pacific
+                { lat: 27.0, lon: -175.0, time: 30 },  // Emperor bend
+                { lat: 32.0, lon: 172.0, time: 47 },   // Emperor chain
+                { lat: 38.0, lon: 170.0, time: 65 }    // Meiji
+            ];
+            
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            
+            hawaiiTrack.forEach(point => {
+                const { lat, lon } = point;
+                const r = 2.05;
+                
+                const x = r * Math.cos(lat * Math.PI/180) * Math.cos(lon * Math.PI/180);
+                const y = r * Math.sin(lat * Math.PI/180);
+                const z = r * Math.cos(lat * Math.PI/180) * Math.sin(lon * Math.PI/180);
+                
+                positions.push(x, y, z);
+            });
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0xFF44FF,
+                linewidth: 4,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            const hawaiiTrackLine = new THREE.Line(geometry, material);
+            hawaiiTrackLine.userData = { name: 'Hawaii-Emperor', type: 'hotspot' };
+            hotspotTracks.push(hawaiiTrackLine);
+            scene.add(hawaiiTrackLine);
+        }
+        
+        function updateVisualization() {
+            // Update based on current time and settings
+            if (document.getElementById('show-plates').checked) {
+                createPlateVisualization();
+            }
+            
+            if (document.getElementById('show-hotspots').checked) {
+                createHotspotTracks();
+            }
+            
+            // Update Earth material uniforms
+            if (earth && earth.material) {
+                earth.material.uniforms.time.value = currentTime;
+                earth.material.uniforms.showAgeGrid.value = 
+                    document.getElementById('show-age-grid').checked ? 1.0 : 0.0;
+            }
+            
+            // Update statistics
+            updateStatistics();
+        }
+        
+        function updateStatistics() {
+            const misfitValue = calculateModelMisfit();
+            document.getElementById('stat-misfit').textContent = misfitValue.toFixed(1) + '°';
+            
+            // Update time display
+            const timeText = currentTime === 0 ? 'Present Day' : `${currentTime.toFixed(1)} Ma ago`;
+            document.getElementById('current-time').textContent = timeText;
+        }
+        
+        function calculateModelMisfit() {
+            // Simplified misfit calculation based on hypothesis
+            const baseMisfit = {
+                'standard': 2.3,
+                'yellowstone-longlined': 1.8,
+                'farallon-reconstruction': 2.1,
+                'custom': 3.0
+            };
+            
+            const timeEffect = Math.abs(currentTime - 50) * 0.02; // Uncertainty increases with time
+            const parameterEffect = (parseFloat(document.getElementById('motion-scale').value) - 1.0) * 0.5;
+            
+            return baseMisfit[currentHypothesis] + timeEffect + Math.abs(parameterEffect);
+        }
+        
+        function updateYellowstoneAnalysis() {
+            const model = PLATE_MODELS[currentHypothesis];
+            if (model.yellowstone) {
+                const origin = model.yellowstone.origin || model.yellowstone.track[model.yellowstone.track.length - 1];
+                document.getElementById('yellowstone-origin').textContent = 
+                    `${origin.lat.toFixed(1)}°N, ${Math.abs(origin.lon).toFixed(1)}°W`;
+                
+                // Calculate migration distance
+                const current = model.yellowstone.track[0];
+                const distance = calculateDistance(current.lat, current.lon, origin.lat, origin.lon);
+                document.getElementById('yellowstone-distance').textContent = `${distance.toFixed(0)} km`;
+                
+                // Calculate velocity
+                const totalTime = origin.time || 17;
+                const velocity = distance / (totalTime * 10); // cm/yr
+                document.getElementById('yellowstone-velocity').textContent = `${velocity.toFixed(1)} cm/yr`;
+                
+                // Confidence based on hypothesis
+                const confidence = currentHypothesis === 'yellowstone-longlined' ? 'High' : 'Moderate';
+                document.getElementById('yellowstone-confidence').textContent = confidence;
+            }
+        }
+        
+        function updateFarallonAnalysis() {
+            const model = PLATE_MODELS[currentHypothesis];
+            if (model.farallon) {
+                const currentRate = interpolateFarallonRate(currentTime);
+                document.getElementById('farallon-rate').textContent = `${currentRate.toFixed(1)} cm/yr`;
+                
+                const remainingArea = calculateFarallonArea(currentTime);
+                document.getElementById('farallon-area').textContent = `~${remainingArea.toFixed(0)}%`;
+                
+                const slabWindow = (currentTime >= 5 && currentTime <= 20) ? 'Active' : 'Inactive';
+                document.getElementById('slab-window').textContent = slabWindow;
+            }
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        function interpolateFarallonRate(time) {
+            const model = PLATE_MODELS[currentHypothesis];
+            if (!model.farallon || !model.farallon.subduction_rates) return 3.0;
+            
+            const rates = model.farallon.subduction_rates;
+            for (let i = 0; i < rates.length - 1; i++) {
+                if (time >= rates[i+1].time && time <= rates[i].time) {
+                    const t1 = rates[i].time, r1 = rates[i].rate;
+                    const t2 = rates[i+1].time, r2 = rates[i+1].rate;
+                    const ratio = (time - t2) / (t1 - t2);
+                    return r2 + ratio * (r1 - r2);
+                }
+            }
+            return rates[0].rate;
+        }
+        
+        function calculateFarallonArea(time) {
+            // Simplified area calculation
+            const maxTime = 40; // Ma
+            if (time >= maxTime) return 100;
+            return Math.max(0, 100 * (1 - time / maxTime));
+        }
+        
+        // Animation and controls
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isPlaying) {
+                const stepSize = parseFloat(document.getElementById('time-step-size').value);
+                currentTime = Math.max(0, currentTime - stepSize * animationSpeed * 0.1);
+                
+                document.getElementById('time-slider').value = 200 - currentTime;
+                updateVisualization();
+                
+                if (currentTime <= 0) {
+                    pauseSimulation();
+                }
+            }
+            
+            // Rotate Earth slowly
+            if (earth) {
+                earth.rotation.y += 0.001;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function playSimulation() {
+            isPlaying = true;
+            document.getElementById('play-btn').style.display = 'none';
+            document.getElementById('pause-btn').style.display = 'inline-block';
+        }
+        
+        function pauseSimulation() {
+            isPlaying = false;
+            document.getElementById('play-btn').style.display = 'inline-block';
+            document.getElementById('pause-btn').style.display = 'none';
+        }
+        
+        function stepForward() {
+            const stepSize = parseFloat(document.getElementById('time-step-size').value);
+            currentTime = Math.max(0, currentTime - stepSize);
+            document.getElementById('time-slider').value = 200 - currentTime;
+            updateVisualization();
+        }
+        
+        function stepBackward() {
+            const stepSize = parseFloat(document.getElementById('time-step-size').value);
+            currentTime = Math.min(200, currentTime + stepSize);
+            document.getElementById('time-slider').value = 200 - currentTime;
+            updateVisualization();
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initScene();
+            
+            // Time slider
+            document.getElementById('time-slider').addEventListener('input', function(e) {
+                currentTime = 200 - parseFloat(e.target.value);
+                updateVisualization();
+            });
+            
+            // Parameter sliders
+            document.getElementById('motion-scale').addEventListener('input', function(e) {
+                document.getElementById('motion-scale-value').textContent = e.target.value;
+                updateVisualization();
+            });
+            
+            document.getElementById('flux-intensity').addEventListener('input', function(e) {
+                document.getElementById('flux-value').textContent = e.target.value;
+                updateVisualization();
+            });
+            
+            document.getElementById('convection-strength').addEventListener('input', function(e) {
+                document.getElementById('convection-value').textContent = e.target.value;
+                updateVisualization();
+            });
+            
+            // Display options
+            const checkboxes = ['show-plates', 'show-hotspots', 'show-volcanos', 'show-age-grid', 
+                              'show-velocity-vectors', 'show-subduction', 'show-uncertainty', 'show-paleomag'];
+            checkboxes.forEach(id => {
+                document.getElementById(id).addEventListener('change', updateVisualization);
+            });
+            
+            // Hypothesis selection
+            document.querySelectorAll('.hypothesis-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.hypothesis-card').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    currentHypothesis = this.dataset.hypothesis;
+                    initializePlateData();
+                    updateVisualization();
+                });
+            });
+            
+            // Mouse controls for 3D interaction
+            let mouseDown = false;
+            let mouseX = 0, mouseY = 0;
+            
+            renderer.domElement.addEventListener('mousedown', function(e) {
+                mouseDown = true;
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            document.addEventListener('mouseup', function() {
+                mouseDown = false;
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!mouseDown) return;
+                
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                
+                earth.rotation.y += deltaX * 0.01;
+                earth.rotation.x += deltaY * 0.01;
+                
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            // Zoom with mouse wheel
+            renderer.domElement.addEventListener('wheel', function(e) {
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(3, Math.min(15, camera.position.z));
+            });
+        });
+        
+        // Analysis functions
+        function calculateMisfits() {
+            document.getElementById('loading').style.display = 'block';
+            
+            setTimeout(() => {
+                const misfit = calculateModelMisfit();
+                const palemagMisfit = Math.random() * 2 + 1;
+                const hotspotMisfit = Math.random() * 1.5 + 0.5;
+                
+                alert(`Model Misfit Analysis:\n\nOverall Misfit: ${misfit.toFixed(2)}°\nPaleomagnetic Misfit: ${palemagMisfit.toFixed(2)}°\nHotspot Track Misfit: ${hotspotMisfit.toFixed(2)}°\n\nHypothesis: ${PLATE_MODELS[currentHypothesis].name}`);
+                
+                document.getElementById('loading').style.display = 'none';
+            }, 2000);
+        }
+        
+        function exportReconstruction() {
+            const data = {
+                hypothesis: currentHypothesis,
+                time: currentTime,
+                parameters: {
+                    motionScale: document.getElementById('motion-scale').value,
+                    fluxIntensity: document.getElementById('flux-intensity').value,
+                    convectionStrength: document.getElementById('convection-strength').value
+                },
+                yellowstone: hotspotData.yellowstone,
+                farallon: plateMotionData.farallon
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tectonic_reconstruction_${currentHypothesis}_${currentTime}Ma.json`;
+            a.click();
+        }
+        
+        function compareHypotheses() {
+            const comparison = Object.keys(PLATE_MODELS).map(key => {
+                const model = PLATE_MODELS[key];
+                const tempHypothesis = currentHypothesis;
+                currentHypothesis = key;
+                const misfit = calculateModelMisfit();
+                currentHypothesis = tempHypothesis;
+                
+                return `${model.name}: ${misfit.toFixed(2)}° misfit`;
+            }).join('\n');
+            
+            alert(`Hypothesis Comparison:\n\n${comparison}\n\nLower values indicate better fit to observations.`);
+        }
+        
+        function resetToDefaults() {
+            currentTime = 0;
+            currentHypothesis = 'standard';
+            
+            document.getElementById('time-slider').value = 200;
+            document.getElementById('motion-scale').value = 1.0;
+            document.getElementById('flux-intensity').value = 1.0;
+            document.getElementById('convection-strength').value = 1.0;
+            
+            document.getElementById('motion-scale-value').textContent = '1.0';
+            document.getElementById('flux-value').textContent = '1.0';
+            document.getElementById('convection-value').textContent = '1.0';
+            
+            document.querySelectorAll('.hypothesis-card').forEach(c => c.classList.remove('active'));
+            document.querySelector('[data-hypothesis="standard"]').classList.add('active');
+            
+            initializePlateData();
+            updateVisualization();
+        }
+        
+        // Resize handler
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

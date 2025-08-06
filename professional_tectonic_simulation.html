@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Tectonic Plate Reconstruction System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        .view-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        .view-toggle button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .view-toggle button.active {
+            background: #1976D2;
+        }
+        .view-toggle button:hover {
+            background: #1565C0;
+        }
+        .control-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 350px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        .control-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .control-section h3 {
+            margin: 0 0 15px 0;
+            color: #1976D2;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .plate-selector {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        .parameter-control {
+            margin: 10px 0;
+        }
+        .parameter-control label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #666;
+        }
+        .parameter-control input[type="range"] {
+            width: 100%;
+        }
+        .parameter-value {
+            display: inline-block;
+            float: right;
+            color: #1976D2;
+            font-weight: 600;
+        }
+        .time-control {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        #timeSlider {
+            width: 400px;
+        }
+        #timeDisplay {
+            min-width: 120px;
+            text-align: center;
+            font-weight: 600;
+            color: #1976D2;
+            font-size: 16px;
+        }
+        .play-button {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .play-button:hover {
+            background: #45a049;
+        }
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .legend h4 {
+            margin: 0 0 10px 0;
+            color: #1976D2;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .analysis-panel {
+            position: absolute;
+            bottom: 120px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 400px;
+            height: 300px;
+        }
+        #velocityChart, #stressChart {
+            width: 100%;
+            height: 250px;
+        }
+        .view-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #view2D {
+            background: white;
+        }
+        .plate-boundary {
+            fill: none;
+            stroke-width: 2;
+            opacity: 0.8;
+        }
+        .plate-boundary.divergent {
+            stroke: #ff0000;
+            stroke-dasharray: 5, 5;
+        }
+        .plate-boundary.convergent {
+            stroke: #0000ff;
+        }
+        .plate-boundary.transform {
+            stroke: #ffaa00;
+            stroke-dasharray: 10, 5, 2, 5;
+        }
+        .plate-motion-vector {
+            stroke: #333;
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+        }
+        .hotspot-track {
+            fill: none;
+            stroke: #00ff00;
+            stroke-width: 3;
+            stroke-dasharray: 2, 2;
+            opacity: 0.7;
+        }
+        .mantle-flow-vector {
+            stroke: #ff00ff;
+            stroke-width: 1.5;
+            opacity: 0.6;
+            marker-end: url(#flow-arrow);
+        }
+        .stress-field {
+            fill: none;
+            stroke-width: 1;
+            opacity: 0.5;
+        }
+        .plate-label {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            fill: #333;
+            text-anchor: middle;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="view-toggle">
+            <button id="btn2D" class="active">2D View</button>
+            <button id="btn3D">3D View</button>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>Plate Selection & Motion</h3>
+                <select id="plateSelect" class="plate-selector">
+                    <option value="">Select a plate...</option>
+                    <option value="north_american">North American Plate</option>
+                    <option value="pacific">Pacific Plate</option>
+                    <option value="eurasian">Eurasian Plate</option>
+                    <option value="african">African Plate</option>
+                    <option value="south_american">South American Plate</option>
+                    <option value="australian">Australian Plate</option>
+                    <option value="antarctic">Antarctic Plate</option>
+                    <option value="nazca">Nazca Plate</option>
+                    <option value="indian">Indian Plate</option>
+                    <option value="juan_de_fuca">Juan de Fuca Plate</option>
+                    <option value="philippine">Philippine Sea Plate</option>
+                    <option value="caribbean">Caribbean Plate</option>
+                    <option value="farallon">Farallon Plate (Ancient)</option>
+                </select>
+
+                <div class="parameter-control">
+                    <label>
+                        Velocity (cm/yr)
+                        <span class="parameter-value" id="velocityValue">5.0</span>
+                    </label>
+                    <input type="range" id="velocitySlider" min="0" max="20" step="0.1" value="5.0">
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        Direction (degrees)
+                        <span class="parameter-value" id="directionValue">45</span>
+                    </label>
+                    <input type="range" id="directionSlider" min="0" max="360" step="1" value="45">
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        Euler Pole Latitude
+                        <span class="parameter-value" id="eulerLatValue">0</span>
+                    </label>
+                    <input type="range" id="eulerLatSlider" min="-90" max="90" step="0.1" value="0">
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        Euler Pole Longitude
+                        <span class="parameter-value" id="eulerLonValue">0</span>
+                    </label>
+                    <input type="range" id="eulerLonSlider" min="-180" max="180" step="0.1" value="0">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Mantle Flow Parameters</h3>
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showMantleFlow" checked> Show Mantle Flow
+                    </label>
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        Asthenosphere Thickness (km)
+                        <span class="parameter-value" id="asthenoValue">200</span>
+                    </label>
+                    <input type="range" id="asthenoSlider" min="50" max="400" step="10" value="200">
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        Viscosity (×10¹⁹ Pa·s)
+                        <span class="parameter-value" id="viscosityValue">5.0</span>
+                    </label>
+                    <input type="range" id="viscositySlider" min="0.1" max="10" step="0.1" value="5.0">
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showPoiseuille" checked> Poiseuille Flow
+                    </label>
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showCouette" checked> Couette Flow
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Plume & Hotspot Settings</h3>
+                <select id="hotspotSelect" class="plate-selector">
+                    <option value="">Select a hotspot...</option>
+                    <option value="yellowstone">Yellowstone</option>
+                    <option value="hawaii">Hawaii</option>
+                    <option value="iceland">Iceland</option>
+                    <option value="reunion">Réunion</option>
+                    <option value="galapagos">Galápagos</option>
+                    <option value="afar">Afar</option>
+                    <option value="canary">Canary Islands</option>
+                    <option value="azores">Azores</option>
+                </select>
+
+                <div class="parameter-control">
+                    <label>
+                        Plume Buoyancy Flux (kg/s)
+                        <span class="parameter-value" id="buoyancyValue">1000</span>
+                    </label>
+                    <input type="range" id="buoyancySlider" min="100" max="5000" step="100" value="1000">
+                </div>
+
+                <div class="parameter-control">
+                    <label>
+                        Dynamic Topography (m)
+                        <span class="parameter-value" id="topoValue">1000</span>
+                    </label>
+                    <input type="range" id="topoSlider" min="0" max="2000" step="50" value="1000">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Visualization Options</h3>
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showBoundaries" checked> Plate Boundaries
+                    </label>
+                </div>
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showVelocities" checked> Velocity Vectors
+                    </label>
+                </div>
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showStress" checked> Stress Field
+                    </label>
+                </div>
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showHotspots" checked> Hotspot Tracks
+                    </label>
+                </div>
+                <div class="parameter-control">
+                    <label>
+                        <input type="checkbox" id="showTopography" checked> Dynamic Topography
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="time-control">
+            <button id="playBtn" class="play-button">▶ Play</button>
+            <input type="range" id="timeSlider" min="-200" max="0" value="0" step="1">
+            <div id="timeDisplay">Present</div>
+            <select id="reconstructionModel">
+                <option value="muller2019">Müller et al. (2019)</option>
+                <option value="matthews2016">Matthews et al. (2016)</option>
+                <option value="seton2012">Seton et al. (2012)</option>
+                <option value="torsvik2019">Torsvik et al. (2019)</option>
+            </select>
+        </div>
+
+        <div class="legend">
+            <h4>Plate Boundaries</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff0000;"></div>
+                <span>Divergent (Mid-ocean ridges)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0000ff;"></div>
+                <span>Convergent (Subduction zones)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffaa00;"></div>
+                <span>Transform faults</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00ff00;"></div>
+                <span>Hotspot tracks</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff00ff;"></div>
+                <span>Mantle flow vectors</span>
+            </div>
+        </div>
+
+        <div class="analysis-panel">
+            <h4>Plate Motion Analysis</h4>
+            <div id="velocityChart"></div>
+        </div>
+
+        <!-- 2D View -->
+        <div id="view2D" class="view-container">
+            <svg id="svg2D"></svg>
+        </div>
+
+        <!-- 3D View -->
+        <div id="view3D" class="view-container" style="display: none;">
+            <canvas id="canvas3D"></canvas>
+        </div>
+
+        <div id="tooltip" class="tooltip" style="display: none;"></div>
+    </div>
+
+    <script src="comprehensive_volcano_database.js"></script>
+    <script>
+        // Global variables
+        let currentView = '2D';
+        let isPlaying = false;
+        let currentTime = 0;
+        let scene, camera, renderer, controls;
+        let plateData = {};
+        let mantleFlowField = [];
+        let selectedPlate = null;
+
+        // Plate motion data based on research
+        const PLATE_MOTIONS = {
+            north_american: {
+                euler: { lat: 78.8, lon: -114.2, rate: 0.79 },
+                velocity: { x: -2.1, y: 0.5 },
+                boundaries: ['pacific', 'juan_de_fuca', 'eurasian', 'caribbean'],
+                type: 'continental'
+            },
+            pacific: {
+                euler: { lat: -63.0, lon: 107.7, rate: 7.40 },
+                velocity: { x: -7.2, y: 3.1 },
+                boundaries: ['north_american', 'philippine', 'australian', 'antarctic', 'nazca'],
+                type: 'oceanic'
+            },
+            eurasian: {
+                euler: { lat: 61.1, lon: -85.8, rate: 0.90 },
+                velocity: { x: 0.3, y: 0.8 },
+                boundaries: ['north_american', 'african', 'arabian', 'indian', 'philippine'],
+                type: 'continental'
+            },
+            african: {
+                euler: { lat: 59.2, lon: -72.4, rate: 0.99 },
+                velocity: { x: 1.1, y: 2.0 },
+                boundaries: ['eurasian', 'arabian', 'somali', 'antarctic', 'south_american'],
+                type: 'continental'
+            },
+            south_american: {
+                euler: { lat: 55.1, lon: -119.3, rate: 0.68 },
+                velocity: { x: 0.9, y: -1.2 },
+                boundaries: ['nazca', 'antarctic', 'african', 'caribbean'],
+                type: 'continental'
+            },
+            australian: {
+                euler: { lat: 33.9, lon: 33.1, rate: 6.48 },
+                velocity: { x: 6.5, y: 3.8 },
+                boundaries: ['pacific', 'antarctic', 'indian', 'eurasian'],
+                type: 'continental'
+            },
+            antarctic: {
+                euler: { lat: 65.4, lon: -118.1, rate: 0.88 },
+                velocity: { x: 0.0, y: 0.0 },
+                boundaries: ['pacific', 'australian', 'african', 'south_american'],
+                type: 'continental'
+            },
+            nazca: {
+                euler: { lat: 55.6, lon: 94.4, rate: 7.68 },
+                velocity: { x: 6.8, y: 2.3 },
+                boundaries: ['south_american', 'pacific', 'antarctic'],
+                type: 'oceanic'
+            },
+            indian: {
+                euler: { lat: 52.0, lon: 10.0, rate: 6.0 },
+                velocity: { x: 3.6, y: 4.1 },
+                boundaries: ['eurasian', 'australian', 'african', 'arabian'],
+                type: 'continental'
+            },
+            juan_de_fuca: {
+                euler: { lat: 35.0, lon: -120.0, rate: 5.0 },
+                velocity: { x: 3.2, y: -2.1 },
+                boundaries: ['north_american', 'pacific'],
+                type: 'oceanic'
+            },
+            philippine: {
+                euler: { lat: 0.0, lon: -45.0, rate: 9.0 },
+                velocity: { x: -6.3, y: 0.2 },
+                boundaries: ['eurasian', 'pacific', 'australian'],
+                type: 'oceanic'
+            },
+            caribbean: {
+                euler: { lat: 52.0, lon: -73.0, rate: 1.2 },
+                velocity: { x: 1.8, y: -0.3 },
+                boundaries: ['north_american', 'south_american'],
+                type: 'oceanic'
+            },
+            farallon: {
+                euler: { lat: 40.0, lon: -130.0, rate: 8.0 },
+                velocity: { x: 8.0, y: 0.0 },
+                boundaries: ['north_american'],
+                type: 'oceanic',
+                existed: { start: -200, end: -30 }
+            }
+        };
+
+        // Hotspot data based on research
+        const HOTSPOTS = {
+            yellowstone: {
+                name: 'Yellowstone',
+                lat: 44.4280,
+                lon: -110.5885,
+                buoyancy_flux: 1300,
+                radius: 500,
+                depth: 660,
+                track: [
+                    { age: 0, lat: 44.4, lon: -110.6 },
+                    { age: 2, lat: 43.7, lon: -111.1 },
+                    { age: 6, lat: 43.0, lon: -112.5 },
+                    { age: 10, lat: 42.0, lon: -113.5 },
+                    { age: 12, lat: 41.5, lon: -114.5 },
+                    { age: 16.5, lat: 41.3, lon: -117.0 }
+                ],
+                description: 'Long-lived plume affecting North American plate motion'
+            },
+            hawaii: {
+                name: 'Hawaii',
+                lat: 19.4069,
+                lon: -155.2834,
+                buoyancy_flux: 8700,
+                radius: 300,
+                depth: 2900,
+                track: [
+                    { age: 0, lat: 19.4, lon: -155.3 },
+                    { age: 5, lat: 20.9, lon: -156.3 },
+                    { age: 10, lat: 22.2, lon: -159.5 },
+                    { age: 20, lat: 23.6, lon: -165.8 },
+                    { age: 30, lat: 26.0, lon: -172.0 },
+                    { age: 40, lat: 28.3, lon: -177.4 },
+                    { age: 50, lat: 32.1, lon: 172.9 },
+                    { age: 60, lat: 35.5, lon: 171.4 },
+                    { age: 70, lat: 41.5, lon: 170.0 },
+                    { age: 80, lat: 47.9, lon: 167.7 }
+                ],
+                description: 'Pacific plate hotspot with Emperor-Hawaii chain'
+            },
+            iceland: {
+                name: 'Iceland',
+                lat: 64.9631,
+                lon: -19.0208,
+                buoyancy_flux: 870,
+                radius: 200,
+                depth: 400,
+                track: [
+                    { age: 0, lat: 64.96, lon: -19.02 },
+                    { age: 10, lat: 65.5, lon: -18.0 },
+                    { age: 20, lat: 66.0, lon: -17.0 },
+                    { age: 30, lat: 67.0, lon: -15.0 },
+                    { age: 40, lat: 68.5, lon: -13.0 },
+                    { age: 55, lat: 70.0, lon: -10.0 }
+                ],
+                description: 'Mid-Atlantic Ridge hotspot interaction'
+            },
+            reunion: {
+                name: 'Réunion',
+                lat: -21.1151,
+                lon: 55.5364,
+                buoyancy_flux: 1800,
+                radius: 400,
+                depth: 2000,
+                track: [
+                    { age: 0, lat: -21.1, lon: 55.5 },
+                    { age: 2, lat: -20.0, lon: 57.5 },
+                    { age: 10, lat: -16.0, lon: 60.0 },
+                    { age: 20, lat: -12.0, lon: 63.0 },
+                    { age: 30, lat: -8.0, lon: 66.0 },
+                    { age: 40, lat: -4.0, lon: 69.0 },
+                    { age: 50, lat: 0.0, lon: 72.0 },
+                    { age: 65, lat: 5.0, lon: 73.5 }
+                ],
+                description: 'Indian Ocean hotspot, Deccan Traps source'
+            },
+            galapagos: {
+                name: 'Galápagos',
+                lat: -0.3833,
+                lon: -91.5500,
+                buoyancy_flux: 620,
+                radius: 250,
+                depth: 150,
+                track: [
+                    { age: 0, lat: -0.38, lon: -91.55 },
+                    { age: 5, lat: -0.5, lon: -89.0 },
+                    { age: 10, lat: -1.0, lon: -86.0 },
+                    { age: 15, lat: -1.5, lon: -83.0 },
+                    { age: 20, lat: -2.0, lon: -80.0 }
+                ],
+                description: 'Galápagos spreading center interaction'
+            }
+        };
+
+        // Initialize application
+        function init() {
+            // Setup 2D view
+            init2D();
+            
+            // Setup 3D view
+            init3D();
+            
+            // Setup controls
+            setupControls();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Initial render
+            update2D();
+            
+            // Create initial velocity chart
+            createVelocityChart();
+        }
+
+        function init2D() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            const svg = d3.select('#svg2D')
+                .attr('width', width)
+                .attr('height', height);
+            
+            // Create map projection
+            const projection = d3.geoNaturalEarth1()
+                .scale(200)
+                .translate([width / 2, height / 2]);
+            
+            const path = d3.geoPath().projection(projection);
+            
+            // Define arrow markers
+            svg.append('defs').append('marker')
+                .attr('id', 'arrowhead')
+                .attr('markerWidth', 10)
+                .attr('markerHeight', 10)
+                .attr('refX', 9)
+                .attr('refY', 3)
+                .attr('orient', 'auto')
+                .append('polygon')
+                .attr('points', '0 0, 10 3, 0 6')
+                .style('fill', '#333');
+            
+            svg.append('defs').append('marker')
+                .attr('id', 'flow-arrow')
+                .attr('markerWidth', 8)
+                .attr('markerHeight', 8)
+                .attr('refX', 7)
+                .attr('refY', 3)
+                .attr('orient', 'auto')
+                .append('polygon')
+                .attr('points', '0 0, 8 3, 0 6')
+                .style('fill', '#ff00ff');
+            
+            // Create groups for different elements
+            svg.append('g').attr('id', 'plates');
+            svg.append('g').attr('id', 'boundaries');
+            svg.append('g').attr('id', 'mantleFlow');
+            svg.append('g').attr('id', 'hotspots');
+            svg.append('g').attr('id', 'velocities');
+            svg.append('g').attr('id', 'stress');
+            svg.append('g').attr('id', 'labels');
+            
+            // Store projection globally
+            window.projection2D = projection;
+            window.path2D = path;
+        }
+
+        function init3D() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f5f5);
+            
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 0, 3);
+            
+            renderer = new THREE.WebGLRenderer({
+                canvas: document.getElementById('canvas3D'),
+                antialias: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight.position.set(5, 3, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // Create Earth sphere
+            const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
+            const earthMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2e86de,
+                transparent: true,
+                opacity: 0.7
+            });
+            const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            scene.add(earth);
+            
+            // Create groups for 3D elements
+            scene.plateGroup = new THREE.Group();
+            scene.boundaryGroup = new THREE.Group();
+            scene.flowGroup = new THREE.Group();
+            scene.hotspotGroup = new THREE.Group();
+            
+            scene.add(scene.plateGroup);
+            scene.add(scene.boundaryGroup);
+            scene.add(scene.flowGroup);
+            scene.add(scene.hotspotGroup);
+        }
+
+        function update2D() {
+            const svg = d3.select('#svg2D');
+            
+            // Update plate boundaries
+            if (document.getElementById('showBoundaries').checked) {
+                drawPlateBoundaries();
+            }
+            
+            // Update velocity vectors
+            if (document.getElementById('showVelocities').checked) {
+                drawVelocityVectors();
+            }
+            
+            // Update mantle flow
+            if (document.getElementById('showMantleFlow').checked) {
+                drawMantleFlow();
+            }
+            
+            // Update hotspot tracks
+            if (document.getElementById('showHotspots').checked) {
+                drawHotspotTracks();
+            }
+            
+            // Update stress field
+            if (document.getElementById('showStress').checked) {
+                drawStressField();
+            }
+        }
+
+        function drawPlateBoundaries() {
+            const boundaries = d3.select('#boundaries');
+            boundaries.selectAll('*').remove();
+            
+            // Example boundaries - in real implementation would use actual data
+            const boundaryData = [
+                {
+                    type: 'divergent',
+                    coords: [[-30, 65], [-20, 64], [-10, 62], [0, 55], [10, 45]]
+                },
+                {
+                    type: 'convergent',
+                    coords: [[-150, 50], [-140, 45], [-130, 40], [-120, 35]]
+                },
+                {
+                    type: 'transform',
+                    coords: [[-125, 40], [-120, 37], [-115, 35]]
+                }
+            ];
+            
+            boundaryData.forEach(boundary => {
+                const line = d3.line()
+                    .x(d => window.projection2D(d)[0])
+                    .y(d => window.projection2D(d)[1])
+                    .curve(d3.curveNatural);
+                
+                boundaries.append('path')
+                    .datum(boundary.coords)
+                    .attr('class', `plate-boundary ${boundary.type}`)
+                    .attr('d', line);
+            });
+        }
+
+        function drawVelocityVectors() {
+            const velocities = d3.select('#velocities');
+            velocities.selectAll('*').remove();
+            
+            Object.entries(PLATE_MOTIONS).forEach(([plateId, plate]) => {
+                // Skip ancient plates based on time
+                if (plate.existed && currentTime < plate.existed.start) return;
+                
+                // Draw velocity vector at plate center
+                const centerLat = 0; // Would calculate from actual plate geometry
+                const centerLon = 0;
+                const [x, y] = window.projection2D([centerLon, centerLat]);
+                
+                const scale = 10; // Scale factor for visualization
+                const endX = x + plate.velocity.x * scale;
+                const endY = y - plate.velocity.y * scale;
+                
+                velocities.append('line')
+                    .attr('class', 'plate-motion-vector')
+                    .attr('x1', x)
+                    .attr('y1', y)
+                    .attr('x2', endX)
+                    .attr('y2', endY);
+            });
+        }
+
+        function drawMantleFlow() {
+            const flow = d3.select('#mantleFlow');
+            flow.selectAll('*').remove();
+            
+            // Calculate mantle flow based on plate motions and plumes
+            const showPoiseuille = document.getElementById('showPoiseuille').checked;
+            const showCouette = document.getElementById('showCouette').checked;
+            
+            // Grid for flow visualization
+            const gridSize = 50;
+            for (let lon = -180; lon <= 180; lon += gridSize) {
+                for (let lat = -90; lat <= 90; lat += gridSize) {
+                    let flowVector = { x: 0, y: 0 };
+                    
+                    if (showCouette) {
+                        // Couette flow from plate motion
+                        // Simplified - would use actual plate boundaries
+                        flowVector.x += 0.5;
+                        flowVector.y += 0.2;
+                    }
+                    
+                    if (showPoiseuille && selectedPlate === 'north_american') {
+                        // Poiseuille flow from Yellowstone plume
+                        const plume = HOTSPOTS.yellowstone;
+                        const [px, py] = window.projection2D([plume.lon, plume.lat]);
+                        const [x, y] = window.projection2D([lon, lat]);
+                        
+                        const dx = x - px;
+                        const dy = y - py;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > 0 && dist < 300) {
+                            const magnitude = 20 * Math.exp(-dist / 100);
+                            flowVector.x += (dx / dist) * magnitude;
+                            flowVector.y += (dy / dist) * magnitude;
+                        }
+                    }
+                    
+                    if (Math.abs(flowVector.x) > 0.1 || Math.abs(flowVector.y) > 0.1) {
+                        const [x, y] = window.projection2D([lon, lat]);
+                        flow.append('line')
+                            .attr('class', 'mantle-flow-vector')
+                            .attr('x1', x)
+                            .attr('y1', y)
+                            .attr('x2', x + flowVector.x)
+                            .attr('y2', y + flowVector.y);
+                    }
+                }
+            }
+        }
+
+        function drawHotspotTracks() {
+            const hotspots = d3.select('#hotspots');
+            hotspots.selectAll('*').remove();
+            
+            Object.entries(HOTSPOTS).forEach(([hotspotId, hotspot]) => {
+                // Draw hotspot location
+                const [x, y] = window.projection2D([hotspot.lon, hotspot.lat]);
+                
+                hotspots.append('circle')
+                    .attr('cx', x)
+                    .attr('cy', y)
+                    .attr('r', 5)
+                    .attr('fill', '#ff0000')
+                    .attr('stroke', '#fff')
+                    .attr('stroke-width', 2);
+                
+                // Draw track
+                const trackPoints = hotspot.track
+                    .filter(point => point.age <= -currentTime)
+                    .map(point => {
+                        // Adjust position based on plate motion
+                        const adjustedLon = point.lon; // Would calculate based on plate reconstruction
+                        return window.projection2D([adjustedLon, point.lat]);
+                    });
+                
+                if (trackPoints.length > 1) {
+                    const line = d3.line()
+                        .x(d => d[0])
+                        .y(d => d[1])
+                        .curve(d3.curveNatural);
+                    
+                    hotspots.append('path')
+                        .datum(trackPoints)
+                        .attr('class', 'hotspot-track')
+                        .attr('d', line);
+                }
+                
+                // Add label
+                hotspots.append('text')
+                    .attr('x', x + 10)
+                    .attr('y', y + 5)
+                    .attr('class', 'plate-label')
+                    .style('font-size', '12px')
+                    .text(hotspot.name);
+            });
+        }
+
+        function drawStressField() {
+            const stress = d3.select('#stress');
+            stress.selectAll('*').remove();
+            
+            // Simplified stress field visualization
+            // In real implementation would calculate from plate interactions
+            const gridSize = 100;
+            for (let x = 0; x < window.innerWidth; x += gridSize) {
+                for (let y = 0; y < window.innerHeight; y += gridSize) {
+                    const stressMagnitude = Math.random() * 10;
+                    const stressAngle = Math.random() * Math.PI * 2;
+                    
+                    const x2 = x + Math.cos(stressAngle) * stressMagnitude * 3;
+                    const y2 = y + Math.sin(stressAngle) * stressMagnitude * 3;
+                    
+                    stress.append('line')
+                        .attr('class', 'stress-field')
+                        .attr('x1', x)
+                        .attr('y1', y)
+                        .attr('x2', x2)
+                        .attr('y2', y2)
+                        .style('stroke', `rgba(255, 0, 0, ${stressMagnitude / 20})`);
+                }
+            }
+        }
+
+        function createVelocityChart() {
+            // Create time series of plate velocities
+            const times = [];
+            const velocities = {};
+            
+            for (let t = -200; t <= 0; t += 10) {
+                times.push(t);
+            }
+            
+            // Example velocity evolution for North American plate
+            const naVelocities = times.map(t => {
+                if (t < -15) return 0.21; // Pre-Yellowstone
+                else if (t < -12) return 0.27; // Speed up
+                else if (t < -5) return 0.30; // Peak
+                else return 0.28; // Recent slow-down
+            });
+            
+            const trace = {
+                x: times,
+                y: naVelocities,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'North American Plate',
+                line: { color: '#1976D2', width: 2 }
+            };
+            
+            const layout = {
+                title: 'Plate Velocity Evolution',
+                xaxis: { title: 'Time (Ma)' },
+                yaxis: { title: 'Angular Velocity (°/Myr)' },
+                height: 250,
+                margin: { l: 50, r: 20, t: 40, b: 40 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+            };
+            
+            Plotly.newPlot('velocityChart', [trace], layout, { responsive: true });
+        }
+
+        function setupControls() {
+            // View toggle
+            document.getElementById('btn2D').addEventListener('click', () => {
+                currentView = '2D';
+                document.getElementById('view2D').style.display = 'block';
+                document.getElementById('view3D').style.display = 'none';
+                document.getElementById('btn2D').classList.add('active');
+                document.getElementById('btn3D').classList.remove('active');
+            });
+            
+            document.getElementById('btn3D').addEventListener('click', () => {
+                currentView = '3D';
+                document.getElementById('view2D').style.display = 'none';
+                document.getElementById('view3D').style.display = 'block';
+                document.getElementById('btn2D').classList.remove('active');
+                document.getElementById('btn3D').classList.add('active');
+                animate3D();
+            });
+            
+            // Plate selection
+            document.getElementById('plateSelect').addEventListener('change', (e) => {
+                selectedPlate = e.target.value;
+                if (selectedPlate && PLATE_MOTIONS[selectedPlate]) {
+                    const plate = PLATE_MOTIONS[selectedPlate];
+                    document.getElementById('velocitySlider').value = Math.sqrt(
+                        plate.velocity.x ** 2 + plate.velocity.y ** 2
+                    );
+                    document.getElementById('eulerLatSlider').value = plate.euler.lat;
+                    document.getElementById('eulerLonSlider').value = plate.euler.lon;
+                    updateParameterDisplays();
+                    update2D();
+                }
+            });
+            
+            // Time control
+            document.getElementById('playBtn').addEventListener('click', () => {
+                isPlaying = !isPlaying;
+                document.getElementById('playBtn').textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+                if (isPlaying) {
+                    animateTime();
+                }
+            });
+            
+            document.getElementById('timeSlider').addEventListener('input', (e) => {
+                currentTime = parseInt(e.target.value);
+                updateTimeDisplay();
+                update2D();
+            });
+            
+            // Parameter sliders
+            const sliders = [
+                'velocity', 'direction', 'eulerLat', 'eulerLon',
+                'astheno', 'viscosity', 'buoyancy', 'topo'
+            ];
+            
+            sliders.forEach(param => {
+                document.getElementById(`${param}Slider`).addEventListener('input', (e) => {
+                    document.getElementById(`${param}Value`).textContent = e.target.value;
+                    if (currentView === '2D') update2D();
+                });
+            });
+            
+            // Checkboxes
+            const checkboxes = [
+                'showMantleFlow', 'showPoiseuille', 'showCouette',
+                'showBoundaries', 'showVelocities', 'showStress',
+                'showHotspots', 'showTopography'
+            ];
+            
+            checkboxes.forEach(id => {
+                document.getElementById(id).addEventListener('change', () => {
+                    if (currentView === '2D') update2D();
+                });
+            });
+        }
+
+        function setupEventListeners() {
+            // Window resize
+            window.addEventListener('resize', () => {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                // Update 2D
+                d3.select('#svg2D')
+                    .attr('width', width)
+                    .attr('height', height);
+                
+                window.projection2D
+                    .scale(200)
+                    .translate([width / 2, height / 2]);
+                
+                // Update 3D
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+                
+                update2D();
+            });
+            
+            // Tooltip
+            const tooltip = d3.select('#tooltip');
+            
+            d3.select('#svg2D').on('mousemove', function(event) {
+                const [x, y] = d3.pointer(event);
+                const coords = window.projection2D.invert([x, y]);
+                
+                tooltip
+                    .style('left', (x + 10) + 'px')
+                    .style('top', (y + 10) + 'px')
+                    .style('display', 'block')
+                    .html(`Lat: ${coords[1].toFixed(2)}°<br>Lon: ${coords[0].toFixed(2)}°`);
+            });
+            
+            d3.select('#svg2D').on('mouseleave', () => {
+                tooltip.style('display', 'none');
+            });
+        }
+
+        function updateParameterDisplays() {
+            const params = [
+                'velocity', 'direction', 'eulerLat', 'eulerLon',
+                'astheno', 'viscosity', 'buoyancy', 'topo'
+            ];
+            
+            params.forEach(param => {
+                const value = document.getElementById(`${param}Slider`).value;
+                document.getElementById(`${param}Value`).textContent = value;
+            });
+        }
+
+        function updateTimeDisplay() {
+            const display = document.getElementById('timeDisplay');
+            if (currentTime === 0) {
+                display.textContent = 'Present';
+            } else {
+                display.textContent = `${Math.abs(currentTime)} Ma`;
+            }
+        }
+
+        function animateTime() {
+            if (!isPlaying) return;
+            
+            currentTime += 1;
+            if (currentTime > 0) currentTime = -200;
+            
+            document.getElementById('timeSlider').value = currentTime;
+            updateTimeDisplay();
+            update2D();
+            
+            requestAnimationFrame(() => {
+                setTimeout(() => animateTime(), 100);
+            });
+        }
+
+        function animate3D() {
+            if (currentView !== '3D') return;
+            
+            requestAnimationFrame(animate3D);
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
