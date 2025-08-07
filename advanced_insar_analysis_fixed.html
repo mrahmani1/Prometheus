@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI - Advanced InSAR Deformation Analysis System (2024 Enhanced)</title>
+    
+    <!-- Load CSS first -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    
+    <!-- Load core libraries synchronously in correct order -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.18.2/plotly.min.js"></script>
+    
+    <!-- Load fix script before other custom scripts -->
+    <script src="fix_insar_issues.js"></script>
+    
+    <!-- Then load the universal fix -->
+    <script src="prometheus_universal_fix.js"></script>
+    
+    <!-- Load other modules after core libraries -->
+    <script defer src="webgl_fix_and_minimize.js"></script>
+    <script defer src="holocene_volcanoes_fixed.js"></script>
+    <script defer src="mantle_tomography.js"></script>
+    <script defer src="insar_monitor.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Map container */
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* Three.js canvas */
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        /* Enhanced Panel System with Minimize Functionality */
+        .panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 1000;
+        }
+        
+        .panel.minimized {
+            height: 40px !important;
+            min-height: 40px !important;
+            overflow: hidden;
+            padding: 10px 20px;
+        }
+        
+        .panel.minimized .panel-content,
+        .panel.minimized .panel-controls {
+            display: none;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .panel h3 {
+            margin: 0;
+            color: #3498db;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .minimize-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .minimize-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        #control-panel {
+            top: 20px;
+            left: 20px;
+            width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        #info-panel {
+            top: 20px;
+            right: 20px;
+            width: 300px;
+        }
+        
+        #status-panel {
+            bottom: 20px;
+            left: 20px;
+            width: 350px;
+        }
+        
+        #alert-panel {
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            background: rgba(139, 0, 0, 0.95);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+        
+        select, input[type="range"], input[type="number"], button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-active { background: #00ff00; }
+        .status-warning { background: #ffaa00; }
+        .status-error { background: #ff0000; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .visualization-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            height: 90%;
+            pointer-events: none;
+        }
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 0.5s;
+        }
+        
+        .loader {
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 200px;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loader"></div>
+    </div>
+
+    <div id="container">
+        <div id="map"></div>
+        <canvas id="three-canvas"></canvas>
+        
+        <div id="control-panel" class="panel">
+            <div class="panel-header">
+                <h3><span class="status-indicator status-active"></span>InSAR Control System</h3>
+                <button class="minimize-btn" onclick="togglePanel('control-panel')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <div class="control-group">
+                    <label>Data Source:</label>
+                    <select id="data-source">
+                        <option value="sentinel1">Sentinel-1 (C-band)</option>
+                        <option value="alos2">ALOS-2 PALSAR (L-band)</option>
+                        <option value="terrasar">TerraSAR-X (X-band)</option>
+                        <option value="cosmo">COSMO-SkyMed</option>
+                        <option value="nisar">NISAR (Future)</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Analysis Type:</label>
+                    <select id="analysis-type">
+                        <option value="sbas">SBAS (Small Baseline)</option>
+                        <option value="ps">PS-InSAR (Persistent Scatterers)</option>
+                        <option value="squeesar">SqueeSAR</option>
+                        <option value="stamps">StaMPS</option>
+                        <option value="hybrid">Hybrid PS/DS</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Time Range:</label>
+                    <input type="range" id="time-range" min="1" max="365" value="30">
+                    <span id="time-value">30 days</span>
+                </div>
+                
+                <div class="control-group">
+                    <label>Deformation Threshold (mm/year):</label>
+                    <input type="number" id="deformation-threshold" value="10" min="1" max="100">
+                </div>
+                
+                <div class="control-group">
+                    <label>Coherence Threshold:</label>
+                    <input type="range" id="coherence" min="0" max="1" step="0.01" value="0.7">
+                    <span id="coherence-value">0.7</span>
+                </div>
+                
+                <div class="control-group">
+                    <button onclick="startAnalysis()">Start InSAR Analysis</button>
+                    <button onclick="loadVolcanoData()">Load Volcano Data</button>
+                    <button onclick="toggleVisualization()">Toggle 2D/3D View</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>Holocene Volcanoes:</label>
+                    <select id="volcano-country">
+                        <option value="all">All Countries</option>
+                    </select>
+                    <button onclick="filterVolcanoesByCountry()">Filter by Country</button>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="deformation-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div id="info-panel" class="panel">
+            <div class="panel-header">
+                <h3>System Information</h3>
+                <button class="minimize-btn" onclick="togglePanel('info-panel')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <p><strong>Platform:</strong> <span id="platform-info">Sentinel-1</span></p>
+                <p><strong>Coverage:</strong> <span id="coverage-info">Global</span></p>
+                <p><strong>Resolution:</strong> <span id="resolution-info">5×20m</span></p>
+                <p><strong>Revisit Time:</strong> <span id="revisit-info">6 days</span></p>
+                <p><strong>Active Volcanoes:</strong> <span id="volcano-count">0</span></p>
+                <p><strong>Processing Status:</strong> <span id="processing-status">Ready</span></p>
+                <p><strong>WebGL Status:</strong> <span id="webgl-status">Checking...</span></p>
+                <p><strong>Memory Usage:</strong> <span id="memory-usage">0 MB</span></p>
+            </div>
+        </div>
+        
+        <div id="status-panel" class="panel">
+            <div class="panel-header">
+                <h3>Processing Status</h3>
+                <button class="minimize-btn" onclick="togglePanel('status-panel')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <div id="status-messages">
+                    <p>System initialized successfully</p>
+                    <p>Waiting for data input...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="alert-panel" class="panel">
+            <div class="panel-header">
+                <h3><span class="status-indicator status-warning"></span>Deformation Alerts</h3>
+                <button class="minimize-btn" onclick="togglePanel('alert-panel')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <div id="alert-messages">
+                    <p>No active alerts</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for all libraries to load before initializing
+        window.addEventListener('load', function() {
+            // Hide loading screen
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => loadingScreen.style.display = 'none', 500);
+                }
+            }, 1000);
+            
+            // Initialize the application
+            initializeApplication();
+        });
+        
+        // Global variables
+        let map, renderer, scene, camera, gl;
+        let deformationData = [];
+        let volcanoMarkers = [];
+        let is3DView = false;
+        
+        // Panel management
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                panel.classList.toggle('minimized');
+            }
+        }
+        
+        // Initialize application
+        function initializeApplication() {
+            console.log('Initializing InSAR Analysis System...');
+            
+            // Initialize map
+            if (typeof L !== 'undefined') {
+                try {
+                    map = L.map('map').setView([0, 0], 2);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+                    console.log('✅ Map initialized');
+                } catch (e) {
+                    console.error('Map initialization failed:', e);
+                }
+            }
+            
+            // Initialize THREE.js
+            if (typeof THREE !== 'undefined') {
+                try {
+                    const canvas = document.getElementById('three-canvas');
+                    renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.setClearColor(0x000000, 0);
+                    
+                    scene = new THREE.Scene();
+                    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                    camera.position.z = 5;
+                    
+                    // Get WebGL context
+                    gl = renderer.getContext();
+                    
+                    console.log('✅ THREE.js initialized');
+                    document.getElementById('webgl-status').textContent = 'Active';
+                } catch (e) {
+                    console.error('THREE.js initialization failed:', e);
+                    document.getElementById('webgl-status').textContent = 'Failed';
+                }
+            }
+            
+            // Initialize event listeners
+            initializeEventListeners();
+            
+            // Load Holocene volcanoes if available
+            if (typeof HOLOCENE_VOLCANOES !== 'undefined') {
+                populateCountrySelector();
+            }
+            
+            // Update status
+            updateStatus('System ready for InSAR analysis');
+        }
+        
+        // Initialize event listeners
+        function initializeEventListeners() {
+            // Time range slider
+            const timeRange = document.getElementById('time-range');
+            const timeValue = document.getElementById('time-value');
+            if (timeRange && timeValue) {
+                timeRange.addEventListener('input', function() {
+                    timeValue.textContent = this.value + ' days';
+                });
+            }
+            
+            // Coherence slider
+            const coherence = document.getElementById('coherence');
+            const coherenceValue = document.getElementById('coherence-value');
+            if (coherence && coherenceValue) {
+                coherence.addEventListener('input', function() {
+                    coherenceValue.textContent = this.value;
+                });
+            }
+            
+            // Data source change
+            const dataSource = document.getElementById('data-source');
+            if (dataSource) {
+                dataSource.addEventListener('change', updatePlatformInfo);
+            }
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'm') {
+                    // Minimize all panels
+                    document.querySelectorAll('.panel').forEach(panel => {
+                        panel.classList.toggle('minimized');
+                    });
+                }
+            });
+        }
+        
+        // Analysis functions
+        function startAnalysis() {
+            updateStatus('Starting InSAR analysis...');
+            
+            // Simulate analysis process
+            setTimeout(() => {
+                generateDeformationData();
+                updateChart();
+                updateStatus('Analysis complete');
+                
+                // Add alert if threshold exceeded
+                const threshold = parseFloat(document.getElementById('deformation-threshold').value);
+                const maxDeformation = Math.max(...deformationData.map(d => Math.abs(d)));
+                if (maxDeformation > threshold) {
+                    addAlert(`High deformation detected: ${maxDeformation.toFixed(1)} mm/year`);
+                }
+            }, 2000);
+        }
+        
+        function generateDeformationData() {
+            deformationData = [];
+            for (let i = 0; i < 30; i++) {
+                deformationData.push(Math.random() * 40 - 20); // -20 to +20 mm/year
+            }
+        }
+        
+        function updateChart() {
+            const ctx = document.getElementById('deformation-chart');
+            if (ctx && typeof Chart !== 'undefined') {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: deformationData.map((_, i) => `Day ${i + 1}`),
+                        datasets: [{
+                            label: 'Deformation (mm)',
+                            data: deformationData,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: 'white' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function loadVolcanoData() {
+            if (typeof HOLOCENE_VOLCANOES === 'undefined') {
+                updateStatus('Volcano data not available');
+                return;
+            }
+            
+            updateStatus('Loading volcano data...');
+            
+            // Clear existing markers
+            volcanoMarkers.forEach(marker => {
+                if (map && marker) map.removeLayer(marker);
+            });
+            volcanoMarkers = [];
+            
+            // Add new markers
+            let count = 0;
+            for (const country in HOLOCENE_VOLCANOES) {
+                HOLOCENE_VOLCANOES[country].forEach(volcano => {
+                    if (map && L) {
+                        const marker = L.circleMarker([volcano.lat, volcano.lon], {
+                            radius: 5,
+                            fillColor: volcano.type.includes('Stratovolcano') ? '#ff0000' : '#ff6600',
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).bindPopup(`
+                            <strong>${volcano.name}</strong><br>
+                            Type: ${volcano.type}<br>
+                            Elevation: ${volcano.elevation}m<br>
+                            Last Eruption: ${volcano.lastEruption || 'Unknown'}
+                        `);
+                        marker.addTo(map);
+                        volcanoMarkers.push(marker);
+                        count++;
+                    }
+                });
+            }
+            
+            document.getElementById('volcano-count').textContent = count;
+            updateStatus(`Loaded ${count} Holocene volcanoes`);
+        }
+        
+        function populateCountrySelector() {
+            const selector = document.getElementById('volcano-country');
+            if (selector && typeof HOLOCENE_VOLCANOES !== 'undefined') {
+                for (const country in HOLOCENE_VOLCANOES) {
+                    const option = document.createElement('option');
+                    option.value = country;
+                    option.textContent = `${country} (${HOLOCENE_VOLCANOES[country].length})`;
+                    selector.appendChild(option);
+                }
+            }
+        }
+        
+        function filterVolcanoesByCountry() {
+            const country = document.getElementById('volcano-country').value;
+            
+            // Clear existing markers
+            volcanoMarkers.forEach(marker => {
+                if (map && marker) map.removeLayer(marker);
+            });
+            volcanoMarkers = [];
+            
+            if (country === 'all') {
+                loadVolcanoData();
+            } else if (typeof HOLOCENE_VOLCANOES !== 'undefined' && HOLOCENE_VOLCANOES[country]) {
+                HOLOCENE_VOLCANOES[country].forEach(volcano => {
+                    if (map && L) {
+                        const marker = L.circleMarker([volcano.lat, volcano.lon], {
+                            radius: 5,
+                            fillColor: '#ff0000',
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).bindPopup(`
+                            <strong>${volcano.name}</strong><br>
+                            Type: ${volcano.type}<br>
+                            Elevation: ${volcano.elevation}m
+                        `);
+                        marker.addTo(map);
+                        volcanoMarkers.push(marker);
+                    }
+                });
+                
+                // Zoom to country volcanoes
+                if (volcanoMarkers.length > 0 && map) {
+                    const group = L.featureGroup(volcanoMarkers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+                
+                updateStatus(`Showing ${volcanoMarkers.length} volcanoes in ${country}`);
+            }
+        }
+        
+        function toggleVisualization() {
+            is3DView = !is3DView;
+            const mapElement = document.getElementById('map');
+            const canvasElement = document.getElementById('three-canvas');
+            
+            if (is3DView) {
+                mapElement.style.display = 'none';
+                canvasElement.style.pointerEvents = 'auto';
+                updateStatus('Switched to 3D view');
+            } else {
+                mapElement.style.display = 'block';
+                canvasElement.style.pointerEvents = 'none';
+                updateStatus('Switched to 2D view');
+            }
+        }
+        
+        function updatePlatformInfo() {
+            const platform = document.getElementById('data-source').value;
+            const info = {
+                'sentinel1': { name: 'Sentinel-1', coverage: 'Global', resolution: '5×20m', revisit: '6 days' },
+                'alos2': { name: 'ALOS-2', coverage: 'Regional', resolution: '3-10m', revisit: '14 days' },
+                'terrasar': { name: 'TerraSAR-X', coverage: 'Targeted', resolution: '1-3m', revisit: '11 days' },
+                'cosmo': { name: 'COSMO-SkyMed', coverage: 'Regional', resolution: '1-100m', revisit: '1-16 days' },
+                'nisar': { name: 'NISAR', coverage: 'Global', resolution: '3-10m', revisit: '12 days' }
+            };
+            
+            const selected = info[platform];
+            if (selected) {
+                document.getElementById('platform-info').textContent = selected.name;
+                document.getElementById('coverage-info').textContent = selected.coverage;
+                document.getElementById('resolution-info').textContent = selected.resolution;
+                document.getElementById('revisit-info').textContent = selected.revisit;
+            }
+        }
+        
+        function updateStatus(message) {
+            const statusDiv = document.getElementById('status-messages');
+            if (statusDiv) {
+                const p = document.createElement('p');
+                p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                statusDiv.appendChild(p);
+                statusDiv.scrollTop = statusDiv.scrollHeight;
+                
+                // Keep only last 10 messages
+                while (statusDiv.children.length > 10) {
+                    statusDiv.removeChild(statusDiv.firstChild);
+                }
+            }
+            
+            // Update processing status
+            const processingStatus = document.getElementById('processing-status');
+            if (processingStatus) {
+                processingStatus.textContent = message.includes('complete') ? 'Ready' : 'Processing...';
+            }
+        }
+        
+        function addAlert(message) {
+            const alertDiv = document.getElementById('alert-messages');
+            if (alertDiv) {
+                const p = document.createElement('p');
+                p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                p.style.color = '#ff6666';
+                alertDiv.appendChild(p);
+                
+                // Keep only last 5 alerts
+                while (alertDiv.children.length > 5) {
+                    alertDiv.removeChild(alertDiv.firstChild);
+                }
+            }
+        }
+        
+        // Window resize handler
+        window.addEventListener('resize', function() {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            if (map) {
+                map.invalidateSize();
+            }
+        });
+        
+        // Animation loop for 3D view
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (renderer && scene && camera && is3DView) {
+                // Add any 3D animations here
+                renderer.render(scene, camera);
+            }
+        }
+        animate();
+        
+        // Memory usage monitor
+        setInterval(() => {
+            if (performance.memory) {
+                const usedMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(1);
+                const element = document.getElementById('memory-usage');
+                if (element) {
+                    element.textContent = `${usedMB} MB`;
+                }
+            }
+        }, 5000);
+        
+        console.log('🚀 Advanced InSAR Analysis System Fully Loaded');
+    </script>
+</body>
+</html>

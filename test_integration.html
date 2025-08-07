@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test - WebGL Fix, Minimize, Holocene Volcanoes, Mantle Tomography</title>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Our modules -->
+    <script src="webgl_fix_and_minimize.js"></script>
+    <script src="holocene_volcanoes.js"></script>
+    <script src="mantle_tomography.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 60vh;
+        }
+        
+        .test-panel {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .status.success {
+            background: rgba(76, 175, 80, 0.3);
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .status.error {
+            background: rgba(244, 67, 54, 0.3);
+            border-left: 4px solid #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="test-panel" id="webgl-panel">
+        <h2>WebGL Extension Test</h2>
+        <div id="webgl-status" class="status">Testing WebGL extensions...</div>
+    </div>
+    
+    <div class="test-panel" id="minimize-panel">
+        <h2>Panel Minimize Test</h2>
+        <div class="status">Press Ctrl+M to minimize/maximize all panels</div>
+        <p>This panel should have a minimize button in the top-right corner.</p>
+    </div>
+    
+    <div class="test-panel" id="volcano-panel">
+        <h2>Holocene Volcano Database Test</h2>
+        <div id="volcano-status" class="status">Loading volcano database...</div>
+        <select id="country-select" style="width: 100%; padding: 5px; margin-top: 10px;">
+            <option>Loading countries...</option>
+        </select>
+        <select id="volcano-select" style="width: 100%; padding: 5px; margin-top: 10px;">
+            <option>Select a country first</option>
+        </select>
+    </div>
+    
+    <div class="test-panel" id="mantle-panel">
+        <h2>Mantle Tomography Test</h2>
+        <div id="mantle-status" class="status">Initializing mantle tomography...</div>
+    </div>
+    
+    <script>
+        let scene, camera, renderer;
+        let mantleTomography;
+        
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / (window.innerHeight * 0.6), 0.1, 10000);
+            camera.position.z = 500;
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight * 0.6);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Test WebGL fix
+            const webglStatus = document.getElementById('webgl-status');
+            try {
+                if (window.fixWebGLExtensions) {
+                    fixWebGLExtensions(renderer);
+                    webglStatus.textContent = '✓ WebGL extensions enabled successfully';
+                    webglStatus.className = 'status success';
+                } else {
+                    throw new Error('fixWebGLExtensions not found');
+                }
+            } catch (e) {
+                webglStatus.textContent = '✗ WebGL extension error: ' + e.message;
+                webglStatus.className = 'status error';
+            }
+            
+            // Add basic lighting
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(0, 1, 1);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040));
+            
+            // Test Mantle Tomography
+            const mantleStatus = document.getElementById('mantle-status');
+            try {
+                if (window.MantleTomography) {
+                    mantleTomography = new MantleTomography(scene, renderer);
+                    
+                    // Add a mantle slice
+                    const slice = mantleTomography.createMantleSlice(
+                        40, -120, // Start: North America
+                        -20, -70, // End: South America  
+                        2900 // Full depth
+                    );
+                    slice.scale.set(0.5, 0.5, 0.5);
+                    scene.add(slice);
+                    
+                    // Add 3D mantle structure
+                    const structure = mantleTomography.create3DMantleStructure();
+                    structure.scale.set(0.3, 0.3, 0.3);
+                    structure.position.x = -200;
+                    scene.add(structure);
+                    
+                    mantleStatus.textContent = '✓ Mantle tomography initialized with ' + 
+                        mantleTomography.plumes.length + ' plumes, ' +
+                        mantleTomography.slabs.length + ' slabs, ' +
+                        mantleTomography.llsvps.length + ' LLSVPs';
+                    mantleStatus.className = 'status success';
+                } else {
+                    throw new Error('MantleTomography not found');
+                }
+            } catch (e) {
+                mantleStatus.textContent = '✗ Mantle tomography error: ' + e.message;
+                mantleStatus.className = 'status error';
+            }
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                scene.rotation.y += 0.001;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+        
+        function testVolcanoDatabase() {
+            const volcanoStatus = document.getElementById('volcano-status');
+            const countrySelect = document.getElementById('country-select');
+            const volcanoSelect = document.getElementById('volcano-select');
+            
+            try {
+                if (window.HOLOCENE_VOLCANOES) {
+                    const countries = Object.keys(HOLOCENE_VOLCANOES);
+                    let totalVolcanoes = 0;
+                    
+                    // Clear and populate country select
+                    countrySelect.innerHTML = '<option value="">Select a country</option>';
+                    countries.sort().forEach(country => {
+                        const volcanoes = HOLOCENE_VOLCANOES[country];
+                        totalVolcanoes += volcanoes.length;
+                        
+                        const option = document.createElement('option');
+                        option.value = country;
+                        option.textContent = `${country} (${volcanoes.length} volcanoes)`;
+                        countrySelect.appendChild(option);
+                    });
+                    
+                    // Handle country selection
+                    countrySelect.onchange = () => {
+                        const country = countrySelect.value;
+                        volcanoSelect.innerHTML = '<option value="">Select a volcano</option>';
+                        
+                        if (country && HOLOCENE_VOLCANOES[country]) {
+                            HOLOCENE_VOLCANOES[country].forEach(volcano => {
+                                const option = document.createElement('option');
+                                option.value = volcano.vnum;
+                                option.textContent = `${volcano.name} - ${volcano.type || 'Unknown'} (VEI: ${volcano.vei || 'N/A'})`;
+                                volcanoSelect.appendChild(option);
+                            });
+                        }
+                    };
+                    
+                    volcanoStatus.textContent = `✓ Loaded ${totalVolcanoes} Holocene volcanoes from ${countries.length} countries`;
+                    volcanoStatus.className = 'status success';
+                } else {
+                    throw new Error('HOLOCENE_VOLCANOES not found');
+                }
+            } catch (e) {
+                volcanoStatus.textContent = '✗ Volcano database error: ' + e.message;
+                volcanoStatus.className = 'status error';
+            }
+        }
+        
+        // Initialize everything when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Testing all integrations...');
+            
+            // Test Panel Manager (auto-initialized by webgl_fix_and_minimize.js)
+            if (window.panelManager) {
+                console.log('✓ Panel Manager active');
+            }
+            
+            // Test Three.js and WebGL
+            initThreeJS();
+            
+            // Test Volcano Database
+            testVolcanoDatabase();
+            
+            console.log('Integration tests complete. Check the UI for results.');
+        });
+    </script>
+</body>
+</html>

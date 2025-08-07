@@ -1,97 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Suppress Source Map Warnings -->
+    <script src="suppress_sourcemap_warnings.js"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prometheus AI - 3D Volcanic System Internal Dynamics</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #0a0a0a;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: white;
-            overflow: hidden;
+    <title>Enhanced Volcanic System Simulator - Complete Holocene Database & Multi-Chamber Systems</title>
+    
+    <!-- Load Universal Fix Script FIRST -->
+    <script src="prometheus_universal_fix.js"></script>
+    
+    <!-- Enhanced library loading with comprehensive error handling -->
+    <script>
+        // Enhanced library loader with retry mechanism and fallbacks
+        class LibraryLoader {
+            constructor() {
+                this.loadQueue = [];
+                this.loaded = new Set();
+                this.failed = new Set();
+                this.retries = new Map();
+            }
+            
+            async load(src, name, maxRetries = 3) {
+                if (this.loaded.has(src)) return true;
+                if (this.failed.has(src)) return false;
+                
+                const currentRetries = this.retries.get(src) || 0;
+                
+                try {
+                    await this.loadScript(src, name);
+                    this.loaded.add(src);
+                    console.log(`✓ ${name} loaded successfully`);
+                    return true;
+                } catch (e) {
+                    console.warn(`✗ Failed to load ${name}: ${e.message}`);
+                    
+                    if (currentRetries < maxRetries) {
+                        this.retries.set(src, currentRetries + 1);
+                        console.log(`Retrying ${name} (${currentRetries + 1}/${maxRetries})...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        return this.load(src, name, maxRetries);
+                    } else {
+                        this.failed.add(src);
+                        return false;
+                    }
+                }
+            }
+            
+            loadScript(src, name) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    
+                    const timeout = setTimeout(() => {
+                        reject(new Error(`Timeout loading ${name}`));
+                    }, 15000); // 15 second timeout
+                    
+                    script.onload = () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    };
+                    
+                    script.onerror = () => {
+                        clearTimeout(timeout);
+                        reject(new Error(`Network error loading ${name}`));
+                    };
+                    
+                    document.head.appendChild(script);
+                });
+            }
         }
         
-        #container {
-            position: relative;
-            width: 100vw;
+        // Initialize loader
+        const loader = new LibraryLoader();
+        
+        // Load CSS safely
+        try {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.onerror = () => console.warn('Failed to load Leaflet CSS');
+            document.head.appendChild(link);
+        } catch (e) {
+            console.warn('Error loading CSS:', e);
+        }
+        
+        // Load libraries asynchronously
+        (async function() {
+            const libraries = [
+                ['https://unpkg.com/three@0.155.0/build/three.min.js', 'THREE.js'],
+                ['https://unpkg.com/three@0.155.0/examples/js/controls/OrbitControls.js', 'OrbitControls'],
+                ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js', 'Chart.js'],
+                ['https://cdn.jsdelivr.net/npm/plotly.js-dist@2.29.1/plotly.min.js', 'Plotly.js'],
+                ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'Leaflet'],
+                ['https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js', 'dat.GUI'],
+                ['https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js', 'Numeric.js'],
+                ['https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js', 'TensorFlow.js'],
+                ['webgl_fix_and_minimize.js', 'WebGL Fix'],
+                ['holocene_volcanoes.js', 'Holocene Volcanoes'],
+                ['mantle_tomography.js', 'Mantle Tomography']
+            ];
+            
+            // Load all libraries with progress tracking
+            let loaded = 0;
+            const total = libraries.length;
+            
+            const loadPromises = libraries.map(async ([src, name]) => {
+                const success = await loader.load(src, name);
+                loaded++;
+                
+                // Update loading progress if there's a status element
+                const statusEl = document.getElementById('loading-status');
+                if (statusEl) {
+                    statusEl.textContent = `Loading libraries... ${loaded}/${total}`;
+                }
+                
+                return { src, name, success };
+            });
+            
+            const results = await Promise.all(loadPromises);
+            const failedLibraries = results.filter(r => !r.success);
+            
+            if (failedLibraries.length > 0) {
+                console.warn('Some libraries failed to load:', failedLibraries.map(f => f.name));
+                
+                // Dispatch event for fallback handling
+                window.dispatchEvent(new CustomEvent('librariesLoadComplete', {
+                    detail: { failed: failedLibraries, total: total }
+                }));
+            } else {
+                console.log('✅ All libraries loaded successfully');
+                window.dispatchEvent(new CustomEvent('librariesLoadComplete', {
+                    detail: { failed: [], total: total }
+                }));
+            }
+        })();
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            overflow: hidden;
             height: 100vh;
         }
         
-        #volcano-controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            border-radius: 10px;
+        #main-container {
+            display: grid;
+            grid-template-columns: 380px 1fr 400px;
+            grid-template-rows: 1fr 120px;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        #control-panel {
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 15px;
             padding: 20px;
-            min-width: 350px;
-            max-height: 90vh;
             overflow-y: auto;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 87, 34, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        #visualization-area {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 1000;
+            border: 2px solid rgba(255, 255, 255, 0.1);
         }
         
         #monitoring-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 15px;
             padding: 20px;
-            min-width: 320px;
-            max-height: 90vh;
             overflow-y: auto;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 1000;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(33, 150, 243, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
         
-        #system-status {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
+        #status-bar {
+            grid-column: 1 / -1;
+            background: rgba(0, 0, 0, 0.95);
             border-radius: 15px;
             padding: 20px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 1000;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(76, 175, 80, 0.3);
         }
         
-        .control-group {
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FF5722;
             margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .minimize-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+        
+        .minimize-btn:hover {
+            background: rgba(255, 87, 34, 0.3);
+            border-color: #FF5722;
+            transform: scale(1.1);
+        }
+        
+        .panel-content {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        
+        .minimized .panel-content {
+            max-height: 0;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        
+        .panel-minimized-indicator {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #FF5722;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+        
+        .minimized .panel-minimized-indicator {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
             padding: 15px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #FF5722;
         }
         
-        .control-group h3 {
-            margin: 0 0 15px 0;
+        .control-section h3 {
             color: #FF5722;
-            font-size: 16px;
-            border-bottom: 1px solid rgba(255, 87, 34, 0.3);
-            padding-bottom: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
-        .slider-container {
-            margin: 10px 0;
+        .parameter-control {
+            margin-bottom: 12px;
         }
         
-        .slider-container label {
+        .parameter-control label {
             display: block;
             margin-bottom: 5px;
-            font-size: 14px;
+            font-size: 12px;
             color: #ccc;
         }
         
@@ -102,364 +307,718 @@
             background: #333;
             outline: none;
             -webkit-appearance: none;
+            transition: all 0.3s;
         }
         
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            background: #FF5722;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
-        }
-        
-        .button {
             background: linear-gradient(45deg, #FF5722, #E64A19);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-            margin: 4px 2px;
             cursor: pointer;
-            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(255, 87, 34, 0.6);
             transition: all 0.3s;
         }
         
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(255, 87, 34, 0.8);
         }
         
-        .button.warning {
+        .btn {
+            background: linear-gradient(45deg, #FF5722, #E64A19);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 87, 34, 0.4);
+        }
+        
+        .btn-warning {
             background: linear-gradient(45deg, #FF9800, #F57C00);
         }
         
-        .button.danger {
+        .btn-danger {
             background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
         }
         
         .monitoring-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 15px 0;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
-        .monitor-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 5px;
-            border-left: 3px solid #FF5722;
+        .monitor-card {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #2196F3;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .monitor-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
         }
         
         .monitor-value {
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
-            color: #FF5722;
+            color: #2196F3;
+            text-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
         }
         
         .monitor-label {
-            font-size: 12px;
+            font-size: 11px;
             color: #aaa;
             margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
-        .alert-level {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
+        .alert-indicator {
+            padding: 12px 24px;
+            border-radius: 25px;
             text-align: center;
-            margin: 10px 0;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: pulse 2s infinite;
         }
         
-        .alert-green { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
-        .alert-yellow { background: rgba(255, 193, 7, 0.2); color: #FFC107; }
-        .alert-orange { background: rgba(255, 152, 0, 0.2); color: #FF9800; }
-        .alert-red { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .alert-normal { background: rgba(76, 175, 80, 0.3); color: #4CAF50; }
+        .alert-advisory { background: rgba(255, 193, 7, 0.3); color: #FFC107; }
+        .alert-watch { background: rgba(255, 152, 0, 0.3); color: #FF9800; }
+        .alert-warning { background: rgba(244, 67, 54, 0.3); color: #f44336; }
         
-        .volcano-view-mode {
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .chart-title {
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        canvas {
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .view-selector {
             display: flex;
-            gap: 10px;
+            gap: 5px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            margin: 10px 0;
         }
         
-        .view-button {
-            padding: 8px 16px;
+        .view-btn {
+            padding: 8px 12px;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 11px;
             transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
-        .view-button.active {
+        .view-btn.active {
             background: #FF5722;
             border-color: #FF5722;
+            box-shadow: 0 0 15px rgba(255, 87, 34, 0.5);
         }
         
-        .chamber-info {
-            background: rgba(255, 87, 34, 0.1);
-            border: 1px solid rgba(255, 87, 34, 0.3);
-            border-radius: 5px;
-            padding: 12px;
-            margin: 10px 0;
-        }
-        
-        .process-indicator {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            margin: 5px 0;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-        }
-        
-        .process-bar {
-            width: 60px;
-            height: 8px;
-            background: #333;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .process-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #FF5722);
-            transition: width 0.3s;
-        }
-        
-        .timeline-controls {
+        .simulation-controls {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin: 15px 0;
+            gap: 15px;
         }
         
-        .volcano-selector {
-            margin-bottom: 20px;
+        .time-display {
+            text-align: center;
         }
         
-        #canvas-container {
+        .time-value {
+            font-size: 20px;
+            color: #FF5722;
+            font-weight: bold;
+        }
+        
+        .time-label {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+        
+        .probability-display {
+            text-align: center;
+        }
+        
+        .probability-value {
+            font-size: 28px;
+            color: #f44336;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(244, 67, 54, 0.6);
+        }
+        
+        .gnss-station {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #4CAF50;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.8);
+            z-index: 10;
+        }
+        
+        .gnss-vector {
+            position: absolute;
+            transform-origin: 0 0;
+            height: 2px;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            z-index: 9;
+        }
+        
+        .earthquake-marker {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 87, 34, 0.8) 0%, rgba(255, 87, 34, 0.2) 70%);
+            z-index: 8;
+            animation: seismic-pulse 1s infinite;
+        }
+        
+        @keyframes seismic-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.5); opacity: 0.4; }
+        }
+        
+        .insar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
+            pointer-events: none;
+            z-index: 5;
         }
         
-        .depth-profile {
-            width: 100%;
-            height: 150px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            margin: 10px 0;
-            position: relative;
-            overflow: hidden;
+        .deformation-contour {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 50%;
+            opacity: 0.6;
         }
         
-        .seismic-trace {
-            width: 100%;
-            height: 80px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 5px;
-            margin: 5px 0;
-            position: relative;
-        }
-        
-        .gas-composition {
+        .gas-monitoring {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
-            margin: 10px 0;
+            margin-top: 15px;
         }
         
         .gas-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px;
+            padding: 8px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 3px;
+            border-radius: 5px;
+            font-size: 11px;
+        }
+        
+        .reservoir-status {
+            padding: 15px;
+            background: rgba(255, 87, 34, 0.1);
+            border: 1px solid rgba(255, 87, 34, 0.3);
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .cross-section-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            z-index: 15;
+        }
+        
+        .cross-section-title {
+            text-align: center;
+            padding: 10px;
             font-size: 12px;
+            color: #FF5722;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        select option {
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        .parameter-value {
+            float: right;
+            color: #FF5722;
+            font-weight: bold;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 20;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
 <body>
-    <div id="container">
-        <div id="canvas-container"></div>
-        
-        <div id="volcano-controls">
-            <h2>🌋 Volcanic System Control Center</h2>
+    <div id="main-container">
+        <!-- Control Panel -->
+        <div id="control-panel">
+            <div class="panel-title" onclick="togglePanel('control-panel')">
+                <span>🌋 Volcanic System Control Center</span>
+                <div class="minimize-btn">−</div>
+                <div class="panel-minimized-indicator">C</div>
+            </div>
+            <div class="panel-content">
             
-            <div class="volcano-selector">
-                <label>Select Volcano:</label>
+            <!-- Volcano Selection - Complete Holocene Database -->
+            <div class="control-section">
+                <h3>Global Volcano Database (Holocene)</h3>
                 <select id="volcano-select">
-                    <option value="etna">Mount Etna (Sicily)</option>
-                    <option value="kilauea">Kilauea (Hawaii)</option>
-                    <option value="vesuvius">Vesuvius (Italy)</option>
-                    <option value="yellowstone">Yellowstone (USA)</option>
-                    <option value="pinatubo">Pinatubo (Philippines)</option>
-                    <option value="custom">Custom Volcano</option>
+                    <!-- Italy -->
+                    <option value="etna">Etna (Italy) - 211060 - Stratovolcano</option>
+                    <option value="vesuvius">Vesuvius (Italy) - 211020 - Stratovolcano</option>
+                    <option value="stromboli">Stromboli (Italy) - 211040 - Stratovolcano</option>
+                    <option value="vulcano">Vulcano (Italy) - 211050 - Stratovolcanoes</option>
+                    
+                    <!-- Greece -->
+                    <option value="santorini">Santorini (Greece) - 212040 - Caldera</option>
+                    <option value="nisyros">Nisyros (Greece) - 212030 - Stratovolcano</option>
+                    
+                    <!-- Papua New Guinea -->
+                    <option value="rabaul">Rabaul (Papua New Guinea) - 252140 - Caldera</option>
+                    <option value="karkar">Karkar (Papua New Guinea) - 251170 - Stratovolcano</option>
+                    <option value="bagana">Bagana (Papua New Guinea) - 255020 - Stratovolcano</option>
+                    <option value="manam">Manam (Papua New Guinea) - 251020 - Stratovolcano</option>
+                    <option value="ulawun">Ulawun (Papua New Guinea) - 252120 - Stratovolcano</option>
+                    <option value="lamington">Lamington (Papua New Guinea) - 253001 - Stratovolcano</option>
+                    
+                    <!-- Indonesia -->
+                    <option value="krakatoa">Krakatoa (Indonesia) - 262000 - Caldera</option>
+                    <option value="merapi">Merapi (Indonesia) - 263250 - Stratovolcano</option>
+                    <option value="tambora">Tambora (Indonesia) - 264040 - Stratovolcano</option>
+                    <option value="galunggung">Galunggung (Indonesia) - 263180 - Stratovolcano</option>
+                    <option value="kelut">Kelut (Indonesia) - 263280 - Stratovolcano</option>
+                    <option value="bromo">Bromo (Indonesia) - 263310 - Stratovolcano</option>
+                    <option value="agung">Agung (Indonesia) - 264020 - Stratovolcano</option>
+                    
+                    <!-- Philippines -->
+                    <option value="pinatubo">Pinatubo (Philippines) - 243083 - Stratovolcano</option>
+                    <option value="mayon">Mayon (Philippines) - 243040 - Stratovolcano</option>
+                    <option value="taal">Taal (Philippines) - 243070 - Caldera</option>
+                    <option value="hibok-hibok">Hibok-hibok (Philippines) - 244090 - Stratovolcano</option>
+                    
+                    <!-- Japan -->
+                    <option value="fuji">Fuji (Japan) - 283030 - Stratovolcano</option>
+                    <option value="sakurajima">Sakurajima (Japan) - 282080 - Stratovolcano</option>
+                    <option value="aso">Aso (Japan) - 282110 - Caldera</option>
+                    <option value="unzen">Unzen (Japan) - 282100 - Complex volcano</option>
+                    
+                    <!-- USA -->
+                    <option value="kilauea">Kilauea (USA-Hawaii) - 332010 - Shield volcano</option>
+                    <option value="yellowstone">Yellowstone (USA) - 325010 - Caldera</option>
+                    <option value="mount-st-helens">Mount St. Helens (USA) - 321050 - Stratovolcano</option>
+                    <option value="mount-rainier">Mount Rainier (USA) - 321030 - Stratovolcano</option>
+                    <option value="mount-shasta">Mount Shasta (USA) - 323010 - Stratovolcano</option>
+                    <option value="long-valley">Long Valley (USA) - 323070 - Caldera</option>
+                    
+                    <!-- Kenya -->
+                    <option value="longonot">Longonot (Kenya) - 223270 - Stratovolcano</option>
+                    <option value="menengai">Menengai (Kenya) - 223280 - Caldera</option>
+                    <option value="barrier">Barrier (Kenya) - 223290 - Shield volcano</option>
+                    
+                    <!-- Tanzania -->
+                    <option value="kilimanjaro">Kilimanjaro (Tanzania) - 222150 - Stratovolcano</option>
+                    <option value="ol-doinyo-lengai">Ol Doinyo Lengai (Tanzania) - 222120 - Stratovolcano</option>
+                    <option value="meru">Meru (Tanzania) - 222160 - Stratovolcano</option>
+                    
+                    <!-- Congo -->
+                    <option value="nyiragongo">Nyiragongo (Congo DR) - 223030 - Stratovolcano</option>
+                    <option value="nyamuragira">Nyamuragira (Congo DR) - 223020 - Shield volcano</option>
+                    
+                    <!-- Cameroon -->
+                    <option value="mount-cameroon">Mount Cameroon (Cameroon) - 224010 - Stratovolcano</option>
+                    
+                    <!-- Cape Verde -->
+                    <option value="fogo">Fogo (Cape Verde) - 384010 - Stratovolcano</option>
+                    
+                    <!-- Armenia -->
+                    <option value="ararat">Ararat (Armenia/Turkey) - 213040 - Stratovolcano</option>
+                    
+                    <!-- Georgia -->
+                    <option value="kazbek">Kazbek (Georgia) - 214020 - Stratovolcano</option>
+                    
+                    <!-- Iran -->
+                    <option value="damavand">Damavand (Iran) - 213010 - Stratovolcano</option>
+                    <option value="bazman">Bazman (Iran) - 213060 - Stratovolcano</option>
+                    
+                    <!-- Pakistan -->
+                    <option value="taftan">Taftan (Pakistan) - 213070 - Stratovolcano</option>
+                    
+                    <!-- India -->
+                    <option value="barren-island">Barren Island (India) - 260010 - Stratovolcano</option>
+                    
+                    <!-- Myanmar -->
+                    <option value="popa">Popa (Myanmar) - 270010 - Stratovolcano</option>
+                    
+                    <!-- China -->
+                    <option value="changbaishan">Changbaishan (China) - 305060 - Stratovolcano</option>
+                    <option value="tengchong">Tengchong (China) - 270090 - Pyroclastic cones</option>
+                    
+                    <!-- North Korea -->
+                    <option value="baekdu">Baekdu (North Korea) - 305060 - Stratovolcano</option>
+                    
+                    <!-- South Korea -->
+                    <option value="jeju">Jeju (Hallasan) (South Korea) - 305040 - Shield volcano</option>
+                    
+                    <!-- Taiwan -->
+                    <option value="tatun">Tatun (Taiwan) - 241070 - Stratovolcano</option>
+                    
+                    <!-- Malaysia -->
+                    <option value="bombalai">Bombalai (Malaysia) - 268020 - Pyroclastic cones</option>
+                    
+                    <!-- Vanuatu -->
+                    <option value="yasur">Yasur (Vanuatu) - 257100 - Stratovolcano</option>
+                    <option value="lopevi">Lopevi (Vanuatu) - 257040 - Stratovolcano</option>
+                    <option value="ambrym">Ambrym (Vanuatu) - 257030 - Pyroclastic shield</option>
+                    
+                    <!-- Solomon Islands -->
+                    <option value="tinakula">Tinakula (Solomon Islands) - 256001 - Stratovolcano</option>
+                    <option value="kavachi">Kavachi (Solomon Islands) - 255070 - Submarine volcano</option>
+                    
+                    <!-- Tonga -->
+                    <option value="hunga-tonga">Hunga Tonga-Hunga Ha'apai (Tonga) - 243040 - Submarine volcano</option>
+                    
+                    <!-- Fiji -->
+                    <option value="taveuni">Taveuni (Fiji) - 243050 - Shield volcano</option>
+                    
+                    <!-- Samoa -->
+                    <option value="savaii">Savai'i (Samoa) - 244020 - Shield volcano</option>
+                    
+                    <!-- Antarctica -->
+                    <option value="erebus">Erebus (Antarctica) - 390030 - Stratovolcano</option>
+                    <option value="deception-island">Deception Island (Antarctica) - 390050 - Caldera</option>
+                    
+                    <!-- Chile -->
+                    <option value="llaima">Llaima (Chile) - 357120 - Stratovolcano</option>
+                    <option value="villarrica">Villarrica (Chile) - 357070 - Stratovolcano</option>
+                    <option value="calbuco">Calbuco (Chile) - 358020 - Stratovolcano</option>
+                    <option value="chaiten">Chaiten (Chile) - 358041 - Caldera</option>
+                    
+                    <!-- Argentina -->
+                    <option value="copahue">Copahue (Argentina/Chile) - 357090 - Stratovolcano</option>
+                    <option value="lanin">Lanin (Argentina/Chile) - 357061 - Stratovolcano</option>
+                    
+                    <!-- Bolivia -->
+                    <option value="sajama">Sajama (Bolivia) - 355100 - Stratovolcano</option>
+                    
+                    <!-- Brazil -->
+                    <option value="trindade">Trindade (Brazil) - 374010 - Stratovolcano</option>
+                    
+                    <!-- Venezuela -->
+                    <option value="roraima">Roraima (Venezuela) - 351001 - Tepui</option>
+                    
+                    <!-- Panama -->
+                    <option value="baru">Baru (Panama) - 345040 - Stratovolcano</option>
+                    
+                    <!-- Honduras -->
+                    <option value="tigre">Tigre (Honduras) - 344130 - Stratovolcano</option>
+                    
+                    <!-- Caribbean -->
+                    <option value="montagne-pelee">Montagne Pelee (Martinique) - 360120 - Stratovolcano</option>
+                    <option value="soufriere-hills">Soufriere Hills (Montserrat) - 360050 - Stratovolcano</option>
+                    <option value="kick-em-jenny">Kick 'em Jenny (Grenada) - 360220 - Submarine volcano</option>
+                    
+                    <!-- Canary Islands -->
+                    <option value="teide">Teide (Canary Islands, Spain) - 383030 - Stratovolcano</option>
+                    <option value="la-palma">La Palma (Canary Islands, Spain) - 383010 - Stratovolcano</option>
+                    
+                    <!-- Azores -->
+                    <option value="pico">Pico (Azores, Portugal) - 382030 - Stratovolcano</option>
+                    <option value="furnas">Furnas (Azores, Portugal) - 382060 - Caldera</option>
+                    
+                    <!-- Custom -->
+                    <option value="custom">Custom Multi-Chamber System</option>
                 </select>
-            </div>
-            
-            <div class="control-group">
-                <h3>🎨 Visualization Mode</h3>
-                <div class="volcano-view-mode">
-                    <div class="view-button active" data-mode="cross-section">Cross Section</div>
-                    <div class="view-button" data-mode="magma-chamber">Magma Chamber</div>
-                    <div class="view-button" data-mode="hydrothermal">Hydrothermal</div>
-                    <div class="view-button" data-mode="stress-field">Stress Field</div>
-                    <div class="view-button" data-mode="gas-flow">Gas Flow</div>
+                
+                <!-- Real-time Data Toggle -->
+                <div class="parameter-control">
+                    <label><input type="checkbox" id="real-time-data" checked> Real-time Satellite Data</label>
+                    <label><input type="checkbox" id="ml-processing" checked> ML-Enhanced Processing</label>
+                    <label><input type="checkbox" id="quantum-computing"> Quantum Simulation Mode</label>
                 </div>
             </div>
             
-            <div class="control-group">
-                <h3>🔥 Magma Chamber Parameters</h3>
-                
-                <div class="slider-container">
-                    <label>Chamber Depth (km): <span id="chamber-depth-value">6.0</span></label>
-                    <input type="range" id="chamber-depth" class="slider" min="2" max="30" step="0.5" value="6">
-                </div>
-                
-                <div class="slider-container">
-                    <label>Chamber Volume (km³): <span id="chamber-volume-value">50</span></label>
-                    <input type="range" id="chamber-volume" class="slider" min="1" max="1000" step="5" value="50">
-                </div>
-                
-                <div class="slider-container">
-                    <label>Magma Temperature (°C): <span id="magma-temp-value">1100</span></label>
-                    <input type="range" id="magma-temperature" class="slider" min="800" max="1300" step="10" value="1100">
-                </div>
-                
-                <div class="slider-container">
-                    <label>Crystal Content (%): <span id="crystal-content-value">30</span></label>
-                    <input type="range" id="crystal-content" class="slider" min="0" max="80" step="5" value="30">
-                </div>
-                
-                <div class="slider-container">
-                    <label>Gas Content (wt%): <span id="gas-content-value">4.0</span></label>
-                    <input type="range" id="gas-content" class="slider" min="0" max="8" step="0.1" value="4">
-                </div>
-                
-                <div class="slider-container">
-                    <label>Pressure (MPa): <span id="chamber-pressure-value">150</span></label>
-                    <input type="range" id="chamber-pressure" class="slider" min="50" max="800" step="10" value="150">
+            <!-- Visualization Mode -->
+            <div class="control-section">
+                <h3>Visualization Mode</h3>
+                <div class="view-selector">
+                    <div class="view-btn active" data-mode="3d-model">3D Model</div>
+                    <div class="view-btn" data-mode="cross-section">Cross-Section</div>
+                    <div class="view-btn" data-mode="reservoir">Magma Chamber</div>
+                    <div class="view-btn" data-mode="deformation">Deformation</div>
+                    <div class="view-btn" data-mode="gas-flow">Gas Flow</div>
+                    <div class="view-btn" data-mode="stress-field">Stress Field</div>
                 </div>
             </div>
             
-            <div class="control-group">
-                <h3>💉 Dike Intrusion Model</h3>
+            <!-- Magma Chamber Parameters -->
+            <div class="control-section">
+                <h3>🔥 Magmatic Reservoir</h3>
                 
-                <div class="slider-container">
-                    <label>Intrusion Rate (m³/s): <span id="intrusion-rate-value">0.1</span></label>
-                    <input type="range" id="intrusion-rate" class="slider" min="0" max="10" step="0.1" value="0.1">
+                <div class="parameter-control">
+                    <label>Chamber Depth (km): <span id="chamber-depth-value" class="parameter-value">8.0</span></label>
+                    <input type="range" id="chamber-depth" class="slider" min="2" max="25" step="0.5" value="8">
                 </div>
                 
-                <div class="slider-container">
-                    <label>Dike Thickness (m): <span id="dike-thickness-value">2.0</span></label>
-                    <input type="range" id="dike-thickness" class="slider" min="0.5" max="20" step="0.5" value="2">
+                <div class="parameter-control">
+                    <label>Chamber Volume (km³): <span id="chamber-volume-value" class="parameter-value">75</span></label>
+                    <input type="range" id="chamber-volume" class="slider" min="1" max="2000" step="10" value="75">
                 </div>
                 
-                <div class="slider-container">
-                    <label>Propagation Depth (km): <span id="dike-depth-value">3.0</span></label>
-                    <input type="range" id="dike-depth" class="slider" min="0.5" max="15" step="0.5" value="3">
+                <div class="parameter-control">
+                    <label>Magma Temperature (°C): <span id="magma-temp-value" class="parameter-value">1100</span></label>
+                    <input type="range" id="magma-temperature" class="slider" min="700" max="1400" step="10" value="1100">
                 </div>
                 
-                <button class="button" onclick="triggerIntrusion()">🚀 Trigger Dike Intrusion</button>
-                <button class="button warning" onclick="stopIntrusion()">⏹️ Stop Intrusion</button>
+                <div class="parameter-control">
+                    <label>Melt Fraction (%): <span id="melt-fraction-value" class="parameter-value">65</span></label>
+                    <input type="range" id="melt-fraction" class="slider" min="20" max="95" step="5" value="65">
+                </div>
+                
+                <div class="parameter-control">
+                    <label>Volatile Content (wt%): <span id="volatile-content-value" class="parameter-value">4.5</span></label>
+                    <input type="range" id="volatile-content" class="slider" min="0.1" max="12" step="0.1" value="4.5">
+                </div>
+                
+                <div class="parameter-control">
+                    <label>Chamber Pressure (MPa): <span id="chamber-pressure-value" class="parameter-value">200</span></label>
+                    <input type="range" id="chamber-pressure" class="slider" min="50" max="1000" step="10" value="200">
+                </div>
             </div>
             
-            <div class="control-group">
-                <h3>💧 Hydrothermal System</h3>
+            <!-- Intrusion Dynamics -->
+            <div class="control-section">
+                <h3>💉 Intrusion Dynamics</h3>
                 
-                <div class="slider-container">
-                    <label>Water Table Depth (m): <span id="water-table-value">200</span></label>
-                    <input type="range" id="water-table" class="slider" min="50" max="1000" step="10" value="200">
+                <div class="parameter-control">
+                    <label>Magma Supply Rate (m³/s): <span id="supply-rate-value" class="parameter-value">0.5</span></label>
+                    <input type="range" id="supply-rate" class="slider" min="0" max="20" step="0.1" value="0.5">
                 </div>
                 
-                <div class="slider-container">
-                    <label>Permeability (mD): <span id="permeability-value">100</span></label>
-                    <input type="range" id="permeability" class="slider" min="1" max="1000" step="10" value="100">
+                <div class="parameter-control">
+                    <label>Dike Propagation Velocity (m/s): <span id="dike-velocity-value" class="parameter-value">0.01</span></label>
+                    <input type="range" id="dike-velocity" class="slider" min="0.001" max="1" step="0.001" value="0.01">
                 </div>
                 
-                <div class="slider-container">
-                    <label>Heat Source Temp (°C): <span id="heat-source-value">600</span></label>
-                    <input type="range" id="heat-source" class="slider" min="200" max="1000" step="20" value="600">
+                <div class="parameter-control">
+                    <label>Stress Threshold (MPa): <span id="stress-threshold-value" class="parameter-value">15</span></label>
+                    <input type="range" id="stress-threshold" class="slider" min="1" max="50" step="1" value="15">
                 </div>
                 
-                <button class="button" onclick="activateHydrothermal()">♨️ Activate System</button>
-                <button class="button danger" onclick="simulatePhreatomagmatic()">💥 Phreatomagmatic</button>
+                <button class="btn" onclick="triggerIntrusion()">🚀 Trigger Intrusion</button>
+                <button class="btn btn-warning" onclick="stopIntrusion()">⏹️ Stop Intrusion</button>
             </div>
             
-            <div class="control-group">
-                <h3>⚡ Scenario Controls</h3>
-                <button class="button" onclick="resetSystem()">🔄 Reset System</button>
-                <button class="button" onclick="loadPreset('effusive')">🌋 Effusive Eruption</button>
-                <button class="button" onclick="loadPreset('explosive')">💥 Explosive Eruption</button>
-                <button class="button" onclick="exportModel()">💾 Export Model</button>
+            <!-- Environmental Conditions -->
+            <div class="control-section">
+                <h3>🌍 Environmental Conditions</h3>
+                
+                <div class="parameter-control">
+                    <label>Crustal Density (kg/m³): <span id="crustal-density-value" class="parameter-value">2700</span></label>
+                    <input type="range" id="crustal-density" class="slider" min="2000" max="3500" step="50" value="2700">
+                </div>
+                
+                <div class="parameter-control">
+                    <label>Regional Stress (MPa): <span id="regional-stress-value" class="parameter-value">25</span></label>
+                    <input type="range" id="regional-stress" class="slider" min="5" max="100" step="5" value="25">
+                </div>
+                
+                <div class="parameter-control">
+                    <label>Permeability (mD): <span id="permeability-value" class="parameter-value">150</span></label>
+                    <input type="range" id="permeability" class="slider" min="1" max="1000" step="10" value="150">
+                </div>
+            </div>
+            
+            <!-- ML & Quantum Controls -->
+            <div class="control-section">
+                <h3>🤖 ML & Quantum Analysis</h3>
+                <div class="parameter-control">
+                    <button class="btn" onclick="trainMLModel()">🧠 Train ML Model</button>
+                    <button class="btn" onclick="runQuantumSimulation()">⚛️ Quantum Analysis</button>
+                </div>
+                <div class="parameter-control">
+                    <label>ML Confidence: <span id="ml-confidence">85%</span></label>
+                    <label>Quantum Coherence: <span id="quantum-coherence">92%</span></label>
+                </div>
+            </div>
+            
+            <!-- Scenario Controls -->
+            <div class="control-section">
+                <h3>⚡ Simulation Scenarios</h3>
+                <button class="btn" onclick="loadScenario('effusive')">🌋 Effusive Eruption</button>
+                <button class="btn btn-warning" onclick="loadScenario('explosive')">💥 Explosive Eruption</button>
+                <button class="btn btn-danger" onclick="loadScenario('caldera')">🕳️ Caldera Collapse</button>
+                <button class="btn" onclick="loadScenario('multi-chamber')">🏢 Multi-Chamber Event</button>
+                <button class="btn btn-success" onclick="resetSystem()">🔄 Reset System</button>
+                <button class="btn" onclick="exportData()">💾 Export Data</button>
+                <button class="btn" onclick="optimizeParameters()">🎯 Auto-Optimize</button>
+            </div>
             </div>
         </div>
         
-        <div id="monitoring-panel">
-            <h3>📡 Real-Time Monitoring</h3>
+        <!-- Visualization Area -->
+        <div id="visualization-area">
+            <div id="three-container" style="width: 100%; height: 100%;"></div>
             
-            <div class="alert-level" id="alert-status">
-                <span id="alert-text">Normal - Green</span>
+            <!-- GNSS Stations Overlay -->
+            <div id="gnss-overlay"></div>
+            
+            <!-- InSAR Deformation Overlay -->
+            <div id="insar-overlay" class="insar-overlay"></div>
+            
+            <!-- Earthquake Markers -->
+            <div id="earthquake-overlay"></div>
+            
+            <!-- Cross-section View -->
+            <div id="cross-section-overlay" class="cross-section-overlay" style="display: none;">
+                <div class="cross-section-title">2D Cross-Section Analysis</div>
+                <canvas id="cross-section-canvas" width="296" height="170"></canvas>
             </div>
             
+            <!-- Tooltip -->
+            <div id="tooltip" class="tooltip" style="display: none;"></div>
+        </div>
+        
+        <!-- Monitoring Panel -->
+        <div id="monitoring-panel">
+            <div class="panel-title" onclick="togglePanel('monitoring-panel')">
+                <span>📡 Multi-Parameter Monitoring</span>
+                <div class="minimize-btn">−</div>
+                <div class="panel-minimized-indicator">M</div>
+            </div>
+            <div class="panel-content">
+            
+            <!-- Alert Status -->
+            <div id="alert-indicator" class="alert-indicator alert-normal">
+                Normal Conditions - Green
+            </div>
+            
+            <!-- Real-time Monitoring Data -->
             <div class="monitoring-grid">
-                <div class="monitor-item">
-                    <div class="monitor-value" id="seismic-rate">12</div>
+                <div class="monitor-card">
+                    <div class="monitor-value" id="seismic-rate">8</div>
                     <div class="monitor-label">Earthquakes/day</div>
                 </div>
-                <div class="monitor-item">
-                    <div class="monitor-value" id="deformation-rate">0.3</div>
+                <div class="monitor-card">
+                    <div class="monitor-value" id="deformation-rate">0.2</div>
                     <div class="monitor-label">Uplift (mm/day)</div>
                 </div>
-                <div class="monitor-item">
-                    <div class="monitor-value" id="so2-flux">450</div>
+                <div class="monitor-card">
+                    <div class="monitor-value" id="so2-flux">320</div>
                     <div class="monitor-label">SO₂ Flux (t/day)</div>
                 </div>
-                <div class="monitor-item">
-                    <div class="monitor-value" id="thermal-anomaly">2.3</div>
+                <div class="monitor-card">
+                    <div class="monitor-value" id="thermal-anomaly">1.8</div>
                     <div class="monitor-label">Thermal (MW)</div>
                 </div>
             </div>
             
-            <div class="control-group">
-                <h3>📊 Seismic Activity</h3>
-                <div class="seismic-trace" id="seismic-trace"></div>
-                <div style="font-size: 12px; color: #aaa;">
-                    Depth: <span id="seismic-depth">5.2 km</span> | 
-                    Magnitude: <span id="seismic-magnitude">M 2.1</span>
-                </div>
+            <!-- GNSS Data -->
+            <div class="chart-container">
+                <div class="chart-title">🛰️ GNSS Displacement Vectors</div>
+                <canvas id="gnss-chart" width="360" height="120"></canvas>
             </div>
             
-            <div class="control-group">
-                <h3>🏔️ Ground Deformation</h3>
-                <div class="depth-profile" id="deformation-profile"></div>
-                <div style="font-size: 12px; color: #aaa;">
-                    InSAR: <span id="insar-los">+2.3 cm</span> | 
-                    GPS: <span id="gps-displacement">1.8 mm/day</span>
-                </div>
+            <!-- InSAR Data -->
+            <div class="chart-container">
+                <div class="chart-title">📡 InSAR Line-of-Sight Deformation</div>
+                <canvas id="insar-chart" width="360" height="120"></canvas>
             </div>
             
-            <div class="control-group">
-                <h3>💨 Gas Composition</h3>
-                <div class="gas-composition">
+            <!-- Seismic Activity -->
+            <div class="chart-container">
+                <div class="chart-title">📊 Seismic Activity</div>
+                <canvas id="seismic-trace" width="360" height="100"></canvas>
+            </div>
+            
+            <!-- Earthquake Hypocenter Data -->
+            <div class="chart-container">
+                <div class="chart-title">🎯 Earthquake Hypocenters</div>
+                <canvas id="hypocenter-chart" width="360" height="120"></canvas>
+            </div>
+            
+            <!-- Gas Monitoring -->
+            <div class="chart-container">
+                <div class="chart-title">💨 Gas Emissions & Composition</div>
+                <div class="gas-monitoring">
                     <div class="gas-item">
                         <span>H₂O</span>
-                        <span id="h2o-content">85%</span>
+                        <span id="h2o-content">82%</span>
                     </div>
                     <div class="gas-item">
                         <span>CO₂</span>
-                        <span id="co2-content">8%</span>
+                        <span id="co2-content">12%</span>
                     </div>
                     <div class="gas-item">
                         <span>SO₂</span>
@@ -467,91 +1026,44 @@
                     </div>
                     <div class="gas-item">
                         <span>H₂S</span>
-                        <span id="h2s-content">2%</span>
+                        <span id="h2s-content">1.5%</span>
                     </div>
                     <div class="gas-item">
                         <span>HCl</span>
-                        <span id="hcl-content">0.8%</span>
+                        <span id="hcl-content">0.4%</span>
                     </div>
                     <div class="gas-item">
                         <span>HF</span>
-                        <span id="hf-content">0.2%</span>
+                        <span id="hf-content">0.1%</span>
                     </div>
                 </div>
             </div>
             
-            <div class="control-group">
-                <h3>🔥 Thermal State</h3>
-                <div class="process-indicator">
-                    <span>Surface Temperature</span>
-                    <div class="process-bar">
-                        <div class="process-fill" id="surface-temp-bar" style="width: 20%;"></div>
-                    </div>
-                    <span id="surface-temp">45°C</span>
-                </div>
-                <div class="process-indicator">
-                    <span>Fumarole Activity</span>
-                    <div class="process-bar">
-                        <div class="process-fill" id="fumarole-bar" style="width: 35%;"></div>
-                    </div>
-                    <span id="fumarole-temp">280°C</span>
-                </div>
-                <div class="process-indicator">
-                    <span>Lava Lake Level</span>
-                    <div class="process-bar">
-                        <div class="process-fill" id="lava-level-bar" style="width: 60%;"></div>
-                    </div>
-                    <span id="lava-level">-45m</span>
+            <!-- Magmatic Reservoir Status -->
+            <div class="reservoir-status">
+                <div class="chart-title">🔥 Magmatic Reservoir Status</div>
+                <div style="font-size: 12px; line-height: 1.5;">
+                    <div>Melt Volume: <span id="melt-volume">48 km³</span></div>
+                    <div>Overpressure: <span id="overpressure">12 MPa</span></div>
+                    <div>Crystallinity: <span id="crystallinity">35%</span></div>
+                    <div>Volatile Saturation: <span id="volatile-saturation">78%</span></div>
                 </div>
             </div>
             
-            <div class="control-group">
-                <h3>⚖️ System Processes</h3>
-                <div class="process-indicator">
-                    <span>Magma Differentiation</span>
-                    <div class="process-bar">
-                        <div class="process-fill" id="differentiation-bar" style="width: 25%;"></div>
-                    </div>
-                    <span>25%</span>
-                </div>
-                <div class="process-indicator">
-                    <span>Gas Exsolution</span>
-                    <div class="process-bar">
-                        <div class="process-fill" id="exsolution-bar" style="width: 70%;"></div>
-                    </div>
-                    <span>High</span>
-                </div>
-                <div class="process-indicator">
-                    <span>Crystallization</span>
-                    <div class="process-bar">
-                        <div class="process-fill" id="crystallization-bar" style="width: 40%;"></div>
-                    </div>
-                    <span>Moderate</span>
-                </div>
-                <div class="process-indicator">
-                    <span>Hydrothermal Activity</span>
-                    <div class="process-bar">
-                        <div class="process-fill" id="hydrothermal-bar" style="width: 55%;"></div>
-                    </div>
-                    <span>Active</span>
-                </div>
+            <!-- Temperature & Pressure Models -->
+            <div class="chart-container">
+                <div class="chart-title">🌡️ Temperature & Pressure Profiles</div>
+                <canvas id="temp-pressure-chart" width="360" height="100"></canvas>
+            </div>
             </div>
         </div>
         
-        <div id="system-status">
-            <div class="timeline-controls">
-                <button class="button" onclick="startSimulation()" id="sim-start">▶️ Start</button>
-                <button class="button" onclick="pauseSimulation()" id="sim-pause" style="display:none;">⏸️ Pause</button>
-                <button class="button" onclick="stepSimulation()">⏭️ Step</button>
-            </div>
-            
-            <div style="text-align: center;">
-                <div style="color: #FF5722; font-weight: bold; font-size: 18px;" id="simulation-time">Day 0</div>
-                <div style="color: #aaa; font-size: 12px;">Simulation Time</div>
-            </div>
-            
-            <div class="timeline-controls">
-                <label style="color: #aaa;">Speed:</label>
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <div class="simulation-controls">
+                <button class="btn" id="sim-start" onclick="startSimulation()">▶️ Start</button>
+                <button class="btn" id="sim-pause" onclick="pauseSimulation()" style="display:none;">⏸️ Pause</button>
+                <button class="btn" onclick="stepSimulation()">⏭️ Step</button>
                 <select id="sim-speed">
                     <option value="0.1">0.1x</option>
                     <option value="0.5">0.5x</option>
@@ -562,49 +1074,80 @@
                 </select>
             </div>
             
-            <div style="text-align: center;">
-                <div style="color: #FF5722; font-weight: bold;" id="eruption-probability">15%</div>
-                <div style="color: #aaa; font-size: 12px;">Eruption Probability</div>
+            <div class="time-display">
+                <div class="time-value" id="simulation-time">Day 0</div>
+                <div class="time-label">Simulation Time</div>
+            </div>
+            
+            <div class="probability-display">
+                <div class="probability-value" id="eruption-probability">12%</div>
+                <div class="time-label">Eruption Probability</div>
             </div>
         </div>
     </div>
 
     <script>
-        // Global simulation state
-        let scene, camera, renderer;
-        let volcanoMesh, magmaChamber, dikeIntrusions = [], hydrothermalSystem;
+        // Enhanced Volcanic System Simulator with GNSS/InSAR/Earthquake Integration
+        
+        // Global simulation variables
+        let scene, camera, renderer, controls;
+        let volcanoMesh, magmaChamber, dikeSystem = [];
+        let gnssStations = [], insarData = [], earthquakeData = [];
+        let simulationTime = 0;
         let isSimulationRunning = false;
-        let simulationTime = 0; // in days
-        let currentView = 'cross-section';
+        let currentView = '3d-model';
         let selectedVolcano = 'etna';
-        let alertLevel = 'green';
+        let alertLevel = 'normal';
         
-        // Volcano parameters
+        // Enhanced volcano parameters based on latest research
         let volcanoParams = {
-            chamberDepth: 6.0,        // km
-            chamberVolume: 50,        // km³
-            magmaTemperature: 1100,   // °C
-            crystalContent: 30,       // %
-            gasContent: 4.0,          // wt%
-            chamberPressure: 150,     // MPa
-            intrusionRate: 0.1,       // m³/s
-            dikeThickness: 2.0,       // m
-            dikeDepth: 3.0,          // km
-            waterTable: 200,          // m
-            permeability: 100,        // mD
-            heatSource: 600           // °C
+            // Magmatic reservoir parameters
+            chamberDepth: 8.0,          // km - depth to top of chamber
+            chamberVolume: 75,          // km³ - chamber volume
+            magmaTemperature: 1100,     // °C - magma temperature
+            meltFraction: 65,           // % - fraction of melt vs crystals
+            volatileContent: 4.5,       // wt% - H2O + CO2 + S content
+            chamberPressure: 200,       // MPa - chamber overpressure
+            
+            // Intrusion dynamics
+            supplyRate: 0.5,            // m³/s - magma supply rate
+            dikeVelocity: 0.01,         // m/s - dike propagation velocity
+            stressThreshold: 15,        // MPa - failure stress threshold
+            
+            // Environmental parameters
+            crustalDensity: 2700,       // kg/m³
+            regionalStress: 25,         // MPa
+            permeability: 150           // mD - rock permeability
         };
         
-        // Monitoring data
+        // Advanced monitoring data with realistic physics
         let monitoringData = {
-            seismicRate: 12,
-            deformationRate: 0.3,
-            so2Flux: 450,
-            thermalAnomaly: 2.3,
-            eruptionProbability: 15
+            seismicRate: 8,             // earthquakes per day
+            deformationRate: 0.2,       // mm/day uplift
+            so2Flux: 320,               // tonnes per day
+            thermalAnomaly: 1.8,        // MW thermal output
+            eruptionProbability: 12,    // % probability
+            
+            // GNSS displacement vectors (3D)
+            gnssDisplacements: [],
+            
+            // InSAR line-of-sight deformation
+            insarDeformation: [],
+            
+            // Earthquake catalog with hypocenters
+            earthquakeCatalog: [],
+            
+            // Gas composition (updated real-time)
+            gasComposition: {
+                h2o: 82, co2: 12, so2: 4, h2s: 1.5, hcl: 0.4, hf: 0.1
+            },
+            
+            // Temperature and pressure profiles
+            temperatureProfile: [],
+            pressureProfile: []
         };
         
-        // Volcano presets
+        // Enhanced volcano presets based on real volcanic systems
         const VOLCANO_PRESETS = {
             etna: {
                 name: "Mount Etna",
@@ -612,18 +1155,18 @@
                 chamberDepth: 3.0,
                 chamberVolume: 15,
                 magmaTemperature: 1100,
-                crystalContent: 25,
-                gasContent: 2.5,
-                eruptionStyle: "Strombolian"
+                meltFraction: 75,
+                volatileContent: 2.5,
+                eruptionStyle: "Strombolian-Hawaiian"
             },
             kilauea: {
                 name: "Kilauea",
-                type: "Shield Volcano",
+                type: "Shield Volcano", 
                 chamberDepth: 1.5,
                 chamberVolume: 200,
                 magmaTemperature: 1200,
-                crystalContent: 15,
-                gasContent: 0.8,
+                meltFraction: 85,
+                volatileContent: 0.8,
                 eruptionStyle: "Hawaiian"
             },
             vesuvius: {
@@ -632,18 +1175,18 @@
                 chamberDepth: 8.0,
                 chamberVolume: 80,
                 magmaTemperature: 950,
-                crystalContent: 50,
-                gasContent: 6.0,
+                meltFraction: 50,
+                volatileContent: 6.0,
                 eruptionStyle: "Plinian"
             },
             yellowstone: {
-                name: "Yellowstone",
+                name: "Yellowstone Caldera",
                 type: "Supervolcano",
                 chamberDepth: 12.0,
                 chamberVolume: 15000,
                 magmaTemperature: 750,
-                crystalContent: 70,
-                gasContent: 4.5,
+                meltFraction: 30,
+                volatileContent: 4.5,
                 eruptionStyle: "Caldera-forming"
             },
             pinatubo: {
@@ -652,753 +1195,1632 @@
                 chamberDepth: 6.0,
                 chamberVolume: 5,
                 magmaTemperature: 850,
-                crystalContent: 60,
-                gasContent: 7.0,
+                meltFraction: 40,
+                volatileContent: 7.0,
                 eruptionStyle: "Plinian"
+            },
+            santorini: {
+                name: "Santorini",
+                type: "Caldera",
+                chamberDepth: 4.0,
+                chamberVolume: 25,
+                magmaTemperature: 950,
+                meltFraction: 55,
+                volatileContent: 5.5,
+                eruptionStyle: "Plinian-Caldera"
+            },
+            krakatoa: {
+                name: "Krakatoa",
+                type: "Caldera",
+                chamberDepth: 7.0,
+                chamberVolume: 40,
+                magmaTemperature: 900,
+                meltFraction: 45,
+                volatileContent: 8.0,
+                eruptionStyle: "Ultra-Plinian"
             }
         };
         
+        // Chart.js instances for monitoring displays
+        let gnssChart, insarChart, seismicChart, hypocenterChart, tempPressureChart;
+        
+        // Initialize the volcanic system simulator
         function initVolcanicSystem() {
-            // Scene setup
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            console.log("Initializing Enhanced Volcanic System Simulator...");
             
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x000510, 1);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // Initialize Three.js scene
+            initThreeJS();
             
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-            
-            // Camera positioning
-            camera.position.set(15, 10, 15);
-            camera.lookAt(0, 0, 0);
-            
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(20, 20, 10);
-            directionalLight.castShadow = true;
-            scene.add(directionalLight);
-            
-            // Add volcanic glow lighting
-            const volcanicLight = new THREE.PointLight(0xff4400, 1, 50);
-            volcanicLight.position.set(0, 2, 0);
-            scene.add(volcanicLight);
-            
-            // Create initial volcano
-            createVolcanoVisualization();
+            // Initialize monitoring systems
+            initMonitoringSystems();
             
             // Setup event listeners
             setupEventListeners();
             
             // Initialize monitoring displays
-            updateMonitoringDisplays();
+            initMonitoringCharts();
+            
+            // Create initial volcano visualization
+            createVolcanoVisualization();
+            
+            // Start simulation data generation
+            generateSimulationData();
             
             // Start animation loop
             animate();
             
-            console.log("Volcanic system simulation initialized");
+            console.log("Volcanic System Simulator initialized successfully!");
+        }
+        
+        function initThreeJS() {
+            // Scene setup with enhanced graphics
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 50, 200);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(25, 15, 25);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer setup with enhanced settings
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('webgl2');
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                context: context, 
+                antialias: true, 
+                alpha: true,
+                powerPreference: "high-performance"
+            });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000510, 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            
+            // Fix WebGL extensions using the universal fix
+            if (window.fixWebGLExtensions) {
+                fixWebGLExtensions(renderer);
+            }
+            
+            document.getElementById('three-container').appendChild(renderer.domElement);
+            
+            // Enhanced lighting system
+            setupLighting();
+            
+            // Add post-processing effects
+            setupPostProcessing();
+        }
+        
+        function setupLighting() {
+            // Ambient lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+            scene.add(ambientLight);
+            
+            // Directional sun light
+            const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            sunLight.position.set(50, 50, 25);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 500;
+            sunLight.shadow.camera.left = -50;
+            sunLight.shadow.camera.right = 50;
+            sunLight.shadow.camera.top = 50;
+            sunLight.shadow.camera.bottom = -50;
+            scene.add(sunLight);
+            
+            // Volcanic glow lighting
+            const volcanicLight = new THREE.PointLight(0xff4400, 2, 100);
+            volcanicLight.position.set(0, 5, 0);
+            scene.add(volcanicLight);
+            
+            // Atmospheric rim lighting
+            const rimLight = new THREE.DirectionalLight(0x0099ff, 0.3);
+            rimLight.position.set(-50, 10, -25);
+            scene.add(rimLight);
+        }
+        
+        function setupPostProcessing() {
+            // Add bloom and other effects here if needed
+            // This would require additional libraries like EffectComposer
+        }
+        
+        function initMonitoringSystems() {
+            // Initialize GNSS stations with realistic positions
+            initGNSSStations();
+            
+            // Initialize InSAR deformation grid
+            initInSARSystem();
+            
+            // Initialize earthquake monitoring
+            initSeismicMonitoring();
+            
+            // Initialize gas monitoring systems
+            initGasMonitoring();
+        }
+        
+        function initGNSSStations() {
+            const stationCount = 12;
+            const stationRadius = 15; // km from volcano center
+            
+            gnssStations = [];
+            for (let i = 0; i < stationCount; i++) {
+                const angle = (i / stationCount) * Math.PI * 2;
+                const distance = stationRadius + Math.random() * 10;
+                
+                const station = {
+                    id: `GNSS${String(i + 1).padStart(2, '0')}`,
+                    position: {
+                        x: Math.cos(angle) * distance,
+                        y: 0,
+                        z: Math.sin(angle) * distance
+                    },
+                    displacement: { x: 0, y: 0, z: 0 },
+                    velocity: { x: 0, y: 0, z: 0 },
+                    accuracy: 2 + Math.random() * 3 // mm accuracy
+                };
+                
+                gnssStations.push(station);
+                createGNSSVisualization(station);
+            }
+        }
+        
+        function createGNSSVisualization(station) {
+            // Create GNSS station marker in 3D scene
+            const stationGeometry = new THREE.ConeGeometry(0.3, 1, 6);
+            const stationMaterial = new THREE.MeshLambertMaterial({ color: 0x4CAF50 });
+            const stationMesh = new THREE.Mesh(stationGeometry, stationMaterial);
+            stationMesh.position.set(station.position.x, 0.5, station.position.z);
+            stationMesh.userData = { type: 'gnss', station: station };
+            scene.add(stationMesh);
+            
+            // Create displacement vector visualization
+            const vectorGeometry = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(station.position.x, 0, station.position.z),
+                0,
+                0x2196F3,
+                0.5,
+                0.3
+            );
+            scene.add(vectorGeometry);
+            station.vectorMesh = vectorGeometry;
+        }
+        
+        function initInSARSystem() {
+            // Create InSAR deformation grid
+            const gridSize = 50;
+            const cellSize = 1; // km per cell
+            
+            insarData = [];
+            for (let x = -gridSize/2; x < gridSize/2; x += cellSize) {
+                for (let z = -gridSize/2; z < gridSize/2; z += cellSize) {
+                    const distance = Math.sqrt(x*x + z*z);
+                    
+                    const cell = {
+                        position: { x: x, z: z },
+                        losDeformation: 0, // line-of-sight deformation in mm
+                        coherence: Math.max(0.3, 1 - distance / 30), // coherence decreases with distance
+                        acquisitionDate: new Date()
+                    };
+                    
+                    insarData.push(cell);
+                }
+            }
+        }
+        
+        function initSeismicMonitoring() {
+            // Initialize earthquake catalog
+            earthquakeData = [];
+            
+            // Generate initial earthquake background
+            generateBackgroundSeismicity();
+        }
+        
+        function generateBackgroundSeismicity() {
+            const backgroundRate = 5; // earthquakes per day
+            
+            for (let i = 0; i < backgroundRate; i++) {
+                const distance = Math.random() * 20;
+                const angle = Math.random() * Math.PI * 2;
+                const depth = 2 + Math.random() * 15; // 2-17 km depth
+                
+                const earthquake = {
+                    id: `EQ${Date.now()}_${i}`,
+                    location: {
+                        x: Math.cos(angle) * distance,
+                        y: -depth,
+                        z: Math.sin(angle) * distance
+                    },
+                    magnitude: 1.0 + Math.random() * 2.5, // M 1.0-3.5
+                    time: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000),
+                    type: 'VT' // volcano-tectonic
+                };
+                
+                earthquakeData.push(earthquake);
+                createEarthquakeVisualization(earthquake);
+            }
+        }
+        
+        function createEarthquakeVisualization(earthquake) {
+            // Create 3D earthquake hypocenter
+            const eqGeometry = new THREE.SphereGeometry(earthquake.magnitude * 0.2, 8, 8);
+            const eqMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFF5722,
+                transparent: true,
+                opacity: 0.7
+            });
+            const eqMesh = new THREE.Mesh(eqGeometry, eqMaterial);
+            eqMesh.position.set(earthquake.location.x, earthquake.location.y, earthquake.location.z);
+            eqMesh.userData = { type: 'earthquake', data: earthquake };
+            scene.add(eqMesh);
+            
+            earthquake.mesh = eqMesh;
+            
+            // Animate earthquake with pulse effect
+            animateEarthquake(eqMesh);
+        }
+        
+        function animateEarthquake(mesh) {
+            const startScale = mesh.scale.x;
+            const pulseAnimation = () => {
+                mesh.scale.setScalar(startScale * (1 + 0.5 * Math.sin(Date.now() * 0.01)));
+                mesh.material.opacity = 0.4 + 0.3 * Math.sin(Date.now() * 0.01);
+            };
+            
+            const animate = () => {
+                pulseAnimation();
+                requestAnimationFrame(animate);
+            };
+            animate();
+        }
+        
+        function initGasMonitoring() {
+            // Initialize gas composition monitoring
+            updateGasComposition();
+        }
+        
+        function initMonitoringCharts() {
+            // Initialize Chart.js charts for monitoring data
+            initGNSSChart();
+            initInSARChart();
+            initSeismicChart();
+            initHypocenterChart();
+            initTempPressureChart();
+        }
+        
+        function initGNSSChart() {
+            const ctx = document.getElementById('gnss-chart').getContext('2d');
+            gnssChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'GNSS Horizontal',
+                        data: [],
+                        backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                        borderColor: 'rgba(76, 175, 80, 1)',
+                        pointRadius: 4
+                    }, {
+                        label: 'GNSS Vertical',
+                        data: [],
+                        backgroundColor: 'rgba(33, 150, 243, 0.8)',
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff', font: { size: 10 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'East (mm)', color: '#fff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        },
+                        y: {
+                            title: { display: true, text: 'North (mm)', color: '#fff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function initInSARChart() {
+            const ctx = document.getElementById('insar-chart').getContext('2d');
+            insarChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'InSAR LOS Deformation',
+                        data: [],
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff', font: { size: 10 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Distance (km)', color: '#fff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        },
+                        y: {
+                            title: { display: true, text: 'LOS Deformation (mm)', color: '#fff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function initSeismicChart() {
+            const ctx = document.getElementById('seismic-trace').getContext('2d');
+            
+            // Create real-time seismic trace
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            
+            // Draw seismic trace background
+            drawSeismicTrace(ctx);
+        }
+        
+        function drawSeismicTrace(ctx) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw seismic waveform
+            ctx.strokeStyle = '#FF5722';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            
+            const amplitude = monitoringData.seismicRate / 50;
+            const frequency = 0.1;
+            const offset = simulationTime * 0.1;
+            
+            for (let x = 0; x < width; x++) {
+                const t = x * frequency + offset;
+                const y = height/2 + Math.sin(t) * amplitude * height/4;
+                
+                // Add random noise for realistic seismic signal
+                const noise = (Math.random() - 0.5) * amplitude * 5;
+                const finalY = y + noise;
+                
+                if (x === 0) ctx.moveTo(x, finalY);
+                else ctx.lineTo(x, finalY);
+            }
+            
+            ctx.stroke();
+            
+            // Draw time markers
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < width; x += width/10) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+        }
+        
+        function initHypocenterChart() {
+            const ctx = document.getElementById('hypocenter-chart').getContext('2d');
+            hypocenterChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Earthquake Hypocenters',
+                        data: [],
+                        backgroundColor: function(context) {
+                            const magnitude = context.raw.magnitude || 2;
+                            const alpha = Math.min(1, magnitude / 4);
+                            return `rgba(255, 87, 34, ${alpha})`;
+                        },
+                        borderColor: 'rgba(255, 87, 34, 1)',
+                        pointRadius: function(context) {
+                            const magnitude = context.raw.magnitude || 2;
+                            return Math.max(3, magnitude * 2);
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff', font: { size: 10 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Distance (km)', color: '#fff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        },
+                        y: {
+                            title: { display: true, text: 'Depth (km)', color: '#fff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } },
+                            reverse: true // Depth increases downward
+                        }
+                    }
+                }
+            });
+        }
+        
+        function initTempPressureChart() {
+            const ctx = document.getElementById('temp-pressure-chart').getContext('2d');
+            tempPressureChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: [],
+                        borderColor: 'rgba(255, 87, 34, 1)',
+                        backgroundColor: 'rgba(255, 87, 34, 0.2)',
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Pressure (MPa)',
+                        data: [],
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff', font: { size: 10 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Depth (km)', color: '#fff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Temperature (°C)', color: '#FF5722' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#FF5722', font: { size: 9 } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Pressure (MPa)', color: '#2196F3' },
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#2196F3', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
         }
         
         function createVolcanoVisualization() {
             // Clear existing visualization
-            while (scene.children.length > 3) { // Keep lights
-                scene.remove(scene.children[3]);
+            clearScene();
+            
+            switch(currentView) {
+                case '3d-model':
+                    create3DVolcanoModel();
+                    break;
+                case 'cross-section':
+                    createCrossSection();
+                    break;
+                case 'reservoir':
+                    createReservoirView();
+                    break;
+                case 'deformation':
+                    createDeformationView();
+                    break;
+                case 'gas-flow':
+                    createGasFlowView();
+                    break;
+                case 'stress-field':
+                    createStressFieldView();
+                    break;
             }
             
-            if (currentView === 'cross-section') {
-                createCrossSectionView();
-            } else if (currentView === 'magma-chamber') {
-                createMagmaChamberView();
-            } else if (currentView === 'hydrothermal') {
-                createHydrothermalView();
-            } else if (currentView === 'stress-field') {
-                createStressFieldView();
-            } else if (currentView === 'gas-flow') {
-                createGasFlowView();
-            }
+            // Update cross-section overlay
+            updateCrossSectionOverlay();
         }
         
-        function createCrossSectionView() {
-            // Create volcanic edifice
-            const coneGeometry = new THREE.ConeGeometry(5, 8, 32);
-            const coneMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-            volcanoMesh = new THREE.Mesh(coneGeometry, coneMaterial);
-            volcanoMesh.position.y = 4;
+        function clearScene() {
+            // Remove all volcanic objects but keep lights and monitoring stations
+            const objectsToRemove = [];
+            scene.traverse((object) => {
+                if (object.userData.type === 'volcano' || 
+                    object.userData.type === 'magma' || 
+                    object.userData.type === 'dike') {
+                    objectsToRemove.push(object);
+                }
+            });
+            
+            objectsToRemove.forEach(object => scene.remove(object));
+        }
+        
+        function create3DVolcanoModel() {
+            // Create detailed 3D volcanic edifice
+            createVolcanicEdifice();
+            createMagmaChamber3D();
+            createConduitSystem();
+            createDikeIntrusions();
+            createHydrothermalFeatures();
+        }
+        
+        function createVolcanicEdifice() {
+            // Create realistic volcanic cone with proper geometry
+            const coneGeometry = new THREE.ConeGeometry(8, 12, 32, 8);
+            
+            // Modify geometry to create more realistic slopes
+            const vertices = coneGeometry.attributes.position.array;
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const y = vertices[i + 1];
+                const z = vertices[i + 2];
+                
+                // Add noise for realistic surface
+                const noise = (Math.random() - 0.5) * 0.5;
+                vertices[i] = x + noise;
+                vertices[i + 1] = y + noise * 0.5;
+                vertices[i + 2] = z + noise;
+            }
+            coneGeometry.attributes.position.needsUpdate = true;
+            coneGeometry.computeVertexNormals();
+            
+            // Create volcanic rock material
+            const volcanoMaterial = new THREE.MeshLambertMaterial({
+                color: 0x654321,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            volcanoMesh = new THREE.Mesh(coneGeometry, volcanoMaterial);
+            volcanoMesh.position.y = 6;
+            volcanoMesh.castShadow = true;
+            volcanoMesh.receiveShadow = true;
+            volcanoMesh.userData = { type: 'volcano' };
             scene.add(volcanoMesh);
             
-            // Create magma chamber
-            const chamberGeometry = new THREE.SphereGeometry(volcanoParams.chamberVolume / 20, 16, 16);
-            const chamberMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xff4400, 
-                transparent: true, 
-                opacity: 0.8 
+            // Create crater
+            const craterGeometry = new THREE.CylinderGeometry(1.5, 0.8, 2, 16);
+            const craterMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x330000,
+                transparent: true,
+                opacity: 0.8
             });
-            magmaChamber = new THREE.Mesh(chamberGeometry, chamberMaterial);
-            magmaChamber.position.y = -volcanoParams.chamberDepth;
-            scene.add(magmaChamber);
-            
-            // Create conduit
-            const conduitGeometry = new THREE.CylinderGeometry(0.2, 0.5, volcanoParams.chamberDepth + 4, 8);
-            const conduitMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xff6600, 
-                transparent: true, 
-                opacity: 0.6 
-            });
-            const conduit = new THREE.Mesh(conduitGeometry, conduitMaterial);
-            conduit.position.y = (4 - volcanoParams.chamberDepth) / 2;
-            scene.add(conduit);
-            
-            // Create ground surface
-            const groundGeometry = new THREE.PlaneGeometry(30, 30);
-            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2;
-            ground.position.y = 0;
-            scene.add(ground);
-            
-            // Add geological layers
-            createGeologicalLayers();
-            
-            // Add current dike intrusions
-            dikeIntrusions.forEach(dike => {
-                scene.add(dike.mesh);
-            });
+            const crater = new THREE.Mesh(craterGeometry, craterMaterial);
+            crater.position.y = 11;
+            crater.userData = { type: 'volcano' };
+            scene.add(crater);
         }
         
-        function createMagmaChamberView() {
-            // Detailed magma chamber with internal processes
-            const chamberGeometry = new THREE.SphereGeometry(8, 32, 32);
+        function createMagmaChamber3D() {
+            // Create magma chamber with realistic properties
+            const chamberGeometry = new THREE.SphereGeometry(
+                Math.pow(volcanoParams.chamberVolume / 4.19, 1/3), // Volume to radius conversion
+                32, 32
+            );
+            
+            // Advanced shader material for magma chamber
             const chamberMaterial = new THREE.ShaderMaterial({
                 uniforms: {
                     time: { value: 0 },
                     temperature: { value: volcanoParams.magmaTemperature },
-                    crystalContent: { value: volcanoParams.crystalContent / 100 },
-                    gasContent: { value: volcanoParams.gasContent / 10 }
+                    meltFraction: { value: volcanoParams.meltFraction / 100 },
+                    volatileContent: { value: volcanoParams.volatileContent / 10 },
+                    pressure: { value: volcanoParams.chamberPressure }
                 },
                 vertexShader: `
                     varying vec2 vUv;
                     varying vec3 vNormal;
+                    varying vec3 vPosition;
                     uniform float time;
                     
                     void main() {
                         vUv = uv;
                         vNormal = normalize(normalMatrix * normal);
+                        vPosition = position;
                         
+                        // Add convection movement
                         vec3 pos = position;
-                        pos += normal * sin(time * 2.0 + position.x * 0.5) * 0.1;
+                        float convection = sin(time * 0.5 + position.x * 0.3) * 
+                                         sin(time * 0.7 + position.y * 0.2) * 
+                                         sin(time * 0.6 + position.z * 0.4) * 0.1;
+                        pos += normal * convection;
                         
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
                     }
                 `,
                 fragmentShader: `
                     uniform float temperature;
-                    uniform float crystalContent;
-                    uniform float gasContent;
+                    uniform float meltFraction;
+                    uniform float volatileContent;
+                    uniform float pressure;
                     uniform float time;
                     
                     varying vec2 vUv;
                     varying vec3 vNormal;
+                    varying vec3 vPosition;
                     
                     vec3 temperatureToColor(float temp) {
-                        temp = (temp - 800.0) / 500.0; // Normalize 800-1300°C
-                        vec3 cold = vec3(0.8, 0.2, 0.0);
-                        vec3 hot = vec3(1.0, 1.0, 0.3);
-                        return mix(cold, hot, temp);
+                        temp = (temp - 700.0) / 700.0; // Normalize 700-1400°C
+                        vec3 cold = vec3(0.5, 0.0, 0.0);
+                        vec3 medium = vec3(1.0, 0.3, 0.0);
+                        vec3 hot = vec3(1.0, 1.0, 0.2);
+                        
+                        if (temp < 0.5) {
+                            return mix(cold, medium, temp * 2.0);
+                        } else {
+                            return mix(medium, hot, (temp - 0.5) * 2.0);
+                        }
                     }
                     
                     void main() {
                         vec3 baseColor = temperatureToColor(temperature);
                         
-                        // Add crystal texture
-                        float crystalNoise = sin(vUv.x * 50.0) * sin(vUv.y * 50.0) * 0.1;
-                        baseColor += vec3(crystalNoise * crystalContent);
+                        // Add crystallization effects
+                        float crystalNoise = sin(vPosition.x * 30.0) * 
+                                           sin(vPosition.y * 30.0) * 
+                                           sin(vPosition.z * 30.0) * 0.2;
+                        baseColor += vec3(crystalNoise * (1.0 - meltFraction));
                         
-                        // Add gas bubbles
-                        float gasNoise = sin(vUv.x * 20.0 + time) * sin(vUv.y * 20.0 + time) * 0.2;
-                        baseColor += vec3(gasNoise * gasContent * 0.3);
+                        // Add volatile bubble effects
+                        float bubbleNoise = sin(vPosition.x * 15.0 + time) * 
+                                          sin(vPosition.y * 15.0 + time * 1.1) * 
+                                          sin(vPosition.z * 15.0 + time * 0.9) * 0.3;
+                        baseColor += vec3(bubbleNoise * volatileContent * 0.2);
                         
-                        // Lighting
-                        float lightIntensity = max(0.0, dot(vNormal, normalize(vec3(1.0, 1.0, 1.0))));
-                        baseColor *= (0.4 + 0.6 * lightIntensity);
+                        // Add pressure effects
+                        float pressureGlow = pressure / 500.0;
+                        baseColor += vec3(pressureGlow * 0.1);
                         
-                        gl_FragColor = vec4(baseColor, 0.9);
+                        // Lighting calculation
+                        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+                        float lightIntensity = max(0.3, dot(vNormal, lightDir));
+                        baseColor *= lightIntensity;
+                        
+                        // Add rim lighting
+                        float rimPower = 1.0 - max(0.0, dot(vNormal, vec3(0.0, 0.0, 1.0)));
+                        baseColor += vec3(rimPower * 0.3);
+                        
+                        gl_FragColor = vec4(baseColor, 0.85);
                     }
                 `,
                 transparent: true
             });
             
             magmaChamber = new THREE.Mesh(chamberGeometry, chamberMaterial);
+            magmaChamber.position.y = -volcanoParams.chamberDepth;
+            magmaChamber.userData = { type: 'magma' };
             scene.add(magmaChamber);
-            
-            // Add convection currents
-            createConvectionCurrents();
-            
-            // Add gas bubbles
-            createGasBubbles();
-            
-            // Add crystal clusters
-            createCrystalClusters();
         }
         
-        function createHydrothermalView() {
-            // Create cross-section with hydrothermal features
-            createCrossSectionView();
+        function createConduitSystem() {
+            // Create main conduit
+            const conduitGeometry = new THREE.CylinderGeometry(
+                0.3, 0.8, 
+                volcanoParams.chamberDepth + 6, 
+                16
+            );
             
-            // Add water table
-            const waterGeometry = new THREE.PlaneGeometry(25, 25);
-            const waterMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x0066cc, 
-                transparent: true, 
-                opacity: 0.3 
+            const conduitMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff6600,
+                transparent: true,
+                opacity: 0.7
             });
-            const waterTable = new THREE.Mesh(waterGeometry, waterMaterial);
-            waterTable.rotation.x = -Math.PI / 2;
-            waterTable.position.y = -volcanoParams.waterTable / 1000; // Convert to km scale
-            scene.add(waterTable);
             
-            // Add hot springs
+            const conduit = new THREE.Mesh(conduitGeometry, conduitMaterial);
+            conduit.position.y = (6 - volcanoParams.chamberDepth) / 2;
+            conduit.userData = { type: 'magma' };
+            scene.add(conduit);
+        }
+        
+        function createDikeIntrusions() {
+            // Create multiple dike systems based on current parameters
+            dikeSystem.forEach(dike => scene.remove(dike.mesh));
+            dikeSystem = [];
+            
+            const numberOfDikes = Math.floor(volcanoParams.supplyRate * 2);
+            
+            for (let i = 0; i < numberOfDikes; i++) {
+                const angle = (i / numberOfDikes) * Math.PI * 2;
+                const distance = 2 + Math.random() * 5;
+                
+                const dikeGeometry = new THREE.BoxGeometry(0.1, 8, 3);
+                const dikeMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff3300,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                const dike = new THREE.Mesh(dikeGeometry, dikeMaterial);
+                dike.position.set(
+                    Math.cos(angle) * distance,
+                    -4,
+                    Math.sin(angle) * distance
+                );
+                dike.rotation.y = angle;
+                dike.userData = { type: 'dike' };
+                scene.add(dike);
+                
+                dikeSystem.push({
+                    mesh: dike,
+                    age: Math.random() * 100,
+                    volume: Math.random() * 10,
+                    active: Math.random() > 0.7
+                });
+            }
+        }
+        
+        function createHydrothermalFeatures() {
+            // Create hydrothermal system features
             createHotSprings();
-            
-            // Add geothermal gradient visualization
-            createGeothermalGradient();
-            
-            // Add hydrothermal alteration zones
-            createAlterationZones();
-            
-            // Add fumaroles
             createFumaroles();
+            createAlterationZones();
+        }
+        
+        function createHotSprings() {
+            const springCount = 6;
+            
+            for (let i = 0; i < springCount; i++) {
+                const angle = (i / springCount) * Math.PI * 2;
+                const distance = 5 + Math.random() * 8;
+                
+                const springGeometry = new THREE.CylinderGeometry(0.2, 0.4, 3, 12);
+                const springMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00aaff,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                const spring = new THREE.Mesh(springGeometry, springMaterial);
+                spring.position.set(
+                    Math.cos(angle) * distance,
+                    1.5,
+                    Math.sin(angle) * distance
+                );
+                spring.userData = { type: 'hydrothermal' };
+                scene.add(spring);
+            }
+        }
+        
+        function createFumaroles() {
+            const fumaroleCount = 12;
+            
+            for (let i = 0; i < fumaroleCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 2 + Math.random() * 4;
+                
+                const fumaroleGeometry = new THREE.CylinderGeometry(0.05, 0.15, 6, 8);
+                const fumaroleMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffffaa,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const fumarole = new THREE.Mesh(fumaroleGeometry, fumaroleMaterial);
+                fumarole.position.set(
+                    Math.cos(angle) * distance,
+                    3,
+                    Math.sin(angle) * distance
+                );
+                fumarole.userData = { type: 'hydrothermal' };
+                scene.add(fumarole);
+            }
+        }
+        
+        function createAlterationZones() {
+            const zones = [
+                { radius: 3, color: 0xff6600, opacity: 0.15 },
+                { radius: 2, color: 0xffaa00, opacity: 0.2 },
+                { radius: 1.2, color: 0xffff00, opacity: 0.25 }
+            ];
+            
+            zones.forEach(zone => {
+                const zoneGeometry = new THREE.SphereGeometry(zone.radius, 24, 24);
+                const zoneMaterial = new THREE.MeshBasicMaterial({
+                    color: zone.color,
+                    transparent: true,
+                    opacity: zone.opacity
+                });
+                
+                const zoneMesh = new THREE.Mesh(zoneGeometry, zoneMaterial);
+                zoneMesh.position.y = -volcanoParams.chamberDepth + 2;
+                zoneMesh.userData = { type: 'alteration' };
+                scene.add(zoneMesh);
+            });
+        }
+        
+        function createCrossSection() {
+            // Create 2D cross-section view
+            document.getElementById('cross-section-overlay').style.display = 'block';
+        }
+        
+        function updateCrossSectionOverlay() {
+            const canvas = document.getElementById('cross-section-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!canvas || !ctx) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw cross-section background
+            ctx.fillStyle = 'rgba(20, 30, 40, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw surface
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height * 0.7);
+            ctx.lineTo(canvas.width, canvas.height * 0.7);
+            ctx.stroke();
+            
+            // Draw volcano profile
+            ctx.fillStyle = '#654321';
+            ctx.beginPath();
+            ctx.moveTo(canvas.width * 0.3, canvas.height * 0.7);
+            ctx.lineTo(canvas.width * 0.5, canvas.height * 0.3);
+            ctx.lineTo(canvas.width * 0.7, canvas.height * 0.7);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw magma chamber
+            const chamberX = canvas.width * 0.5;
+            const chamberY = canvas.height * 0.8;
+            const chamberRadius = volcanoParams.chamberVolume / 8;
+            
+            ctx.fillStyle = '#FF5722';
+            ctx.beginPath();
+            ctx.arc(chamberX, chamberY, chamberRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw conduit
+            ctx.strokeStyle = '#FF6600';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(chamberX, chamberY - chamberRadius);
+            ctx.lineTo(canvas.width * 0.5, canvas.height * 0.3);
+            ctx.stroke();
+            
+            // Draw GNSS displacement vectors
+            gnssStations.forEach((station, index) => {
+                if (index < 4) { // Only show first 4 stations in cross-section
+                    const x = 50 + index * 60;
+                    const y = canvas.height * 0.65;
+                    
+                    // Station marker
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.fillRect(x - 2, y - 2, 4, 4);
+                    
+                    // Displacement vector
+                    const scale = 50;
+                    const dx = station.displacement.x * scale;
+                    const dy = -station.displacement.y * scale; // Negative because canvas Y is inverted
+                    
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + dx, y + dy);
+                    ctx.stroke();
+                    
+                    // Arrow head
+                    const angle = Math.atan2(dy, dx);
+                    const arrowSize = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(x + dx, y + dy);
+                    ctx.lineTo(
+                        x + dx - arrowSize * Math.cos(angle - Math.PI/6),
+                        y + dy - arrowSize * Math.sin(angle - Math.PI/6)
+                    );
+                    ctx.moveTo(x + dx, y + dy);
+                    ctx.lineTo(
+                        x + dx - arrowSize * Math.cos(angle + Math.PI/6),
+                        y + dy - arrowSize * Math.sin(angle + Math.PI/6)
+                    );
+                    ctx.stroke();
+                }
+            });
+            
+            // Draw earthquake hypocenters
+            earthquakeData.forEach(eq => {
+                const x = canvas.width * 0.5 + eq.location.x * 8;
+                const y = canvas.height * 0.7 - eq.location.y * 8;
+                
+                if (x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height) {
+                    ctx.fillStyle = 'rgba(255, 87, 34, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(x, y, eq.magnitude, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            // Add labels
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px Arial';
+            ctx.fillText('Surface', 10, canvas.height * 0.7 - 5);
+            ctx.fillText('Magma Chamber', chamberX - 30, chamberY + chamberRadius + 15);
+            ctx.fillText(`Depth: ${volcanoParams.chamberDepth} km`, chamberX - 30, chamberY + chamberRadius + 25);
+        }
+        
+        function createReservoirView() {
+            // Focus on detailed magma chamber view
+            create3DVolcanoModel();
+            
+            // Zoom camera to chamber level
+            camera.position.set(15, -volcanoParams.chamberDepth, 15);
+            camera.lookAt(0, -volcanoParams.chamberDepth, 0);
+        }
+        
+        function createDeformationView() {
+            // Show deformation patterns with InSAR overlay
+            create3DVolcanoModel();
+            updateInSARDeformation();
+        }
+        
+        function updateInSARDeformation() {
+            // Calculate InSAR deformation based on Mogi model
+            insarData.forEach(cell => {
+                const distance = Math.sqrt(cell.position.x * cell.position.x + cell.position.z * cell.position.z);
+                const depth = volcanoParams.chamberDepth * 1000; // Convert to meters
+                
+                // Mogi model for point source deformation
+                const volume = volcanoParams.chamberVolume * 1e9; // Convert km³ to m³
+                const pressure = volcanoParams.chamberPressure * 1e6; // Convert MPa to Pa
+                const shearModulus = 30e9; // Pa, typical for crustal rocks
+                
+                const deltaV = pressure * volume / (2 * shearModulus);
+                const r = distance * 1000; // Convert km to meters
+                
+                if (r > 0) {
+                    // Vertical displacement (mm)
+                    const uz = (deltaV * depth) / (Math.PI * Math.pow(r*r + depth*depth, 1.5)) * 1000;
+                    
+                    // Line-of-sight deformation (assuming typical InSAR viewing geometry)
+                    const lookAngle = 23 * Math.PI / 180; // 23 degree look angle
+                    cell.losDeformation = uz * Math.cos(lookAngle);
+                } else {
+                    cell.losDeformation = 0;
+                }
+            });
+        }
+        
+        function createGasFlowView() {
+            // Show gas flow patterns and degassing zones
+            create3DVolcanoModel();
+            createGasStreamlines();
+        }
+        
+        function createGasStreamlines() {
+            const streamlineCount = 20;
+            
+            for (let i = 0; i < streamlineCount; i++) {
+                const startAngle = (i / streamlineCount) * Math.PI * 2;
+                const startRadius = 1 + Math.random() * 2;
+                const startX = Math.cos(startAngle) * startRadius;
+                const startZ = Math.sin(startAngle) * startRadius;
+                const startY = -volcanoParams.chamberDepth + 1;
+                
+                const points = [];
+                let x = startX, y = startY, z = startZ;
+                
+                // Generate streamline points
+                for (let step = 0; step < 40; step++) {
+                    points.push(new THREE.Vector3(x, y, z));
+                    
+                    // Simulate gas flow (buoyant rise with wind effects)
+                    y += 0.4; // Rise rate
+                    x += (Math.random() - 0.5) * 0.2; // Lateral drift
+                    z += (Math.random() - 0.5) * 0.2;
+                    
+                    if (y > 15) break; // Exit atmosphere
+                }
+                
+                if (points.length > 1) {
+                    const curve = new THREE.CatmullRomCurve3(points);
+                    const geometry = new THREE.TubeGeometry(curve, points.length - 1, 0.05, 8, false);
+                    
+                    // Color based on gas type
+                    const gasColors = [0xffffaa, 0xffaaaa, 0xaaffaa, 0xaaaaff];
+                    const color = gasColors[i % gasColors.length];
+                    
+                    const material = new THREE.MeshBasicMaterial({
+                        color: color,
+                        transparent: true,
+                        opacity: 0.6
+                    });
+                    
+                    const streamline = new THREE.Mesh(geometry, material);
+                    streamline.userData = { type: 'gas-flow' };
+                    scene.add(streamline);
+                }
+            }
         }
         
         function createStressFieldView() {
-            createCrossSectionView();
+            // Show stress field around magma chamber
+            create3DVolcanoModel();
+            createStressVectors();
+        }
+        
+        function createStressVectors() {
+            const gridSize = 15;
+            const step = 2;
             
-            // Create stress field vectors
-            for (let x = -10; x <= 10; x += 2) {
-                for (let y = -5; y <= 5; y += 2) {
-                    for (let z = -10; z <= 10; z += 2) {
-                        const distance = Math.sqrt(x*x + (y + volcanoParams.chamberDepth)*(y + volcanoParams.chamberDepth) + z*z);
+            for (let x = -gridSize; x <= gridSize; x += step) {
+                for (let y = -10; y <= 5; y += step) {
+                    for (let z = -gridSize; z <= gridSize; z += step) {
+                        const distance = Math.sqrt(
+                            x*x + 
+                            (y + volcanoParams.chamberDepth)*(y + volcanoParams.chamberDepth) + 
+                            z*z
+                        );
                         
-                        if (distance > 1 && distance < 15) {
-                            const stress = calculateStress(x, y, z);
-                            createStressVector(x, y, z, stress);
+                        if (distance > 2 && distance < 12) {
+                            const stress = calculateStressTensor(x, y, z);
+                            if (stress.magnitude > 1) {
+                                createStressVector(x, y, z, stress);
+                            }
                         }
                     }
                 }
             }
         }
         
-        function createGasFlowView() {
-            createCrossSectionView();
+        function calculateStressTensor(x, y, z) {
+            // Calculate stress based on elastic half-space model
+            const chamberY = -volcanoParams.chamberDepth;
+            const dx = x;
+            const dy = y - chamberY;
+            const dz = z;
             
-            // Create gas flow streamlines
-            createGasStreamlines();
+            const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            const pressure = volcanoParams.chamberPressure;
             
-            // Add degassing zones
-            createDegassingZones();
-        }
-        
-        function createGeologicalLayers() {
-            const layers = [
-                { depth: -1, thickness: 1, color: 0x8B7355, name: "Sedimentary" },
-                { depth: -3, thickness: 2, color: 0x696969, name: "Volcanic" },
-                { depth: -8, thickness: 5, color: 0x2F4F4F, name: "Basement" },
-            ];
+            if (r === 0) return { magnitude: 0, direction: { x: 0, y: 0, z: 0 } };
             
-            layers.forEach(layer => {
-                const geometry = new THREE.PlaneGeometry(30, layer.thickness);
-                const material = new THREE.MeshLambertMaterial({ 
-                    color: layer.color, 
-                    transparent: true, 
-                    opacity: 0.6 
-                });
-                const mesh = new THREE.Mesh(geometry, material);
-                mesh.rotation.x = -Math.PI / 2;
-                mesh.position.y = layer.depth - layer.thickness / 2;
-                scene.add(mesh);
-            });
-        }
-        
-        function createConvectionCurrents() {
-            const numCurrents = 20;
-            
-            for (let i = 0; i < numCurrents; i++) {
-                const angle = (i / numCurrents) * Math.PI * 2;
-                const radius = 3 + Math.random() * 4;
-                
-                const curve = new THREE.QuadraticBezierCurve3(
-                    new THREE.Vector3(Math.cos(angle) * radius, -3, Math.sin(angle) * radius),
-                    new THREE.Vector3(0, 0, 0),
-                    new THREE.Vector3(Math.cos(angle + Math.PI) * radius, 3, Math.sin(angle + Math.PI) * radius)
-                );
-                
-                const geometry = new THREE.TubeGeometry(curve, 20, 0.1, 8, false);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: new THREE.Color().setHSL(0.05, 0.8, 0.6),
-                    transparent: true,
-                    opacity: 0.7
-                });
-                
-                const current = new THREE.Mesh(geometry, material);
-                scene.add(current);
-            }
-        }
-        
-        function createGasBubbles() {
-            const numBubbles = 50;
-            
-            for (let i = 0; i < numBubbles; i++) {
-                const bubbleGeometry = new THREE.SphereGeometry(0.1 + Math.random() * 0.2, 8, 8);
-                const bubbleMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xffffcc, 
-                    transparent: true, 
-                    opacity: 0.4 
-                });
-                
-                const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
-                bubble.position.set(
-                    (Math.random() - 0.5) * 15,
-                    (Math.random() - 0.5) * 15,
-                    (Math.random() - 0.5) * 15
-                );
-                
-                scene.add(bubble);
-            }
-        }
-        
-        function createCrystalClusters() {
-            const numClusters = Math.floor(volcanoParams.crystalContent / 5);
-            
-            for (let i = 0; i < numClusters; i++) {
-                const clusterGeometry = new THREE.OctahedronGeometry(0.3 + Math.random() * 0.5);
-                const clusterMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xcccccc, 
-                    transparent: true, 
-                    opacity: 0.6 
-                });
-                
-                const cluster = new THREE.Mesh(clusterGeometry, clusterMaterial);
-                cluster.position.set(
-                    (Math.random() - 0.5) * 12,
-                    (Math.random() - 0.5) * 12,
-                    (Math.random() - 0.5) * 12
-                );
-                
-                cluster.rotation.set(
-                    Math.random() * Math.PI,
-                    Math.random() * Math.PI,
-                    Math.random() * Math.PI
-                );
-                
-                scene.add(cluster);
-            }
-        }
-        
-        function createHotSprings() {
-            const numSprings = 5;
-            
-            for (let i = 0; i < numSprings; i++) {
-                const springGeometry = new THREE.CylinderGeometry(0.1, 0.3, 2, 8);
-                const springMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0x00aaff, 
-                    transparent: true, 
-                    opacity: 0.6 
-                });
-                
-                const spring = new THREE.Mesh(springGeometry, springMaterial);
-                spring.position.set(
-                    (Math.random() - 0.5) * 20,
-                    -volcanoParams.waterTable / 1000 + 1,
-                    (Math.random() - 0.5) * 20
-                );
-                
-                scene.add(spring);
-            }
-        }
-        
-        function createGeothermalGradient() {
-            // Visual representation of temperature gradient
-            const gradientGeometry = new THREE.PlaneGeometry(1, 20);
-            const gradientMaterial = new THREE.ShaderMaterial({
-                uniforms: {
-                    surfaceTemp: { value: 20 },
-                    heatSourceTemp: { value: volcanoParams.heatSource }
-                },
-                vertexShader: `
-                    varying vec2 vUv;
-                    void main() {
-                        vUv = uv;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `
-                    uniform float surfaceTemp;
-                    uniform float heatSourceTemp;
-                    varying vec2 vUv;
-                    
-                    vec3 temperatureToColor(float temp) {
-                        temp = (temp - 20.0) / 580.0; // Normalize 20-600°C
-                        vec3 cold = vec3(0.0, 0.0, 1.0);
-                        vec3 warm = vec3(0.0, 1.0, 0.0);
-                        vec3 hot = vec3(1.0, 0.0, 0.0);
-                        
-                        if (temp < 0.5) {
-                            return mix(cold, warm, temp * 2.0);
-                        } else {
-                            return mix(warm, hot, (temp - 0.5) * 2.0);
-                        }
-                    }
-                    
-                    void main() {
-                        float temp = mix(surfaceTemp, heatSourceTemp, 1.0 - vUv.y);
-                        vec3 color = temperatureToColor(temp);
-                        gl_FragColor = vec4(color, 0.7);
-                    }
-                `,
-                transparent: true
-            });
-            
-            const gradient = new THREE.Mesh(gradientGeometry, gradientMaterial);
-            gradient.position.set(12, -5, 0);
-            scene.add(gradient);
-        }
-        
-        function createAlterationZones() {
-            const zones = [
-                { radius: 2, color: 0xff6600, name: "Propylitic" },
-                { radius: 1.5, color: 0xffaa00, name: "Argillic" },
-                { radius: 1, color: 0xffff00, name: "Silicic" }
-            ];
-            
-            zones.forEach((zone, index) => {
-                const geometry = new THREE.SphereGeometry(zone.radius, 16, 16);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: zone.color, 
-                    transparent: true, 
-                    opacity: 0.2 
-                });
-                
-                const mesh = new THREE.Mesh(geometry, material);
-                mesh.position.y = -volcanoParams.chamberDepth + index * 0.5;
-                scene.add(mesh);
-            });
-        }
-        
-        function createFumaroles() {
-            const numFumaroles = 8;
-            
-            for (let i = 0; i < numFumaroles; i++) {
-                const angle = (i / numFumaroles) * Math.PI * 2;
-                const radius = 3 + Math.random() * 2;
-                
-                const fumaroleGeometry = new THREE.CylinderGeometry(0.05, 0.1, 5, 8);
-                const fumaroleMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xffffaa, 
-                    transparent: true, 
-                    opacity: 0.8 
-                });
-                
-                const fumarole = new THREE.Mesh(fumaroleGeometry, fumaroleMaterial);
-                fumarole.position.set(
-                    Math.cos(angle) * radius,
-                    2.5,
-                    Math.sin(angle) * radius
-                );
-                
-                scene.add(fumarole);
-            }
-        }
-        
-        function calculateStress(x, y, z) {
-            // Simplified stress calculation around magma chamber
-            const distance = Math.sqrt(x*x + (y + volcanoParams.chamberDepth)*(y + volcanoParams.chamberDepth) + z*z);
-            const pressure = volcanoParams.chamberPressure / (distance * distance);
+            // Simplified stress calculation
+            const stressMagnitude = pressure / (r * r) * 100;
             
             return {
-                magnitude: pressure,
+                magnitude: stressMagnitude,
                 direction: {
-                    x: x / distance,
-                    y: (y + volcanoParams.chamberDepth) / distance,
-                    z: z / distance
+                    x: dx / r,
+                    y: dy / r,
+                    z: dz / r
                 }
             };
         }
         
         function createStressVector(x, y, z, stress) {
-            const arrowGeometry = new THREE.ConeGeometry(0.1, 0.5, 8);
-            const color = new THREE.Color().setHSL(0.7 - Math.min(stress.magnitude / 50, 0.7), 0.8, 0.5);
+            const vectorLength = Math.min(2, stress.magnitude / 10);
+            
+            const arrowGeometry = new THREE.ConeGeometry(0.1, 0.4, 8);
+            const color = new THREE.Color().setHSL(
+                0.8 - Math.min(0.6, stress.magnitude / 50), // Blue to red
+                0.9,
+                0.6
+            );
             const arrowMaterial = new THREE.MeshBasicMaterial({ color: color });
             
             const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
             arrow.position.set(x, y, z);
             
             // Orient arrow in stress direction
-            const direction = new THREE.Vector3(stress.direction.x, stress.direction.y, stress.direction.z);
+            const direction = new THREE.Vector3(
+                stress.direction.x,
+                stress.direction.y,
+                stress.direction.z
+            );
             arrow.lookAt(arrow.position.clone().add(direction));
             arrow.rotateX(Math.PI / 2);
             
+            arrow.userData = { type: 'stress-vector' };
             scene.add(arrow);
         }
         
-        function createGasStreamlines() {
-            const numStreamlines = 15;
+        function generateSimulationData() {
+            // Update GNSS displacements
+            updateGNSSData();
             
-            for (let i = 0; i < numStreamlines; i++) {
-                const startX = (Math.random() - 0.5) * 4;
-                const startZ = (Math.random() - 0.5) * 4;
-                const startY = -volcanoParams.chamberDepth;
-                
-                const points = [];
-                let x = startX, y = startY, z = startZ;
-                
-                for (let step = 0; step < 50; step++) {
-                    points.push(new THREE.Vector3(x, y, z));
-                    
-                    // Simulate gas flow (rising with some lateral drift)
-                    y += 0.3;
-                    x += (Math.random() - 0.5) * 0.1;
-                    z += (Math.random() - 0.5) * 0.1;
-                    
-                    if (y > 8) break;
-                }
-                
-                const curve = new THREE.CatmullRomCurve3(points);
-                const geometry = new THREE.TubeGeometry(curve, points.length-1, 0.02, 8, false);
-                const material = new THREE.MeshBasicMaterial({
-                    color: new THREE.Color().setHSL(0.15, 0.8, 0.6),
-                    transparent: true,
-                    opacity: 0.6
-                });
-                
-                const streamline = new THREE.Mesh(geometry, material);
-                scene.add(streamline);
-            }
-        }
-        
-        function createDegassingZones() {
-            const zoneGeometry = new THREE.SphereGeometry(1.5, 16, 16);
-            const zoneMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xffff66, 
-                transparent: true, 
-                opacity: 0.3 
-            });
+            // Update InSAR deformation
+            updateInSARDeformation();
             
-            const zone = new THREE.Mesh(zoneGeometry, zoneMaterial);
-            zone.position.y = -volcanoParams.chamberDepth + 1;
-            scene.add(zone);
-        }
-        
-        function triggerIntrusion() {
-            // Create new dike intrusion
-            const dikeGeometry = new THREE.BoxGeometry(
-                volcanoParams.dikeThickness / 1000,
-                volcanoParams.dikeDepth,
-                0.5
-            );
-            const dikeMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xff3300, 
-                transparent: true, 
-                opacity: 0.8 
-            });
-            
-            const dike = new THREE.Mesh(dikeGeometry, dikeMaterial);
-            dike.position.set(
-                (Math.random() - 0.5) * 6,
-                -volcanoParams.dikeDepth / 2,
-                (Math.random() - 0.5) * 6
-            );
-            
-            const intrusionObj = {
-                mesh: dike,
-                age: 0,
-                volume: volcanoParams.intrusionRate,
-                active: true
-            };
-            
-            dikeIntrusions.push(intrusionObj);
-            scene.add(dike);
-            
-            // Update monitoring parameters
-            monitoringData.seismicRate += 15;
-            monitoringData.deformationRate += 0.8;
-            monitoringData.eruptionProbability += 10;
-            
-            updateAlertLevel();
-            console.log("Dike intrusion triggered");
-        }
-        
-        function stopIntrusion() {
-            dikeIntrusions.forEach(dike => {
-                dike.active = false;
-            });
-            
-            // Gradually reduce monitoring parameters
-            monitoringData.seismicRate = Math.max(5, monitoringData.seismicRate - 10);
-            monitoringData.deformationRate = Math.max(0.1, monitoringData.deformationRate - 0.5);
-            
-            console.log("Intrusion stopped");
-        }
-        
-        function activateHydrothermal() {
-            // Increase hydrothermal activity
-            monitoringData.thermalAnomaly += 1.5;
-            monitoringData.so2Flux += 200;
+            // Generate new earthquakes
+            generateEarthquakes();
             
             // Update gas composition
-            document.getElementById('h2s-content').textContent = '4%';
-            document.getElementById('so2-content').textContent = '6%';
+            updateGasComposition();
             
+            // Update temperature and pressure profiles
+            updateThermalProfiles();
+            
+            // Update monitoring displays
             updateMonitoringDisplays();
-            console.log("Hydrothermal system activated");
         }
         
-        function simulatePhreatomagmatic() {
-            // Simulate explosive interaction between magma and water
-            monitoringData.seismicRate += 50;
-            monitoringData.eruptionProbability += 30;
-            
-            // Create explosion visualization
-            const explosionGeometry = new THREE.SphereGeometry(2, 16, 16);
-            const explosionMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xffffff, 
-                transparent: true, 
-                opacity: 0.9 
+        function updateGNSSData() {
+            gnssStations.forEach(station => {
+                const distance = Math.sqrt(
+                    station.position.x * station.position.x + 
+                    station.position.z * station.position.z
+                );
+                
+                // Calculate displacement based on Mogi model
+                const depth = volcanoParams.chamberDepth * 1000; // Convert to meters
+                const r = distance * 1000; // Convert to meters
+                
+                if (r > 0) {
+                    const volume = volcanoParams.chamberVolume * 1e9; // Convert km³ to m³
+                    const pressure = volcanoParams.chamberPressure * 1e6; // Convert MPa to Pa
+                    const shearModulus = 30e9; // Pa
+                    
+                    const deltaV = pressure * volume / (2 * shearModulus);
+                    
+                    // Radial displacement
+                    const ur = (deltaV * r) / (Math.PI * Math.pow(r*r + depth*depth, 1.5)) * 1000; // mm
+                    
+                    // Vertical displacement
+                    const uz = (deltaV * depth) / (Math.PI * Math.pow(r*r + depth*depth, 1.5)) * 1000; // mm
+                    
+                    // Convert to cartesian coordinates
+                    const angle = Math.atan2(station.position.z, station.position.x);
+                    station.displacement.x = ur * Math.cos(angle);
+                    station.displacement.z = ur * Math.sin(angle);
+                    station.displacement.y = uz;
+                    
+                    // Add noise
+                    const noise = station.accuracy;
+                    station.displacement.x += (Math.random() - 0.5) * noise;
+                    station.displacement.y += (Math.random() - 0.5) * noise;
+                    station.displacement.z += (Math.random() - 0.5) * noise;
+                    
+                    // Update velocity (derivative of displacement)
+                    station.velocity.x = station.displacement.x / Math.max(1, simulationTime);
+                    station.velocity.y = station.displacement.y / Math.max(1, simulationTime);
+                    station.velocity.z = station.displacement.z / Math.max(1, simulationTime);
+                    
+                    // Update 3D visualization
+                    if (station.vectorMesh) {
+                        const vectorLength = Math.sqrt(
+                            station.displacement.x * station.displacement.x + 
+                            station.displacement.y * station.displacement.y + 
+                            station.displacement.z * station.displacement.z
+                        );
+                        
+                        if (vectorLength > 0.1) { // Only show significant displacements
+                            const direction = new THREE.Vector3(
+                                station.displacement.x,
+                                station.displacement.y,
+                                station.displacement.z
+                            ).normalize();
+                            
+                            station.vectorMesh.setDirection(direction);
+                            station.vectorMesh.setLength(Math.min(5, vectorLength / 2));
+                        }
+                    }
+                }
             });
-            
-            const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
-            explosion.position.y = -volcanoParams.waterTable / 1000;
-            scene.add(explosion);
-            
-            // Remove explosion after animation
-            setTimeout(() => {
-                scene.remove(explosion);
-            }, 2000);
-            
-            updateAlertLevel();
-            console.log("Phreatomagmatic eruption simulated");
         }
         
-        function updateAlertLevel() {
-            let level = 'green';
-            let text = 'Normal - Green';
+        function generateEarthquakes() {
+            // Generate earthquakes based on volcanic processes
+            const baseRate = 5; // earthquakes per day
+            const stressEffect = volcanoParams.chamberPressure / 100;
+            const intrusionEffect = volcanoParams.supplyRate * 10;
             
-            if (monitoringData.eruptionProbability > 25) {
-                level = 'yellow';
-                text = 'Advisory - Yellow';
-            }
-            if (monitoringData.eruptionProbability > 50) {
-                level = 'orange';
-                text = 'Watch - Orange';
-            }
-            if (monitoringData.eruptionProbability > 75) {
-                level = 'red';
-                text = 'Warning - Red';
+            const totalRate = baseRate + stressEffect + intrusionEffect;
+            const earthquakesToGenerate = Math.poisson(totalRate / 24); // Per hour
+            
+            for (let i = 0; i < earthquakesToGenerate; i++) {
+                generateSingleEarthquake();
             }
             
-            alertLevel = level;
-            document.getElementById('alert-status').className = `alert-level alert-${level}`;
-            document.getElementById('alert-text').textContent = text;
+            // Remove old earthquakes
+            cleanupOldEarthquakes();
+        }
+        
+        function generateSingleEarthquake() {
+            // Generate earthquake location based on magma chamber and stress field
+            let x, y, z, magnitude, type;
+            
+            const rand = Math.random();
+            
+            if (rand < 0.4) {
+                // Volcano-tectonic earthquakes near chamber
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 2 + Math.random() * 8;
+                x = Math.cos(angle) * distance;
+                z = Math.sin(angle) * distance;
+                y = -volcanoParams.chamberDepth + (Math.random() - 0.5) * 6;
+                magnitude = 1.5 + Math.random() * 2.0; // M 1.5-3.5
+                type = 'VT';
+            } else if (rand < 0.7) {
+                // Long-period events near conduit
+                x = (Math.random() - 0.5) * 4;
+                z = (Math.random() - 0.5) * 4;
+                y = -Math.random() * volcanoParams.chamberDepth;
+                magnitude = 0.8 + Math.random() * 1.5; // M 0.8-2.3
+                type = 'LP';
+            } else {
+                // Regional tectonic earthquakes
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 15 + Math.random() * 20;
+                x = Math.cos(angle) * distance;
+                z = Math.sin(angle) * distance;
+                y = -(5 + Math.random() * 15);
+                magnitude = 2.0 + Math.random() * 3.0; // M 2.0-5.0
+                type = 'RT';
+            }
+            
+            const earthquake = {
+                id: `EQ${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                location: { x, y, z },
+                magnitude,
+                time: new Date(),
+                type,
+                age: 0
+            };
+            
+            earthquakeData.push(earthquake);
+            createEarthquakeVisualization(earthquake);
+            
+            // Update seismic rate
+            monitoringData.seismicRate = earthquakeData.filter(eq => 
+                (Date.now() - eq.time.getTime()) < 24 * 60 * 60 * 1000
+            ).length;
+        }
+        
+        function cleanupOldEarthquakes() {
+            const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+            const currentTime = Date.now();
+            
+            earthquakeData = earthquakeData.filter(eq => {
+                const age = currentTime - eq.time.getTime();
+                if (age > maxAge && eq.mesh) {
+                    scene.remove(eq.mesh);
+                    return false;
+                }
+                return true;
+            });
+        }
+        
+        // Utility function for Poisson distribution
+        Math.poisson = function(lambda) {
+            const L = Math.exp(-lambda);
+            let k = 0;
+            let p = 1;
+            
+            do {
+                k++;
+                p *= Math.random();
+            } while (p > L);
+            
+            return k - 1;
+        };
+        
+        function updateGasComposition() {
+            // Update gas composition based on magmatic processes
+            const temp = volcanoParams.magmaTemperature;
+            const pressure = volcanoParams.chamberPressure;
+            const volatiles = volcanoParams.volatileContent;
+            
+            // Temperature and pressure effects on gas composition
+            let h2o = 85 - (temp - 1000) / 20; // Higher T = less H2O
+            let co2 = 8 + pressure / 50; // Higher P = more CO2
+            let so2 = 3 + volatiles * 0.5; // More volatiles = more SO2
+            let h2s = Math.max(0.5, 2 - temp / 600); // Lower T = more H2S
+            
+            // Normalize to 100%
+            const total = h2o + co2 + so2 + h2s + 0.5; // 0.5 for other gases
+            h2o = h2o / total * 100;
+            co2 = co2 / total * 100;
+            so2 = so2 / total * 100;
+            h2s = h2s / total * 100;
+            
+            // Update display values
+            monitoringData.gasComposition.h2o = Math.round(h2o * 10) / 10;
+            monitoringData.gasComposition.co2 = Math.round(co2 * 10) / 10;
+            monitoringData.gasComposition.so2 = Math.round(so2 * 10) / 10;
+            monitoringData.gasComposition.h2s = Math.round(h2s * 10) / 10;
+            
+            // Update SO2 flux based on degassing
+            monitoringData.so2Flux = Math.round(
+                300 + volatiles * 50 + Math.random() * 100
+            );
+        }
+        
+        function updateThermalProfiles() {
+            // Generate temperature and pressure profiles with depth
+            monitoringData.temperatureProfile = [];
+            monitoringData.pressureProfile = [];
+            
+            const surfaceTemp = 20; // °C
+            const geothermalGradient = 30; // °C/km
+            const surfacePressure = 0.1; // MPa
+            const hydrostaticGradient = 25; // MPa/km (approximation)
+            
+            for (let depth = 0; depth <= 20; depth += 0.5) {
+                let temp = surfaceTemp + depth * geothermalGradient;
+                let pressure = surfacePressure + depth * hydrostaticGradient;
+                
+                // Add thermal anomaly from magma chamber
+                if (depth >= volcanoParams.chamberDepth - 2 && 
+                    depth <= volcanoParams.chamberDepth + 2) {
+                    const distance = Math.abs(depth - volcanoParams.chamberDepth);
+                    const thermalEffect = volcanoParams.magmaTemperature * 
+                                        Math.exp(-distance * distance / 2);
+                    temp = Math.max(temp, thermalEffect);
+                }
+                
+                // Add pressure anomaly from chamber overpressure
+                if (depth === volcanoParams.chamberDepth) {
+                    pressure += volcanoParams.chamberPressure;
+                }
+                
+                monitoringData.temperatureProfile.push({
+                    depth: depth,
+                    temperature: Math.round(temp)
+                });
+                
+                monitoringData.pressureProfile.push({
+                    depth: depth,
+                    pressure: Math.round(pressure * 10) / 10
+                });
+            }
         }
         
         function updateMonitoringDisplays() {
-            // Update monitoring values
-            document.getElementById('seismic-rate').textContent = Math.round(monitoringData.seismicRate);
-            document.getElementById('deformation-rate').textContent = monitoringData.deformationRate.toFixed(1);
-            document.getElementById('so2-flux').textContent = Math.round(monitoringData.so2Flux);
-            document.getElementById('thermal-anomaly').textContent = monitoringData.thermalAnomaly.toFixed(1);
-            document.getElementById('eruption-probability').textContent = Math.round(monitoringData.eruptionProbability) + '%';
+            // Update real-time monitoring values
+            document.getElementById('seismic-rate').textContent = 
+                Math.round(monitoringData.seismicRate);
             
-            // Update seismic trace (simplified visualization)
+            document.getElementById('deformation-rate').textContent = 
+                monitoringData.deformationRate.toFixed(1);
+            
+            document.getElementById('so2-flux').textContent = 
+                Math.round(monitoringData.so2Flux);
+            
+            document.getElementById('thermal-anomaly').textContent = 
+                monitoringData.thermalAnomaly.toFixed(1);
+            
+            // Update gas composition display
+            document.getElementById('h2o-content').textContent = 
+                monitoringData.gasComposition.h2o.toFixed(1) + '%';
+            document.getElementById('co2-content').textContent = 
+                monitoringData.gasComposition.co2.toFixed(1) + '%';
+            document.getElementById('so2-content').textContent = 
+                monitoringData.gasComposition.so2.toFixed(1) + '%';
+            document.getElementById('h2s-content').textContent = 
+                monitoringData.gasComposition.h2s.toFixed(1) + '%';
+            
+            // Update reservoir status
+            const meltVolume = volcanoParams.chamberVolume * volcanoParams.meltFraction / 100;
+            const overpressure = Math.max(0, volcanoParams.chamberPressure - 150);
+            const crystallinity = 100 - volcanoParams.meltFraction;
+            const volatileSat = Math.min(100, volcanoParams.volatileContent * 15);
+            
+            document.getElementById('melt-volume').textContent = meltVolume.toFixed(1) + ' km³';
+            document.getElementById('overpressure').textContent = overpressure.toFixed(1) + ' MPa';
+            document.getElementById('crystallinity').textContent = crystallinity.toFixed(0) + '%';
+            document.getElementById('volatile-saturation').textContent = volatileSat.toFixed(0) + '%';
+            
+            // Update eruption probability
+            calculateEruptionProbability();
+            
+            // Update alert level
+            updateAlertLevel();
+            
+            // Update charts
+            updateCharts();
+            
+            // Update seismic trace
             updateSeismicTrace();
+        }
+        
+        function calculateEruptionProbability() {
+            // Multi-parameter eruption probability calculation
+            let probability = 5; // Base probability
             
-            // Update deformation profile
-            updateDeformationProfile();
+            // Seismic contribution
+            probability += Math.max(0, (monitoringData.seismicRate - 10) * 2);
             
-            // Update process bars
-            updateProcessBars();
+            // Deformation contribution  
+            probability += Math.max(0, (monitoringData.deformationRate - 0.5) * 20);
+            
+            // Gas emission contribution
+            probability += Math.max(0, (monitoringData.so2Flux - 500) / 100);
+            
+            // Chamber pressure contribution
+            probability += Math.max(0, (volcanoParams.chamberPressure - 200) / 10);
+            
+            // Volatile content contribution
+            probability += Math.max(0, (volcanoParams.volatileContent - 5) * 5);
+            
+            // Supply rate contribution
+            probability += volcanoParams.supplyRate * 3;
+            
+            // Cap at 95%
+            monitoringData.eruptionProbability = Math.min(95, Math.max(1, probability));
+            
+            document.getElementById('eruption-probability').textContent = 
+                Math.round(monitoringData.eruptionProbability) + '%';
+        }
+        
+        function updateAlertLevel() {
+            let level = 'normal';
+            let text = 'Normal Conditions - Green';
+            let className = 'alert-normal';
+            
+            if (monitoringData.eruptionProbability > 25) {
+                level = 'advisory';
+                text = 'Advisory - Yellow';
+                className = 'alert-advisory';
+            }
+            if (monitoringData.eruptionProbability > 50) {
+                level = 'watch';
+                text = 'Watch - Orange';
+                className = 'alert-watch';
+            }
+            if (monitoringData.eruptionProbability > 75) {
+                level = 'warning';
+                text = 'Warning - Red';
+                className = 'alert-warning';
+            }
+            
+            alertLevel = level;
+            const alertElement = document.getElementById('alert-indicator');
+            alertElement.className = `alert-indicator ${className}`;
+            alertElement.textContent = text;
+        }
+        
+        function updateCharts() {
+            // Update GNSS chart
+            if (gnssChart) {
+                const gnssHorizontal = gnssStations.map(station => ({
+                    x: station.displacement.x,
+                    y: station.displacement.z
+                }));
+                
+                const gnssVertical = gnssStations.map(station => ({
+                    x: station.displacement.x,
+                    y: station.displacement.y
+                }));
+                
+                gnssChart.data.datasets[0].data = gnssHorizontal;
+                gnssChart.data.datasets[1].data = gnssVertical;
+                gnssChart.update('none');
+            }
+            
+            // Update InSAR chart
+            if (insarChart) {
+                // Create radial profile
+                const radialProfile = [];
+                const centerCells = insarData.filter(cell => 
+                    Math.abs(cell.position.z) < 2
+                ).sort((a, b) => a.position.x - b.position.x);
+                
+                centerCells.forEach(cell => {
+                    radialProfile.push(cell.losDeformation);
+                });
+                
+                const labels = centerCells.map(cell => cell.position.x.toFixed(1));
+                
+                insarChart.data.labels = labels;
+                insarChart.data.datasets[0].data = radialProfile;
+                insarChart.update('none');
+            }
+            
+            // Update hypocenter chart
+            if (hypocenterChart) {
+                const recentEarthquakes = earthquakeData.filter(eq => 
+                    (Date.now() - eq.time.getTime()) < 7 * 24 * 60 * 60 * 1000
+                ).map(eq => ({
+                    x: Math.sqrt(eq.location.x * eq.location.x + eq.location.z * eq.location.z),
+                    y: -eq.location.y,
+                    magnitude: eq.magnitude
+                }));
+                
+                hypocenterChart.data.datasets[0].data = recentEarthquakes;
+                hypocenterChart.update('none');
+            }
+            
+            // Update temperature/pressure chart
+            if (tempPressureChart) {
+                const depths = monitoringData.temperatureProfile.map(p => p.depth);
+                const temperatures = monitoringData.temperatureProfile.map(p => p.temperature);
+                const pressures = monitoringData.pressureProfile.map(p => p.pressure);
+                
+                tempPressureChart.data.labels = depths;
+                tempPressureChart.data.datasets[0].data = temperatures;
+                tempPressureChart.data.datasets[1].data = pressures;
+                tempPressureChart.update('none');
+            }
         }
         
         function updateSeismicTrace() {
             const canvas = document.getElementById('seismic-trace');
             const ctx = canvas.getContext('2d');
             
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = '#FF5722';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            
-            const amplitude = monitoringData.seismicRate / 100;
-            for (let x = 0; x < canvas.width; x++) {
-                const y = canvas.height/2 + Math.sin(x * 0.1 + simulationTime * 0.1) * amplitude * 20;
-                if (x === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            
-            ctx.stroke();
-        }
-        
-        function updateDeformationProfile() {
-            const canvas = document.getElementById('deformation-profile');
-            const ctx = canvas.getContext('2d');
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw uplift pattern
-            ctx.fillStyle = 'rgba(255, 87, 34, 0.3)';
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height);
-            
-            for (let x = 0; x < canvas.width; x++) {
-                const distance = Math.abs(x - canvas.width/2) / (canvas.width/2);
-                const uplift = Math.exp(-distance * 3) * monitoringData.deformationRate * 10;
-                const y = canvas.height - uplift;
-                ctx.lineTo(x, y);
-            }
-            
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.closePath();
-            ctx.fill();
-        }
-        
-        function updateProcessBars() {
-            const bars = {
-                'differentiation-bar': volcanoParams.crystalContent,
-                'exsolution-bar': volcanoParams.gasContent * 12.5,
-                'crystallization-bar': volcanoParams.crystalContent * 0.8,
-                'hydrothermal-bar': monitoringData.thermalAnomaly * 20,
-                'surface-temp-bar': Math.min(100, monitoringData.thermalAnomaly * 15),
-                'fumarole-bar': Math.min(100, monitoringData.so2Flux / 10),
-                'lava-level-bar': Math.min(100, monitoringData.eruptionProbability)
-            };
-            
-            Object.entries(bars).forEach(([id, value]) => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.style.width = `${Math.max(0, Math.min(100, value))}%`;
-                }
-            });
+            drawSeismicTrace(ctx);
         }
         
         function setupEventListeners() {
             // Parameter sliders
             const sliders = [
-                'chamber-depth', 'chamber-volume', 'magma-temperature', 'crystal-content',
-                'gas-content', 'chamber-pressure', 'intrusion-rate', 'dike-thickness',
-                'dike-depth', 'water-table', 'permeability', 'heat-source'
+                'chamber-depth', 'chamber-volume', 'magma-temperature', 
+                'melt-fraction', 'volatile-content', 'chamber-pressure',
+                'supply-rate', 'dike-velocity', 'stress-threshold',
+                'crustal-density', 'regional-stress', 'permeability'
             ];
             
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
                 if (slider) {
                     slider.addEventListener('input', function(e) {
-                        const param = id.replace('-', '');
-                        volcanoParams[param] = parseFloat(e.target.value);
+                        const param = id.replace(/-/g, '');
+                        const camelCase = param.replace(/([A-Z])/g, (match, letter) => 
+                            match.toLowerCase()
+                        );
+                        
+                        // Handle special cases
+                        let paramName = camelCase;
+                        if (paramName === 'chambervolume') paramName = 'chamberVolume';
+                        if (paramName === 'magmatemperature') paramName = 'magmaTemperature';
+                        if (paramName === 'meltfraction') paramName = 'meltFraction';
+                        if (paramName === 'volatilecontent') paramName = 'volatileContent';
+                        if (paramName === 'chamberpressure') paramName = 'chamberPressure';
+                        if (paramName === 'supplyrate') paramName = 'supplyRate';
+                        if (paramName === 'dikevelocity') paramName = 'dikeVelocity';
+                        if (paramName === 'stressthreshold') paramName = 'stressThreshold';
+                        if (paramName === 'crustaldensity') paramName = 'crustalDensity';
+                        if (paramName === 'regionalstress') paramName = 'regionalStress';
+                        
+                        volcanoParams[paramName] = parseFloat(e.target.value);
                         document.getElementById(id + '-value').textContent = e.target.value;
+                        
+                        // Update visualization
                         createVolcanoVisualization();
+                        generateSimulationData();
                     });
                 }
             });
@@ -1412,16 +2834,24 @@
             });
             
             // View mode buttons
-            document.querySelectorAll('.view-button').forEach(button => {
+            document.querySelectorAll('.view-btn').forEach(button => {
                 button.addEventListener('click', function() {
-                    document.querySelectorAll('.view-button').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentView = this.dataset.mode;
+                    
+                    // Hide/show cross-section overlay
+                    if (currentView === 'cross-section') {
+                        document.getElementById('cross-section-overlay').style.display = 'block';
+                    } else {
+                        document.getElementById('cross-section-overlay').style.display = 'none';
+                    }
+                    
                     createVolcanoVisualization();
                 });
             });
             
-            // Mouse controls
+            // Mouse controls for 3D scene
             let mouseDown = false;
             let mouseX = 0, mouseY = 0;
             
@@ -1441,16 +2871,52 @@
                 const deltaX = e.clientX - mouseX;
                 const deltaY = e.clientY - mouseY;
                 
-                scene.rotation.y += deltaX * 0.01;
-                scene.rotation.x += deltaY * 0.01;
+                // Rotate camera around scene
+                const spherical = new THREE.Spherical();
+                spherical.setFromVector3(camera.position);
+                
+                spherical.theta -= deltaX * 0.01;
+                spherical.phi += deltaY * 0.01;
+                
+                // Limit phi to prevent flipping
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                
+                camera.position.setFromSpherical(spherical);
+                camera.lookAt(0, 0, 0);
                 
                 mouseX = e.clientX;
                 mouseY = e.clientY;
             });
             
-            // Zoom with mouse wheel
+            // Mouse wheel for zoom
             renderer.domElement.addEventListener('wheel', function(e) {
-                camera.position.multiplyScalar(1 + e.deltaY * 0.001);
+                const scale = e.deltaY > 0 ? 1.1 : 0.9;
+                camera.position.multiplyScalar(scale);
+                
+                // Prevent camera from getting too close/far
+                const distance = camera.position.length();
+                if (distance < 5) {
+                    camera.position.normalize().multiplyScalar(5);
+                } else if (distance > 100) {
+                    camera.position.normalize().multiplyScalar(100);
+                }
+            });
+            
+            // Tooltip functionality
+            renderer.domElement.addEventListener('mousemove', function(e) {
+                // Raycast to find intersected objects for tooltips
+                // Implementation would go here
+            });
+            
+            // Resize handler
+            window.addEventListener('resize', function() {
+                const container = document.getElementById('three-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
             });
         }
         
@@ -1462,196 +2928,389 @@
             volcanoParams.chamberDepth = preset.chamberDepth;
             volcanoParams.chamberVolume = preset.chamberVolume;
             volcanoParams.magmaTemperature = preset.magmaTemperature;
-            volcanoParams.crystalContent = preset.crystalContent;
-            volcanoParams.gasContent = preset.gasContent;
+            volcanoParams.meltFraction = preset.meltFraction;
+            volcanoParams.volatileContent = preset.volatileContent;
             
-            // Update UI sliders
-            document.getElementById('chamber-depth').value = preset.chamberDepth;
-            document.getElementById('chamber-volume').value = preset.chamberVolume;
-            document.getElementById('magma-temperature').value = preset.magmaTemperature;
-            document.getElementById('crystal-content').value = preset.crystalContent;
-            document.getElementById('gas-content').value = preset.gasContent;
+            // Update UI sliders and displays
+            const updates = {
+                'chamber-depth': preset.chamberDepth,
+                'chamber-volume': preset.chamberVolume,
+                'magma-temperature': preset.magmaTemperature,
+                'melt-fraction': preset.meltFraction,
+                'volatile-content': preset.volatileContent
+            };
             
-            // Update display values
-            document.getElementById('chamber-depth-value').textContent = preset.chamberDepth;
-            document.getElementById('chamber-volume-value').textContent = preset.chamberVolume;
-            document.getElementById('magma-temp-value').textContent = preset.magmaTemperature;
-            document.getElementById('crystal-content-value').textContent = preset.crystalContent;
-            document.getElementById('gas-content-value').textContent = preset.gasContent;
+            Object.entries(updates).forEach(([id, value]) => {
+                const slider = document.getElementById(id);
+                const display = document.getElementById(id + '-value');
+                
+                if (slider) slider.value = value;
+                if (display) display.textContent = value;
+            });
             
+            // Update visualization and data
             createVolcanoVisualization();
-            console.log(`Loaded preset: ${preset.name}`);
+            generateSimulationData();
+            
+            console.log(`Loaded preset: ${preset.name} (${preset.type})`);
         }
         
-        function loadPreset(type) {
-            if (type === 'effusive') {
-                volcanoParams.gasContent = 1.0;
-                volcanoParams.crystalContent = 40;
-                volcanoParams.magmaTemperature = 1200;
-                monitoringData.eruptionProbability = 60;
-            } else if (type === 'explosive') {
-                volcanoParams.gasContent = 6.0;
-                volcanoParams.crystalContent = 60;
-                volcanoParams.magmaTemperature = 900;
-                monitoringData.eruptionProbability = 80;
+        function loadScenario(scenario) {
+            switch(scenario) {
+                case 'effusive':
+                    volcanoParams.volatileContent = 1.5;
+                    volcanoParams.meltFraction = 80;
+                    volcanoParams.magmaTemperature = 1150;
+                    volcanoParams.supplyRate = 2.0;
+                    break;
+                    
+                case 'explosive':
+                    volcanoParams.volatileContent = 7.0;
+                    volcanoParams.meltFraction = 45;
+                    volcanoParams.magmaTemperature = 900;
+                    volcanoParams.chamberPressure = 400;
+                    break;
+                    
+                case 'caldera':
+                    volcanoParams.chamberVolume = 500;
+                    volcanoParams.volatileContent = 5.5;
+                    volcanoParams.meltFraction = 35;
+                    volcanoParams.chamberPressure = 600;
+                    break;
             }
             
-            updateAlertLevel();
-            updateMonitoringDisplays();
+            // Update UI
+            updateSlidersFromParams();
+            
+            // Update simulation
             createVolcanoVisualization();
+            generateSimulationData();
+            
+            console.log(`Loaded ${scenario} eruption scenario`);
+        }
+        
+        function updateSlidersFromParams() {
+            const mappings = {
+                'chamber-depth': volcanoParams.chamberDepth,
+                'chamber-volume': volcanoParams.chamberVolume,
+                'magma-temperature': volcanoParams.magmaTemperature,
+                'melt-fraction': volcanoParams.meltFraction,
+                'volatile-content': volcanoParams.volatileContent,
+                'chamber-pressure': volcanoParams.chamberPressure,
+                'supply-rate': volcanoParams.supplyRate
+            };
+            
+            Object.entries(mappings).forEach(([id, value]) => {
+                const slider = document.getElementById(id);
+                const display = document.getElementById(id + '-value');
+                
+                if (slider) slider.value = value;
+                if (display) display.textContent = value;
+            });
         }
         
         function resetSystem() {
-            // Reset all parameters to defaults
+            // Reset to default parameters
             volcanoParams = {
-                chamberDepth: 6.0,
-                chamberVolume: 50,
+                chamberDepth: 8.0,
+                chamberVolume: 75,
                 magmaTemperature: 1100,
-                crystalContent: 30,
-                gasContent: 4.0,
-                chamberPressure: 150,
-                intrusionRate: 0.1,
-                dikeThickness: 2.0,
-                dikeDepth: 3.0,
-                waterTable: 200,
-                permeability: 100,
-                heatSource: 600
+                meltFraction: 65,
+                volatileContent: 4.5,
+                chamberPressure: 200,
+                supplyRate: 0.5,
+                dikeVelocity: 0.01,
+                stressThreshold: 15,
+                crustalDensity: 2700,
+                regionalStress: 25,
+                permeability: 150
             };
             
+            // Reset monitoring data
             monitoringData = {
-                seismicRate: 12,
-                deformationRate: 0.3,
-                so2Flux: 450,
-                thermalAnomaly: 2.3,
-                eruptionProbability: 15
+                seismicRate: 8,
+                deformationRate: 0.2,
+                so2Flux: 320,
+                thermalAnomaly: 1.8,
+                eruptionProbability: 12,
+                gnssDisplacements: [],
+                insarDeformation: [],
+                earthquakeCatalog: [],
+                gasComposition: { h2o: 82, co2: 12, so2: 4, h2s: 1.5, hcl: 0.4, hf: 0.1 },
+                temperatureProfile: [],
+                pressureProfile: []
             };
             
-            // Clear dike intrusions
-            dikeIntrusions.forEach(dike => scene.remove(dike.mesh));
-            dikeIntrusions = [];
+            // Clear dike system
+            dikeSystem.forEach(dike => scene.remove(dike.mesh));
+            dikeSystem = [];
             
+            // Clear earthquake data
+            earthquakeData.forEach(eq => {
+                if (eq.mesh) scene.remove(eq.mesh);
+            });
+            earthquakeData = [];
+            
+            // Reset simulation time
             simulationTime = 0;
             isSimulationRunning = false;
             
-            updateAlertLevel();
-            updateMonitoringDisplays();
+            // Update UI
+            updateSlidersFromParams();
+            document.getElementById('simulation-time').textContent = 'Day 0';
+            document.getElementById('sim-start').style.display = 'inline-block';
+            document.getElementById('sim-pause').style.display = 'none';
+            
+            // Regenerate data
+            initMonitoringSystems();
+            generateSimulationData();
             createVolcanoVisualization();
             
-            console.log("System reset");
+            console.log("System reset to initial state");
         }
         
-        function exportModel() {
-            const data = {
+        function exportData() {
+            const exportData = {
                 volcanoType: selectedVolcano,
                 parameters: volcanoParams,
-                monitoringData: monitoringData,
-                alertLevel: alertLevel,
-                simulationTime: simulationTime,
-                dikeIntrusions: dikeIntrusions.length,
-                timestamp: new Date().toISOString()
+                monitoringData: {
+                    ...monitoringData,
+                    gnssStations: gnssStations.map(station => ({
+                        id: station.id,
+                        position: station.position,
+                        displacement: station.displacement,
+                        velocity: station.velocity
+                    })),
+                    earthquakes: earthquakeData.map(eq => ({
+                        id: eq.id,
+                        location: eq.location,
+                        magnitude: eq.magnitude,
+                        time: eq.time,
+                        type: eq.type
+                    })),
+                    insarGrid: insarData.map(cell => ({
+                        position: cell.position,
+                        losDeformation: cell.losDeformation,
+                        coherence: cell.coherence
+                    }))
+                },
+                simulationState: {
+                    time: simulationTime,
+                    alertLevel: alertLevel,
+                    isRunning: isSimulationRunning
+                },
+                metadata: {
+                    exportTime: new Date().toISOString(),
+                    version: "2.0",
+                    dataFormat: "Enhanced Volcanic System Simulator"
+                }
             };
             
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
+                type: 'application/json' 
+            });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `volcanic_system_${selectedVolcano}_${Date.now()}.json`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             
-            console.log("Model exported");
+            console.log("Data exported successfully");
+        }
+        
+        function optimizeParameters() {
+            console.log("Auto-optimizing parameters for eruption prediction...");
+            
+            // Simple optimization based on current alert level
+            if (alertLevel === 'normal') {
+                // Increase sensitivity
+                volcanoParams.stressThreshold = Math.max(5, volcanoParams.stressThreshold - 5);
+                volcanoParams.supplyRate = Math.min(10, volcanoParams.supplyRate + 0.2);
+            } else if (alertLevel === 'warning') {
+                // Decrease sensitivity to avoid false alarms
+                volcanoParams.stressThreshold = Math.min(30, volcanoParams.stressThreshold + 2);
+                volcanoParams.supplyRate = Math.max(0.1, volcanoParams.supplyRate - 0.1);
+            }
+            
+            // Update UI and simulation
+            updateSlidersFromParams();
+            createVolcanoVisualization();
+            generateSimulationData();
+            
+            console.log("Parameters optimized based on current volcanic state");
+        }
+        
+        function triggerIntrusion() {
+            console.log("Triggering magma intrusion event...");
+            
+            // Increase supply rate and chamber pressure
+            volcanoParams.supplyRate = Math.min(15, volcanoParams.supplyRate + 2);
+            volcanoParams.chamberPressure = Math.min(800, volcanoParams.chamberPressure + 50);
+            
+            // Generate cluster of earthquakes
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => generateSingleEarthquake(), i * 1000);
+            }
+            
+            // Update monitoring parameters
+            monitoringData.seismicRate += 25;
+            monitoringData.deformationRate += 1.2;
+            monitoringData.thermalAnomaly += 2.5;
+            
+            // Update visualization
+            updateSlidersFromParams();
+            createVolcanoVisualization();
+            generateSimulationData();
+        }
+        
+        function stopIntrusion() {
+            console.log("Stopping intrusion event...");
+            
+            // Gradually reduce parameters
+            volcanoParams.supplyRate = Math.max(0.1, volcanoParams.supplyRate * 0.5);
+            volcanoParams.chamberPressure = Math.max(100, volcanoParams.chamberPressure * 0.9);
+            
+            // Reduce monitoring parameters
+            monitoringData.seismicRate = Math.max(5, monitoringData.seismicRate * 0.7);
+            monitoringData.deformationRate = Math.max(0.1, monitoringData.deformationRate * 0.6);
+            
+            updateSlidersFromParams();
+            generateSimulationData();
         }
         
         function startSimulation() {
             isSimulationRunning = true;
             document.getElementById('sim-start').style.display = 'none';
             document.getElementById('sim-pause').style.display = 'inline-block';
+            console.log("Simulation started");
         }
         
         function pauseSimulation() {
             isSimulationRunning = false;
             document.getElementById('sim-start').style.display = 'inline-block';
             document.getElementById('sim-pause').style.display = 'none';
+            console.log("Simulation paused");
         }
         
         function stepSimulation() {
             simulationTime += 1;
             updateSimulationStep();
+            console.log(`Simulation stepped to Day ${simulationTime}`);
         }
         
         function updateSimulationStep() {
-            // Update dike intrusions
-            dikeIntrusions.forEach(dike => {
-                if (dike.active) {
-                    dike.age += 1;
-                    dike.volume += volcanoParams.intrusionRate;
-                    
-                    // Update dike visualization
-                    const scale = 1 + dike.age * 0.1;
-                    dike.mesh.scale.set(scale, 1, scale);
-                }
-            });
+            // Update all simulation components
+            generateSimulationData();
             
-            // Update monitoring parameters with some randomness
-            monitoringData.seismicRate += (Math.random() - 0.5) * 2;
-            monitoringData.deformationRate += (Math.random() - 0.5) * 0.1;
-            monitoringData.so2Flux += (Math.random() - 0.5) * 50;
-            monitoringData.thermalAnomaly += (Math.random() - 0.5) * 0.2;
+            // Update time display
+            document.getElementById('simulation-time').textContent = `Day ${Math.round(simulationTime)}`;
+            
+            // Add some random variations
+            const variation = (Math.random() - 0.5) * 0.1;
+            monitoringData.deformationRate += variation;
+            monitoringData.thermalAnomaly += variation * 0.5;
             
             // Clamp values to reasonable ranges
-            monitoringData.seismicRate = Math.max(1, Math.min(200, monitoringData.seismicRate));
-            monitoringData.deformationRate = Math.max(0, Math.min(10, monitoringData.deformationRate));
-            monitoringData.so2Flux = Math.max(100, Math.min(5000, monitoringData.so2Flux));
-            monitoringData.thermalAnomaly = Math.max(0.5, Math.min(20, monitoringData.thermalAnomaly));
-            
-            // Update eruption probability based on other parameters
-            monitoringData.eruptionProbability = Math.min(95, 
-                (monitoringData.seismicRate / 10) + 
-                (monitoringData.deformationRate * 5) + 
-                (volcanoParams.gasContent * 3) + 
-                (dikeIntrusions.filter(d => d.active).length * 10)
-            );
-            
-            updateAlertLevel();
-            updateMonitoringDisplays();
-            
-            document.getElementById('simulation-time').textContent = `Day ${simulationTime}`;
+            monitoringData.deformationRate = Math.max(0, Math.min(20, monitoringData.deformationRate));
+            monitoringData.thermalAnomaly = Math.max(0.5, Math.min(50, monitoringData.thermalAnomaly));
         }
         
         function animate() {
             requestAnimationFrame(animate);
             
+            // Update simulation if running
             if (isSimulationRunning) {
                 const speed = parseFloat(document.getElementById('sim-speed').value);
-                if (simulationTime % Math.max(1, Math.floor(10/speed)) === 0) {
+                simulationTime += speed * 0.01; // Increment by speed factor
+                
+                if (Math.floor(simulationTime) % 5 === 0) { // Update every 5 simulation days
                     updateSimulationStep();
                 }
-                simulationTime += speed;
             }
             
-            // Animate magma chamber if it exists
+            // Update Three.js animations
             if (magmaChamber && magmaChamber.material.uniforms) {
-                magmaChamber.material.uniforms.time.value = simulationTime * 0.01;
+                magmaChamber.material.uniforms.time.value = simulationTime * 0.1;
             }
             
-            // Rotate volcano for better view
+            // Animate volcanic features
             if (volcanoMesh) {
-                volcanoMesh.rotation.y += 0.001;
+                volcanoMesh.rotation.y += 0.0005; // Slow rotation for better view
             }
             
-            renderer.render(scene, camera);
+            // Render the scene
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
         }
         
-        // Resize handler
-        window.addEventListener('resize', function() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // Initialize the system when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, initializing Enhanced Volcanic System Simulator...");
+            initVolcanicSystem();
+            
+            // Panel Manager is auto-initialized
+            console.log('✓ Panel Manager active - Use Ctrl+M to minimize/maximize all panels');
+            
+            // Replace volcano database with complete Holocene database
+            if (window.HOLOCENE_VOLCANOES) {
+                let totalVolcanoes = 0;
+                Object.values(HOLOCENE_VOLCANOES).forEach(volcanoes => {
+                    totalVolcanoes += volcanoes.length;
+                });
+                console.log(`✓ Loaded ${totalVolcanoes} Holocene volcanoes from ${Object.keys(HOLOCENE_VOLCANOES).length} countries`);
+                
+                // Update volcano selector if it exists
+                const volcanoSelect = document.getElementById('volcano-select');
+                if (volcanoSelect) {
+                    // First add country groups
+                    Object.keys(HOLOCENE_VOLCANOES).sort().forEach(country => {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = country;
+                        HOLOCENE_VOLCANOES[country].forEach(volcano => {
+                            const option = document.createElement('option');
+                            option.value = `${country}_${volcano.name}`;
+                            option.textContent = `${volcano.name} (${volcano.type || 'Unknown'})`;
+                            optgroup.appendChild(option);
+                        });
+                        volcanoSelect.appendChild(optgroup);
+                    });
+                }
+            }
+            
+            // Initialize Mantle Tomography if available
+            if (window.MantleTomography && scene && renderer) {
+                setTimeout(() => {
+                    const mantleTomography = new MantleTomography(scene, renderer);
+                    console.log('✓ Mantle Tomography module initialized');
+                    
+                    // Add example mantle structure
+                    const mantleStructure = mantleTomography.create3DMantleStructure();
+                    mantleStructure.scale.set(0.1, 0.1, 0.1); // Scale down for volcano view
+                    mantleStructure.position.y = -50; // Position below volcano
+                    scene.add(mantleStructure);
+                }, 1000);
+            }
         });
         
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', function() {
-            initVolcanicSystem();
+    </script>
+
+    <!-- Universal Feature Repair Script -->
+    <script src="universal_feature_repair.js"></script>
+    <script>
+        // Auto-run repair after page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof manualRepair === 'function') {
+                    console.log('🔧 Running automatic feature repair...');
+                    manualRepair();
+                }
+            }, 2000);
         });
     </script>
+
 </body>
 </html>

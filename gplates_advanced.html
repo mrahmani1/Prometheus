@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Suppress Source Map Warnings -->
+    <script src="suppress_sourcemap_warnings.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPlates Advanced - ML-Enhanced Tectonic Reconstruction</title>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.18.2/plotly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- Load fixes first -->
+    <script src="fix_all_errors.js"></script>
+    <script src="holocene_volcanoes_fixed.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: white;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #globe-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* Control Panel */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            width: 350px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Time Control */
+        .time-control {
+            margin-bottom: 25px;
+        }
+        
+        .time-display {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        .time-period {
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 15px;
+        }
+        
+        .time-slider {
+            width: 100%;
+            height: 40px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            outline: none;
+            margin-bottom: 10px;
+        }
+        
+        .time-slider::-webkit-slider-track {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, 
+                #ff0000 0%,    /* Hadean */
+                #ff4500 10%,   /* Archean */
+                #ffa500 25%,   /* Proterozoic */
+                #ffff00 40%,   /* Paleozoic */
+                #00ff00 60%,   /* Mesozoic */
+                #00ffff 80%,   /* Cenozoic */
+                #0000ff 100%   /* Quaternary */
+            );
+            border-radius: 4px;
+        }
+        
+        .time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        
+        .time-controls-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .control-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #00ff88;
+            transform: translateY(-2px);
+        }
+        
+        .control-btn.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+        
+        /* Plate Controls */
+        .plate-controls {
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .plate-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .plate-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .plate-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .plate-item.selected {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+        }
+        
+        .plate-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        .plate-name {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        .plate-velocity {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        /* Display Options */
+        .display-options {
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+        }
+        
+        .checkbox-item input {
+            margin-right: 8px;
+        }
+        
+        .checkbox-item label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            width: 300px;
+            z-index: 1000;
+        }
+        
+        .info-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #00ff88;
+        }
+        
+        .info-content {
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .stat-value {
+            color: #00ff88;
+            font-weight: 600;
+        }
+        
+        /* Timeline */
+        .timeline-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 1200px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            z-index: 1000;
+        }
+        
+        .timeline-track {
+            position: relative;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 30px;
+            overflow: hidden;
+        }
+        
+        .timeline-events {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        .timeline-event {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .timeline-event:hover {
+            transform: translateY(-50%) scale(2);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+        }
+        
+        .timeline-event.extinction {
+            background: #ff4444;
+        }
+        
+        .timeline-event.supercontinent {
+            background: #4444ff;
+        }
+        
+        .timeline-event.orogeny {
+            background: #ff44ff;
+        }
+        
+        /* ML Prediction Panel */
+        .ml-panel {
+            position: absolute;
+            bottom: 120px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            width: 300px;
+            z-index: 1000;
+        }
+        
+        .ml-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #ff88ff;
+        }
+        
+        .prediction-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .prediction-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 5px;
+        }
+        
+        .prediction-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff88ff;
+        }
+        
+        .confidence-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff88ff, #88ffff);
+            transition: width 0.5s ease;
+        }
+        
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .loading-logo {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 30px;
+        }
+        
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #0088ff);
+            animation: loading 2s ease-in-out infinite;
+        }
+        
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+        
+        /* Tooltips */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10000;
+            display: none;
+        }
+        
+        .tooltip.show {
+            display: block;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .control-panel {
+                width: 280px;
+            }
+            
+            .info-panel, .ml-panel {
+                display: none;
+            }
+            
+            .timeline-container {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">GPlates Advanced</div>
+        <div class="loading-text">Loading Geological Data...</div>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+    </div>
+    
+    <div id="globe-container"></div>
+    
+    <div class="control-panel">
+        <div class="panel-header">
+            <div class="logo">🌍 GPlates Advanced</div>
+        </div>
+        
+        <div class="time-control">
+            <div class="time-display" id="timeDisplay">0 Ma</div>
+            <div class="time-period" id="timePeriod">Present Day</div>
+            <input type="range" class="time-slider" id="timeSlider" 
+                   min="0" max="4600" value="0" step="1">
+            <div class="time-controls-row">
+                <button class="control-btn" onclick="playAnimation()">▶ Play</button>
+                <button class="control-btn" onclick="pauseAnimation()">⏸ Pause</button>
+                <button class="control-btn" onclick="resetTime()">⏮ Reset</button>
+                <button class="control-btn" onclick="setTimePreset('pangaea')">Pangaea</button>
+                <button class="control-btn" onclick="setTimePreset('gondwana')">Gondwana</button>
+            </div>
+        </div>
+        
+        <div class="plate-controls">
+            <div class="section-title">Tectonic Plates</div>
+            <div class="plate-list" id="plateList">
+                <!-- Plates will be added dynamically -->
+            </div>
+        </div>
+        
+        <div class="display-options">
+            <div class="section-title">Display Options</div>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showPlates" checked>
+                    <label for="showPlates">Tectonic Plates</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showBoundaries" checked>
+                    <label for="showBoundaries">Plate Boundaries</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showVelocities" checked>
+                    <label for="showVelocities">Velocity Vectors</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showHotspots">
+                    <label for="showHotspots">Hotspots</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showVolcanoes">
+                    <label for="showVolcanoes">Volcanoes</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showEarthquakes">
+                    <label for="showEarthquakes">Earthquakes</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showPaleomag">
+                    <label for="showPaleomag">Paleomagnetic Data</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="showSeaLevel">
+                    <label for="showSeaLevel">Sea Level</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-buttons">
+            <div class="section-title">View Controls</div>
+            <div class="time-controls-row">
+                <button class="control-btn" onclick="setView('globe')">🌍 Globe</button>
+                <button class="control-btn" onclick="setView('map')">🗺️ Map</button>
+                <button class="control-btn" onclick="setView('cross')">📐 Cross Section</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-panel">
+        <div class="info-title">Current Configuration</div>
+        <div class="info-content">
+            <div class="stat-row">
+                <span class="stat-label">Active Plates:</span>
+                <span class="stat-value" id="activePlates">15</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Spreading Rate:</span>
+                <span class="stat-value" id="spreadingRate">5.2 cm/yr</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Continental Area:</span>
+                <span class="stat-value" id="continentalArea">149 M km²</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Sea Level:</span>
+                <span class="stat-value" id="seaLevel">+0 m</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Avg Temperature:</span>
+                <span class="stat-value" id="avgTemp">15°C</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ml-panel">
+        <div class="ml-title">🤖 ML Predictions</div>
+        <div class="prediction-item">
+            <div class="prediction-label">Next Collision</div>
+            <div class="prediction-value" id="nextCollision">India-Asia</div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: 85%"></div>
+            </div>
+        </div>
+        <div class="prediction-item">
+            <div class="prediction-label">Subduction Rate</div>
+            <div class="prediction-value" id="subductionRate">7.3 cm/yr</div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: 72%"></div>
+            </div>
+        </div>
+        <div class="prediction-item">
+            <div class="prediction-label">Hotspot Activity</div>
+            <div class="prediction-value" id="hotspotActivity">Moderate</div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: 68%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="timeline-container">
+        <div class="timeline-track">
+            <div class="timeline-events" id="timelineEvents">
+                <!-- Events will be added dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    
+    <script src="gplates_engine.js"></script>
+    <script src="plate_reconstruction.js"></script>
+    <script src="ml_plate_predictor.js"></script>
+    
+    <script>
+        // Initialize GPlates Advanced
+        let gplates;
+        let currentTime = 0; // Ma (millions of years ago)
+        let isPlaying = false;
+        let animationSpeed = 1; // Ma per frame
+        
+        // Wait for page load
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initializeGPlates, 1000);
+        });
+        
+        function initializeGPlates() {
+            console.log('Initializing GPlates Advanced...');
+            
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.display = 'none';
+            }, 2000);
+            
+            // Initialize 3D globe
+            initializeGlobe();
+            
+            // Initialize plate data
+            initializePlates();
+            
+            // Initialize timeline
+            initializeTimeline();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Start render loop
+            animate();
+        }
+        
+        function initializeGlobe() {
+            const container = document.getElementById('globe-container');
+            
+            // Create scene
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            
+            // Create camera
+            const camera = new THREE.PerspectiveCamera(
+                45,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                10000
+            );
+            camera.position.set(0, 0, 500);
+            
+            // Create renderer
+            const renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            // Add Earth sphere
+            const earthGeometry = new THREE.SphereGeometry(100, 64, 64);
+            const earthTexture = new THREE.TextureLoader().load(
+                'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'
+            );
+            const earthMaterial = new THREE.MeshPhongMaterial({
+                map: earthTexture,
+                bumpScale: 0.05,
+                specular: new THREE.Color('grey'),
+                shininess: 10
+            });
+            const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            scene.add(earth);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 3, 5);
+            scene.add(directionalLight);
+            
+            // Add stars
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.5
+            });
+            
+            const starsVertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starsVertices.push(x, y, z);
+            }
+            
+            starsGeometry.setAttribute('position', 
+                new THREE.Float32BufferAttribute(starsVertices, 3));
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(stars);
+            
+            // Store references
+            window.scene = scene;
+            window.camera = camera;
+            window.renderer = renderer;
+            window.earth = earth;
+            
+            // Add controls
+            addOrbitControls();
+        }
+        
+        function addOrbitControls() {
+            // Simple orbit controls
+            let mouseX = 0, mouseY = 0;
+            let targetX = 0, targetY = 0;
+            const windowHalfX = window.innerWidth / 2;
+            const windowHalfY = window.innerHeight / 2;
+            
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - windowHalfX) / windowHalfX;
+                mouseY = (event.clientY - windowHalfY) / windowHalfY;
+            });
+            
+            function updateCamera() {
+                targetX = mouseX * 200;
+                targetY = mouseY * 200;
+                
+                if (window.camera) {
+                    window.camera.position.x += (targetX - window.camera.position.x) * 0.05;
+                    window.camera.position.y += (-targetY - window.camera.position.y) * 0.05;
+                    window.camera.lookAt(0, 0, 0);
+                }
+            }
+            
+            window.updateCamera = updateCamera;
+        }
+        
+        function initializePlates() {
+            // Major tectonic plates
+            const plates = [
+                { name: 'Pacific', color: '#0066cc', velocity: { x: -7.2, y: 0.6 } },
+                { name: 'North American', color: '#ff6600', velocity: { x: -2.3, y: -0.4 } },
+                { name: 'Eurasian', color: '#00cc66', velocity: { x: 2.1, y: 0.2 } },
+                { name: 'African', color: '#cc6600', velocity: { x: 2.2, y: 2.0 } },
+                { name: 'Antarctic', color: '#6666ff', velocity: { x: 0.1, y: -0.5 } },
+                { name: 'Australian', color: '#cc00cc', velocity: { x: 6.6, y: 3.9 } },
+                { name: 'South American', color: '#ffcc00', velocity: { x: -1.2, y: -0.3 } },
+                { name: 'Nazca', color: '#00cccc', velocity: { x: -7.4, y: 0 } },
+                { name: 'Indian', color: '#ff00ff', velocity: { x: 6.0, y: 3.8 } },
+                { name: 'Arabian', color: '#66ff66', velocity: { x: 4.7, y: 3.1 } },
+                { name: 'Philippine', color: '#ff6666', velocity: { x: -8.2, y: -0.2 } },
+                { name: 'Cocos', color: '#6666cc', velocity: { x: -8.5, y: 2.7 } },
+                { name: 'Caribbean', color: '#cc66cc', velocity: { x: -2.0, y: 0 } },
+                { name: 'Scotia', color: '#66cccc', velocity: { x: -0.2, y: 0.1 } },
+                { name: 'Juan de Fuca', color: '#cccc66', velocity: { x: -4.0, y: 2.6 } }
+            ];
+            
+            // Add plates to list
+            const plateList = document.getElementById('plateList');
+            plates.forEach(plate => {
+                const plateItem = document.createElement('div');
+                plateItem.className = 'plate-item';
+                plateItem.innerHTML = `
+                    <div class="plate-color" style="background: ${plate.color}"></div>
+                    <div class="plate-name">${plate.name}</div>
+                    <div class="plate-velocity">${Math.sqrt(plate.velocity.x**2 + plate.velocity.y**2).toFixed(1)} cm/yr</div>
+                `;
+                plateItem.onclick = () => selectPlate(plate);
+                plateList.appendChild(plateItem);
+            });
+            
+            window.plates = plates;
+        }
+        
+        function initializeTimeline() {
+            const events = [
+                { time: 0, type: 'present', name: 'Present Day' },
+                { time: 66, type: 'extinction', name: 'K-Pg Extinction' },
+                { time: 201, type: 'extinction', name: 'Triassic-Jurassic Extinction' },
+                { time: 252, type: 'extinction', name: 'Permian Extinction' },
+                { time: 300, type: 'supercontinent', name: 'Pangaea Forms' },
+                { time: 375, type: 'extinction', name: 'Late Devonian Extinction' },
+                { time: 445, type: 'extinction', name: 'Ordovician Extinction' },
+                { time: 600, type: 'supercontinent', name: 'Pannotia' },
+                { time: 750, type: 'orogeny', name: 'Grenville Orogeny' },
+                { time: 1100, type: 'supercontinent', name: 'Rodinia Forms' },
+                { time: 1800, type: 'supercontinent', name: 'Columbia/Nuna' },
+                { time: 2500, type: 'orogeny', name: 'Great Oxidation Event' },
+                { time: 3800, type: 'orogeny', name: 'Late Heavy Bombardment' },
+                { time: 4500, type: 'present', name: 'Earth Forms' }
+            ];
+            
+            const timelineEvents = document.getElementById('timelineEvents');
+            events.forEach(event => {
+                const eventMarker = document.createElement('div');
+                eventMarker.className = `timeline-event ${event.type}`;
+                eventMarker.style.left = `${(1 - event.time / 4600) * 100}%`;
+                eventMarker.title = `${event.time} Ma: ${event.name}`;
+                eventMarker.onclick = () => setTime(event.time);
+                timelineEvents.appendChild(eventMarker);
+            });
+        }
+        
+        function setupEventListeners() {
+            // Time slider
+            const timeSlider = document.getElementById('timeSlider');
+            timeSlider.addEventListener('input', (e) => {
+                currentTime = parseFloat(e.target.value);
+                updateTimeDisplay();
+                reconstructPlates(currentTime);
+            });
+            
+            // Display options
+            document.querySelectorAll('.checkbox-item input').forEach(checkbox => {
+                checkbox.addEventListener('change', updateDisplay);
+            });
+            
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function updateTimeDisplay() {
+            const timeDisplay = document.getElementById('timeDisplay');
+            const timePeriod = document.getElementById('timePeriod');
+            
+            timeDisplay.textContent = currentTime.toFixed(0) + ' Ma';
+            timePeriod.textContent = getGeologicalPeriod(currentTime);
+            
+            // Update info panel
+            updateInfoPanel();
+        }
+        
+        function getGeologicalPeriod(ma) {
+            if (ma < 2.6) return 'Quaternary';
+            if (ma < 23) return 'Neogene';
+            if (ma < 66) return 'Paleogene';
+            if (ma < 145) return 'Cretaceous';
+            if (ma < 201) return 'Jurassic';
+            if (ma < 252) return 'Triassic';
+            if (ma < 299) return 'Permian';
+            if (ma < 359) return 'Carboniferous';
+            if (ma < 419) return 'Devonian';
+            if (ma < 444) return 'Silurian';
+            if (ma < 485) return 'Ordovician';
+            if (ma < 541) return 'Cambrian';
+            if (ma < 1000) return 'Neoproterozoic';
+            if (ma < 1600) return 'Mesoproterozoic';
+            if (ma < 2500) return 'Paleoproterozoic';
+            if (ma < 4000) return 'Archean';
+            return 'Hadean';
+        }
+        
+        function reconstructPlates(time) {
+            // Plate reconstruction logic
+            // This would use rotation poles and angular velocities
+            // For now, simplified animation
+            
+            if (window.earth) {
+                window.earth.rotation.y = time * 0.001;
+            }
+            
+            // Update ML predictions
+            updateMLPredictions(time);
+        }
+        
+        function updateMLPredictions(time) {
+            // Simulate ML predictions based on time
+            const predictions = {
+                collision: predictCollision(time),
+                subduction: predictSubductionRate(time),
+                hotspot: predictHotspotActivity(time)
+            };
+            
+            // Update UI
+            document.getElementById('nextCollision').textContent = predictions.collision.name;
+            document.getElementById('subductionRate').textContent = predictions.subduction.rate + ' cm/yr';
+            document.getElementById('hotspotActivity').textContent = predictions.hotspot.level;
+        }
+        
+        function predictCollision(time) {
+            // Simplified collision prediction
+            if (time < 50) return { name: 'India-Asia', confidence: 0.85 };
+            if (time < 150) return { name: 'Africa-Europe', confidence: 0.72 };
+            if (time < 250) return { name: 'Pangaea Formation', confidence: 0.90 };
+            return { name: 'Various', confidence: 0.60 };
+        }
+        
+        function predictSubductionRate(time) {
+            // Simulate subduction rate changes
+            const baseRate = 7.3;
+            const variation = Math.sin(time * 0.01) * 2;
+            return { rate: (baseRate + variation).toFixed(1), confidence: 0.72 };
+        }
+        
+        function predictHotspotActivity(time) {
+            // Simulate hotspot activity
+            const activity = Math.abs(Math.sin(time * 0.005));
+            if (activity < 0.3) return { level: 'Low', confidence: 0.68 };
+            if (activity < 0.7) return { level: 'Moderate', confidence: 0.68 };
+            return { level: 'High', confidence: 0.68 };
+        }
+        
+        function updateInfoPanel() {
+            // Update statistics
+            document.getElementById('spreadingRate').textContent = 
+                (5.2 + Math.sin(currentTime * 0.01) * 2).toFixed(1) + ' cm/yr';
+            
+            document.getElementById('continentalArea').textContent = 
+                (149 - currentTime * 0.01).toFixed(0) + ' M km²';
+            
+            document.getElementById('seaLevel').textContent = 
+                (currentTime < 250 ? '+' : '') + 
+                (Math.sin(currentTime * 0.005) * 100).toFixed(0) + ' m';
+            
+            document.getElementById('avgTemp').textContent = 
+                (15 + Math.sin(currentTime * 0.003) * 5).toFixed(1) + '°C';
+        }
+        
+        function playAnimation() {
+            isPlaying = true;
+            animateTime();
+        }
+        
+        function pauseAnimation() {
+            isPlaying = false;
+        }
+        
+        function resetTime() {
+            currentTime = 0;
+            document.getElementById('timeSlider').value = 0;
+            updateTimeDisplay();
+            reconstructPlates(0);
+        }
+        
+        function setTimePreset(preset) {
+            const presets = {
+                'pangaea': 250,
+                'gondwana': 550,
+                'rodinia': 1100,
+                'columbia': 1800
+            };
+            
+            currentTime = presets[preset] || 0;
+            document.getElementById('timeSlider').value = currentTime;
+            updateTimeDisplay();
+            reconstructPlates(currentTime);
+        }
+        
+        function animateTime() {
+            if (!isPlaying) return;
+            
+            currentTime += animationSpeed;
+            if (currentTime > 4600) currentTime = 0;
+            
+            document.getElementById('timeSlider').value = currentTime;
+            updateTimeDisplay();
+            reconstructPlates(currentTime);
+            
+            requestAnimationFrame(animateTime);
+        }
+        
+        function selectPlate(plate) {
+            console.log('Selected plate:', plate.name);
+            // Highlight plate on globe
+            // Show plate details
+        }
+        
+        function setView(viewType) {
+            console.log('Setting view:', viewType);
+            // Switch between globe, map, and cross-section views
+        }
+        
+        function updateDisplay() {
+            // Update display based on checkboxes
+            console.log('Updating display options');
+        }
+        
+        function onWindowResize() {
+            if (window.camera && window.renderer) {
+                window.camera.aspect = window.innerWidth / window.innerHeight;
+                window.camera.updateProjectionMatrix();
+                window.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate Earth
+            if (window.earth) {
+                window.earth.rotation.y += 0.002;
+            }
+            
+            // Update camera
+            if (window.updateCamera) {
+                window.updateCamera();
+            }
+            
+            // Render scene
+            if (window.renderer && window.scene && window.camera) {
+                window.renderer.render(window.scene, window.camera);
+            }
+        }
+        
+        function setTime(time) {
+            currentTime = time;
+            document.getElementById('timeSlider').value = time;
+            updateTimeDisplay();
+            reconstructPlates(time);
+        }
+    </script>
+
+    <!-- Universal Feature Repair Script -->
+    <script src="universal_feature_repair.js"></script>
+    <script>
+        // Auto-run repair after page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof manualRepair === 'function') {
+                    console.log('🔧 Running automatic feature repair...');
+                    manualRepair();
+                }
+            }, 2000);
+        });
+    </script>
+
+</body>
+</html>

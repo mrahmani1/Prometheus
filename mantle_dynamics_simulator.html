@@ -1237,5 +1237,20 @@
             initMantleSimulation();
         });
     </script>
+
+    <!-- Universal Feature Repair Script -->
+    <script src="universal_feature_repair.js"></script>
+    <script>
+        // Auto-run repair after page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof manualRepair === 'function') {
+                    console.log('🔧 Running automatic feature repair...');
+                    manualRepair();
+                }
+            }, 2000);
+        });
+    </script>
+
 </body>
 </html>

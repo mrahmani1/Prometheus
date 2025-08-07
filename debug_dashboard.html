@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus Debug Dashboard - Real-time Error Monitoring</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard-header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-bottom: 2px solid #333;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo i {
+            font-size: 2rem;
+            color: #ff6b35;
+        }
+
+        .logo h1 {
+            color: #ffffff;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-indicator.online {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        .status-indicator.offline {
+            border-color: #f44336;
+            color: #f44336;
+        }
+
+        .status-indicator.warning {
+            border-color: #ff9800;
+            color: #ff9800;
+        }
+
+        .dashboard-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .card-icon {
+            color: #ff6b35;
+            font-size: 1.5rem;
+        }
+
+        .error-list {
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #555 transparent;
+        }
+
+        .error-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #f44336;
+            transition: all 0.3s ease;
+        }
+
+        .error-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .error-item.severity-critical {
+            border-left-color: #d32f2f;
+            background: rgba(211, 47, 47, 0.1);
+        }
+
+        .error-item.severity-high {
+            border-left-color: #f57c00;
+            background: rgba(245, 124, 0, 0.1);
+        }
+
+        .error-item.severity-medium {
+            border-left-color: #fbc02d;
+            background: rgba(251, 192, 45, 0.1);
+        }
+
+        .error-item.severity-low {
+            border-left-color: #388e3c;
+            background: rgba(56, 142, 60, 0.1);
+        }
+
+        .error-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .error-type {
+            font-weight: 600;
+            color: #ff6b35;
+            font-size: 0.9rem;
+        }
+
+        .error-time {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .error-message {
+            color: #ffffff;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .error-details {
+            font-size: 0.8rem;
+            color: #ccc;
+            display: none;
+        }
+
+        .error-item.expanded .error-details {
+            display: block;
+        }
+
+        .expand-toggle {
+            background: none;
+            border: none;
+            color: #ff6b35;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-decoration: underline;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 10px;
+        }
+
+        .full-width-card {
+            grid-column: 1 / -1;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff6b35;
+            display: block;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-top: 5px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #e55a2b;
+        }
+
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .filter-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            min-width: 200px;
+        }
+
+        .filter-input::placeholder {
+            color: #aaa;
+        }
+
+        .log-viewer {
+            height: 400px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .log-entry.error {
+            background: rgba(244, 67, 54, 0.2);
+            border-left: 3px solid #f44336;
+        }
+
+        .log-entry.warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-left: 3px solid #ff9800;
+        }
+
+        .log-entry.info {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 3px solid #2196f3;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .performance-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .performance-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .performance-label {
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .performance-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-bug"></i>
+                <h1>Prometheus Debug Dashboard</h1>
+            </div>
+            <div class="status-indicators">
+                <div class="status-indicator" id="connectionStatus">
+                    <i class="fas fa-circle"></i>
+                    <span>Connecting...</span>
+                </div>
+                <div class="status-indicator" id="lastUpdate">
+                    <i class="fas fa-clock"></i>
+                    <span>Never</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <span class="metric-value" id="totalErrors">0</span>
+                <div class="metric-label">Total Errors</div>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="activeUsers">0</span>
+                <div class="metric-label">Active Sessions</div>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="errorRate">0</span>
+                <div class="metric-label">Errors/Min</div>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="uptime">0</span>
+                <div class="metric-label">Uptime (hrs)</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input type="text" class="filter-input" id="errorFilter" placeholder="Filter errors...">
+            <select class="filter-input" id="severityFilter">
+                <option value="">All Severities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <button class="btn" id="clearErrors">Clear Errors</button>
+            <button class="btn secondary" id="exportErrors">Export Data</button>
+            <button class="btn secondary" id="pauseUpdates">Pause</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">Recent Errors</div>
+                    <i class="fas fa-exclamation-triangle card-icon"></i>
+                </div>
+                <div class="error-list" id="errorList"></div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">Error Trends</div>
+                    <i class="fas fa-chart-line card-icon"></i>
+                </div>
+                <div class="chart-container">
+                    <canvas id="errorChart"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">Error Types</div>
+                    <i class="fas fa-chart-pie card-icon"></i>
+                </div>
+                <div class="chart-container">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">Performance Metrics</div>
+                    <i class="fas fa-tachometer-alt card-icon"></i>
+                </div>
+                <div class="performance-grid" id="performanceMetrics">
+                    <div class="performance-item">
+                        <div class="performance-value">--</div>
+                        <div class="performance-label">Avg Load Time</div>
+                    </div>
+                    <div class="performance-item">
+                        <div class="performance-value">--</div>
+                        <div class="performance-label">Memory Usage</div>
+                    </div>
+                    <div class="performance-item">
+                        <div class="performance-value">--</div>
+                        <div class="performance-label">Network Errors</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card full-width-card">
+                <div class="card-header">
+                    <div class="card-title">System Logs</div>
+                    <i class="fas fa-terminal card-icon"></i>
+                </div>
+                <div class="log-viewer" id="logViewer"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <div class="toast-message"></div>
+    </div>
+
+    <script>
+        class DebugDashboard {
+            constructor() {
+                this.errors = [];
+                this.logEntries = [];
+                this.charts = {};
+                this.filters = {
+                    text: '',
+                    severity: ''
+                };
+                this.isPaused = false;
+                this.socket = null;
+                this.errorCounts = {
+                    critical: 0,
+                    high: 0,
+                    medium: 0,
+                    low: 0
+                };
+                
+                this.init();
+            }
+
+            init() {
+                this.initEventListeners();
+                this.initCharts();
+                this.startPolling();
+                this.connectWebSocket();
+                this.addLog('Dashboard initialized', 'info');
+            }
+
+            initEventListeners() {
+                document.getElementById('errorFilter').addEventListener('input', (e) => {
+                    this.filters.text = e.target.value.toLowerCase();
+                    this.renderErrors();
+                });
+
+                document.getElementById('severityFilter').addEventListener('change', (e) => {
+                    this.filters.severity = e.target.value;
+                    this.renderErrors();
+                });
+
+                document.getElementById('clearErrors').addEventListener('click', () => {
+                    this.clearErrors();
+                });
+
+                document.getElementById('exportErrors').addEventListener('click', () => {
+                    this.exportData();
+                });
+
+                document.getElementById('pauseUpdates').addEventListener('click', (e) => {
+                    this.togglePause();
+                    e.target.textContent = this.isPaused ? 'Resume' : 'Pause';
+                });
+            }
+
+            async startPolling() {
+                // Poll the error endpoint for new data
+                setInterval(async () => {
+                    if (!this.isPaused) {
+                        await this.fetchErrors();
+                    }
+                }, 5000); // Poll every 5 seconds
+
+                // Initial fetch
+                await this.fetchErrors();
+            }
+
+            connectWebSocket() {
+                try {
+                    // Try to connect to WebSocket for real-time updates
+                    this.socket = io('http://20.80.89.29:8080');
+                    
+                    this.socket.on('connect', () => {
+                        this.updateConnectionStatus('online');
+                        this.addLog('WebSocket connected', 'info');
+                    });
+
+                    this.socket.on('disconnect', () => {
+                        this.updateConnectionStatus('offline');
+                        this.addLog('WebSocket disconnected', 'error');
+                    });
+
+                    this.socket.on('new_error', (errorData) => {
+                        this.addError(errorData);
+                    });
+
+                    this.socket.on('system_stats', (stats) => {
+                        this.updateMetrics(stats);
+                    });
+
+                } catch (error) {
+                    console.log('WebSocket not available, using polling only');
+                    this.updateConnectionStatus('warning');
+                }
+            }
+
+            async fetchErrors() {
+                try {
+                    const response = await fetch('http://20.80.89.29:8080/api/errors?limit=100');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.errors) {
+                            this.processNewErrors(data.errors);
+                        }
+                        if (data.stats) {
+                            this.updateMetrics(data.stats);
+                        }
+                        this.updateLastUpdate();
+                    }
+                } catch (error) {
+                    this.addLog('Failed to fetch errors: ' + error.message, 'error');
+                }
+            }
+
+            processNewErrors(newErrors) {
+                newErrors.forEach(error => {
+                    if (!this.errors.find(e => e.id === error.id)) {
+                        this.addError(error);
+                    }
+                });
+            }
+
+            addError(errorData) {
+                this.errors.unshift(errorData);
+                if (this.errors.length > 1000) {
+                    this.errors = this.errors.slice(0, 1000);
+                }
+
+                this.errorCounts[errorData.severity || 'low']++;
+                this.renderErrors();
+                this.updateCharts();
+                this.showToast('New error: ' + errorData.type, 'error');
+                this.addLog(`New ${errorData.severity || 'low'} error: ${errorData.message}`, 'error');
+            }
+
+            renderErrors() {
+                const container = document.getElementById('errorList');
+                const filteredErrors = this.filterErrors();
+
+                container.innerHTML = filteredErrors.slice(0, 20).map(error => `
+                    <div class="error-item severity-${error.severity || 'low'}" onclick="this.classList.toggle('expanded')">
+                        <div class="error-header">
+                            <div class="error-type">${error.type || 'Unknown'}</div>
+                            <div class="error-time">${this.formatTime(error.timestamp)}</div>
+                        </div>
+                        <div class="error-message">${error.message}</div>
+                        <div class="error-details">
+                            <strong>URL:</strong> ${error.url || 'N/A'}<br>
+                            <strong>User Agent:</strong> ${error.userAgent || 'N/A'}<br>
+                            <strong>Session:</strong> ${error.sessionId || 'N/A'}<br>
+                            ${error.stack ? `<strong>Stack:</strong><pre>${error.stack}</pre>` : ''}
+                        </div>
+                        <button class="expand-toggle">Show Details</button>
+                    </div>
+                `).join('');
+            }
+
+            filterErrors() {
+                return this.errors.filter(error => {
+                    const matchesText = !this.filters.text || 
+                        (error.message || '').toLowerCase().includes(this.filters.text) ||
+                        (error.type || '').toLowerCase().includes(this.filters.text);
+                    
+                    const matchesSeverity = !this.filters.severity || 
+                        error.severity === this.filters.severity;
+
+                    return matchesText && matchesSeverity;
+                });
+            }
+
+            initCharts() {
+                // Error trend chart
+                const errorCtx = document.getElementById('errorChart').getContext('2d');
+                this.charts.errorTrend = new Chart(errorCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Errors per Hour',
+                            data: [],
+                            borderColor: '#ff6b35',
+                            backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#fff' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#fff' }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#fff' } }
+                        }
+                    }
+                });
+
+                // Error type chart
+                const typeCtx = document.getElementById('typeChart').getContext('2d');
+                this.charts.errorTypes = new Chart(typeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: [
+                                '#ff6b35', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#fff' } }
+                        }
+                    }
+                });
+            }
+
+            updateCharts() {
+                // Update error trend
+                const now = new Date();
+                const hourlyData = this.getHourlyErrorCounts();
+                
+                this.charts.errorTrend.data.labels = hourlyData.labels;
+                this.charts.errorTrend.data.datasets[0].data = hourlyData.data;
+                this.charts.errorTrend.update();
+
+                // Update error types
+                const typeCounts = this.getErrorTypeCounts();
+                this.charts.errorTypes.data.labels = Object.keys(typeCounts);
+                this.charts.errorTypes.data.datasets[0].data = Object.values(typeCounts);
+                this.charts.errorTypes.update();
+            }
+
+            getHourlyErrorCounts() {
+                const hours = 24;
+                const labels = [];
+                const data = [];
+                const now = new Date();
+
+                for (let i = hours - 1; i >= 0; i--) {
+                    const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+                    labels.push(time.getHours().toString().padStart(2, '0') + ':00');
+                    
+                    const hourStart = new Date(time);
+                    hourStart.setMinutes(0, 0, 0);
+                    const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+                    
+                    const count = this.errors.filter(error => {
+                        const errorTime = new Date(error.timestamp);
+                        return errorTime >= hourStart && errorTime < hourEnd;
+                    }).length;
+                    
+                    data.push(count);
+                }
+
+                return { labels, data };
+            }
+
+            getErrorTypeCounts() {
+                const counts = {};
+                this.errors.forEach(error => {
+                    const type = error.type || 'unknown';
+                    counts[type] = (counts[type] || 0) + 1;
+                });
+                return counts;
+            }
+
+            updateMetrics(stats) {
+                if (stats) {
+                    document.getElementById('totalErrors').textContent = stats.totalErrors || this.errors.length;
+                    document.getElementById('activeUsers').textContent = stats.activeUsers || '1';
+                    document.getElementById('errorRate').textContent = stats.errorRate || '0';
+                    document.getElementById('uptime').textContent = stats.uptime || '0';
+                }
+            }
+
+            updateConnectionStatus(status) {
+                const indicator = document.getElementById('connectionStatus');
+                indicator.className = `status-indicator ${status}`;
+                
+                const statusText = {
+                    'online': 'Connected',
+                    'offline': 'Disconnected',
+                    'warning': 'Polling Only'
+                };
+                
+                indicator.querySelector('span').textContent = statusText[status] || 'Unknown';
+            }
+
+            updateLastUpdate() {
+                document.getElementById('lastUpdate').querySelector('span').textContent = 
+                    new Date().toLocaleTimeString();
+            }
+
+            addLog(message, type = 'info') {
+                const logEntry = {
+                    message,
+                    type,
+                    timestamp: new Date()
+                };
+                
+                this.logEntries.unshift(logEntry);
+                if (this.logEntries.length > 100) {
+                    this.logEntries.pop();
+                }
+                
+                this.renderLogs();
+            }
+
+            renderLogs() {
+                const container = document.getElementById('logViewer');
+                container.innerHTML = this.logEntries.slice(0, 50).map(entry => `
+                    <div class="log-entry ${entry.type}">
+                        <strong>${this.formatTime(entry.timestamp.toISOString())}</strong> 
+                        ${entry.message}
+                    </div>
+                `).join('');
+                
+                // Auto-scroll to top for new entries
+                container.scrollTop = 0;
+            }
+
+            clearErrors() {
+                if (confirm('Clear all errors?')) {
+                    this.errors = [];
+                    this.errorCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+                    this.renderErrors();
+                    this.updateCharts();
+                    this.addLog('Errors cleared', 'info');
+                    this.showToast('All errors cleared', 'info');
+                }
+            }
+
+            exportData() {
+                const data = {
+                    errors: this.errors,
+                    logs: this.logEntries,
+                    exportTime: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `prometheus-debug-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.showToast('Data exported successfully', 'info');
+            }
+
+            togglePause() {
+                this.isPaused = !this.isPaused;
+                this.addLog(this.isPaused ? 'Updates paused' : 'Updates resumed', 'info');
+            }
+
+            showToast(message, type = 'info') {
+                const toast = document.getElementById('toast');
+                const messageEl = toast.querySelector('.toast-message');
+                
+                messageEl.textContent = message;
+                toast.className = `toast ${type} show`;
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleTimeString();
+            }
+        }
+
+        // Initialize dashboard when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.debugDashboard = new DebugDashboard();
+        });
+    </script>
+
+    <!-- Universal Feature Repair Script -->
+    <script src="universal_feature_repair.js"></script>
+    <script>
+        // Auto-run repair after page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof manualRepair === 'function') {
+                    console.log('🔧 Running automatic feature repair...');
+                    manualRepair();
+                }
+            }, 2000);
+        });
+    </script>
+
+</body>
+</html>

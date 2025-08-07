@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus Error Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            padding: 20px;
+        }
+        
+        .header {
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        .url-input {
+            flex: 1;
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px;
+            font-family: inherit;
+        }
+        
+        .error-container {
+            border: 1px solid #00ff00;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .error-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        
+        .error-type {
+            color: #ff3333;
+            font-weight: bold;
+        }
+        
+        .error-time {
+            color: #00ff00;
+            opacity: 0.7;
+        }
+        
+        .error-message {
+            margin-bottom: 10px;
+            color: #ffff00;
+        }
+        
+        .error-stack {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-left: 3px solid #ff3333;
+            overflow-x: auto;
+            font-size: 12px;
+            color: #ff9999;
+        }
+        
+        .error-url {
+            color: #00ffff;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .status {
+            padding: 10px;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            margin-bottom: 20px;
+        }
+        
+        .iframe-container {
+            display: none;
+            border: 1px solid #00ff00;
+            margin-bottom: 20px;
+            height: 400px;
+            position: relative;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            border: 1px solid #00ff00;
+            padding: 10px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            color: #00ff00;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        #errorLog {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .success {
+            color: #00ff00;
+        }
+        
+        .warning {
+            color: #ffff00;
+        }
+        
+        .error {
+            color: #ff3333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Prometheus Error Viewer</h1>
+        <p>Remote error monitoring and debugging tool</p>
+    </div>
+    
+    <div class="controls">
+        <input type="text" class="url-input" id="urlInput" value="http://20.80.89.29:8080/advanced_insar_analysis.html" placeholder="Enter URL to monitor">
+        <button onclick="checkPage()">Check Page</button>
+        <button onclick="injectMonitor()">Inject Monitor</button>
+        <button onclick="clearErrors()">Clear</button>
+        <button onclick="autoFix()">Auto Fix</button>
+    </div>
+    
+    <div class="status" id="status">
+        Ready to monitor...
+    </div>
+    
+    <div class="stats">
+        <div class="stat-box">
+            <div class="stat-value" id="errorCount">0</div>
+            <div class="stat-label">Total Errors</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="warningCount">0</div>
+            <div class="stat-label">Warnings</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="fixedCount">0</div>
+            <div class="stat-label">Auto-Fixed</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="uptimePercent">100%</div>
+            <div class="stat-label">Uptime</div>
+        </div>
+    </div>
+    
+    <div class="iframe-container" id="iframeContainer">
+        <iframe id="targetFrame" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+    
+    <div id="errorLog"></div>
+    
+    <script>
+        let errors = [];
+        let warnings = [];
+        let fixed = 0;
+        
+        function checkPage() {
+            const url = document.getElementById('urlInput').value;
+            document.getElementById('status').innerHTML = `<span class="warning">Checking ${url}...</span>`;
+            
+            // Create a hidden iframe to load and check the page
+            const frame = document.getElementById('targetFrame');
+            frame.src = url;
+            
+            // Inject error monitoring script
+            frame.onload = function() {
+                try {
+                    // Inject monitoring code
+                    const script = frame.contentDocument.createElement('script');
+                    script.textContent = `
+                        // Capture all errors
+                        window.addEventListener('error', function(e) {
+                            parent.postMessage({
+                                type: 'error',
+                                message: e.message,
+                                filename: e.filename,
+                                lineno: e.lineno,
+                                colno: e.colno,
+                                stack: e.error ? e.error.stack : 'No stack trace',
+                                timestamp: new Date().toISOString()
+                            }, '*');
+                        });
+                        
+                        // Capture unhandled promise rejections
+                        window.addEventListener('unhandledrejection', function(e) {
+                            parent.postMessage({
+                                type: 'promise',
+                                message: e.reason,
+                                timestamp: new Date().toISOString()
+                            }, '*');
+                        });
+                        
+                        // Check for missing functions
+                        const requiredFunctions = ['switchView', 'initializeMap', 'initialize3D'];
+                        requiredFunctions.forEach(fn => {
+                            if (typeof window[fn] === 'undefined') {
+                                parent.postMessage({
+                                    type: 'missing',
+                                    function: fn,
+                                    timestamp: new Date().toISOString()
+                                }, '*');
+                            }
+                        });
+                        
+                        // Check for missing globals
+                        const requiredGlobals = ['HOLOCENE_VOLCANOES', 'THREE', 'L', 'Chart'];
+                        requiredGlobals.forEach(global => {
+                            if (typeof window[global] === 'undefined') {
+                                parent.postMessage({
+                                    type: 'missing_global',
+                                    global: global,
+                                    timestamp: new Date().toISOString()
+                                }, '*');
+                            }
+                        });
+                        
+                        console.log('Error monitoring injected');
+                    `;
+                    frame.contentDocument.head.appendChild(script);
+                    
+                    document.getElementById('status').innerHTML = `<span class="success">✓ Monitoring active for ${url}</span>`;
+                } catch (e) {
+                    document.getElementById('status').innerHTML = `<span class="error">✗ Cannot access page (CORS): ${e.message}</span>`;
+                    
+                    // Fallback: fetch and parse
+                    fetchAndParse(url);
+                }
+            };
+        }
+        
+        function fetchAndParse(url) {
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    // Parse HTML for common issues
+                    const issues = [];
+                    
+                    // Check for redeclarations
+                    const constMatches = html.match(/const\s+(\w+)/g);
+                    const constCounts = {};
+                    if (constMatches) {
+                        constMatches.forEach(match => {
+                            const varName = match.replace('const ', '');
+                            constCounts[varName] = (constCounts[varName] || 0) + 1;
+                        });
+                        
+                        Object.entries(constCounts).forEach(([name, count]) => {
+                            if (count > 1) {
+                                issues.push({
+                                    type: 'error',
+                                    message: `Redeclaration of const ${name} (found ${count} times)`,
+                                    timestamp: new Date().toISOString()
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Check for missing catch blocks
+                    const tryBlocks = html.match(/try\s*{[^}]*}/g);
+                    const catchBlocks = html.match(/catch\s*\([^)]*\)\s*{/g);
+                    if (tryBlocks && (!catchBlocks || tryBlocks.length > catchBlocks.length)) {
+                        issues.push({
+                            type: 'error',
+                            message: `Missing catch blocks (${tryBlocks.length} try, ${catchBlocks ? catchBlocks.length : 0} catch)`,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    
+                    // Check for undefined functions
+                    const functionCalls = html.match(/onclick="(\w+)\(/g);
+                    if (functionCalls) {
+                        functionCalls.forEach(call => {
+                            const fnName = call.match(/onclick="(\w+)\(/)[1];
+                            if (!html.includes(`function ${fnName}`) && !html.includes(`${fnName} =`)) {
+                                issues.push({
+                                    type: 'error',
+                                    message: `Undefined function: ${fnName}`,
+                                    timestamp: new Date().toISOString()
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Display issues
+                    issues.forEach(issue => {
+                        addError(issue);
+                    });
+                    
+                    if (issues.length === 0) {
+                        document.getElementById('status').innerHTML = `<span class="success">✓ No static errors found in ${url}</span>`;
+                    } else {
+                        document.getElementById('status').innerHTML = `<span class="error">✗ Found ${issues.length} issues in ${url}</span>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('status').innerHTML = `<span class="error">✗ Failed to fetch: ${err.message}</span>`;
+                });
+        }
+        
+        // Listen for messages from iframe
+        window.addEventListener('message', function(e) {
+            if (e.data.type === 'error' || e.data.type === 'promise') {
+                addError(e.data);
+            } else if (e.data.type === 'missing' || e.data.type === 'missing_global') {
+                addWarning(e.data);
+            }
+        });
+        
+        function addError(error) {
+            errors.push(error);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-container';
+            errorDiv.innerHTML = `
+                <div class="error-header">
+                    <span class="error-type">${error.type.toUpperCase()}</span>
+                    <span class="error-time">${error.timestamp || new Date().toISOString()}</span>
+                </div>
+                <div class="error-message">${error.message}</div>
+                ${error.stack ? `<pre class="error-stack">${error.stack}</pre>` : ''}
+                ${error.filename ? `<div class="error-url">File: ${error.filename}:${error.lineno}:${error.colno}</div>` : ''}
+            `;
+            document.getElementById('errorLog').prepend(errorDiv);
+            updateStats();
+        }
+        
+        function addWarning(warning) {
+            warnings.push(warning);
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'error-container';
+            warningDiv.innerHTML = `
+                <div class="error-header">
+                    <span class="warning">WARNING</span>
+                    <span class="error-time">${warning.timestamp}</span>
+                </div>
+                <div class="error-message">Missing ${warning.type === 'missing' ? 'function' : 'global'}: ${warning.function || warning.global}</div>
+            `;
+            document.getElementById('errorLog').prepend(warningDiv);
+            updateStats();
+        }
+        
+        function updateStats() {
+            document.getElementById('errorCount').textContent = errors.length;
+            document.getElementById('warningCount').textContent = warnings.length;
+            document.getElementById('fixedCount').textContent = fixed;
+            
+            const uptime = errors.length === 0 ? 100 : Math.max(0, 100 - errors.length * 5);
+            document.getElementById('uptimePercent').textContent = uptime + '%';
+        }
+        
+        function clearErrors() {
+            errors = [];
+            warnings = [];
+            document.getElementById('errorLog').innerHTML = '';
+            updateStats();
+        }
+        
+        function injectMonitor() {
+            const url = document.getElementById('urlInput').value;
+            const monitorCode = `
+                <script src="http://20.80.89.29:8080/fix_all_errors.js"></script>
+                <script src="http://20.80.89.29:8080/holocene_volcanoes_fixed.js"></script>
+            `;
+            
+            const displayDiv = document.createElement('div');
+            displayDiv.className = 'error-container';
+            displayDiv.innerHTML = `
+                <div class="error-header">
+                    <span class="success">INJECTION CODE</span>
+                    <span class="error-time">${new Date().toISOString()}</span>
+                </div>
+                <div class="error-message">Add this to the &lt;head&gt; section of ${url}:</div>
+                <pre class="error-stack">${monitorCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+            `;
+            document.getElementById('errorLog').prepend(displayDiv);
+        }
+        
+        function autoFix() {
+            // Generate fix recommendations
+            const fixes = [];
+            
+            errors.forEach(error => {
+                if (error.message.includes('HOLOCENE_VOLCANOES')) {
+                    fixes.push('Replace holocene_volcanoes.js with holocene_volcanoes_fixed.js');
+                }
+                if (error.message.includes('switchView')) {
+                    fixes.push('Add switchView function to global scope');
+                }
+                if (error.message.includes('missing catch')) {
+                    fixes.push('Add catch blocks to all try statements');
+                }
+            });
+            
+            warnings.forEach(warning => {
+                if (warning.global === 'THREE') {
+                    fixes.push('Ensure Three.js is loaded before use');
+                }
+                if (warning.global === 'Chart') {
+                    fixes.push('Add Chart.js library or use fallback');
+                }
+            });
+            
+            if (fixes.length > 0) {
+                const fixDiv = document.createElement('div');
+                fixDiv.className = 'error-container';
+                fixDiv.innerHTML = `
+                    <div class="error-header">
+                        <span class="success">AUTO-FIX RECOMMENDATIONS</span>
+                        <span class="error-time">${new Date().toISOString()}</span>
+                    </div>
+                    <div class="error-message">Recommended fixes:</div>
+                    <pre class="error-stack">${fixes.map((f, i) => `${i + 1}. ${f}`).join('\n')}</pre>
+                `;
+                document.getElementById('errorLog').prepend(fixDiv);
+                
+                fixed += fixes.length;
+                updateStats();
+            }
+        }
+        
+        // Auto-check on load
+        window.onload = function() {
+            setTimeout(checkPage, 1000);
+        };
+    </script>
+
+    <!-- Universal Feature Repair Script -->
+    <script src="universal_feature_repair.js"></script>
+    <script>
+        // Auto-run repair after page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof manualRepair === 'function') {
+                    console.log('🔧 Running automatic feature repair...');
+                    manualRepair();
+                }
+            }, 2000);
+        });
+    </script>
+
+</body>
+</html>

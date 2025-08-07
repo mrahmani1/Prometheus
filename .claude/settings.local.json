@@ -20,7 +20,23 @@
       "Bash(powershell:*)",
       "Bash(winget install:*)",
       "Bash(choco install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(scp:*)",
+      "Bash(ssh:*)",
+      "Bash(start test_integration.html)",
+      "Bash(dir:*)",
+      "Bash(node:*)",
+      "Bash(ping:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"Copying $file...\")",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then echo \"Copying $file...\")",
+      "Bash(fi)",
+      "Bash(else echo \"$file not found locally\")"
     ],
     "deny": []
   }
