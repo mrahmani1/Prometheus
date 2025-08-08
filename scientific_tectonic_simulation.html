@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- IMMEDIATE EMERGENCY LOADER - Must be first script -->
+    <script src="immediate_emergency_loader.js"></script>
+    
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scientific Tectonic Plate Reconstruction System</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
     <style>
         body {
@@ -948,5 +952,26 @@
         });
     </script>
 
+
+    <!-- Prometheus Enhanced Loader - Automatically loads all improvements -->
+    <script src="prometheus_enhanced_loader.js"></script>
+
+    <!-- Initialize comprehensive volcano selector -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for comprehensive volcano selector to load
+            setTimeout(function() {
+                if (window.initializeVolcanoSelector) {
+                    // Remove any existing volcano selectors to avoid conflicts
+                    const existingSelectors = document.querySelectorAll('.volcano-selector-panel');
+                    existingSelectors.forEach(sel => sel.remove());
+                    
+                    // Initialize new comprehensive selector
+                    window.initializeVolcanoSelector();
+                    console.log('🌋 Comprehensive volcano selector integrated for this module');
+                }
+            }, 2000);
+        });
+    </script>
 </body>
 </html>

@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- IMMEDIATE EMERGENCY LOADER - Must be first script -->
+    <script src="immediate_emergency_loader.js"></script>
+    
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Earthquake Stress & Tectonic Analysis - 2D Visualization</title>
@@ -148,7 +152,7 @@
                         critical: true
                     },
                     {
-                        src: 'https://d3js.org/d3.v7.min.js',
+                        src: 'https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js',
                         name: 'D3.js',
                         test: () => typeof d3 !== 'undefined',
                         fallback: () => this.createD3Fallback(),
@@ -1802,5 +1806,26 @@
         });
     </script>
 
+
+    <!-- Prometheus Enhanced Loader - Automatically loads all improvements -->
+    <script src="prometheus_enhanced_loader.js"></script>
+
+    <!-- Initialize comprehensive volcano selector -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for comprehensive volcano selector to load
+            setTimeout(function() {
+                if (window.initializeVolcanoSelector) {
+                    // Remove any existing volcano selectors to avoid conflicts
+                    const existingSelectors = document.querySelectorAll('.volcano-selector-panel');
+                    existingSelectors.forEach(sel => sel.remove());
+                    
+                    // Initialize new comprehensive selector
+                    window.initializeVolcanoSelector();
+                    console.log('🌋 Comprehensive volcano selector integrated for this module');
+                }
+            }, 2000);
+        });
+    </script>
 </body>
 </html>

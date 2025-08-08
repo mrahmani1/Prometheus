@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- IMMEDIATE EMERGENCY LOADER - Must be first script -->
+    <script src="immediate_emergency_loader.js"></script>
+    
+
     <!-- Suppress Source Map Warnings -->
     <script src="suppress_sourcemap_warnings.js"></script>
 
@@ -91,12 +95,12 @@
             const libraries = [
                 ['https://unpkg.com/three@0.155.0/build/three.min.js', 'THREE.js'],
                 ['https://unpkg.com/three@0.155.0/examples/js/controls/OrbitControls.js', 'OrbitControls'],
-                ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js', 'Chart.js'],
+                ['https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js', 'Chart.js'],
                 ['https://cdn.jsdelivr.net/npm/plotly.js-dist@2.29.1/plotly.min.js', 'Plotly.js'],
                 ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'Leaflet'],
                 ['https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js', 'dat.GUI'],
                 ['https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js', 'Numeric.js'],
-                ['https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js', 'TensorFlow.js'],
+                ['https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.1/dist/tf.min.js', 'TensorFlow.js'],
                 ['webgl_fix_and_minimize.js', 'WebGL Fix'],
                 ['holocene_volcanoes.js', 'Holocene Volcanoes'],
                 ['mantle_tomography.js', 'Mantle Tomography']
@@ -634,172 +638,8 @@
             <!-- Volcano Selection - Complete Holocene Database -->
             <div class="control-section">
                 <h3>Global Volcano Database (Holocene)</h3>
-                <select id="volcano-select">
-                    <!-- Italy -->
-                    <option value="etna">Etna (Italy) - 211060 - Stratovolcano</option>
-                    <option value="vesuvius">Vesuvius (Italy) - 211020 - Stratovolcano</option>
-                    <option value="stromboli">Stromboli (Italy) - 211040 - Stratovolcano</option>
-                    <option value="vulcano">Vulcano (Italy) - 211050 - Stratovolcanoes</option>
-                    
-                    <!-- Greece -->
-                    <option value="santorini">Santorini (Greece) - 212040 - Caldera</option>
-                    <option value="nisyros">Nisyros (Greece) - 212030 - Stratovolcano</option>
-                    
-                    <!-- Papua New Guinea -->
-                    <option value="rabaul">Rabaul (Papua New Guinea) - 252140 - Caldera</option>
-                    <option value="karkar">Karkar (Papua New Guinea) - 251170 - Stratovolcano</option>
-                    <option value="bagana">Bagana (Papua New Guinea) - 255020 - Stratovolcano</option>
-                    <option value="manam">Manam (Papua New Guinea) - 251020 - Stratovolcano</option>
-                    <option value="ulawun">Ulawun (Papua New Guinea) - 252120 - Stratovolcano</option>
-                    <option value="lamington">Lamington (Papua New Guinea) - 253001 - Stratovolcano</option>
-                    
-                    <!-- Indonesia -->
-                    <option value="krakatoa">Krakatoa (Indonesia) - 262000 - Caldera</option>
-                    <option value="merapi">Merapi (Indonesia) - 263250 - Stratovolcano</option>
-                    <option value="tambora">Tambora (Indonesia) - 264040 - Stratovolcano</option>
-                    <option value="galunggung">Galunggung (Indonesia) - 263180 - Stratovolcano</option>
-                    <option value="kelut">Kelut (Indonesia) - 263280 - Stratovolcano</option>
-                    <option value="bromo">Bromo (Indonesia) - 263310 - Stratovolcano</option>
-                    <option value="agung">Agung (Indonesia) - 264020 - Stratovolcano</option>
-                    
-                    <!-- Philippines -->
-                    <option value="pinatubo">Pinatubo (Philippines) - 243083 - Stratovolcano</option>
-                    <option value="mayon">Mayon (Philippines) - 243040 - Stratovolcano</option>
-                    <option value="taal">Taal (Philippines) - 243070 - Caldera</option>
-                    <option value="hibok-hibok">Hibok-hibok (Philippines) - 244090 - Stratovolcano</option>
-                    
-                    <!-- Japan -->
-                    <option value="fuji">Fuji (Japan) - 283030 - Stratovolcano</option>
-                    <option value="sakurajima">Sakurajima (Japan) - 282080 - Stratovolcano</option>
-                    <option value="aso">Aso (Japan) - 282110 - Caldera</option>
-                    <option value="unzen">Unzen (Japan) - 282100 - Complex volcano</option>
-                    
-                    <!-- USA -->
-                    <option value="kilauea">Kilauea (USA-Hawaii) - 332010 - Shield volcano</option>
-                    <option value="yellowstone">Yellowstone (USA) - 325010 - Caldera</option>
-                    <option value="mount-st-helens">Mount St. Helens (USA) - 321050 - Stratovolcano</option>
-                    <option value="mount-rainier">Mount Rainier (USA) - 321030 - Stratovolcano</option>
-                    <option value="mount-shasta">Mount Shasta (USA) - 323010 - Stratovolcano</option>
-                    <option value="long-valley">Long Valley (USA) - 323070 - Caldera</option>
-                    
-                    <!-- Kenya -->
-                    <option value="longonot">Longonot (Kenya) - 223270 - Stratovolcano</option>
-                    <option value="menengai">Menengai (Kenya) - 223280 - Caldera</option>
-                    <option value="barrier">Barrier (Kenya) - 223290 - Shield volcano</option>
-                    
-                    <!-- Tanzania -->
-                    <option value="kilimanjaro">Kilimanjaro (Tanzania) - 222150 - Stratovolcano</option>
-                    <option value="ol-doinyo-lengai">Ol Doinyo Lengai (Tanzania) - 222120 - Stratovolcano</option>
-                    <option value="meru">Meru (Tanzania) - 222160 - Stratovolcano</option>
-                    
-                    <!-- Congo -->
-                    <option value="nyiragongo">Nyiragongo (Congo DR) - 223030 - Stratovolcano</option>
-                    <option value="nyamuragira">Nyamuragira (Congo DR) - 223020 - Shield volcano</option>
-                    
-                    <!-- Cameroon -->
-                    <option value="mount-cameroon">Mount Cameroon (Cameroon) - 224010 - Stratovolcano</option>
-                    
-                    <!-- Cape Verde -->
-                    <option value="fogo">Fogo (Cape Verde) - 384010 - Stratovolcano</option>
-                    
-                    <!-- Armenia -->
-                    <option value="ararat">Ararat (Armenia/Turkey) - 213040 - Stratovolcano</option>
-                    
-                    <!-- Georgia -->
-                    <option value="kazbek">Kazbek (Georgia) - 214020 - Stratovolcano</option>
-                    
-                    <!-- Iran -->
-                    <option value="damavand">Damavand (Iran) - 213010 - Stratovolcano</option>
-                    <option value="bazman">Bazman (Iran) - 213060 - Stratovolcano</option>
-                    
-                    <!-- Pakistan -->
-                    <option value="taftan">Taftan (Pakistan) - 213070 - Stratovolcano</option>
-                    
-                    <!-- India -->
-                    <option value="barren-island">Barren Island (India) - 260010 - Stratovolcano</option>
-                    
-                    <!-- Myanmar -->
-                    <option value="popa">Popa (Myanmar) - 270010 - Stratovolcano</option>
-                    
-                    <!-- China -->
-                    <option value="changbaishan">Changbaishan (China) - 305060 - Stratovolcano</option>
-                    <option value="tengchong">Tengchong (China) - 270090 - Pyroclastic cones</option>
-                    
-                    <!-- North Korea -->
-                    <option value="baekdu">Baekdu (North Korea) - 305060 - Stratovolcano</option>
-                    
-                    <!-- South Korea -->
-                    <option value="jeju">Jeju (Hallasan) (South Korea) - 305040 - Shield volcano</option>
-                    
-                    <!-- Taiwan -->
-                    <option value="tatun">Tatun (Taiwan) - 241070 - Stratovolcano</option>
-                    
-                    <!-- Malaysia -->
-                    <option value="bombalai">Bombalai (Malaysia) - 268020 - Pyroclastic cones</option>
-                    
-                    <!-- Vanuatu -->
-                    <option value="yasur">Yasur (Vanuatu) - 257100 - Stratovolcano</option>
-                    <option value="lopevi">Lopevi (Vanuatu) - 257040 - Stratovolcano</option>
-                    <option value="ambrym">Ambrym (Vanuatu) - 257030 - Pyroclastic shield</option>
-                    
-                    <!-- Solomon Islands -->
-                    <option value="tinakula">Tinakula (Solomon Islands) - 256001 - Stratovolcano</option>
-                    <option value="kavachi">Kavachi (Solomon Islands) - 255070 - Submarine volcano</option>
-                    
-                    <!-- Tonga -->
-                    <option value="hunga-tonga">Hunga Tonga-Hunga Ha'apai (Tonga) - 243040 - Submarine volcano</option>
-                    
-                    <!-- Fiji -->
-                    <option value="taveuni">Taveuni (Fiji) - 243050 - Shield volcano</option>
-                    
-                    <!-- Samoa -->
-                    <option value="savaii">Savai'i (Samoa) - 244020 - Shield volcano</option>
-                    
-                    <!-- Antarctica -->
-                    <option value="erebus">Erebus (Antarctica) - 390030 - Stratovolcano</option>
-                    <option value="deception-island">Deception Island (Antarctica) - 390050 - Caldera</option>
-                    
-                    <!-- Chile -->
-                    <option value="llaima">Llaima (Chile) - 357120 - Stratovolcano</option>
-                    <option value="villarrica">Villarrica (Chile) - 357070 - Stratovolcano</option>
-                    <option value="calbuco">Calbuco (Chile) - 358020 - Stratovolcano</option>
-                    <option value="chaiten">Chaiten (Chile) - 358041 - Caldera</option>
-                    
-                    <!-- Argentina -->
-                    <option value="copahue">Copahue (Argentina/Chile) - 357090 - Stratovolcano</option>
-                    <option value="lanin">Lanin (Argentina/Chile) - 357061 - Stratovolcano</option>
-                    
-                    <!-- Bolivia -->
-                    <option value="sajama">Sajama (Bolivia) - 355100 - Stratovolcano</option>
-                    
-                    <!-- Brazil -->
-                    <option value="trindade">Trindade (Brazil) - 374010 - Stratovolcano</option>
-                    
-                    <!-- Venezuela -->
-                    <option value="roraima">Roraima (Venezuela) - 351001 - Tepui</option>
-                    
-                    <!-- Panama -->
-                    <option value="baru">Baru (Panama) - 345040 - Stratovolcano</option>
-                    
-                    <!-- Honduras -->
-                    <option value="tigre">Tigre (Honduras) - 344130 - Stratovolcano</option>
-                    
-                    <!-- Caribbean -->
-                    <option value="montagne-pelee">Montagne Pelee (Martinique) - 360120 - Stratovolcano</option>
-                    <option value="soufriere-hills">Soufriere Hills (Montserrat) - 360050 - Stratovolcano</option>
-                    <option value="kick-em-jenny">Kick 'em Jenny (Grenada) - 360220 - Submarine volcano</option>
-                    
-                    <!-- Canary Islands -->
-                    <option value="teide">Teide (Canary Islands, Spain) - 383030 - Stratovolcano</option>
-                    <option value="la-palma">La Palma (Canary Islands, Spain) - 383010 - Stratovolcano</option>
-                    
-                    <!-- Azores -->
-                    <option value="pico">Pico (Azores, Portugal) - 382030 - Stratovolcano</option>
-                    <option value="furnas">Furnas (Azores, Portugal) - 382060 - Caldera</option>
-                    
-                    <!-- Custom -->
-                    <option value="custom">Custom Multi-Chamber System</option>
-                </select>
+                <!-- Volcano selector will be auto-generated by comprehensive_volcano_selector.js -->
+    <div id="auto-volcano-selector"></div>
                 
                 <!-- Real-time Data Toggle -->
                 <div class="parameter-control">
@@ -2826,7 +2666,7 @@
             });
             
             // Volcano selector
-            document.getElementById('volcano-select').addEventListener('change', function(e) {
+            document.getElementById("volcano-select").addEventListener('change', function(e) {
                 selectedVolcano = e.target.value;
                 if (selectedVolcano !== 'custom') {
                     loadVolcanoPreset(selectedVolcano);
@@ -3264,7 +3104,7 @@
                 console.log(`✓ Loaded ${totalVolcanoes} Holocene volcanoes from ${Object.keys(HOLOCENE_VOLCANOES).length} countries`);
                 
                 // Update volcano selector if it exists
-                const volcanoSelect = document.getElementById('volcano-select');
+                const volcanoSelect = document.getElementById("volcano-select");
                 if (volcanoSelect) {
                     // First add country groups
                     Object.keys(HOLOCENE_VOLCANOES).sort().forEach(country => {
@@ -3312,5 +3152,8 @@
         });
     </script>
 
+
+    <!-- Prometheus Enhanced Loader - Automatically loads all improvements -->
+    <script src="prometheus_enhanced_loader.js"></script>
 </body>
 </html>

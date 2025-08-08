@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- IMMEDIATE EMERGENCY LOADER - Must be first script -->
+    <script src="immediate_emergency_loader.js"></script>
+    
+
     <!-- Suppress Source Map Warnings -->
     <script src="suppress_sourcemap_warnings.js"></script>
 
@@ -9,12 +13,12 @@
     <title>GPlates Advanced - ML-Enhanced Tectonic Reconstruction</title>
     
     <!-- Core Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.1/dist/tf.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.18.2/plotly.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.29.1/plotly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     
     <!-- Load fixes first -->
     <script src="fix_all_errors.js"></script>
@@ -1069,5 +1073,26 @@
         });
     </script>
 
+
+    <!-- Prometheus Enhanced Loader - Automatically loads all improvements -->
+    <script src="prometheus_enhanced_loader.js"></script>
+
+    <!-- Initialize comprehensive volcano selector -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for comprehensive volcano selector to load
+            setTimeout(function() {
+                if (window.initializeVolcanoSelector) {
+                    // Remove any existing volcano selectors to avoid conflicts
+                    const existingSelectors = document.querySelectorAll('.volcano-selector-panel');
+                    existingSelectors.forEach(sel => sel.remove());
+                    
+                    // Initialize new comprehensive selector
+                    window.initializeVolcanoSelector();
+                    console.log('🌋 Comprehensive volcano selector integrated for this module');
+                }
+            }, 2000);
+        });
+    </script>
 </body>
 </html>

@@ -36,7 +36,9 @@
       "Bash(do if [ -f \"$file\" ])",
       "Bash(then echo \"Copying $file...\")",
       "Bash(fi)",
-      "Bash(else echo \"$file not found locally\")"
+      "Bash(else echo \"$file not found locally\")",
+      "WebFetch(domain:20.80.89.29)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

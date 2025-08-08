@@ -1,0 +1,681 @@
+/**
+ * Component Styles - Task 2.2
+ * Comprehensive styling for Prometheus component system
+ * @author Prometheus Platform
+ * @version 3.0.0
+ */
+
+/* Base Component Styles */
+.prometheus-component {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.prometheus-component * {
+    box-sizing: border-box;
+}
+
+/* Loading Skeleton Styles */
+.loading-skeleton {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-secondary, #f5f5f5);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    z-index: 1000;
+}
+
+.skeleton-pulse {
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line {
+    height: 12px;
+    background: linear-gradient(
+        90deg,
+        var(--border, #e0e0e0) 25%,
+        var(--bg-tertiary, #f0f0f0) 50%,
+        var(--border, #e0e0e0) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 2s infinite;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.skeleton-line.short {
+    width: 60%;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Drag and Drop Styles */
+.dragging {
+    opacity: 0.8;
+    transform: rotate(2deg);
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.drop-zone {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.drop-zone::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px dashed var(--accent, #007bff);
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.drop-zone.drag-over::after {
+    opacity: 1;
+}
+
+/* Panel Component Styles */
+.prometheus-panel {
+    background: var(--bg-secondary, #ffffff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.prometheus-panel:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-tertiary, #f8f9fa);
+    border-bottom: 1px solid var(--border, #e0e0e0);
+    cursor: move;
+    user-select: none;
+}
+
+.panel-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary, #333);
+}
+
+.panel-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.panel-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.panel-btn:hover {
+    background: var(--bg-primary, #ffffff);
+    color: var(--text-primary, #333);
+}
+
+.panel-content {
+    padding: 16px;
+    transition: all 0.3s ease;
+}
+
+.prometheus-panel.collapsed .panel-content {
+    padding: 0;
+    overflow: hidden;
+}
+
+.panel-resizer {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: var(--accent, #007bff);
+    cursor: nw-resize;
+    border-top-left-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.prometheus-panel:hover .panel-resizer {
+    opacity: 0.6;
+}
+
+.panel-resizer:hover {
+    opacity: 1;
+}
+
+/* Advanced Slider Styles */
+.prometheus-slider {
+    position: relative;
+    margin: 20px 0;
+    user-select: none;
+}
+
+.prometheus-slider.horizontal {
+    height: 24px;
+}
+
+.prometheus-slider.vertical {
+    width: 24px;
+    height: 200px;
+}
+
+.slider-track {
+    position: relative;
+    background: var(--border, #e0e0e0);
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.prometheus-slider.horizontal .slider-track {
+    height: 4px;
+    width: 100%;
+    top: 10px;
+}
+
+.prometheus-slider.vertical .slider-track {
+    width: 4px;
+    height: 100%;
+    left: 10px;
+}
+
+.slider-fill {
+    position: absolute;
+    background: var(--accent, #007bff);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.prometheus-slider.horizontal .slider-fill {
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.prometheus-slider.vertical .slider-fill {
+    width: 100%;
+    bottom: 0;
+    left: 0;
+}
+
+.slider-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: var(--bg-secondary, #ffffff);
+    border: 2px solid var(--accent, #007bff);
+    border-radius: 50%;
+    cursor: grab;
+    transition: all 0.2s ease;
+    transform: translate(-50%, -50%);
+}
+
+.prometheus-slider.horizontal .slider-handle {
+    top: 2px;
+}
+
+.prometheus-slider.vertical .slider-handle {
+    left: 2px;
+}
+
+.slider-handle:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.slider-handle:active {
+    cursor: grabbing;
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+.slider-tooltip {
+    position: absolute;
+    background: var(--bg-primary, #333);
+    color: var(--text-primary, #fff);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 100;
+}
+
+.prometheus-slider.horizontal .slider-tooltip {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+}
+
+.prometheus-slider.vertical .slider-tooltip {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 8px;
+}
+
+.slider-handle:hover .slider-tooltip {
+    opacity: 1;
+}
+
+.slider-ticks {
+    position: absolute;
+}
+
+.prometheus-slider.horizontal .slider-ticks {
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 8px;
+}
+
+.prometheus-slider.vertical .slider-ticks {
+    left: 20px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+}
+
+.slider-tick {
+    position: absolute;
+    width: 2px;
+    height: 8px;
+    background: var(--border, #ccc);
+}
+
+.prometheus-slider.vertical .slider-tick {
+    width: 8px;
+    height: 2px;
+}
+
+/* Multi-Select Dropdown Styles */
+.prometheus-multiselect {
+    position: relative;
+    min-width: 200px;
+}
+
+.multiselect-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--bg-secondary, #ffffff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.multiselect-trigger:hover {
+    border-color: var(--accent, #007bff);
+}
+
+.prometheus-multiselect.open .multiselect-trigger {
+    border-color: var(--accent, #007bff);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.multiselect-display {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-height: 20px;
+}
+
+.selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.selected-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent, #007bff);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.tag-remove {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.tag-remove:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.multiselect-placeholder {
+    color: var(--text-secondary, #999);
+    font-size: 14px;
+}
+
+.multiselect-arrow {
+    color: var(--text-secondary, #666);
+    transition: transform 0.2s ease;
+}
+
+.prometheus-multiselect.open .multiselect-arrow {
+    transform: rotate(180deg);
+}
+
+.multiselect-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary, #ffffff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.multiselect-search {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-bottom: 1px solid var(--border, #e0e0e0);
+    background: var(--bg-secondary, #ffffff);
+    outline: none;
+    font-size: 14px;
+}
+
+.multiselect-search::placeholder {
+    color: var(--text-secondary, #999);
+}
+
+.multiselect-options {
+    overflow-y: auto;
+}
+
+.multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.multiselect-option:hover {
+    background: var(--bg-tertiary, #f8f9fa);
+}
+
+.multiselect-option.selected {
+    background: var(--accent, #007bff);
+    color: white;
+}
+
+.multiselect-option input[type="checkbox"] {
+    margin: 0;
+}
+
+.option-label {
+    font-size: 14px;
+}
+
+/* DateTime Range Picker Styles */
+.prometheus-datetime-range {
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 8px;
+    padding: 16px;
+    background: var(--bg-secondary, #ffffff);
+}
+
+.datetime-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.datetime-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.datetime-input-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+    text-transform: uppercase;
+}
+
+.datetime-input-group input {
+    padding: 8px 12px;
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 4px;
+    background: var(--bg-secondary, #ffffff);
+    color: var(--text-primary, #333);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.datetime-input-group input:focus {
+    outline: none;
+    border-color: var(--accent, #007bff);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.datetime-presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    padding: 6px 12px;
+    background: var(--bg-tertiary, #f8f9fa);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-primary, #333);
+    transition: all 0.2s ease;
+}
+
+.preset-btn:hover {
+    background: var(--accent, #007bff);
+    color: white;
+    border-color: var(--accent, #007bff);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .prometheus-panel {
+        margin: 8px;
+    }
+    
+    .panel-header {
+        padding: 10px 12px;
+    }
+    
+    .panel-content {
+        padding: 12px;
+    }
+    
+    .datetime-inputs {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .datetime-presets {
+        justify-content: center;
+    }
+    
+    .prometheus-slider {
+        margin: 16px 0;
+    }
+    
+    .selected-tags {
+        max-width: 200px;
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .prometheus-multiselect {
+        min-width: unset;
+        width: 100%;
+    }
+    
+    .multiselect-dropdown {
+        position: fixed;
+        top: auto;
+        left: 16px;
+        right: 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border, #e0e0e0);
+    }
+    
+    .datetime-presets {
+        flex-direction: column;
+    }
+    
+    .preset-btn {
+        text-align: center;
+    }
+}
+
+/* Dark Theme Overrides */
+@media (prefers-color-scheme: dark) {
+    .prometheus-component {
+        color-scheme: dark;
+    }
+    
+    .slider-handle {
+        background: var(--bg-primary, #1a1a1a);
+    }
+    
+    .multiselect-trigger,
+    .multiselect-dropdown,
+    .multiselect-search {
+        background: var(--bg-secondary, #2a2a2a);
+        color: var(--text-primary, #ffffff);
+    }
+    
+    .datetime-input-group input {
+        background: var(--bg-secondary, #2a2a2a);
+        color: var(--text-primary, #ffffff);
+    }
+    
+    .preset-btn {
+        background: var(--bg-tertiary, #3a3a3a);
+        color: var(--text-primary, #ffffff);
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .prometheus-panel,
+    .multiselect-trigger,
+    .datetime-input-group input {
+        border-width: 2px;
+    }
+    
+    .slider-handle {
+        border-width: 3px;
+    }
+    
+    .selected-tag {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .prometheus-component *,
+    .prometheus-component *::before,
+    .prometheus-component *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .skeleton-line {
+        animation: none;
+        background: var(--border, #e0e0e0);
+    }
+}
+
+/* Focus Visible */
+.prometheus-component *:focus-visible {
+    outline: 2px solid var(--accent, #007bff);
+    outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+    .prometheus-component {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .panel-resizer,
+    .multiselect-arrow,
+    .tag-remove {
+        display: none;
+    }
+    
+    .prometheus-panel {
+        border: 1px solid #000;
+        box-shadow: none;
+        break-inside: avoid;
+    }
+}

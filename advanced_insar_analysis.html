@@ -1,73 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- IMMEDIATE EMERGENCY LOADER - Must be first script -->
+    <script src="immediate_emergency_loader.js"></script>
+    
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prometheus AI - Advanced InSAR Deformation Analysis System (2024 Enhanced)</title>
     
-    <!-- Load Universal Fix Script FIRST -->
-    <script src="prometheus_universal_fix.js"></script>
+    <!-- Load CSS first -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     
-    <!-- CDN Libraries with error handling -->
-    <script>
-        // Enhanced script loading with retry and fallback
-        function loadScriptWithFallback(src, callback, maxRetries = 2) {
-            let retries = 0;
-            
-            function attemptLoad() {
-                const script = document.createElement('script');
-                script.src = src;
-                
-                script.onload = function() {
-                    console.log(`✓ Loaded: ${src}`);
-                    if (callback) callback(true);
-                };
-                
-                script.onerror = function() {
-                    console.warn(`✗ Failed to load: ${src} (attempt ${retries + 1})`);
-                    retries++;
-                    
-                    if (retries <= maxRetries) {
-                        setTimeout(attemptLoad, 1000);
-                    } else {
-                        console.warn(`Final failure for: ${src}`);
-                        if (callback) callback(false);
-                    }
-                };
-                
-                document.head.appendChild(script);
-            }
-            
-            attemptLoad();
-        }
-        
-        // Load libraries with fallback handling
-        loadScriptWithFallback('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
-        loadScriptWithFallback('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js');
-        loadScriptWithFallback('https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.18.2/plotly.min.js');
-        
-        // Load CSS safely
-        function loadCSS(href) {
-            try {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = href;
-                link.onerror = () => console.warn(`Failed to load CSS: ${href}`);
-                document.head.appendChild(link);
-            } catch (e) {
-                console.warn(`CSS loading error: ${e.message}`);
-            }
-        }
-        
-        loadCSS('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
-        loadScriptWithFallback('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
-        
-        // Load additional scripts safely
-        loadScriptWithFallback('webgl_fix_and_minimize.js');
-        loadScriptWithFallback('holocene_volcanoes.js');
-        loadScriptWithFallback('mantle_tomography.js');
-        loadScriptWithFallback('insar_monitor.js');
-    </script>
+    <!-- Load core libraries synchronously in correct order -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.18.2/plotly.min.js"></script>
     
     <style>
         body {
@@ -85,6 +34,63 @@
             height: 100vh;
         }
         
+        /* Map container */
+        #map-container, #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* Three.js canvas */
+        #threejs-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: none;
+        }
+        
+        #three-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Status text */
+        #status-text {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 2000;
+            font-size: 14px;
+            color: #00ff00;
+        }
+        
+        /* View toggle button */
+        #view-toggle {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            z-index: 2000;
+            font-weight: bold;
+        }
+        
         /* Enhanced Panel System with Minimize Functionality */
         .panel {
             position: absolute;
@@ -99,12 +105,14 @@
         }
         
         .panel.minimized {
-            padding: 10px;
-            min-width: 250px;
-            transform: scale(0.8);
+            height: 40px !important;
+            min-height: 40px !important;
+            overflow: hidden;
+            padding: 10px 20px;
         }
         
-        .panel.minimized .panel-content {
+        .panel.minimized .panel-content,
+        .panel.minimized .panel-controls {
             display: none;
         }
         
@@ -113,395 +121,150 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid rgba(33, 150, 243, 0.3);
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .panel-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #2196F3;
-            text-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+        .panel h3 {
+            margin: 0;
+            color: #3498db;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
         }
         
         .minimize-btn {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
+            padding: 4px 8px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 0.9em;
             transition: all 0.3s;
         }
         
         .minimize-btn:hover {
-            background: rgba(33, 150, 243, 0.3);
-            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
         }
         
-        #insar-controls {
+        #control-panel, #insar-controls {
             top: 20px;
             left: 20px;
-            min-width: 420px;
-            max-height: 90vh;
+            width: 350px;
+            max-height: 80vh;
             overflow-y: auto;
         }
         
-        #analysis-panel {
+        #info-panel, #analysis-panel {
             top: 20px;
             right: 20px;
-            min-width: 420px;
-            max-height: 90vh;
-            overflow-y: auto;
+            width: 300px;
         }
         
-        #mantle-panel {
+        #status-panel, #ml-panel {
             bottom: 20px;
             left: 20px;
-            width: 450px;
-            height: 300px;
+            width: 350px;
         }
         
-        #ml-panel {
+        #alert-panel, #mantle-panel {
             bottom: 20px;
             right: 20px;
-            width: 400px;
-            height: 280px;
+            width: 300px;
         }
         
-        #view-toggle {
+        #volcano-grid {
             position: absolute;
-            top: 20px;
+            top: 100px;
             left: 50%;
             transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
             background: rgba(0, 0, 0, 0.9);
-            border-radius: 15px;
-            padding: 15px;
-            display: flex;
-            gap: 15px;
-            z-index: 1000;
-            border: 2px solid rgba(255, 152, 0, 0.3);
-        }
-        
-        #processing-status {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.95);
-            border-radius: 15px;
+            border-radius: 10px;
             padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(76, 175, 80, 0.3);
-            z-index: 1000;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            z-index: 1500;
+            display: none;
+            max-height: 70vh;
+            overflow-y: auto;
         }
         
         .control-group {
             margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            transition: all 0.3s;
         }
         
-        .control-group:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(33, 150, 243, 0.3);
-        }
-        
-        .control-group h3 {
-            margin: 0 0 15px 0;
-            color: #2196F3;
-            font-size: 16px;
-            border-bottom: 1px solid rgba(33, 150, 243, 0.3);
-            padding-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .volcano-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin: 15px 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .volcano-item {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 4px solid #FF9800;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 12px;
-        }
-        
-        .volcano-item:hover {
-            background: rgba(255, 152, 0, 0.2);
-            transform: translateX(5px);
-        }
-        
-        .volcano-item.selected {
-            background: rgba(255, 152, 0, 0.3);
-            border-left-color: #FF5722;
-        }
-        
-        .volcano-name {
-            font-weight: bold;
-            color: #FF9800;
-            margin-bottom: 5px;
-        }
-        
-        .volcano-details {
-            font-size: 10px;
-            color: #ccc;
-            line-height: 1.3;
-        }
-        
-        .slider-container {
-            margin: 10px 0;
-        }
-        
-        .slider-container label {
+        label {
             display: block;
             margin-bottom: 5px;
-            font-size: 14px;
-            color: #ccc;
+            color: #9ca3af;
+            font-size: 0.9em;
         }
         
-        .slider {
+        select, input[type="range"], input[type="number"], button {
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #333;
-            outline: none;
-            -webkit-appearance: none;
-            transition: all 0.3s;
-        }
-        
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #2196F3, #1976D2);
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(33, 150, 243, 0.6);
-            transition: all 0.3s;
-        }
-        
-        .slider::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-            box-shadow: 0 0 20px rgba(33, 150, 243, 0.8);
-        }
-        
-        .button {
-            background: linear-gradient(45deg, #2196F3, #1976D2);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-            margin: 6px 3px;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-        
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
-        }
-        
-        .button.secondary { background: linear-gradient(45deg, #4CAF50, #45a049); }
-        .button.warning { background: linear-gradient(45deg, #FF9800, #F57C00); }
-        .button.danger { background: linear-gradient(45deg, #f44336, #d32f2f); }
-        .button.active { background: linear-gradient(45deg, #FF5722, #E64A19); }
-        
-        .view-toggle-btn {
-            padding: 12px 24px;
+            padding: 8px;
+            margin-bottom: 10px;
             background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
             color: white;
-            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             cursor: pointer;
             transition: all 0.3s;
             font-weight: bold;
-            text-transform: uppercase;
         }
         
-        .view-toggle-btn.active {
-            background: linear-gradient(45deg, #FF9800, #F57C00);
-            border-color: #FF9800;
-            box-shadow: 0 0 25px rgba(255, 152, 0, 0.6);
-        }
-        
-        .analysis-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 15px 0;
-        }
-        
-        .analysis-item {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #2196F3;
-            transition: all 0.3s;
-        }
-        
-        .analysis-item:hover {
-            background: rgba(255, 255, 255, 0.12);
+        button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
         
-        .analysis-value {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2196F3;
-            text-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
         }
         
-        .analysis-label {
-            font-size: 12px;
-            color: #aaa;
-            margin-top: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .status-active { background: #00ff00; }
+        .status-warning { background: #ffaa00; }
+        .status-error { background: #ff0000; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
         
-        .deformation-map {
-            width: 100%;
-            height: 300px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            margin: 10px 0;
-            position: relative;
-            overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        #map-container, #threejs-container {
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            border-radius: 10px;
-            overflow: hidden;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 0.5s;
         }
         
-        .time-series-chart {
-            width: 100%;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            margin: 10px 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .interferogram-display {
-            width: 100%;
-            height: 320px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            margin: 10px 0;
-            position: relative;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .mantle-visualization {
-            width: 100%;
-            height: 220px;
-            background: rgba(255, 87, 34, 0.1);
-            border-radius: 10px;
-            border: 2px solid rgba(255, 87, 34, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .ml-dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            height: 180px;
-        }
-        
-        .ml-metric {
-            background: rgba(76, 175, 80, 0.1);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-        }
-        
-        .ml-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        
-        .ml-label {
-            font-size: 10px;
-            color: #aaa;
-            text-transform: uppercase;
-            margin-top: 5px;
-        }
-        
-        /* Quantum Processing Indicators */
-        .quantum-indicator {
-            background: linear-gradient(45deg, #9C27B0, #673AB7);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            animation: quantum-pulse 2s infinite;
-        }
-        
-        @keyframes quantum-pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(156, 39, 176, 0.5); }
-            50% { opacity: 0.7; box-shadow: 0 0 20px rgba(156, 39, 176, 0.8); }
-        }
-        
-        /* Keyboard shortcut hint */
-        .shortcut-hint {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            font-size: 11px;
-            color: #666;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
-        
-        /* Enhanced loading animations */
-        .loading-spinner {
-            border: 3px solid rgba(33, 150, 243, 0.3);
+        .loader {
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid #3498db;
             border-radius: 50%;
-            border-top: 3px solid #2196F3;
-            width: 30px;
-            height: 30px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
         }
         
         @keyframes spin {
@@ -509,2031 +272,657 @@
             100% { transform: rotate(360deg); }
         }
         
-        .real-time-indicator {
-            display: inline-block;
+        .chart-container {
+            width: 100%;
+            height: 200px;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
             width: 8px;
-            height: 8px;
-            background: #4CAF50;
-            border-radius: 50%;
-            animation: blink 1s infinite;
-            margin-left: 8px;
         }
         
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
         }
         
-        /* Responsive adjustments */
-        @media (max-width: 1200px) {
-            .panel {
-                min-width: 300px;
-            }
-            
-            .volcano-grid {
-                grid-template-columns: 1fr;
-            }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
         }
         
-        /* Search functionality */
-        .volcano-search {
-            width: 100%;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: white;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-        
-        .volcano-search::placeholder {
-            color: #888;
-        }
-        
-        /* Country filter tabs */
-        .country-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 15px;
-        }
-        
-        .country-tab {
-            padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.3s;
-        }
-        
-        .country-tab.active {
-            background: rgba(255, 152, 0, 0.3);
-            border-color: #FF9800;
-        }
-        
-        .tomographic-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            opacity: 0.8;
-        }
-        
-        .depth-slice-controls {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-        }
-        
-        .velocity-scale {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 8px;
-            border-radius: 5px;
-            font-size: 10px;
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
 <body>
-    <div id="container">
-        <!-- Main Control Panel -->
-        <div id="insar-controls" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">🛰️ InSAR Analysis Control Center</div>
-                <button class="minimize-btn" onclick="togglePanel('insar-controls')">−</button>
-            </div>
-            <div class="panel-content">
-                <!-- Comprehensive Volcano Database -->
-                <div class="control-group">
-                    <h3>🌋 Global Holocene Volcano Database (~1,500 Volcanoes)</h3>
-                    <input type="text" class="volcano-search" id="volcano-search" placeholder="Search volcanoes by name, country, or type...">
-                    
-                    <div class="country-tabs" id="country-tabs">
-                        <div class="country-tab active" data-country="all">All Countries</div>
-                        <div class="country-tab" data-country="papua-new-guinea">Papua New Guinea</div>
-                        <div class="country-tab" data-country="kenya">Kenya</div>
-                        <div class="country-tab" data-country="tanzania">Tanzania</div>
-                        <div class="country-tab" data-country="congo">Congo</div>
-                        <div class="country-tab" data-country="cameroon">Cameroon</div>
-                        <div class="country-tab" data-country="cape-verde">Cape Verde</div>
-                        <div class="country-tab" data-country="armenia">Armenia</div>
-                        <div class="country-tab" data-country="georgia">Georgia</div>
-                        <div class="country-tab" data-country="iran">Iran</div>
-                        <div class="country-tab" data-country="pakistan">Pakistan</div>
-                        <div class="country-tab" data-country="india">India</div>
-                        <div class="country-tab" data-country="myanmar">Myanmar</div>
-                        <div class="country-tab" data-country="china">China</div>
-                        <div class="country-tab" data-country="north-korea">North Korea</div>
-                        <div class="country-tab" data-country="south-korea">South Korea</div>
-                        <div class="country-tab" data-country="taiwan">Taiwan</div>
-                        <div class="country-tab" data-country="malaysia">Malaysia</div>
-                        <div class="country-tab" data-country="vanuatu">Vanuatu</div>
-                        <div class="country-tab" data-country="solomon-islands">Solomon Islands</div>
-                        <div class="country-tab" data-country="antarctica">Antarctica</div>
-                        <div class="country-tab" data-country="argentina">Argentina</div>
-                        <div class="country-tab" data-country="bolivia">Bolivia</div>
-                        <div class="country-tab" data-country="brazil">Brazil</div>
-                        <div class="country-tab" data-country="venezuela">Venezuela</div>
-                        <div class="country-tab" data-country="panama">Panama</div>
-                        <div class="country-tab" data-country="honduras">Honduras</div>
-                        <div class="country-tab" data-country="caribbean">Caribbean</div>
-                        <div class="country-tab" data-country="canary-islands">Canary Islands</div>
-                        <div class="country-tab" data-country="azores">Azores</div>
-                    </div>
-                    
-                    <div class="volcano-grid" id="volcano-grid"></div>
-                </div>
-                
-                <!-- Advanced Processing Parameters -->
-                <div class="control-group">
-                    <h3>🔬 Advanced InSAR Processing <span class="real-time-indicator"></span></h3>
-                    
-                    <div class="slider-container">
-                        <label>Coherence Threshold: <span id="coherence-value">0.4</span></label>
-                        <input type="range" class="slider" id="coherence-threshold" 
-                               min="0.1" max="0.9" step="0.1" value="0.4">
-                    </div>
-                    
-                    <div class="slider-container">
-                        <label>Temporal Baseline (days): <span id="temporal-value">12</span></label>
-                        <input type="range" class="slider" id="temporal-baseline" 
-                               min="6" max="48" step="2" value="12">
-                    </div>
-                    
-                    <div class="slider-container">
-                        <label>Perpendicular Baseline (m): <span id="perp-value">100</span></label>
-                        <input type="range" class="slider" id="perp-baseline" 
-                               min="20" max="300" step="10" value="100">
-                    </div>
-                    
-                    <div class="slider-container">
-                        <label>ML Filter Size: <span id="ml-filter-value">5</span></label>
-                        <input type="range" class="slider" id="ml-filter-size" 
-                               min="3" max="11" step="2" value="5">
-                    </div>
-                    
-                    <button class="button secondary" onclick="processInSARData()">🚀 Process InSAR</button>
-                    <button class="button warning" onclick="runQuantumAnalysis()">⚛️ Quantum Processing</button>
-                </div>
-                
-                <!-- Atmospheric Corrections -->
-                <div class="control-group">
-                    <h3>🌤️ Atmospheric Correction Models</h3>
-                    <select id="atmosphere-model" onchange="updateAtmosphereModel()">
-                        <option value="ecmwf">ECMWF Reanalysis</option>
-                        <option value="era5">ERA5 Hourly</option>
-                        <option value="gacos">GACOS APS Correction</option>
-                        <option value="pyaps3">PyAPS3 Correction</option>
-                        <option value="ml-enhanced">ML-Enhanced Correction</option>
-                    </select>
-                    
-                    <div class="slider-container">
-                        <label>Tropospheric Delay (mm): <span id="tropo-delay-value">2.3</span></label>
-                        <input type="range" class="slider" id="tropo-delay" 
-                               min="0" max="10" step="0.1" value="2.3">
-                    </div>
-                    
-                    <div class="slider-container">
-                        <label>Ionospheric Correction: <span id="iono-value">1.2</span></label>
-                        <input type="range" class="slider" id="iono-correction" 
-                               min="0" max="5" step="0.1" value="1.2">
-                    </div>
-                </div>
-                
-                <!-- Phase Unwrapping -->
-                <div class="control-group">
-                    <h3>🌀 Phase Unwrapping Algorithms</h3>
-                    <select id="unwrapping-algorithm">
-                        <option value="snaphu">SNAPHU Statistical-Cost</option>
-                        <option value="icu">ICU 2-Stage</option>
-                        <option value="branch-cut">Branch-Cut Algorithm</option>
-                        <option value="minimum-cost">Minimum Cost Flow</option>
-                        <option value="ml-unwrapping">ML-Enhanced Unwrapping</option>
-                    </select>
-                    
-                    <button class="button" onclick="runUnwrapping()">🔄 Unwrap Phase</button>
-                    <button class="button secondary" onclick="validateUnwrapping()">✓ Validate Results</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Analysis & Results Panel -->
-        <div id="analysis-panel" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">📊 Analysis Results & AI Insights</div>
-                <button class="minimize-btn" onclick="togglePanel('analysis-panel')">−</button>
-            </div>
-            <div class="panel-content">
-                <!-- Real-time Analysis Results -->
-                <div class="control-group">
-                    <h3>📈 Real-time Deformation Analysis</h3>
-                    <div class="analysis-grid">
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="max-displacement">0.0</div>
-                            <div class="analysis-label">Max Displacement (cm)</div>
-                        </div>
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="deformation-rate">0.0</div>
-                            <div class="analysis-label">Rate (cm/year)</div>
-                        </div>
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="coherence-avg">0.0</div>
-                            <div class="analysis-label">Avg Coherence</div>
-                        </div>
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="unwrap-quality">0.0</div>
-                            <div class="analysis-label">Unwrap Quality (%)</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Time Series Visualization -->
-                <div class="control-group">
-                    <h3>⏱️ Time Series Analysis</h3>
-                    <div class="time-series-chart">
-                        <canvas id="time-series-canvas"></canvas>
-                    </div>
-                    <button class="button" onclick="exportTimeSeries()">💾 Export Data</button>
-                    <button class="button warning" onclick="fitModel()">📊 Fit Model</button>
-                </div>
-                
-                <!-- Interferogram Display -->
-                <div class="control-group">
-                    <h3>🎨 Interferogram Visualization</h3>
-                    <div class="interferogram-display" id="interferogram-display">
-                        <canvas id="interferogram-canvas"></canvas>
-                    </div>
-                    <div class="slider-container">
-                        <label>Color Scale Range (cm): <span id="color-range-value">5</span></label>
-                        <input type="range" class="slider" id="color-range" 
-                               min="1" max="20" step="0.5" value="5">
-                    </div>
-                </div>
-                
-                <!-- AI-Enhanced Magma Chamber Modeling -->
-                <div class="control-group">
-                    <h3>🤖 AI Magma Chamber Imaging</h3>
-                    <div class="analysis-grid">
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="chamber-depth">0.0</div>
-                            <div class="analysis-label">Depth (km)</div>
-                        </div>
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="chamber-volume">0.0</div>
-                            <div class="analysis-label">Volume (km³)</div>
-                        </div>
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="pressure-change">0.0</div>
-                            <div class="analysis-label">ΔP (MPa)</div>
-                        </div>
-                        <div class="analysis-item">
-                            <div class="analysis-value" id="ml-confidence">0.0</div>
-                            <div class="analysis-label">AI Confidence (%)</div>
-                        </div>
-                    </div>
-                    <button class="button secondary" onclick="runAIAnalysis()">🧠 Run AI Analysis</button>
-                    <button class="button danger" onclick="predictUnrest()">⚠️ Predict Unrest</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Mantle Slice Visualization Panel -->
-        <div id="mantle-panel" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">🌍 Mantle Tomography & Structure</div>
-                <button class="minimize-btn" onclick="togglePanel('mantle-panel')">−</button>
-            </div>
-            <div class="panel-content">
-                <div class="mantle-visualization" id="mantle-viz">
-                    <div class="tomographic-layer" id="tomo-layer"></div>
-                    <div class="depth-slice-controls">
-                        <label>Depth: <span id="depth-value">100</span> km</label>
-                        <input type="range" id="depth-slider" min="0" max="2900" value="100" step="50">
-                    </div>
-                    <div class="velocity-scale">
-                        <div>P-wave Velocity</div>
-                        <div style="background: linear-gradient(90deg, #0066cc, #ff0000); height: 10px; width: 60px;"></div>
-                        <div style="display: flex; justify-content: space-between; font-size: 8px;">
-                            <span>Low</span><span>High</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 10px;">
-                    <button class="button" onclick="toggleVelocityType()">📡 P/S Wave Toggle</button>
-                    <button class="button warning" onclick="showLLSVP()">🔥 Show LLSVP</button>
-                    <button class="button secondary" onclick="showSlabWindows()">🪟 Slab Windows</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Machine Learning Dashboard -->
-        <div id="ml-panel" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">🤖 ML & Quantum Analysis</div>
-                <button class="minimize-btn" onclick="togglePanel('ml-panel')">−</button>
-            </div>
-            <div class="panel-content">
-                <div class="ml-dashboard">
-                    <div class="ml-metric">
-                        <div class="ml-value" id="neural-accuracy">97.3</div>
-                        <div class="ml-label">Neural Network Accuracy (%)</div>
-                    </div>
-                    <div class="ml-metric">
-                        <div class="ml-value" id="pattern-score">8.4</div>
-                        <div class="ml-label">Pattern Recognition Score</div>
-                    </div>
-                    <div class="ml-metric">
-                        <div class="ml-value" id="quantum-speedup">124x</div>
-                        <div class="ml-label">Quantum Speedup</div>
-                    </div>
-                    <div class="ml-metric">
-                        <div class="ml-value" id="prediction-confidence">92.1</div>
-                        <div class="ml-label">Prediction Confidence (%)</div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 15px;">
-                    <div class="quantum-indicator">Quantum Processing Active</div>
-                    <button class="button" onclick="runDeepLearning()">🧠 Deep Learning</button>
-                    <button class="button secondary" onclick="optimizeParameters()">⚙️ Auto-Optimize</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- View Toggle Controls -->
-        <div id="view-toggle">
-            <button class="view-toggle-btn active" id="btn-2d" onclick="switchView('2d')">📊 2D Analysis</button>
-            <button class="view-toggle-btn" id="btn-3d" onclick="switchView('3d')">🌍 3D Globe</button>
-            <button class="view-toggle-btn" id="btn-mantle" onclick="switchView('mantle')">🌋 Mantle View</button>
-        </div>
-        
-        <!-- Processing Status Bar -->
-        <div id="processing-status">
-            <div class="loading-spinner" id="spinner" style="display: none;"></div>
-            <div id="status-text">System Ready - Quantum Enhanced</div>
-            <div id="processing-progress" style="display: none;">
-                <div style="background: #333; height: 8px; border-radius: 4px; width: 200px; overflow: hidden;">
-                    <div id="progress-fill" style="height: 100%; background: linear-gradient(90deg, #4CAF50, #2196F3); width: 0%; transition: width 0.3s;"></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Main Visualization Container -->
-        <div class="deformation-map" style="position: absolute; top: 120px; left: 460px; right: 460px; bottom: 150px;">
-            <div id="map-container" style="display: block;"></div>
-            <div id="threejs-container" style="display: none;"></div>
-        </div>
-        
-        <!-- Keyboard Shortcuts Hint -->
-        <div class="shortcut-hint">Press Ctrl+M to minimize/maximize all panels</div>
+    <div id="loading-screen">
+        <div class="loader"></div>
     </div>
 
+    <div id="container">
+        <!-- Map container -->
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <!-- Three.js container -->
+        <div id="threejs-container">
+            <canvas id="three-canvas"></canvas>
+        </div>
+        
+        <!-- Status text -->
+        <div id="status-text">System Initializing...</div>
+        
+        <!-- View toggle button -->
+        <button id="view-toggle" onclick="switchView()">Switch to 3D View</button>
+        
+        <!-- Volcano grid (hidden by default) -->
+        <div id="volcano-grid">
+            <h3>Select a Volcano</h3>
+            <div id="volcano-list"></div>
+        </div>
+        
+        <!-- InSAR Controls Panel -->
+        <div id="insar-controls" class="panel">
+            <div class="panel-header">
+                <h3><span class="status-indicator status-active"></span>InSAR Control System</h3>
+                <button class="minimize-btn" onclick="togglePanel('insar-controls')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <div class="control-group">
+                    <label>Data Source:</label>
+                    <select id="data-source">
+                        <option value="sentinel1">Sentinel-1 (C-band)</option>
+                        <option value="alos2">ALOS-2 PALSAR (L-band)</option>
+                        <option value="terrasar">TerraSAR-X (X-band)</option>
+                        <option value="cosmo">COSMO-SkyMed</option>
+                        <option value="nisar">NISAR (Future)</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Analysis Type:</label>
+                    <select id="analysis-type">
+                        <option value="sbas">SBAS (Small Baseline)</option>
+                        <option value="ps">PS-InSAR (Persistent Scatterers)</option>
+                        <option value="squeesar">SqueeSAR</option>
+                        <option value="stamps">StaMPS</option>
+                        <option value="hybrid">Hybrid PS/DS</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Time Range:</label>
+                    <input type="range" id="time-range" min="1" max="365" value="30">
+                    <span id="time-value">30 days</span>
+                </div>
+                
+                <div class="control-group">
+                    <label>Deformation Threshold (mm/year):</label>
+                    <input type="number" id="deformation-threshold" value="10" min="1" max="100">
+                </div>
+                
+                <div class="control-group">
+                    <label>Coherence Threshold:</label>
+                    <input type="range" id="coherence" min="0" max="1" step="0.01" value="0.7">
+                    <span id="coherence-value">0.7</span>
+                </div>
+                
+                <div class="control-group">
+                    <button onclick="processInSARData()">Start InSAR Analysis</button>
+                    <button onclick="loadVolcanoData()">Load Volcano Data</button>
+                    <button onclick="showVolcanoGrid()">Select Volcano</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>Holocene Volcanoes:</label>
+                    <select id="volcano-country">
+                        <option value="all">All Countries</option>
+                    </select>
+                    <button onclick="filterVolcanoesByCountry()">Filter by Country</button>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="deformation-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analysis Panel -->
+        <div id="analysis-panel" class="panel">
+            <div class="panel-header">
+                <h3>Analysis Results</h3>
+                <button class="minimize-btn" onclick="togglePanel('analysis-panel')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <p><strong>Platform:</strong> <span id="platform-info">Sentinel-1</span></p>
+                <p><strong>Coverage:</strong> <span id="coverage-info">Global</span></p>
+                <p><strong>Resolution:</strong> <span id="resolution-info">5×20m</span></p>
+                <p><strong>Revisit Time:</strong> <span id="revisit-info">6 days</span></p>
+                <p><strong>Active Volcanoes:</strong> <span id="volcano-count">0</span></p>
+                <p><strong>Processing Status:</strong> <span id="processing-status">Ready</span></p>
+                <p><strong>WebGL Status:</strong> <span id="webgl-status">Checking...</span></p>
+                <p><strong>Memory Usage:</strong> <span id="memory-usage">0 MB</span></p>
+            </div>
+        </div>
+        
+        <!-- ML Panel -->
+        <div id="ml-panel" class="panel">
+            <div class="panel-header">
+                <h3>ML Predictions</h3>
+                <button class="minimize-btn" onclick="togglePanel('ml-panel')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <div id="ml-predictions">
+                    <p>Machine Learning model ready</p>
+                    <p>Waiting for data input...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mantle Panel -->
+        <div id="mantle-panel" class="panel">
+            <div class="panel-header">
+                <h3><span class="status-indicator status-warning"></span>Mantle Dynamics</h3>
+                <button class="minimize-btn" onclick="togglePanel('mantle-panel')">_</button>
+            </div>
+            
+            <div class="panel-content">
+                <div id="mantle-data">
+                    <p>Mantle tomography data available</p>
+                    <p>Depth: 0-2900 km</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load fix scripts after DOM is ready -->
+    <script src="fix_insar_issues.js"></script>
+    <script src="prometheus_universal_fix.js"></script>
+    
+    <!-- Load other modules with defer -->
+    <script defer src="webgl_fix_and_minimize.js"></script>
+    <script defer src="holocene_volcanoes_fixed.js"></script>
+    <script defer src="mantle_tomography.js"></script>
+    <script defer src="insar_monitor.js"></script>
+
     <script>
-        // Global Variables and Enhanced Data Structures
-        let map, scene, camera, renderer, controls;
+        // Global variables
+        let map = null;
+        let renderer = null;
+        let scene = null;
+        let camera = null;
+        let gl = null;
+        let deformationData = [];
+        let volcanoMarkers = [];
         let currentView = '2d';
         let currentVolcano = null;
-        let insarData = [];
-        let mantleLayer = null;
-        let mlModels = {
-            neuralNetwork: null,
-            quantumProcessor: null,
-            patternRecognition: null
-        };
+        let isInitialized = false;
         
-        // Complete Holocene Volcano Database (~1,500 volcanoes)
-        const HOLOCENE_VOLCANOES = {
-            // Papua New Guinea
-            'papua-new-guinea': [
-                { name: 'Mount Lamington', vnum: '252010', lat: -8.95, lon: 148.15, type: 'Stratovolcano', elevation: 1680, last_eruption: '1951', vei_max: 4 },
-                { name: 'Rabaul', vnum: '252140', lat: -4.271, lon: 152.203, type: 'Caldera', elevation: 688, last_eruption: '2014', vei_max: 4 },
-                { name: 'Ulawun', vnum: '252120', lat: -5.05, lon: 151.33, type: 'Stratovolcano', elevation: 2334, last_eruption: '2023', vei_max: 4 },
-                { name: 'Langila', vnum: '252010', lat: -5.525, lon: 148.42, type: 'Complex', elevation: 1330, last_eruption: '2019', vei_max: 3 },
-                { name: 'Bagana', vnum: '255020', lat: -6.14, lon: 155.196, type: 'Lava cone', elevation: 1750, last_eruption: '2023', vei_max: 2 },
-                { name: 'Manam', vnum: '251020', lat: -4.08, lon: 145.037, type: 'Stratovolcano', elevation: 1807, last_eruption: '2023', vei_max: 4 },
-                { name: 'Karkar', vnum: '251030', lat: -4.649, lon: 145.964, type: 'Stratovolcano', elevation: 1839, last_eruption: '1979', vei_max: 4 },
-                { name: 'Long Island', vnum: '251050', lat: -5.358, lon: 147.12, type: 'Caldera', elevation: 1280, last_eruption: '1660', vei_max: 6 }
-            ],
-            
-            // East Africa - Kenya
-            'kenya': [
-                { name: 'Mount Kenya', vnum: '221100', lat: -0.152, lon: 37.308, type: 'Stratovolcano', elevation: 5199, last_eruption: 'Holocene', vei_max: 2 },
-                { name: 'Menengai', vnum: '221240', lat: -0.2, lon: 36.07, type: 'Caldera', elevation: 2278, last_eruption: 'Holocene', vei_max: 3 },
-                { name: 'Longonot', vnum: '221200', lat: -0.914, lon: 36.446, type: 'Stratovolcano', elevation: 2776, last_eruption: '1860s', vei_max: 2 },
-                { name: 'Suswa', vnum: '221180', lat: -1.175, lon: 36.35, type: 'Shield', elevation: 2356, last_eruption: 'Holocene', vei_max: 2 },
-                { name: 'Barrier', vnum: '221080', lat: 2.32, lon: 36.57, type: 'Shield', elevation: 1032, last_eruption: 'Holocene', vei_max: 1 }
-            ],
-            
-            // Tanzania
-            'tanzania': [
-                { name: 'Kilimanjaro', vnum: '221100', lat: -3.065, lon: 37.359, type: 'Stratovolcano', elevation: 5895, last_eruption: 'Holocene', vei_max: 2 },
-                { name: 'Meru', vnum: '221130', lat: -3.25, lon: 36.75, type: 'Stratovolcano', elevation: 4566, last_eruption: '1910', vei_max: 3 },
-                { name: 'Ol Doinyo Lengai', vnum: '221120', lat: -2.764, lon: 35.914, type: 'Stratovolcano', elevation: 2962, last_eruption: '2023', vei_max: 2 },
-                { name: 'Ngorongoro', vnum: '221140', lat: -3.17, lon: 35.58, type: 'Caldera', elevation: 3648, last_eruption: 'Holocene', vei_max: 4 },
-                { name: 'Rungwe', vnum: '221160', lat: -9.13, lon: 33.67, type: 'Volcanic field', elevation: 2961, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Democratic Republic of Congo
-            'congo': [
-                { name: 'Nyiragongo', vnum: '221020', lat: -1.52, lon: 29.25, type: 'Stratovolcano', elevation: 3470, last_eruption: '2021', vei_max: 1 },
-                { name: 'Nyamuragira', vnum: '221010', lat: -1.408, lon: 29.2, type: 'Shield', elevation: 3058, last_eruption: '2014', vei_max: 2 },
-                { name: 'Karisimbi', vnum: '221050', lat: -1.5, lon: 29.45, type: 'Stratovolcano', elevation: 4507, last_eruption: 'Holocene', vei_max: 2 },
-                { name: 'Visoke', vnum: '221040', lat: -1.478, lon: 29.489, type: 'Stratovolcano', elevation: 3711, last_eruption: '1957', vei_max: 1 }
-            ],
-            
-            // Cameroon
-            'cameroon': [
-                { name: 'Mount Cameroon', vnum: '214010', lat: 4.203, lon: 9.17, type: 'Stratovolcano', elevation: 4095, last_eruption: '2012', vei_max: 2 },
-                { name: 'Lake Nyos', vnum: '214030', lat: 6.42, lon: 10.3, type: 'Maar', elevation: 1091, last_eruption: '1986', vei_max: 0 },
-                { name: 'Manengouba', vnum: '214020', lat: 5.03, lon: 9.83, type: 'Shield', elevation: 2411, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Cape Verde
-            'cape-verde': [
-                { name: 'Fogo', vnum: '184010', lat: 14.95, lon: -24.35, type: 'Stratovolcano', elevation: 2829, last_eruption: '2014', vei_max: 3 },
-                { name: 'Brava', vnum: '184020', lat: 14.85, lon: -24.72, type: 'Stratovolcano', elevation: 976, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Caucasus - Armenia
-            'armenia': [
-                { name: 'Aragats', vnum: '212030', lat: 40.53, lon: 44.2, type: 'Shield', elevation: 4090, last_eruption: 'Holocene', vei_max: 2 },
-                { name: 'Ghegam Ridge', vnum: '212020', lat: 40.18, lon: 44.73, type: 'Volcanic field', elevation: 3597, last_eruption: 'Holocene', vei_max: 1 }
-            ],
-            
-            // Georgia
-            'georgia': [
-                { name: 'Kazbek', vnum: '212010', lat: 42.7, lon: 44.5, type: 'Stratovolcano', elevation: 5047, last_eruption: '750 BCE', vei_max: 2 }
-            ],
-            
-            // Iran
-            'iran': [
-                { name: 'Damavand', vnum: '213020', lat: 35.955, lon: 52.109, type: 'Stratovolcano', elevation: 5670, last_eruption: '5550 BCE', vei_max: 2 },
-                { name: 'Sabalan', vnum: '213010', lat: 38.25, lon: 47.92, type: 'Stratovolcano', elevation: 4811, last_eruption: 'Holocene', vei_max: 2 },
-                { name: 'Sahand', vnum: '213040', lat: 37.75, lon: 46.43, type: 'Stratovolcano', elevation: 3707, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Pakistan
-            'pakistan': [
-                { name: 'Taftan', vnum: '212090', lat: 28.6, lon: 61.13, type: 'Stratovolcano', elevation: 3941, last_eruption: '1902', vei_max: 2 }
-            ],
-            
-            // India
-            'india': [
-                { name: 'Barren Island', vnum: '260010', lat: 12.278, lon: 93.858, type: 'Stratovolcano', elevation: 354, last_eruption: '2023', vei_max: 2 },
-                { name: 'Narcondam', vnum: '260020', lat: 13.43, lon: 94.28, type: 'Stratovolcano', elevation: 710, last_eruption: 'Holocene', vei_max: 1 }
-            ],
-            
-            // Myanmar
-            'myanmar': [
-                { name: 'Mount Popa', vnum: '260050', lat: 20.92, lon: 95.25, type: 'Stratovolcano', elevation: 1518, last_eruption: '442 BCE', vei_max: 4 }
-            ],
-            
-            // China
-            'china': [
-                { name: 'Changbaishan', vnum: '305060', lat: 41.98, lon: 128.08, type: 'Stratovolcano', elevation: 2744, last_eruption: '1903', vei_max: 4 },
-                { name: 'Kunlun Volcanic Group', vnum: '305020', lat: 35.52, lon: 80.2, type: 'Volcanic field', elevation: 5808, last_eruption: '1951', vei_max: 4 },
-                { name: 'Wudalianchi', vnum: '305030', lat: 48.73, lon: 126.12, type: 'Volcanic field', elevation: 597, last_eruption: '1776', vei_max: 2 },
-                { name: 'Tengchong', vnum: '305010', lat: 25.32, lon: 98.5, type: 'Volcanic field', elevation: 2865, last_eruption: '1609', vei_max: 2 }
-            ],
-            
-            // North Korea
-            'north-korea': [
-                { name: 'Changbaishan', vnum: '305060', lat: 41.98, lon: 128.08, type: 'Stratovolcano', elevation: 2744, last_eruption: '1903', vei_max: 4 }
-            ],
-            
-            // South Korea
-            'south-korea': [
-                { name: 'Jeju', vnum: '305070', lat: 33.37, lon: 126.53, type: 'Shield', elevation: 1950, last_eruption: '1007 CE', vei_max: 2 },
-                { name: 'Ulleung', vnum: '305080', lat: 37.5, lon: 130.87, type: 'Stratovolcano', elevation: 984, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Taiwan
-            'taiwan': [
-                { name: 'Tatun Volcanic Group', vnum: '261020', lat: 25.17, lon: 121.55, type: 'Volcanic field', elevation: 1120, last_eruption: '5000 BCE', vei_max: 3 },
-                { name: 'Kueishantao', vnum: '261030', lat: 24.85, lon: 121.95, type: 'Lava dome', elevation: 401, last_eruption: '1785', vei_max: 1 }
-            ],
-            
-            // Malaysia
-            'malaysia': [
-                { name: 'Bombalai', vnum: '264010', lat: 4.4, lon: 117.88, type: 'Volcanic field', elevation: 531, last_eruption: 'Holocene', vei_max: 1 }
-            ],
-            
-            // Pacific Islands - Vanuatu
-            'vanuatu': [
-                { name: 'Yasur', vnum: '257100', lat: -19.52, lon: 169.42, type: 'Stratovolcano', elevation: 361, last_eruption: '2023', vei_max: 3 },
-                { name: 'Lopevi', vnum: '257090', lat: -16.507, lon: 168.346, type: 'Stratovolcano', elevation: 1413, last_eruption: '2007', vei_max: 2 },
-                { name: 'Ambrym', vnum: '257050', lat: -16.25, lon: 168.12, type: 'Caldera', elevation: 1334, last_eruption: '2018', vei_max: 4 },
-                { name: 'Gaua', vnum: '257070', lat: -14.27, lon: 167.5, type: 'Stratovolcano', elevation: 797, last_eruption: '2013', vei_max: 2 }
-            ],
-            
-            // Solomon Islands
-            'solomon-islands': [
-                { name: 'Tinakula', vnum: '256010', lat: -10.38, lon: 165.8, type: 'Stratovolcano', elevation: 851, last_eruption: '2017', vei_max: 3 },
-                { name: 'Kavachi', vnum: '256020', lat: -9.02, lon: 157.95, type: 'Submarine', elevation: -20, last_eruption: '2022', vei_max: 2 },
-                { name: 'Gallego', vnum: '256030', lat: -9.35, lon: 159.73, type: 'Caldera', elevation: 994, last_eruption: 'Holocene', vei_max: 3 }
-            ],
-            
-            // Antarctica
-            'antarctica': [
-                { name: 'Mount Erebus', vnum: '390020', lat: -77.53, lon: 167.17, type: 'Stratovolcano', elevation: 3794, last_eruption: '2023', vei_max: 1 },
-                { name: 'Deception Island', vnum: '390030', lat: -62.57, lon: -60.57, type: 'Caldera', elevation: 576, last_eruption: '1970', vei_max: 3 },
-                { name: 'Penguin Island', vnum: '390050', lat: -62.1, lon: -57.93, type: 'Shield', elevation: 180, last_eruption: '1905', vei_max: 1 }
-            ],
-            
-            // South America - Argentina
-            'argentina': [
-                { name: 'Ojos del Salado', vnum: '355100', lat: -27.109, lon: -68.542, type: 'Stratovolcano', elevation: 6893, last_eruption: '700 CE', vei_max: 2 },
-                { name: 'Llullaillaco', vnum: '355020', lat: -24.72, lon: -68.53, type: 'Stratovolcano', elevation: 6739, last_eruption: '1877', vei_max: 2 },
-                { name: 'Copahue', vnum: '357090', lat: -37.855, lon: -71.17, type: 'Stratovolcano', elevation: 2965, last_eruption: '2016', vei_max: 3 },
-                { name: 'Lanín', vnum: '357110', lat: -39.633, lon: -71.5, type: 'Stratovolcano', elevation: 3776, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Bolivia
-            'bolivia': [
-                { name: 'Uturuncu', vnum: '355140', lat: -22.27, lon: -67.18, type: 'Stratovolcano', elevation: 6008, last_eruption: '271,000 years', vei_max: 6 },
-                { name: 'Olca-Paruma', vnum: '355050', lat: -20.93, lon: -68.48, type: 'Stratovolcano', elevation: 5407, last_eruption: 'Holocene', vei_max: 2 },
-                { name: 'Parinacota', vnum: '355090', lat: -18.17, lon: -69.15, type: 'Stratovolcano', elevation: 6348, last_eruption: '290 BCE', vei_max: 4 }
-            ],
-            
-            // Brazil
-            'brazil': [
-                { name: 'Trindade', vnum: '375010', lat: -20.5, lon: -29.32, type: 'Stratovolcano', elevation: 600, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Venezuela
-            'venezuela': [
-                { name: 'Los Coconucos', vnum: '351020', lat: 2.32, lon: -76.37, type: 'Volcanic field', elevation: 4479, last_eruption: '1950', vei_max: 2 }
-            ],
-            
-            // Central America - Panama
-            'panama': [
-                { name: 'Barú', vnum: '345040', lat: 8.808, lon: -82.543, type: 'Stratovolcano', elevation: 3475, last_eruption: '1550', vei_max: 4 },
-                { name: 'El Valle', vnum: '345030', lat: 8.58, lon: -80.17, type: 'Caldera', elevation: 1185, last_eruption: '56,000 years', vei_max: 6 }
-            ],
-            
-            // Honduras
-            'honduras': [
-                { name: 'Isla Zacate Grande', vnum: '343070', lat: 13.33, lon: -87.64, type: 'Stratovolcano', elevation: 640, last_eruption: 'Holocene', vei_max: 2 }
-            ],
-            
-            // Caribbean
-            'caribbean': [
-                { name: 'Soufrière Hills', vnum: '360050', lat: 16.72, lon: -62.18, type: 'Stratovolcano', elevation: 915, last_eruption: '2010', vei_max: 4 },
-                { name: 'Pelée', vnum: '360120', lat: 14.82, lon: -61.17, type: 'Stratovolcano', elevation: 1397, last_eruption: '1932', vei_max: 4 },
-                { name: 'Kick-em-Jenny', vnum: '360190', lat: 12.18, lon: -61.64, type: 'Submarine', elevation: -180, last_eruption: '2001', vei_max: 2 },
-                { name: 'Soufrière Saint Vincent', vnum: '360150', lat: 13.33, lon: -61.18, type: 'Stratovolcano', elevation: 1234, last_eruption: '1979', vei_max: 4 }
-            ],
-            
-            // Atlantic - Canary Islands
-            'canary-islands': [
-                { name: 'Teide', vnum: '383030', lat: 28.27, lon: -16.64, type: 'Stratovolcano', elevation: 3715, last_eruption: '1909', vei_max: 3 },
-                { name: 'Cumbre Vieja', vnum: '383010', lat: 28.57, lon: -17.84, type: 'Stratovolcano', elevation: 1949, last_eruption: '2021', vei_max: 2 },
-                { name: 'Lanzarote', vnum: '383050', lat: 29.03, lon: -13.63, type: 'Volcanic field', elevation: 670, last_eruption: '1824', vei_max: 3 }
-            ],
-            
-            // Azores
-            'azores': [
-                { name: 'Fogo', vnum: '382010', lat: 37.77, lon: -25.47, type: 'Stratovolcano', elevation: 2351, last_eruption: '1563', vei_max: 4 },
-                { name: 'Furnas', vnum: '382050', lat: 37.77, lon: -25.32, type: 'Caldera', elevation: 805, last_eruption: '1630', vei_max: 4 },
-                { name: 'Capelinhos', vnum: '382060', lat: 38.42, lon: -28.82, type: 'Submarine', elevation: 20, last_eruption: '1958', vei_max: 2 }
-            ]
-        };
-        
-        // Advanced WebGL initialization with extension support
-        function initializeWebGL() {
-            try {
-                scene = new THREE.Scene();
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                
-                // Fix WebGL extensions using the universal fix
-                try {
-                    if (window.fixWebGLExtensions) {
-                        fixWebGLExtensions(renderer);
-                    }
-                } catch (e) {
-                    console.warn('WebGL fix extension error:', e);
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen after a short delay
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => loadingScreen.style.display = 'none', 500);
                 }
-                
-                try {
-                    const gl = renderer.getContext();
-                    gl.getExtension('WEBGL_color_buffer_float');
-                    gl.getExtension('OES_texture_float');
-                    gl.getExtension('WEBGL_depth_texture');
-                } catch (e) {
-                    console.warn('WebGL extension warning:', e);
-                }
-                
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setClearColor(0x000510, 0.8);
-                renderer.shadowMap.enabled = true;
-                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                
-                document.getElementById('threejs-container').appendChild(renderer.domElement);
-                
-                // Add lighting
-                const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-                scene.add(ambientLight);
-                
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-                directionalLight.position.set(100, 100, 50);
-                directionalLight.castShadow = true;
-                scene.add(directionalLight);
-                
-                camera.position.set(0, 0, 200);
-                
-                console.log('WebGL initialized successfully with extensions');
-                return true;
-            } catch (error) {
-                console.error('WebGL initialization failed:', error);
-                return false;
-            }
-        }
-        
-        // Initialize 2D map with enhanced features
-        function initialize2DMap() {
-            try {
-                map = L.map('map-container', {
-                    center: [20, 0],
-                    zoom: 3,
-                    zoomControl: true,
-                    worldCopyJump: true
-                });
-                
-                // Add multiple base layers
-                const baseLayers = {
-                    'Satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                        attribution: '© Esri'
-                    }),
-                    'Topographic': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-                        attribution: '© Esri'
-                    }),
-                    'Dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                        attribution: '© CARTO'
-                    }),
-                    'Terrain': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', {
-                        attribution: '© Esri'
-                    })
-                };
-                
-                baseLayers['Satellite'].addTo(map);
-                L.control.layers(baseLayers).addTo(map);
-                
-                // Add custom controls
-                addCustomMapControls();
-                
-                console.log('2D Map initialized successfully');
-                return true;
-            } catch (error) {
-                console.error('2D Map initialization failed:', error);
-                return false;
-            }
-        }
-        
-        // Add custom map controls for InSAR analysis
-        function addCustomMapControls() {
-            // Deformation overlay control
-            const deformationControl = L.control({ position: 'topleft' });
-            deformationControl.onAdd = function(map) {
-                const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                div.innerHTML = '<a href="#" title="Toggle Deformation Overlay">📊</a>';
-                div.onclick = function(e) {
-                    e.preventDefault();
-                    toggleDeformationOverlay();
-                };
-                return div;
-            };
-            deformationControl.addTo(map);
+            }, 1500);
             
-            // Coherence overlay control
-            const coherenceControl = L.control({ position: 'topleft' });
-            coherenceControl.onAdd = function(map) {
-                const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                div.innerHTML = '<a href="#" title="Toggle Coherence Overlay">🎯</a>';
-                div.onclick = function(e) {
-                    e.preventDefault();
-                    toggleCoherenceOverlay();
-                };
-                return div;
-            };
-            coherenceControl.addTo(map);
-        }
-        
-        // Load and display volcano data
-        function loadVolcanoData() {
-            const activeCountry = document.querySelector('.country-tab.active').dataset.country;
-            const searchTerm = document.getElementById('volcano-search').value.toLowerCase();
-            const volcanoGrid = document.getElementById('volcano-grid');
-            
-            volcanoGrid.innerHTML = '';
-            
-            let volcanoesToShow = [];
-            
-            if (activeCountry === 'all') {
-                // Show all volcanoes
-                Object.values(HOLOCENE_VOLCANOES).flat().forEach(volcano => {
-                    volcanoesToShow.push(volcano);
-                });
-            } else {
-                // Show volcanoes for specific country
-                if (HOLOCENE_VOLCANOES[activeCountry]) {
-                    volcanoesToShow = HOLOCENE_VOLCANOES[activeCountry];
-                }
-            }
-            
-            // Filter by search term
-            if (searchTerm) {
-                volcanoesToShow = volcanoesToShow.filter(volcano =>
-                    volcano.name.toLowerCase().includes(searchTerm) ||
-                    volcano.type.toLowerCase().includes(searchTerm) ||
-                    volcano.vnum.includes(searchTerm)
-                );
-            }
-            
-            // Display volcanoes
-            volcanoesToShow.forEach(volcano => {
-                const volcanoItem = document.createElement('div');
-                volcanoItem.className = 'volcano-item';
-                volcanoItem.onclick = () => selectVolcano(volcano);
-                
-                volcanoItem.innerHTML = `
-                    <div class="volcano-name">${volcano.name}</div>
-                    <div class="volcano-details">
-                        VNUM: ${volcano.vnum}<br>
-                        Type: ${volcano.type}<br>
-                        Elevation: ${volcano.elevation}m<br>
-                        Last: ${volcano.last_eruption}<br>
-                        Max VEI: ${volcano.vei_max}
-                    </div>
-                `;
-                
-                volcanoGrid.appendChild(volcanoItem);
-            });
-            
-            // Add volcano markers to map
-            if (currentView === '2d' && map) {
-                addVolcanoMarkers(volcanoesToShow);
-            }
-        }
-        
-        // Missing overlay toggle functions
-        function toggleDeformationOverlay() {
-            if (!map) return;
-            
-            // Toggle deformation data overlay
-            if (window.deformationOverlay) {
-                map.removeLayer(window.deformationOverlay);
-                window.deformationOverlay = null;
-                updateStatusText('Deformation overlay hidden');
-            } else {
-                // Create synthetic deformation overlay
-                if (currentVolcano && insarData.length > 0) {
-                    const heatmapData = insarData.map(point => [
-                        point.lat, point.lon, Math.abs(point.displacement) * 10
-                    ]);
-                    
-                    // Simple circle markers as heatmap substitute
-                    const layerGroup = L.layerGroup();
-                    insarData.forEach(point => {
-                        const circle = L.circleMarker([point.lat, point.lon], {
-                            radius: Math.abs(point.displacement) * 2,
-                            fillColor: getDeformationColor(point.displacement / 5),
-                            color: 'white',
-                            weight: 1,
-                            opacity: 0.8,
-                            fillOpacity: 0.6
-                        });
-                        layerGroup.addLayer(circle);
-                    });
-                    
-                    window.deformationOverlay = layerGroup;
-                    layerGroup.addTo(map);
-                    updateStatusText('Deformation overlay displayed');
-                } else {
-                    updateStatusText('No deformation data available');
-                }
-            }
-        }
-        
-        function toggleCoherenceOverlay() {
-            if (!map) return;
-            
-            // Toggle coherence data overlay
-            if (window.coherenceOverlay) {
-                map.removeLayer(window.coherenceOverlay);
-                window.coherenceOverlay = null;
-                updateStatusText('Coherence overlay hidden');
-            } else {
-                // Create synthetic coherence overlay
-                if (currentVolcano && insarData.length > 0) {
-                    const layerGroup = L.layerGroup();
-                    insarData.forEach(point => {
-                        const circle = L.circleMarker([point.lat, point.lon], {
-                            radius: 3,
-                            fillColor: getCoherenceColor(point.coherence),
-                            color: 'white',
-                            weight: 1,
-                            opacity: 0.8,
-                            fillOpacity: 0.7
-                        });
-                        layerGroup.addLayer(circle);
-                    });
-                    
-                    window.coherenceOverlay = layerGroup;
-                    layerGroup.addTo(map);
-                    updateStatusText('Coherence overlay displayed');
-                } else {
-                    updateStatusText('No coherence data available');
-                }
-            }
-        }
-        
-        function getCoherenceColor(coherence) {
-            // Green (high coherence) to red (low coherence)
-            const value = Math.max(0, Math.min(1, coherence));
-            const red = Math.floor(255 * (1 - value));
-            const green = Math.floor(255 * value);
-            return `rgb(${red}, ${green}, 0)`;
-        }
-        
-        // Add volcano markers to the map
-        function addVolcanoMarkers(volcanoes) {
-            // Clear existing markers
-            map.eachLayer(layer => {
-                if (layer.options && layer.options.volcanoMarker) {
-                    map.removeLayer(layer);
-                }
-            });
-            
-            volcanoes.forEach(volcano => {
-                const marker = L.circleMarker([volcano.lat, volcano.lon], {
-                    radius: Math.max(4, volcano.vei_max * 1.5),
-                    fillColor: getVolcanoColor(volcano.vei_max),
-                    color: '#ffffff',
-                    weight: 1,
-                    opacity: 0.8,
-                    fillOpacity: 0.6,
-                    volcanoMarker: true
-                });
-                
-                const popupContent = `
-                    <div style="font-family: 'Segoe UI', sans-serif; min-width: 200px;">
-                        <h3 style="color: #FF5722; margin: 0 0 8px 0;">${volcano.name}</h3>
-                        <div style="font-size: 12px;">
-                            <strong>VNUM:</strong> ${volcano.vnum}<br>
-                            <strong>Type:</strong> ${volcano.type}<br>
-                            <strong>Elevation:</strong> ${volcano.elevation} m<br>
-                            <strong>Last Eruption:</strong> ${volcano.last_eruption}<br>
-                            <strong>Max VEI:</strong> ${volcano.vei_max}<br>
-                            <strong>Coordinates:</strong> ${volcano.lat.toFixed(3)}, ${volcano.lon.toFixed(3)}
-                        </div>
-                        <button onclick="selectVolcano(${JSON.stringify(volcano).replace(/"/g, '&quot;')})" 
-                                style="margin-top: 8px; padding: 4px 8px; background: #FF5722; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                            Select for Analysis
-                        </button>
-                    </div>
-                `;
-                
-                marker.bindPopup(popupContent);
-                marker.addTo(map);
-            });
-        }
-        
-        // Get volcano marker color based on VEI
-        function getVolcanoColor(vei) {
-            const colors = {
-                0: '#00FF00', // Green
-                1: '#7FFF00', // Lime
-                2: '#FFFF00', // Yellow
-                3: '#FFA500', // Orange
-                4: '#FF4500', // Red-Orange
-                5: '#FF0000', // Red
-                6: '#8B0000', // Dark Red
-                7: '#800080', // Purple
-                8: '#4B0082'  // Indigo
-            };
-            return colors[vei] || '#CCCCCC';
-        }
-        
-        // Select volcano for detailed analysis
-        function selectVolcano(volcano) {
-            currentVolcano = volcano;
-            
-            // Update UI to show selected volcano
-            document.querySelectorAll('.volcano-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            event.target.closest('.volcano-item')?.classList.add('selected');
-            
-            // Center map on volcano
-            if (currentView === '2d' && map) {
-                map.setView([volcano.lat, volcano.lon], 10);
-            }
-            
-            // Update analysis panels
-            updateSelectedVolcanoAnalysis(volcano);
-            
-            // Generate synthetic InSAR data for demonstration
-            generateSyntheticInSARData(volcano);
-            
-            updateStatusText(`Selected: ${volcano.name} for analysis`);
-        }
-        
-        // Update analysis for selected volcano
-        function updateSelectedVolcanoAnalysis(volcano) {
-            // Update deformation analysis values
-            const maxDisp = (Math.random() * 15).toFixed(1);
-            const defRate = (Math.random() * 5).toFixed(1);
-            const avgCoh = (0.3 + Math.random() * 0.5).toFixed(2);
-            const unwrapQual = (85 + Math.random() * 15).toFixed(0);
-            
-            document.getElementById('max-displacement').textContent = maxDisp;
-            document.getElementById('deformation-rate').textContent = defRate;
-            document.getElementById('coherence-avg').textContent = avgCoh;
-            document.getElementById('unwrap-quality').textContent = unwrapQual;
-            
-            // Update AI magma chamber modeling
-            const chamberDepth = (5 + Math.random() * 15).toFixed(1);
-            const chamberVol = (10 + Math.random() * 200).toFixed(0);
-            const pressureChange = (Math.random() * 50).toFixed(1);
-            const mlConfidence = (80 + Math.random() * 20).toFixed(0);
-            
-            document.getElementById('chamber-depth').textContent = chamberDepth;
-            document.getElementById('chamber-volume').textContent = chamberVol;
-            document.getElementById('pressure-change').textContent = pressureChange;
-            document.getElementById('ml-confidence').textContent = mlConfidence;
-        }
-        
-        // Generate synthetic InSAR data
-        function generateSyntheticInSARData(volcano) {
-            insarData = [];
-            
-            // Generate deformation pattern around volcano
-            const centerLat = volcano.lat;
-            const centerLon = volcano.lon;
-            const radius = 0.1; // degrees
-            
-            for (let i = 0; i < 100; i++) {
-                const angle = (i / 100) * 2 * Math.PI;
-                const distance = Math.random() * radius;
-                
-                const lat = centerLat + distance * Math.cos(angle);
-                const lon = centerLon + distance * Math.sin(angle);
-                
-                // Create deformation pattern (subsidence/uplift)
-                const distanceFromCenter = Math.sqrt(
-                    Math.pow(lat - centerLat, 2) + Math.pow(lon - centerLon, 2)
-                );
-                
-                const maxDeformation = 15; // cm
-                const deformation = maxDeformation * Math.exp(-distanceFromCenter * 50) * 
-                                   (Math.random() - 0.5) * 2;
-                
-                insarData.push({
-                    lat: lat,
-                    lon: lon,
-                    displacement: deformation,
-                    coherence: 0.3 + Math.random() * 0.6,
-                    date: new Date()
-                });
-            }
-            
-            // Update visualizations
-            updateInterferogramDisplay();
-            updateTimeSeriesChart();
-        }
-        
-        // Update interferogram display
-        function updateInterferogramDisplay() {
-            const canvas = document.getElementById('interferogram-canvas');
-            if (!canvas) return;
-            
-            const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            
-            // Clear canvas
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw interferogram pattern
-            if (insarData.length > 0) {
-                const colorRange = parseFloat(document.getElementById('color-range').value);
-                
-                insarData.forEach(point => {
-                    const x = (point.lon - currentVolcano.lon + 0.1) * (canvas.width / 0.2);
-                    const y = (currentVolcano.lat - point.lat + 0.1) * (canvas.height / 0.2);
-                    
-                    if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
-                        const normalizedDisp = point.displacement / colorRange;
-                        const color = getDeformationColor(normalizedDisp);
-                        
-                        ctx.fillStyle = color;
-                        ctx.fillRect(x - 2, y - 2, 4, 4);
-                    }
-                });
-                
-                // Add scale bar
-                drawColorScale(ctx, canvas.width - 60, 20, 40, canvas.height - 40, colorRange);
-            }
-        }
-        
-        // Get color for deformation visualization
-        function getDeformationColor(normalizedValue) {
-            // Normalize to -1 to 1 range
-            const val = Math.max(-1, Math.min(1, normalizedValue));
-            
-            if (val < 0) {
-                // Subsidence - blue tones
-                const intensity = Math.abs(val);
-                const blue = Math.floor(255 * intensity);
-                return `rgb(0, 0, ${blue})`;
-            } else {
-                // Uplift - red tones
-                const intensity = val;
-                const red = Math.floor(255 * intensity);
-                return `rgb(${red}, 0, 0)`;
-            }
-        }
-        
-        // Draw color scale on interferogram
-        function drawColorScale(ctx, x, y, width, height, range) {
-            const steps = height / 20;
-            
-            for (let i = 0; i < steps; i++) {
-                const value = (i / steps - 0.5) * 2; // -1 to 1
-                const color = getDeformationColor(value);
-                
-                ctx.fillStyle = color;
-                ctx.fillRect(x, y + i * 20, width, 20);
-            }
-            
-            // Add labels
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = '10px Arial';
-            ctx.fillText(`+${range}cm`, x + width + 5, y + 10);
-            ctx.fillText('0cm', x + width + 5, y + height/2);
-            ctx.fillText(`-${range}cm`, x + width + 5, y + height - 5);
-        }
-        
-        // Update time series chart
-        function updateTimeSeriesChart() {
-            const canvas = document.getElementById('time-series-canvas');
-            if (!canvas || !currentVolcano) return;
-            
-            const ctx = canvas.getContext('2d');
-            
-            // Destroy existing chart if it exists
-            if (window.timeSeriesChart) {
-                window.timeSeriesChart.destroy();
-            }
-            
-            // Generate time series data
-            const timePoints = [];
-            const displacementData = [];
-            const baseDate = new Date();
-            
-            for (let i = 0; i < 30; i++) {
-                const date = new Date(baseDate);
-                date.setDate(date.getDate() - (30 - i));
-                timePoints.push(date.toISOString().split('T')[0]);
-                
-                // Generate trend with noise
-                const trend = i * 0.2; // General upward trend
-                const noise = (Math.random() - 0.5) * 2;
-                displacementData.push(trend + noise);
-            }
-            
-            // Create Chart.js time series
-            window.timeSeriesChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: timePoints,
-                    datasets: [{
-                        label: 'Cumulative Displacement (cm)',
-                        data: displacementData,
-                        borderColor: '#2196F3',
-                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#FFFFFF' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#CCCCCC' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        y: {
-                            ticks: { color: '#CCCCCC' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Panel minimize/maximize functionality
-        function togglePanel(panelId) {
-            const panel = document.getElementById(panelId);
-            panel.classList.toggle('minimized');
-            
-            const btn = panel.querySelector('.minimize-btn');
-            btn.textContent = panel.classList.contains('minimized') ? '+' : '−';
-            
-            // Save state to localStorage
-            localStorage.setItem(`panel-${panelId}`, panel.classList.contains('minimized'));
-        }
-        
-        // Restore panel states from localStorage
-        function restorePanelStates() {
-            const panels = ['insar-controls', 'analysis-panel', 'mantle-panel', 'ml-panel'];
-            
-            panels.forEach(panelId => {
-                const isMinimized = localStorage.getItem(`panel-${panelId}`) === 'true';
-                if (isMinimized) {
-                    togglePanel(panelId);
-                }
-            });
-        }
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'm') {
-                e.preventDefault();
-                
-                // Toggle all panels
-                const panels = ['insar-controls', 'analysis-panel', 'mantle-panel', 'ml-panel'];
-                const firstPanel = document.getElementById(panels[0]);
-                const shouldMinimize = !firstPanel.classList.contains('minimized');
-                
-                panels.forEach(panelId => {
-                    const panel = document.getElementById(panelId);
-                    if (shouldMinimize && !panel.classList.contains('minimized')) {
-                        togglePanel(panelId);
-                    } else if (!shouldMinimize && panel.classList.contains('minimized')) {
-                        togglePanel(panelId);
-                    }
-                });
-                
-                updateStatusText(shouldMinimize ? 'All panels minimized' : 'All panels maximized');
-            }
-        });
-        
-        // View switching functionality
-        function switchView(view) {
-            currentView = view;
-            
-            // Update button states
-            document.querySelectorAll('.view-toggle-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`btn-${view}`).classList.add('active');
-            
-            // Show/hide containers
-            const containers = {
-                '2d': 'map-container',
-                '3d': 'threejs-container',
-                'mantle': 'threejs-container'
-            };
-            
-            Object.entries(containers).forEach(([viewType, containerId]) => {
-                document.getElementById(containerId).style.display = 
-                    view === viewType ? 'block' : 'none';
-            });
-            
-            // Initialize view-specific features
-            if (view === '3d' || view === 'mantle') {
-                if (!renderer) {
-                    initializeWebGL();
-                }
-                animate3D();
-            }
-            
-            if (view === 'mantle') {
-                initializeMantleVisualization();
-            }
-            
-            updateStatusText(`Switched to ${view.toUpperCase()} view`);
-        }
-        
-        // Initialize mantle visualization
-        function initializeMantleVisualization() {
-            // Clear existing mantle objects
-            scene.children = scene.children.filter(child => 
-                !(child.userData && child.userData.mantleLayer));
-            
-            // Create Earth core
-            const coreGeometry = new THREE.SphereGeometry(50, 32, 32);
-            const coreMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xFF4500,
-                emissive: 0x331100
-            });
-            const core = new THREE.Mesh(coreGeometry, coreMaterial);
-            core.userData = { mantleLayer: true };
-            scene.add(core);
-            
-            // Create mantle layers
-            createMantleLayers();
-            
-            // Add tomographic data visualization
-            createTomographicVisualization();
-            
-            updateStatusText('Mantle visualization initialized');
-        }
-        
-        // Create mantle layers
-        function createMantleLayers() {
-            const layers = [
-                { radius: 70, color: 0xFF6600, opacity: 0.3, name: 'Lower Mantle' },
-                { radius: 85, color: 0xFF8800, opacity: 0.2, name: 'Transition Zone' },
-                { radius: 95, color: 0xFFAA00, opacity: 0.1, name: 'Upper Mantle' }
-            ];
-            
-            layers.forEach(layer => {
-                const geometry = new THREE.SphereGeometry(layer.radius, 32, 32);
-                const material = new THREE.MeshPhongMaterial({ 
-                    color: layer.color,
-                    transparent: true,
-                    opacity: layer.opacity
-                });
-                const sphere = new THREE.Mesh(geometry, material);
-                sphere.userData = { mantleLayer: true, layerName: layer.name };
-                scene.add(sphere);
-            });
-        }
-        
-        // Create tomographic visualization
-        function createTomographicVisualization() {
-            const depth = parseInt(document.getElementById('depth-slider')?.value || 100);
-            
-            // Create velocity anomaly visualization
-            for (let i = 0; i < 200; i++) {
-                const phi = Math.random() * Math.PI;
-                const theta = Math.random() * 2 * Math.PI;
-                const radius = 95 + (depth / 100) * 30;
-                
-                const x = radius * Math.sin(phi) * Math.cos(theta);
-                const y = radius * Math.sin(phi) * Math.sin(theta);
-                const z = radius * Math.cos(phi);
-                
-                const velocity = Math.random() * 2 - 1; // -1 to 1
-                const size = Math.abs(velocity) * 5 + 1;
-                const color = velocity > 0 ? 0xFF0000 : 0x0066CC;
-                
-                const geometry = new THREE.SphereGeometry(size, 8, 8);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: color,
-                    transparent: true,
-                    opacity: 0.7
-                });
-                const anomaly = new THREE.Mesh(geometry, material);
-                anomaly.position.set(x, y, z);
-                anomaly.userData = { mantleLayer: true, velocity: velocity };
-                scene.add(anomaly);
-            }
-        }
-        
-        // 3D animation loop
-        function animate3D() {
-            if (currentView !== '3d' && currentView !== 'mantle') return;
-            
-            requestAnimationFrame(animate3D);
-            
-            // Rotate mantle layers
-            scene.children.forEach(child => {
-                if (child.userData && child.userData.mantleLayer) {
-                    child.rotation.y += 0.001;
-                }
-            });
-            
-            renderer.render(scene, camera);
-        }
-        
-        // Processing functions
-        function processInSARData() {
-            if (!currentVolcano) {
-                updateStatusText('Please select a volcano first');
-                return;
-            }
-            
-            showProcessingStatus(true);
-            updateStatusText('Processing InSAR data...');
-            
-            // Simulate processing
-            simulateProgress('InSAR processing', () => {
-                generateSyntheticInSARData(currentVolcano);
-                showProcessingStatus(false);
-                updateStatusText('InSAR processing complete');
-            });
-        }
-        
-        function runQuantumAnalysis() {
-            showProcessingStatus(true);
-            updateStatusText('Running quantum-enhanced analysis...');
-            
-            // Simulate quantum processing with enhanced metrics
-            simulateProgress('Quantum analysis', () => {
-                // Update ML dashboard with quantum results
-                document.getElementById('quantum-speedup').textContent = 
-                    (100 + Math.random() * 50).toFixed(0) + 'x';
-                document.getElementById('neural-accuracy').textContent = 
-                    (95 + Math.random() * 5).toFixed(1);
-                    
-                showProcessingStatus(false);
-                updateStatusText('Quantum analysis complete - 142x speedup achieved');
-            });
-        }
-        
-        function runAIAnalysis() {
-            if (!currentVolcano) {
-                updateStatusText('Please select a volcano first');
-                return;
-            }
-            
-            showProcessingStatus(true);
-            updateStatusText('Running AI magma chamber analysis...');
-            
-            simulateProgress('AI analysis', () => {
-                updateSelectedVolcanoAnalysis(currentVolcano);
-                showProcessingStatus(false);
-                updateStatusText('AI analysis complete - chamber parameters updated');
-            });
-        }
-        
-        function predictUnrest() {
-            if (!currentVolcano) {
-                updateStatusText('Please select a volcano first');
-                return;
-            }
-            
-            showProcessingStatus(true);
-            updateStatusText('Running volcanic unrest prediction...');
-            
-            simulateProgress('Unrest prediction', () => {
-                const riskLevel = Math.random();
-                let riskText, riskColor;
-                
-                if (riskLevel < 0.3) {
-                    riskText = 'LOW RISK';
-                    riskColor = '#4CAF50';
-                } else if (riskLevel < 0.6) {
-                    riskText = 'MODERATE RISK';
-                    riskColor = '#FF9800';
-                } else {
-                    riskText = 'HIGH RISK';
-                    riskColor = '#f44336';
-                }
-                
-                showProcessingStatus(false);
-                updateStatusText(`Unrest prediction: ${riskText}`, riskColor);
-            });
-        }
-        
-        // Utility functions
-        function showProcessingStatus(show) {
-            document.getElementById('spinner').style.display = show ? 'block' : 'none';
-            document.getElementById('processing-progress').style.display = show ? 'block' : 'none';
-        }
-        
-        function simulateProgress(taskName, callback) {
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 15;
-                if (progress > 100) progress = 100;
-                
-                document.getElementById('progress-fill').style.width = progress + '%';
-                
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    setTimeout(callback, 500);
-                }
-            }, 200);
-        }
-        
-        function updateStatusText(text, color = '#4CAF50') {
-            const statusElement = document.getElementById('status-text');
-            statusElement.textContent = text;
-            statusElement.style.color = color;
-        }
-        
-        // Country tab functionality
-        document.querySelectorAll('.country-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
-                e.target.classList.add('active');
-                loadVolcanoData();
-            });
-        });
-        
-        // Search functionality
-        document.getElementById('volcano-search').addEventListener('input', loadVolcanoData);
-        
-        // Slider updates
-        document.getElementById('coherence-threshold').addEventListener('input', (e) => {
-            document.getElementById('coherence-value').textContent = e.target.value;
-        });
-        
-        document.getElementById('temporal-baseline').addEventListener('input', (e) => {
-            document.getElementById('temporal-value').textContent = e.target.value;
-        });
-        
-        document.getElementById('perp-baseline').addEventListener('input', (e) => {
-            document.getElementById('perp-value').textContent = e.target.value;
-        });
-        
-        document.getElementById('color-range').addEventListener('input', (e) => {
-            document.getElementById('color-range-value').textContent = e.target.value;
-            updateInterferogramDisplay();
-        });
-        
-        // Depth slider for mantle visualization
-        if (document.getElementById('depth-slider')) {
-            document.getElementById('depth-slider').addEventListener('input', (e) => {
-                document.getElementById('depth-value').textContent = e.target.value;
-                if (currentView === 'mantle') {
-                    createTomographicVisualization();
-                }
-            });
-        }
-        
-        // Window resize handler
-        window.addEventListener('resize', () => {
-            if (map) {
-                map.invalidateSize();
-            }
-            
-            if (renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+            // Initialize only once
+            if (!isInitialized) {
+                initializeApplication();
+                isInitialized = true;
             }
         });
         
         // Initialize application
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize views
-            initialize2DMap();
-            initializeWebGL();
+        function initializeApplication() {
+            console.log('Initializing InSAR Analysis System...');
+            updateStatusText('Initializing system...');
             
-            // Load initial data
-            loadVolcanoData();
-            
-            // Restore panel states
-            restorePanelStates();
-            
-            // Set default view
-            switchView('2d');
-            
-            updateStatusText('Advanced InSAR Analysis System Ready');
-            
-            // Simulate real-time updates
-            setInterval(() => {
-                if (currentVolcano && Math.random() > 0.8) {
-                    updateSelectedVolcanoAnalysis(currentVolcano);
+            // Initialize map only if not already initialized
+            if (!map && typeof L !== 'undefined') {
+                try {
+                    const mapElement = document.getElementById('map');
+                    if (mapElement && !mapElement._leaflet_id) {
+                        map = L.map('map').setView([0, 0], 2);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(map);
+                        console.log('✅ Map initialized');
+                        updateStatusText('Map loaded successfully');
+                    }
+                } catch (e) {
+                    console.error('Map initialization failed:', e);
+                    updateStatusText('Map initialization failed');
                 }
-            }, 5000);
+            }
+            
+            // Initialize THREE.js
+            if (!renderer && typeof THREE !== 'undefined') {
+                try {
+                    const canvas = document.getElementById('three-canvas');
+                    if (canvas) {
+                        renderer = new THREE.WebGLRenderer({ 
+                            canvas: canvas, 
+                            alpha: true, 
+                            antialias: true 
+                        });
+                        renderer.setSize(window.innerWidth, window.innerHeight);
+                        renderer.setClearColor(0x000000, 0);
+                        
+                        scene = new THREE.Scene();
+                        camera = new THREE.PerspectiveCamera(
+                            75, 
+                            window.innerWidth / window.innerHeight, 
+                            0.1, 
+                            1000
+                        );
+                        camera.position.z = 5;
+                        
+                        // Add a simple light
+                        const light = new THREE.AmbientLight(0xffffff, 0.5);
+                        scene.add(light);
+                        
+                        // Get WebGL context
+                        gl = renderer.getContext();
+                        
+                        console.log('✅ THREE.js initialized');
+                        document.getElementById('webgl-status').textContent = 'Active';
+                    }
+                } catch (e) {
+                    console.error('THREE.js initialization failed:', e);
+                    document.getElementById('webgl-status').textContent = 'Failed';
+                }
+            }
+            
+            // Initialize event listeners
+            initializeEventListeners();
+            
+            // Load Holocene volcanoes if available
+            if (typeof HOLOCENE_VOLCANOES !== 'undefined') {
+                populateCountrySelector();
+            }
+            
+            // Update final status
+            updateStatusText('System ready for InSAR analysis');
+            
+            // Start animation loop
+            animate();
+        }
+        
+        // Initialize event listeners
+        function initializeEventListeners() {
+            // Time range slider
+            const timeRange = document.getElementById('time-range');
+            const timeValue = document.getElementById('time-value');
+            if (timeRange && timeValue) {
+                timeRange.addEventListener('input', function() {
+                    timeValue.textContent = this.value + ' days';
+                });
+            }
+            
+            // Coherence slider
+            const coherence = document.getElementById('coherence');
+            const coherenceValue = document.getElementById('coherence-value');
+            if (coherence && coherenceValue) {
+                coherence.addEventListener('input', function() {
+                    coherenceValue.textContent = this.value;
+                });
+            }
+            
+            // Data source change
+            const dataSource = document.getElementById('data-source');
+            if (dataSource) {
+                dataSource.addEventListener('change', updatePlatformInfo);
+            }
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'm') {
+                    // Minimize all panels
+                    document.querySelectorAll('.panel').forEach(panel => {
+                        panel.classList.toggle('minimized');
+                    });
+                }
+            });
+        }
+        
+        // Critical missing functions
+        function updateStatusText(message) {
+            const statusText = document.getElementById('status-text');
+            if (statusText) {
+                statusText.textContent = message;
+            }
+            console.log('Status:', message);
+        }
+        
+        function switchView() {
+            if (currentView === '2d') {
+                currentView = '3d';
+                document.getElementById('map-container').style.display = 'none';
+                document.getElementById('threejs-container').style.display = 'block';
+                document.getElementById('view-toggle').textContent = 'Switch to 2D View';
+                updateStatusText('Switched to 3D view');
+            } else {
+                currentView = '2d';
+                document.getElementById('map-container').style.display = 'block';
+                document.getElementById('threejs-container').style.display = 'none';
+                document.getElementById('view-toggle').textContent = 'Switch to 3D View';
+                updateStatusText('Switched to 2D view');
+                if (map) {
+                    setTimeout(() => map.invalidateSize(), 100);
+                }
+            }
+        }
+        
+        function selectVolcano(volcanoData) {
+            currentVolcano = volcanoData;
+            updateStatusText(`Selected: ${volcanoData.name}`);
+            
+            // Hide volcano grid
+            document.getElementById('volcano-grid').style.display = 'none';
+            
+            // Zoom to volcano on map
+            if (map && volcanoData.lat && volcanoData.lon) {
+                map.setView([volcanoData.lat, volcanoData.lon], 10);
+                
+                // Add marker
+                L.marker([volcanoData.lat, volcanoData.lon])
+                    .bindPopup(`<strong>${volcanoData.name}</strong>`)
+                    .addTo(map)
+                    .openPopup();
+            }
+        }
+        
+        function processInSARData() {
+            updateStatusText('Processing InSAR data...');
+            
+            // Simulate processing
+            setTimeout(() => {
+                generateDeformationData();
+                updateChart();
+                updateStatusText('InSAR analysis complete');
+                
+                // Check for alerts
+                const threshold = parseFloat(document.getElementById('deformation-threshold').value);
+                const maxDeformation = Math.max(...deformationData.map(d => Math.abs(d)));
+                if (maxDeformation > threshold) {
+                    addAlert(`High deformation detected: ${maxDeformation.toFixed(1)} mm/year`);
+                }
+            }, 2000);
+        }
+        
+        function showVolcanoGrid() {
+            const grid = document.getElementById('volcano-grid');
+            if (grid) {
+                grid.style.display = grid.style.display === 'none' ? 'block' : 'none';
+                
+                // Populate volcano list if needed
+                if (typeof HOLOCENE_VOLCANOES !== 'undefined') {
+                    const volcanoList = document.getElementById('volcano-list');
+                    if (volcanoList && volcanoList.children.length === 0) {
+                        let count = 0;
+                        for (const country in HOLOCENE_VOLCANOES) {
+                            HOLOCENE_VOLCANOES[country].forEach(volcano => {
+                                if (count < 50) { // Limit display
+                                    const btn = document.createElement('button');
+                                    btn.textContent = `${volcano.name} (${country})`;
+                                    btn.style.margin = '5px';
+                                    btn.onclick = () => selectVolcano(volcano);
+                                    volcanoList.appendChild(btn);
+                                    count++;
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Panel management
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                panel.classList.toggle('minimized');
+            }
+        }
+        
+        // Analysis functions
+        function generateDeformationData() {
+            deformationData = [];
+            for (let i = 0; i < 30; i++) {
+                deformationData.push(Math.random() * 40 - 20); // -20 to +20 mm/year
+            }
+        }
+        
+        function updateChart() {
+            const ctx = document.getElementById('deformation-chart');
+            if (ctx && typeof Chart !== 'undefined') {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: deformationData.map((_, i) => `Day ${i + 1}`),
+                        datasets: [{
+                            label: 'Deformation (mm)',
+                            data: deformationData,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: 'white' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function loadVolcanoData() {
+            if (typeof HOLOCENE_VOLCANOES === 'undefined') {
+                updateStatusText('Volcano data not available');
+                return;
+            }
+            
+            updateStatusText('Loading volcano data...');
+            
+            // Clear existing markers
+            volcanoMarkers.forEach(marker => {
+                if (map && marker) map.removeLayer(marker);
+            });
+            volcanoMarkers = [];
+            
+            // Add new markers
+            let count = 0;
+            for (const country in HOLOCENE_VOLCANOES) {
+                HOLOCENE_VOLCANOES[country].forEach(volcano => {
+                    if (map && L && count < 500) { // Limit for performance
+                        const marker = L.circleMarker([volcano.lat, volcano.lon], {
+                            radius: 5,
+                            fillColor: volcano.type.includes('Stratovolcano') ? '#ff0000' : '#ff6600',
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).bindPopup(`
+                            <strong>${volcano.name}</strong><br>
+                            Type: ${volcano.type}<br>
+                            Elevation: ${volcano.elevation}m<br>
+                            Last Eruption: ${volcano.lastEruption || 'Unknown'}
+                        `);
+                        marker.addTo(map);
+                        volcanoMarkers.push(marker);
+                        count++;
+                    }
+                });
+            }
+            
+            document.getElementById('volcano-count').textContent = count;
+            updateStatusText(`Loaded ${count} Holocene volcanoes`);
+        }
+        
+        function populateCountrySelector() {
+            const selector = document.getElementById('volcano-country');
+            if (selector && typeof HOLOCENE_VOLCANOES !== 'undefined') {
+                for (const country in HOLOCENE_VOLCANOES) {
+                    const option = document.createElement('option');
+                    option.value = country;
+                    option.textContent = `${country} (${HOLOCENE_VOLCANOES[country].length})`;
+                    selector.appendChild(option);
+                }
+            }
+        }
+        
+        function filterVolcanoesByCountry() {
+            const country = document.getElementById('volcano-country').value;
+            
+            // Clear existing markers
+            volcanoMarkers.forEach(marker => {
+                if (map && marker) map.removeLayer(marker);
+            });
+            volcanoMarkers = [];
+            
+            if (country === 'all') {
+                loadVolcanoData();
+            } else if (typeof HOLOCENE_VOLCANOES !== 'undefined' && HOLOCENE_VOLCANOES[country]) {
+                HOLOCENE_VOLCANOES[country].forEach(volcano => {
+                    if (map && L) {
+                        const marker = L.circleMarker([volcano.lat, volcano.lon], {
+                            radius: 5,
+                            fillColor: '#ff0000',
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).bindPopup(`
+                            <strong>${volcano.name}</strong><br>
+                            Type: ${volcano.type}<br>
+                            Elevation: ${volcano.elevation}m
+                        `);
+                        marker.addTo(map);
+                        volcanoMarkers.push(marker);
+                    }
+                });
+                
+                // Zoom to country volcanoes
+                if (volcanoMarkers.length > 0 && map) {
+                    const group = L.featureGroup(volcanoMarkers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+                
+                updateStatusText(`Showing ${volcanoMarkers.length} volcanoes in ${country}`);
+            }
+        }
+        
+        function updatePlatformInfo() {
+            const platform = document.getElementById('data-source').value;
+            const info = {
+                'sentinel1': { name: 'Sentinel-1', coverage: 'Global', resolution: '5×20m', revisit: '6 days' },
+                'alos2': { name: 'ALOS-2', coverage: 'Regional', resolution: '3-10m', revisit: '14 days' },
+                'terrasar': { name: 'TerraSAR-X', coverage: 'Targeted', resolution: '1-3m', revisit: '11 days' },
+                'cosmo': { name: 'COSMO-SkyMed', coverage: 'Regional', resolution: '1-100m', revisit: '1-16 days' },
+                'nisar': { name: 'NISAR', coverage: 'Global', resolution: '3-10m', revisit: '12 days' }
+            };
+            
+            const selected = info[platform];
+            if (selected) {
+                document.getElementById('platform-info').textContent = selected.name;
+                document.getElementById('coverage-info').textContent = selected.coverage;
+                document.getElementById('resolution-info').textContent = selected.resolution;
+                document.getElementById('revisit-info').textContent = selected.revisit;
+            }
+        }
+        
+        function addAlert(message) {
+            const mantleData = document.getElementById('mantle-data');
+            if (mantleData) {
+                const p = document.createElement('p');
+                p.textContent = `[Alert] ${message}`;
+                p.style.color = '#ff6666';
+                mantleData.appendChild(p);
+                
+                // Keep only last 5 alerts
+                while (mantleData.children.length > 5) {
+                    mantleData.removeChild(mantleData.firstChild);
+                }
+            }
+        }
+        
+        // Window resize handler
+        window.addEventListener('resize', function() {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            if (map) {
+                map.invalidateSize();
+            }
         });
         
-        // Missing processing functions
-        function runUnwrapping() {
-            if (!currentVolcano) {
-                updateStatusText('Please select a volcano first');
-                return;
-            }
+        // Animation loop for 3D view
+        function animate() {
+            requestAnimationFrame(animate);
             
-            showProcessingStatus(true);
-            updateStatusText('Running phase unwrapping...');
-            
-            simulateProgress('Phase unwrapping', () => {
-                const algorithm = document.getElementById('unwrapping-algorithm').value;
-                updateStatusText(`Phase unwrapping complete using ${algorithm}`);
-                showProcessingStatus(false);
-                
-                // Update unwrapping quality metric
-                document.getElementById('unwrap-quality').textContent = 
-                    (85 + Math.random() * 15).toFixed(0);
-            });
-        }
-        
-        function validateUnwrapping() {
-            if (!currentVolcano) {
-                updateStatusText('Please select a volcano first');
-                return;
-            }
-            
-            showProcessingStatus(true);
-            updateStatusText('Validating unwrapping results...');
-            
-            simulateProgress('Validation', () => {
-                const quality = (80 + Math.random() * 20).toFixed(1);
-                updateStatusText(`Validation complete - Quality: ${quality}%`);
-                showProcessingStatus(false);
-            });
-        }
-        
-        function updateAtmosphereModel() {
-            const model = document.getElementById('atmosphere-model').value;
-            updateStatusText(`Atmospheric model changed to: ${model}`);
-            
-            // Update atmospheric correction parameters
-            if (currentVolcano) {
-                generateSyntheticInSARData(currentVolcano);
+            if (renderer && scene && camera && currentView === '3d') {
+                // Add rotation animation
+                if (scene.children.length > 1) {
+                    scene.rotation.y += 0.001;
+                }
+                renderer.render(scene, camera);
             }
         }
         
-        function exportTimeSeries() {
-            if (!currentVolcano) {
-                updateStatusText('Please select a volcano first');
-                return;
+        // Memory usage monitor
+        setInterval(() => {
+            if (performance.memory) {
+                const usedMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(1);
+                const element = document.getElementById('memory-usage');
+                if (element) {
+                    element.textContent = `${usedMB} MB`;
+                }
             }
-            
-            // Create CSV data
-            const data = [];
-            const dates = [];
-            const displacements = [];
-            
-            for (let i = 0; i < 30; i++) {
-                const date = new Date();
-                date.setDate(date.getDate() - (30 - i));
-                dates.push(date.toISOString().split('T')[0]);
-                displacements.push((i * 0.2 + (Math.random() - 0.5) * 2).toFixed(2));
-            }
-            
-            let csvContent = 'Date,Displacement(cm)\n';
-            for (let i = 0; i < dates.length; i++) {
-                csvContent += `${dates[i]},${displacements[i]}\n`;
-            }
-            
-            // Create download
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${currentVolcano.name}_timeseries.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            updateStatusText('Time series data exported');
-        }
+        }, 5000);
         
-        function fitModel() {
-            if (!currentVolcano) {
-                updateStatusText('Please select a volcano first');
-                return;
-            }
-            
-            showProcessingStatus(true);
-            updateStatusText('Fitting deformation model...');
-            
-            simulateProgress('Model fitting', () => {
-                updateStatusText('Model fitting complete - Parameters updated');
-                showProcessingStatus(false);
-                updateSelectedVolcanoAnalysis(currentVolcano);
-            });
-        }
-        
-        function runDeepLearning() {
-            showProcessingStatus(true);
-            updateStatusText('Running deep learning analysis...');
-            
-            simulateProgress('Deep learning', () => {
-                // Update ML metrics
-                document.getElementById('neural-accuracy').textContent = 
-                    (95 + Math.random() * 5).toFixed(1);
-                document.getElementById('pattern-score').textContent = 
-                    (8 + Math.random() * 2).toFixed(1);
-                
-                updateStatusText('Deep learning analysis complete');
-                showProcessingStatus(false);
-            });
-        }
-        
-        function optimizeParameters() {
-            showProcessingStatus(true);
-            updateStatusText('Auto-optimizing parameters...');
-            
-            simulateProgress('Parameter optimization', () => {
-                // Update sliders with optimized values
-                const coherenceSlider = document.getElementById('coherence-threshold');
-                const temporalSlider = document.getElementById('temporal-baseline');
-                const perpSlider = document.getElementById('perp-baseline');
-                
-                coherenceSlider.value = (0.3 + Math.random() * 0.3).toFixed(1);
-                temporalSlider.value = Math.floor(8 + Math.random() * 16);
-                perpSlider.value = Math.floor(50 + Math.random() * 150);
-                
-                // Update displays
-                document.getElementById('coherence-value').textContent = coherenceSlider.value;
-                document.getElementById('temporal-value').textContent = temporalSlider.value;
-                document.getElementById('perp-value').textContent = perpSlider.value;
-                
-                updateStatusText('Parameters optimized automatically');
-                showProcessingStatus(false);
-            });
-        }
-        
-        // Mantle visualization functions
-        function toggleVelocityType() {
-            if (currentView !== 'mantle') {
-                updateStatusText('Switch to Mantle view first');
-                return;
-            }
-            
-            updateStatusText('Toggled between P-wave and S-wave velocity');
-            if (mantleTomography && mantleTomography.toggleVelocityType) {
-                mantleTomography.toggleVelocityType();
-            } else {
-                createTomographicVisualization();
-            }
-        }
-        
-        function showLLSVP() {
-            if (currentView !== 'mantle') {
-                updateStatusText('Switch to Mantle view first');
-                return;
-            }
-            
-            updateStatusText('Showing Large Low Shear Velocity Provinces');
-            // Add LLSVP visualization to scene
-            const llsvpGeometry = new THREE.SphereGeometry(60, 16, 16);
-            const llsvpMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x8B0000,
-                transparent: true,
-                opacity: 0.6
-            });
-            const llsvp = new THREE.Mesh(llsvpGeometry, llsvpMaterial);
-            llsvp.userData = { mantleLayer: true, isLLSVP: true };
-            scene.add(llsvp);
-        }
-        
-        function showSlabWindows() {
-            if (currentView !== 'mantle') {
-                updateStatusText('Switch to Mantle view first');
-                return;
-            }
-            
-            updateStatusText('Showing slab window structures');
-            // Add slab window visualization
-            for (let i = 0; i < 5; i++) {
-                const windowGeometry = new THREE.CylinderGeometry(5, 8, 30, 8);
-                const windowMaterial = new THREE.MeshPhongMaterial({ 
-                    color: 0x00CED1,
-                    transparent: true,
-                    opacity: 0.7
-                });
-                const slabWindow = new THREE.Mesh(windowGeometry, windowMaterial);
-                slabWindow.position.set(
-                    (Math.random() - 0.5) * 100,
-                    (Math.random() - 0.5) * 100,
-                    (Math.random() - 0.5) * 100
-                );
-                slabWindow.userData = { mantleLayer: true, isSlabWindow: true };
-                scene.add(slabWindow);
-            }
-        }
-        
-        // Export functions for global access
-        window.togglePanel = togglePanel;
+        // Make functions globally accessible
+        window.updateStatusText = updateStatusText;
         window.switchView = switchView;
         window.selectVolcano = selectVolcano;
         window.processInSARData = processInSARData;
-        window.runQuantumAnalysis = runQuantumAnalysis;
-        window.runAIAnalysis = runAIAnalysis;
-        window.predictUnrest = predictUnrest;
-        window.runUnwrapping = runUnwrapping;
-        window.validateUnwrapping = validateUnwrapping;
-        window.updateAtmosphereModel = updateAtmosphereModel;
-        window.exportTimeSeries = exportTimeSeries;
-        window.fitModel = fitModel;
-        window.runDeepLearning = runDeepLearning;
-        window.optimizeParameters = optimizeParameters;
-        window.toggleVelocityType = toggleVelocityType;
-        window.showLLSVP = showLLSVP;
-        window.showSlabWindows = showSlabWindows;
-        window.toggleDeformationOverlay = toggleDeformationOverlay;
-        window.toggleCoherenceOverlay = toggleCoherenceOverlay;
+        window.currentView = currentView;
+        window.currentVolcano = currentVolcano;
+        window.togglePanel = togglePanel;
+        window.loadVolcanoData = loadVolcanoData;
+        window.filterVolcanoesByCountry = filterVolcanoesByCountry;
+        window.showVolcanoGrid = showVolcanoGrid;
         
-        // Validate volcano database
-        console.log(`✓ Loaded ${Object.keys(HOLOCENE_VOLCANOES).length} countries with Holocene volcanoes`);
-        
-        // Initialize Mantle Tomography if available
-        let mantleTomography = null;
-        function initializeMantleTomography() {
-            if (window.MantleTomography && scene && renderer) {
-                mantleTomography = new MantleTomography(scene, renderer);
-                console.log('✓ Mantle Tomography module initialized');
-            }
-        }
-        
-        // Slider value update functions with error handling
-        function updateSliderValue(sliderId, displayId, suffix = '') {
-            try {
-                const slider = document.getElementById(sliderId);
-                const display = document.getElementById(displayId);
-                if (slider && display) {
-                    display.textContent = slider.value + suffix;
-                }
-            } catch (e) {
-                console.error('Slider update failed:', e);
-            }
-        }
-        
-        // Enhanced slider event listeners with error handling
-        function setupSliderListeners() {
-            try {
-                const sliders = [
-                    { id: 'coherence-threshold', display: 'coherence-value' },
-                    { id: 'temporal-baseline', display: 'temporal-value' },
-                    { id: 'perp-baseline', display: 'perp-value' },
-                    { id: 'ml-filter-size', display: 'ml-filter-value' },
-                    { id: 'tropo-delay', display: 'tropo-delay-value', suffix: 'mm' },
-                    { id: 'iono-correction', display: 'iono-value' },
-                    { id: 'color-range', display: 'color-range-value', callback: updateInterferogramDisplay }
-                ];
-                
-                sliders.forEach(({ id, display, suffix, callback }) => {
-                    const slider = document.getElementById(id);
-                    const displayElement = document.getElementById(display);
-                    
-                    if (slider && displayElement) {
-                        slider.addEventListener('input', (e) => {
-                            try {
-                                displayElement.textContent = e.target.value + (suffix || '');
-                                if (callback) callback();
-                            } catch (err) {
-                                console.error(`Slider ${id} update failed:`, err);
-                            }
-                        });
-                    }
-                });
-                
-                // Depth slider for mantle visualization
-                const depthSlider = document.getElementById('depth-slider');
-                const depthValue = document.getElementById('depth-value');
-                if (depthSlider && depthValue) {
-                    depthSlider.addEventListener('input', (e) => {
-                        try {
-                            depthValue.textContent = e.target.value;
-                            if (currentView === 'mantle') {
-                                createTomographicVisualization();
-                            }
-                        } catch (err) {
-                            console.error('Depth slider update failed:', err);
-                        }
-                    });
-                }
-                
-            } catch (e) {
-                console.error('Slider setup failed:', e);
-            }
-        }
-        
-        // Global error handler
-        window.addEventListener('error', (event) => {
-            console.error('Global error:', event.error);
-            if (document.getElementById('status-text')) {
-                updateStatusText(`Error: ${event.error.message}`, '#f44336');
-            }
-        });
-        
-        window.addEventListener('unhandledrejection', (event) => {
-            console.error('Unhandled promise rejection:', event.reason);
-            if (document.getElementById('status-text')) {
-                updateStatusText(`Promise error: ${event.reason}`, '#f44336');
-            }
-        });
-        
-        // Safe initialization wrapper
-        function safeInitialization() {
-            try {
-                // Initialize views with error handling
-                try {
-                    initialize2DMap();
-                } catch (e) {
-                    console.error('2D Map initialization failed:', e);
-                    updateStatusText('2D Map failed to initialize', '#ff9800');
-                }
-                
-                try {
-                    initializeWebGL();
-                } catch (e) {
-                    console.error('WebGL initialization failed:', e);
-                    updateStatusText('3D View failed to initialize', '#ff9800');
-                }
-                
-                // Load initial data
-                try {
-                    loadVolcanoData();
-                } catch (e) {
-                    console.error('Volcano data loading failed:', e);
-                    updateStatusText('Volcano data loading failed', '#ff9800');
-                }
-                
-                // Set up event listeners
-                try {
-                    setupSliderListeners();
-                    
-                    // Country tab functionality
-                    document.querySelectorAll('.country-tab').forEach(tab => {
-                        tab.addEventListener('click', (e) => {
-                            try {
-                                document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
-                                e.target.classList.add('active');
-                                loadVolcanoData();
-                            } catch (err) {
-                                console.error('Country tab click failed:', err);
-                            }
-                        });
-                    });
-                    
-                    // Search functionality
-                    const volcanoSearch = document.getElementById('volcano-search');
-                    if (volcanoSearch) {
-                        volcanoSearch.addEventListener('input', () => {
-                            try {
-                                loadVolcanoData();
-                            } catch (err) {
-                                console.error('Search input failed:', err);
-                            }
-                        });
-                    }
-                    
-                } catch (e) {
-                    console.error('Event listener setup failed:', e);
-                }
-                
-                // Restore panel states
-                try {
-                    restorePanelStates();
-                } catch (e) {
-                    console.error('Panel state restoration failed:', e);
-                }
-                
-                // Set default view
-                try {
-                    switchView('2d');
-                } catch (e) {
-                    console.error('View switching failed:', e);
-                }
-                
-                updateStatusText('Advanced InSAR Analysis System Ready');
-                
-                // Initialize mantle tomography
-                setTimeout(() => {
-                    try {
-                        initializeMantleTomography();
-                    } catch (e) {
-                        console.error('Mantle tomography initialization failed:', e);
-                    }
-                }, 1000);
-                
-                // Simulate real-time updates with error handling
-                setInterval(() => {
-                    try {
-                        if (currentVolcano && Math.random() > 0.8) {
-                            updateSelectedVolcanoAnalysis(currentVolcano);
-                        }
-                    } catch (e) {
-                        console.error('Real-time update failed:', e);
-                    }
-                }, 5000);
-                
-            } catch (e) {
-                console.error('Application initialization failed:', e);
-                updateStatusText('System initialization failed', '#f44336');
-            }
-        }
-        
-        // Health check function for monitoring
-        function systemHealthCheck() {
-            const issues = [];
-            
-            // Check if essential elements exist
-            const essentialElements = [
-                'map-container', 'threejs-container', 'volcano-grid',
-                'status-text', 'view-toggle', 'insar-controls'
-            ];
-            
-            essentialElements.forEach(id => {
-                if (!document.getElementById(id)) {
-                    issues.push(`Missing element: ${id}`);
-                }
-            });
-            
-            // Check if essential variables are defined
-            if (typeof HOLOCENE_VOLCANOES === 'undefined') {
-                issues.push('HOLOCENE_VOLCANOES not defined');
-            }
-            
-            // Check if essential functions exist
-            const essentialFunctions = [
-                'switchView', 'togglePanel', 'selectVolcano',
-                'processInSARData', 'loadVolcanoData'
-            ];
-            
-            essentialFunctions.forEach(funcName => {
-                if (typeof window[funcName] !== 'function') {
-                    issues.push(`Missing function: ${funcName}`);
-                }
-            });
-            
-            return {
-                healthy: issues.length === 0,
-                issues: issues,
-                timestamp: new Date().toISOString()
-            };
-        }
-        
-        // Auto-repair function
-        function autoRepair() {
-            const health = systemHealthCheck();
-            
-            if (!health.healthy) {
-                console.warn('System issues detected:', health.issues);
-                
-                // Attempt to repair missing functions
-                health.issues.forEach(issue => {
-                    if (issue.includes('Missing function: switchView')) {
-                        window.switchView = switchView;
-                    }
-                    if (issue.includes('Missing function: togglePanel')) {
-                        window.togglePanel = togglePanel;
-                    }
-                    // Add more repair logic as needed
-                });
-                
-                if (document.getElementById('status-text')) {
-                    updateStatusText(`Auto-repair attempted: ${health.issues.length} issues`, '#ff9800');
-                }
-            }
-            
-            return health;
-        }
-        
-        // Export health check for external monitoring
-        window.systemHealthCheck = systemHealthCheck;
-        window.autoRepair = autoRepair;
-        
-        // Initialize Panel Manager and application
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('✓ Panel Manager active - Use Ctrl+M to minimize/maximize all panels');
-            safeInitialization();
-        });
-        
-        // Periodic health check (reduced frequency since monitor script handles this)
-        setInterval(() => {
-            try {
-                const health = systemHealthCheck();
-                if (!health.healthy) {
-                    autoRepair();
-                }
-            } catch (e) {
-                console.error('Health check failed:', e);
-            }
-        }, 60000); // Check every 60 seconds
-        
-        // Log system ready status
         console.log('🚀 Advanced InSAR Analysis System Fully Loaded');
-        console.log('📋 Monitoring active - see insar_monitor.js for details');
-        console.log('🔧 Manual repair: Ctrl+Shift+R');
-        console.log('🚨 Emergency reset: Ctrl+Shift+E');
-        
     </script>
-
-    <!-- Universal Feature Repair Script -->
-    <script src="universal_feature_repair.js"></script>
-    <script>
-        // Auto-run repair after page load
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                if (typeof manualRepair === 'function') {
-                    console.log('🔧 Running automatic feature repair...');
-                    manualRepair();
-                }
-            }, 2000);
-        });
-    </script>
-
 </body>
 </html>

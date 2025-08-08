@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- IMMEDIATE EMERGENCY LOADER - Must be first script -->
+    <script src="immediate_emergency_loader.js"></script>
+    
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prometheus AI - Advanced Tectonic Reconstruction System (2024 Enhanced)</title>
@@ -36,8 +40,8 @@
         document.head.appendChild(link);
         
         // Load libraries with error handling
-        safeLoadLibrary('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', 'THREE.js');
-        safeLoadLibrary('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js', 'OrbitControls');
+        safeLoadLibrary('https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js', 'THREE.js');
+        safeLoadLibrary('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js', 'OrbitControls');
         safeLoadLibrary('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'Leaflet');
         
         // Load local scripts
@@ -2006,5 +2010,26 @@
         });
     </script>
 
+
+    <!-- Prometheus Enhanced Loader - Automatically loads all improvements -->
+    <script src="prometheus_enhanced_loader.js"></script>
+
+    <!-- Initialize comprehensive volcano selector -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for comprehensive volcano selector to load
+            setTimeout(function() {
+                if (window.initializeVolcanoSelector) {
+                    // Remove any existing volcano selectors to avoid conflicts
+                    const existingSelectors = document.querySelectorAll('.volcano-selector-panel');
+                    existingSelectors.forEach(sel => sel.remove());
+                    
+                    // Initialize new comprehensive selector
+                    window.initializeVolcanoSelector();
+                    console.log('🌋 Comprehensive volcano selector integrated for this module');
+                }
+            }, 2000);
+        });
+    </script>
 </body>
 </html>
