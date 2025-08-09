@@ -422,7 +422,7 @@
     - Write computational cost estimation and optimization
     - _Requirements: 14.5_
 
-- [x] 21. Implement graph neural networks for hidden relationship discovery
+- [x] 21. Integrate graph neural networks for hidden relationship discovery
   - [x] 21.1 Create graph neural network architectures for geological data
     - Build Graph Convolutional Networks (GCNs) for geological process modeling
     - Implement Graph Attention Networks (GATs) for relationship weighting
@@ -435,7 +435,7 @@
     - Implement edge embeddings for geological relationships
     - Build graph-level embeddings for geological system classification
     - Write similarity search for analogous geological systems
-    - Write updated modules to include supereruptions and identify what is happening inside magma reservoirs of large caldera volcanos
+    - Write updated modules to include supereruptions and identify what is happening inside crustal and at-depth magma reservoirs of large caldera volcanos
     - _Requirements: 15.4, 15.6_
 
 - [x] 22. Develop quantum computing integration for complex optimization
@@ -463,12 +463,12 @@
     - [x] Built sophisticated Graph Neural Networks for geological relationship discovery
     - [x] Developed advanced TPU Pod management for continental-scale simulations
     - [x] Implemented comprehensive volcanic monitoring with AI-powered eruption forecasting
-    - [x] Created Bayesian uncertainty quantification and variational inference systems
+    - [x] Create Bayesian uncertainty quantification and variational inference systems
     - [x] Built advanced seismic CNN with attention mechanisms for volcanic signal classification
     - [x] Implemented real InSAR data processing and ground deformation analysis
     - [x] Created physics-based magma chamber dynamics modeling with gas exsolution
-    - [x] Built causal discovery algorithms for geological process relationships
-    - [x] Implemented heterogeneous GNNs for multi-type geological entities
+    - [x] Build and integrate causal discovery algorithms for geological process relationships
+    - [x] Implement heterogeneous GNNs for multi-type geological entities
     - [x] Created variational graph autoencoders for uncertainty quantification
     - [x] Built advanced thermal anomaly detection using satellite data
     - [x] Implemented real-time multi-sensor data fusion with Kalman filtering
