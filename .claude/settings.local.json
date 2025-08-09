@@ -38,7 +38,12 @@
       "Bash(fi)",
       "Bash(else echo \"$file not found locally\")",
       "WebFetch(domain:20.80.89.29)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(git mv:*)",
+      "Bash(tree:*)"
     ],
     "deny": []
   }

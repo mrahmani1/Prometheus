@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volcano Risk Dashboard - Prometheus Platform</title>
+    
+    <!-- Core Styles -->
+    <link rel="stylesheet" href="../styles/component_styles.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.29.1/plotly.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.min.js"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: #333;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(90deg, #ff4400, #ff6600);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(255, 68, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .alert-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .alert-normal { background: #22c55e; color: #fff; }
+        .alert-advisory { background: #eab308; color: #000; }
+        .alert-watch { background: #f97316; color: #fff; }
+        .alert-warning { background: #ef4444; color: #fff; }
+        .alert-critical { 
+            background: #dc2626; 
+            color: #fff;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .sidebar {
+            background: #1f1f1f;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .main-content {
+            background: #0f0f0f;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 1fr 300px;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .visualization-panel {
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #2d2d2d;
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .panel-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-button {
+            background: #404040;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .control-button:hover {
+            background: #555;
+        }
+
+        .control-button.active {
+            background: #ff6600;
+            border-color: #ff6600;
+        }
+
+        .panel-content {
+            height: calc(100% - 45px);
+            position: relative;
+        }
+
+        /* 3D Visualization */
+        #volcanic-system-3d {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #16213e 100%);
+        }
+
+        /* Risk Metrics */
+        .risk-metrics {
+            display: grid;
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .metric-card {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #ff6600;
+            transition: transform 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateX(5px);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 8px 0;
+            line-height: 1;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .metric-trend {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trend-up { color: #ef4444; }
+        .trend-down { color: #22c55e; }
+        .trend-stable { color: #6b7280; }
+
+        /* Time Series Panel */
+        .timeseries-container {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .chart-container {
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        /* Sidebar Components */
+        .volcano-selector {
+            margin-bottom: 25px;
+        }
+
+        .volcano-selector select {
+            width: 100%;
+            background: #2d2d2d;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        .monitoring-status {
+            margin-bottom: 25px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background: #22c55e; }
+        .status-warning { background: #eab308; }
+        .status-offline { background: #6b7280; }
+
+        .recent-events {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .event-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+
+        .event-time {
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+
+        /* Prediction Panel */
+        .prediction-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 350px;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .prediction-header {
+            color: #ff6600;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .probability-bar {
+            background: #333;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #ef4444);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .probability-value {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .prediction-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .detail-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ff6600;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .recommendations {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+
+        .recommendations h4 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .recommendations ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .recommendations li {
+            padding: 5px 0;
+            font-size: 0.85rem;
+            color: #ddd;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .recommendations li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #ff6600;
+            font-weight: bold;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            flex-direction: column;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top: 3px solid #ff6600;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard-container {
+                grid-template-columns: 250px 1fr;
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: 400px 300px 300px;
+            }
+            
+            .timeseries-container {
+                grid-column: 1;
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px auto 1fr;
+            }
+            
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                top: 60px;
+                width: 100%;
+                height: calc(100vh - 60px);
+                z-index: 1000;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .main-content {
+                grid-column: 1;
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1f1f1f;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                🌋 Volcano Risk Dashboard
+            </h1>
+            <div class="status-indicator">
+                <span id="current-time"></span>
+                <div id="alert-level" class="alert-badge alert-normal">Normal</div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Volcano Selector -->
+            <div class="volcano-selector">
+                <h3 style="margin-bottom: 10px; color: #ff6600;">Volcano Selection</h3>
+                <select id="volcano-select">
+                    <option value="mount_vesuvius">Mount Vesuvius</option>
+                    <option value="yellowstone">Yellowstone</option>
+                    <option value="campi_flegrei">Campi Flegrei</option>
+                    <option value="mount_etna">Mount Etna</option>
+                    <option value="kilauea">Kilauea</option>
+                </select>
+            </div>
+
+            <!-- Monitoring Status -->
+            <div class="monitoring-status">
+                <h3 style="margin-bottom: 15px; color: #ff6600;">Monitoring Systems</h3>
+                <div class="status-item">
+                    <span><span class="status-dot status-online"></span>Seismic Network</span>
+                    <span>Online</span>
+                </div>
+                <div class="status-item">
+                    <span><span class="status-dot status-online"></span>GPS Stations</span>
+                    <span>Active</span>
+                </div>
+                <div class="status-item">
+                    <span><span class="status-dot status-warning"></span>Gas Sensors</span>
+                    <span>Limited</span>
+                </div>
+                <div class="status-item">
+                    <span><span class="status-dot status-online"></span>Thermal Camera</span>
+                    <span>Online</span>
+                </div>
+                <div class="status-item">
+                    <span><span class="status-dot status-online"></span>InSAR Satellite</span>
+                    <span>Active</span>
+                </div>
+            </div>
+
+            <!-- Recent Events -->
+            <div class="recent-events">
+                <h3 style="margin-bottom: 15px; color: #ff6600;">Recent Events</h3>
+                <div id="recent-events-list">
+                    <div class="event-item">
+                        <span>M2.1 Earthquake</span>
+                        <span class="event-time">2 hours ago</span>
+                    </div>
+                    <div class="event-item">
+                        <span>Gas emission spike</span>
+                        <span class="event-time">5 hours ago</span>
+                    </div>
+                    <div class="event-item">
+                        <span>Thermal anomaly detected</span>
+                        <span class="event-time">8 hours ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- 3D Visualization -->
+            <div class="visualization-panel">
+                <div class="panel-header">
+                    <span>Multi-Chamber 3D System</span>
+                    <div class="panel-controls">
+                        <button class="control-button active" data-mode="all">All Layers</button>
+                        <button class="control-button" data-mode="temperature">Temperature</button>
+                        <button class="control-button" data-mode="flow">Flow</button>
+                        <button class="control-button" data-mode="crystals">Crystals</button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="volcanic-system-3d">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Initializing 3D Volcanic System...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ML Prediction Overlay -->
+                <div class="prediction-panel" id="prediction-panel">
+                    <div class="prediction-header">
+                        🤖 ML Predictions
+                    </div>
+                    
+                    <div>
+                        <strong>Eruption Probability:</strong>
+                        <div class="probability-bar">
+                            <div class="probability-fill" id="probability-fill" style="width: 0%">
+                                <span class="probability-value" id="probability-value">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-details">
+                        <div class="detail-item">
+                            <div class="detail-value" id="time-to-eruption">--</div>
+                            <div class="detail-label">Time to Eruption</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value" id="expected-vei">--</div>
+                            <div class="detail-label">Expected VEI</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value" id="model-confidence">--</div>
+                            <div class="detail-label">Model Confidence</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value" id="last-update">--</div>
+                            <div class="detail-label">Last Update</div>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendations">
+                        <h4>Recommendations:</h4>
+                        <ul id="recommendations-list">
+                            <li>Continue baseline monitoring</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Metrics -->
+            <div class="risk-metrics">
+                <div class="metric-card">
+                    <div class="metric-label">Current Alert Level</div>
+                    <div class="metric-value" style="color: #22c55e;" id="alert-level-metric">NORMAL</div>
+                    <div class="metric-trend trend-stable">
+                        <span>●</span> No change in 24h
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Seismic Activity</div>
+                    <div class="metric-value" style="color: #eab308;" id="seismic-activity">12</div>
+                    <div class="metric-trend trend-up">
+                        <span>▲</span> +3 events since yesterday
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Deformation Rate</div>
+                    <div class="metric-value" style="color: #f97316;" id="deformation-rate">2.3</div>
+                    <div class="metric-trend trend-up">
+                        <span>▲</span> +0.5 mm/day
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Gas Emissions</div>
+                    <div class="metric-value" style="color: #6b7280;" id="gas-emissions">150</div>
+                    <div class="metric-trend trend-down">
+                        <span>▼</span> -20 tons/day CO2
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Series Charts -->
+            <div class="timeseries-container">
+                <div class="chart-container">
+                    <div class="panel-header">
+                        <span>Pressure Evolution</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="pressure-chart" style="width: 100%; height: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="panel-header">
+                        <span>ML Probability Forecast</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="probability-chart" style="width: 100%; height: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../../core/prometheus_enhanced_loader.js"></script>
+    <script src="../../modules/volcanic_systems/multi_chamber_system.js"></script>
+    <script src="../../modules/volcanic_systems/magma_dynamics_3d.js"></script>
+    
+    <script>
+        class VolcanoRiskDashboard {
+            constructor() {
+                this.currentVolcano = 'mount_vesuvius';
+                this.multiChamberSystem = null;
+                this.magmaDynamics = null;
+                this.predictionData = null;
+                this.websocket = null;
+                
+                // API configuration
+                this.API_BASE = window.API_URL || 'http://localhost:8000/api/v1';
+                this.WS_URL = window.WS_URL || 'ws://localhost:8000/ws';
+                
+                this.init();
+            }
+            
+            async init() {
+                console.log('🌋 Initializing Volcano Risk Dashboard...');
+                
+                // Update time
+                this.updateTime();
+                setInterval(() => this.updateTime(), 1000);
+                
+                // Initialize 3D visualization
+                await this.init3DVisualization();
+                
+                // Initialize charts
+                this.initializeCharts();
+                
+                // Connect to real-time data
+                this.connectWebSocket();
+                
+                // Set up event listeners
+                this.setupEventListeners();
+                
+                // Load initial data
+                await this.loadVolcanoData();
+                
+                // Start prediction updates
+                this.startPredictionUpdates();
+                
+                console.log('✅ Dashboard initialized');
+            }
+            
+            updateTime() {
+                const now = new Date();
+                document.getElementById('current-time').textContent = 
+                    now.toLocaleTimeString('en-US', { 
+                        hour12: false,
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+            }
+            
+            async init3DVisualization() {
+                const container = document.getElementById('volcanic-system-3d');
+                
+                try {
+                    // Initialize multi-chamber system
+                    if (window.MultiChamberVolcanicSystem) {
+                        this.multiChamberSystem = new MultiChamberVolcanicSystem(container);
+                        
+                        // Initialize magma dynamics after chambers are loaded
+                        setTimeout(() => {
+                            if (window.MagmaDynamics3D && this.multiChamberSystem.chambers.length > 0) {
+                                this.magmaDynamics = new MagmaDynamics3D(container, this.multiChamberSystem.chambers);
+                            }
+                        }, 2000);
+                    } else {
+                        throw new Error('MultiChamberVolcanicSystem not available');
+                    }
+                    
+                    // Remove loading indicator
+                    setTimeout(() => {
+                        const loading = container.querySelector('.loading');
+                        if (loading) loading.style.display = 'none';
+                    }, 3000);
+                    
+                } catch (error) {
+                    console.error('Failed to initialize 3D visualization:', error);
+                    container.innerHTML = '<div class="loading"><p>Failed to load 3D visualization</p></div>';
+                }
+            }
+            
+            initializeCharts() {
+                // Initialize pressure chart
+                this.createPressureChart();
+                
+                // Initialize probability forecast chart
+                this.createProbabilityChart();
+            }
+            
+            createPressureChart() {
+                const timeSteps = Array.from({length: 30}, (_, i) => i);
+                const pressureData = [
+                    {
+                        x: timeSteps,
+                        y: timeSteps.map(t => 200 + 50 * Math.sin(t / 5) + Math.random() * 20),
+                        name: 'Shallow Chamber',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: { color: '#ff6600', width: 2 }
+                    },
+                    {
+                        x: timeSteps,
+                        y: timeSteps.map(t => 300 + 40 * Math.sin(t / 7) + Math.random() * 15),
+                        name: 'Middle Chamber',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: { color: '#ffaa00', width: 2 }
+                    },
+                    {
+                        x: timeSteps,
+                        y: timeSteps.map(t => 450 + 30 * Math.sin(t / 10) + Math.random() * 10),
+                        name: 'Deep Chamber',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: { color: '#ffdd00', width: 2 }
+                    }
+                ];
+                
+                const layout = {
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { color: '#fff', size: 12 },
+                    xaxis: { 
+                        title: 'Time (days)', 
+                        gridcolor: '#333',
+                        zerolinecolor: '#333'
+                    },
+                    yaxis: { 
+                        title: 'Pressure (MPa)', 
+                        gridcolor: '#333',
+                        zerolinecolor: '#333'
+                    },
+                    margin: { t: 20, r: 20, b: 40, l: 50 },
+                    showlegend: true,
+                    legend: {
+                        x: 0,
+                        y: 1,
+                        bgcolor: 'rgba(0,0,0,0.5)'
+                    }
+                };
+                
+                Plotly.newPlot('pressure-chart', pressureData, layout, {responsive: true});
+            }
+            
+            createProbabilityChart() {
+                const timeSteps = Array.from({length: 30}, (_, i) => i);
+                const probabilityData = timeSteps.map(t => {
+                    const base = 0.1;
+                    const trend = t * 0.01;
+                    const noise = Math.random() * 0.1;
+                    return Math.min(1, Math.max(0, base + trend + noise));
+                });
+                
+                const data = [
+                    {
+                        x: timeSteps,
+                        y: probabilityData,
+                        name: 'Eruption Probability',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#ff0000', width: 3 },
+                        marker: { size: 4 }
+                    },
+                    {
+                        x: timeSteps,
+                        y: probabilityData.map(p => Math.min(1, p + 0.2)),
+                        name: 'Upper Bound',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: { color: 'orange', width: 1, dash: 'dash' },
+                        showlegend: false
+                    },
+                    {
+                        x: timeSteps,
+                        y: probabilityData.map(p => Math.max(0, p - 0.2)),
+                        name: 'Lower Bound',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: { color: 'orange', width: 1, dash: 'dash' },
+                        fill: 'tonexty',
+                        fillcolor: 'rgba(255, 165, 0, 0.1)',
+                        showlegend: false
+                    }
+                ];
+                
+                const layout = {
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { color: '#fff', size: 12 },
+                    xaxis: { 
+                        title: 'Time (days)', 
+                        gridcolor: '#333',
+                        zerolinecolor: '#333'
+                    },
+                    yaxis: { 
+                        title: 'Probability', 
+                        range: [0, 1],
+                        gridcolor: '#333',
+                        zerolinecolor: '#333'
+                    },
+                    margin: { t: 20, r: 20, b: 40, l: 50 }
+                };
+                
+                Plotly.newPlot('probability-chart', data, layout, {responsive: true});
+            }
+            
+            connectWebSocket() {
+                try {
+                    this.websocket = new WebSocket(`${this.WS_URL}/volcanic-monitoring`);
+                    
+                    this.websocket.onopen = () => {
+                        console.log('✅ WebSocket connected');
+                        this.websocket.send(JSON.stringify({
+                            type: 'subscribe',
+                            topics: ['eruption_forecast', 'monitoring_data', 'alerts']
+                        }));
+                    };
+                    
+                    this.websocket.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.handleRealtimeUpdate(data);
+                    };
+                    
+                    this.websocket.onerror = (error) => {
+                        console.warn('WebSocket error:', error);
+                    };
+                    
+                } catch (error) {
+                    console.warn('WebSocket connection failed, using demo mode');
+                    this.startDemoMode();
+                }
+            }
+            
+            startDemoMode() {
+                // Simulate real-time updates
+                setInterval(() => {
+                    const demoData = {
+                        type: 'eruption_forecast',
+                        probability: 0.1 + Math.random() * 0.3,
+                        vei: 2 + Math.floor(Math.random() * 3),
+                        time_to_eruption: Math.random() > 0.7 ? 30 + Math.random() * 100 : null,
+                        confidence: 0.7 + Math.random() * 0.25
+                    };
+                    this.handleRealtimeUpdate(demoData);
+                }, 10000); // Update every 10 seconds
+            }
+            
+            handleRealtimeUpdate(data) {
+                switch (data.type) {
+                    case 'eruption_forecast':
+                        this.updatePredictionPanel(data);
+                        break;
+                    case 'monitoring_data':
+                        this.updateMonitoringData(data);
+                        break;
+                    case 'alerts':
+                        this.updateAlertLevel(data.alert_level);
+                        break;
+                }
+            }
+            
+            updatePredictionPanel(data) {
+                // Update probability bar
+                const probability = data.probability || 0;
+                const probabilityPercent = Math.round(probability * 100);
+                
+                document.getElementById('probability-fill').style.width = `${probabilityPercent}%`;
+                document.getElementById('probability-value').textContent = `${probabilityPercent}%`;
+                
+                // Update details
+                document.getElementById('time-to-eruption').textContent = 
+                    data.time_to_eruption ? `${Math.round(data.time_to_eruption)} days` : 'N/A';
+                document.getElementById('expected-vei').textContent = data.vei || '--';
+                document.getElementById('model-confidence').textContent = 
+                    data.confidence ? `${Math.round(data.confidence * 100)}%` : '--';
+                document.getElementById('last-update').textContent = 
+                    new Date().toLocaleTimeString('en-US', { hour12: false });
+                
+                // Update recommendations
+                this.updateRecommendations(probability, data.vei);
+                
+                // Update alert level based on probability
+                this.updateAlertLevelFromProbability(probability);
+            }
+            
+            updateRecommendations(probability, vei) {
+                const recommendationsList = document.getElementById('recommendations-list');
+                let recommendations = [];
+                
+                if (probability > 0.8) {
+                    recommendations = [
+                        'Immediate evacuation of high-risk zones recommended',
+                        'Activate emergency response protocols',
+                        'Notify aviation authorities',
+                        'Increase monitoring to real-time'
+                    ];
+                } else if (probability > 0.6) {
+                    recommendations = [
+                        'Prepare evacuation plans',
+                        'Increase monitoring frequency',
+                        'Brief emergency responders',
+                        'Consider access restrictions'
+                    ];
+                } else if (probability > 0.4) {
+                    recommendations = [
+                        'Enhanced volcanic monitoring',
+                        'Update emergency response plans',
+                        'Inform local communities'
+                    ];
+                } else if (probability > 0.2) {
+                    recommendations = [
+                        'Continue routine monitoring',
+                        'Monitor for behavioral changes',
+                        'Maintain public awareness'
+                    ];
+                } else {
+                    recommendations = ['Continue baseline monitoring'];
+                }
+                
+                if (vei >= 4) {
+                    recommendations.push('Prepare for regional ash fall impacts');
+                }
+                
+                recommendationsList.innerHTML = recommendations
+                    .map(rec => `<li>${rec}</li>`)
+                    .join('');
+            }
+            
+            updateAlertLevelFromProbability(probability) {
+                let level, className;
+                
+                if (probability >= 0.9) {
+                    level = 'CRITICAL';
+                    className = 'alert-critical';
+                } else if (probability >= 0.7) {
+                    level = 'WARNING';
+                    className = 'alert-warning';
+                } else if (probability >= 0.5) {
+                    level = 'WATCH';
+                    className = 'alert-watch';
+                } else if (probability >= 0.3) {
+                    level = 'ADVISORY';
+                    className = 'alert-advisory';
+                } else {
+                    level = 'NORMAL';
+                    className = 'alert-normal';
+                }
+                
+                this.updateAlertLevel(level, className);
+            }
+            
+            updateAlertLevel(level, className) {
+                const alertElement = document.getElementById('alert-level');
+                const alertMetricElement = document.getElementById('alert-level-metric');
+                
+                alertElement.textContent = level;
+                alertElement.className = `alert-badge ${className}`;
+                alertMetricElement.textContent = level;
+                
+                // Update color
+                const colors = {
+                    'NORMAL': '#22c55e',
+                    'ADVISORY': '#eab308',
+                    'WATCH': '#f97316',
+                    'WARNING': '#ef4444',
+                    'CRITICAL': '#dc2626'
+                };
+                alertMetricElement.style.color = colors[level] || '#22c55e';
+            }
+            
+            setupEventListeners() {
+                // Volcano selector
+                document.getElementById('volcano-select').addEventListener('change', (e) => {
+                    this.currentVolcano = e.target.value;
+                    this.loadVolcanoData();
+                });
+                
+                // 3D visualization controls
+                const controlButtons = document.querySelectorAll('.control-button');
+                controlButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        // Remove active class from all buttons
+                        controlButtons.forEach(btn => btn.classList.remove('active'));
+                        
+                        // Add active class to clicked button
+                        button.classList.add('active');
+                        
+                        // Update visualization mode
+                        const mode = button.dataset.mode;
+                        if (this.magmaDynamics) {
+                            this.magmaDynamics.setVisualizationMode(mode);
+                        }
+                    });
+                });
+                
+                // Window resize handler
+                window.addEventListener('resize', () => {
+                    if (this.multiChamberSystem) {
+                        this.multiChamberSystem.resize();
+                    }
+                    if (this.magmaDynamics) {
+                        this.magmaDynamics.resize();
+                    }
+                });
+            }
+            
+            async loadVolcanoData() {
+                console.log(`Loading data for ${this.currentVolcano}...`);
+                
+                try {
+                    // Would load from API in production
+                    const response = await fetch(`${this.API_BASE}/volcanic/chambers`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Update UI with real data
+                        console.log('Loaded volcano data:', data);
+                    }
+                } catch (error) {
+                    console.warn('Failed to load volcano data, using defaults');
+                }
+                
+                // Update metrics with demo values
+                this.updateMetrics();
+            }
+            
+            updateMetrics() {
+                // Simulate realistic metrics
+                document.getElementById('seismic-activity').textContent = 
+                    Math.floor(5 + Math.random() * 20);
+                document.getElementById('deformation-rate').textContent = 
+                    (Math.random() * 5).toFixed(1);
+                document.getElementById('gas-emissions').textContent = 
+                    Math.floor(100 + Math.random() * 200);
+            }
+            
+            startPredictionUpdates() {
+                // Initial prediction
+                setTimeout(() => {
+                    this.updatePredictionPanel({
+                        probability: 0.15 + Math.random() * 0.2,
+                        vei: 2,
+                        time_to_eruption: null,
+                        confidence: 0.75 + Math.random() * 0.2
+                    });
+                }, 5000);
+                
+                // Periodic updates
+                setInterval(() => {
+                    if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
+                        this.updatePredictionPanel({
+                            probability: 0.1 + Math.random() * 0.4,
+                            vei: 1 + Math.floor(Math.random() * 4),
+                            time_to_eruption: Math.random() > 0.8 ? 20 + Math.random() * 80 : null,
+                            confidence: 0.6 + Math.random() * 0.3
+                        });
+                    }
+                }, 15000);
+            }
+        }
+        
+        // Initialize dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.volcanoRiskDashboard = new VolcanoRiskDashboard();
+        });
+        
+        // Handle mobile menu toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>

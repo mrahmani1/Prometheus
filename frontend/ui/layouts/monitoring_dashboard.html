@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus Real-Time Volcanic Monitoring Dashboard</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.29.1/plotly.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Dashboard Layout */
+        .dashboard-container {
+            display: grid;
+            grid-template-areas: 
+                "header header header header"
+                "alerts alerts alerts alerts"
+                "sensors map visualization controls"
+                "timeline timeline timeline timeline";
+            grid-template-rows: 60px 120px 1fr 200px;
+            grid-template-columns: 300px 1fr 400px 250px;
+            gap: 10px;
+            padding: 10px;
+            height: 100vh;
+            background: #1a1a1a;
+        }
+
+        /* Header Section */
+        .dashboard-header {
+            grid-area: header;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            border-radius: 8px;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .volcano-icon {
+            width: 32px;
+            height: 32px;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ff6b35"><path d="M12 2L8 8h8l-4-6zM6 10l2 4h8l2-4H6zM4 16l3 6h10l3-6H4z"/></svg>');
+            background-size: contain;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            grid-area: alerts;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 8px;
+            padding: 20px;
+            display: none;
+            box-shadow: 0 2px 20px rgba(231,76,60,0.3);
+        }
+
+        .alert-banner.active {
+            display: block;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .alert-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .alert-level {
+            font-size: 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .alert-volcano {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .alert-details {
+            display: flex;
+            gap: 25px;
+            font-size: 14px;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .ack-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .ack-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .details-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Sensors Panel */
+        .sensors-panel {
+            grid-area: sensors;
+            background: #2c3e50;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #3498db;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sensor-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .sensor-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            padding: 12px;
+            border-left: 4px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateX(4px);
+        }
+
+        .sensor-card.alert {
+            border-left-color: #e74c3c;
+            background: rgba(231,76,60,0.1);
+        }
+
+        .sensor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .sensor-name {
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .sensor-status {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .sensor-status.online {
+            background: #27ae60;
+            color: white;
+        }
+
+        .sensor-status.warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .sensor-status.offline {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .sensor-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .sensor-unit {
+            font-size: 11px;
+            color: #bdc3c7;
+            margin-left: 4px;
+        }
+
+        .sensor-trend {
+            font-size: 10px;
+            color: #bdc3c7;
+            margin-top: 4px;
+        }
+
+        /* Map Container */
+        .map-container {
+            grid-area: map;
+            background: #34495e;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #monitoring-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .map-control-btn {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* Visualization Panel */
+        .visualization-panel {
+            grid-area: visualization;
+            background: #2c3e50;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viz-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .viz-tab {
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            color: #bdc3c7;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .viz-tab.active {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .viz-content {
+            flex: 1;
+            display: none;
+        }
+
+        .viz-content.active {
+            display: block;
+        }
+
+        #probability-chart,
+        #magnitude-chart,
+        #timeline-chart,
+        #uncertainty-chart {
+            width: 100%;
+            height: 200px;
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            grid-area: controls;
+            background: #2c3e50;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #bdc3c7;
+            margin-bottom: 6px;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: #3498db;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .range-control {
+            margin-bottom: 10px;
+        }
+
+        .range-value {
+            float: right;
+            font-size: 11px;
+            color: #3498db;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            flex: 1;
+        }
+
+        /* Timeline Panel */
+        .timeline-panel {
+            grid-area: timeline;
+            background: #2c3e50;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .timeline-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .time-range-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .time-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #bdc3c7;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .time-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .playback-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .play-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        #timeline-chart {
+            height: 120px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: #2c3e50;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            padding: 20px 25px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close {
+            color: #bdc3c7;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close:hover {
+            color: #ffffff;
+        }
+
+        .modal-body {
+            padding: 25px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        /* Alert Details Modal Styles */
+        .alert-details-modal .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .metric-card {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-card label {
+            display: block;
+            font-size: 11px;
+            color: #bdc3c7;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .metric-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .metric-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .alert-sections {
+            display: grid;
+            gap: 20px;
+        }
+
+        .section h4 {
+            color: #3498db;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .sensor-list, .trigger-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .sensor-tag, .trigger-item {
+            background: rgba(52,152,219,0.2);
+            color: #3498db;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .trigger-item {
+            background: rgba(231,76,60,0.2);
+            color: #e74c3c;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .dashboard-container {
+                grid-template-columns: 280px 1fr 350px 220px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-container {
+                grid-template-areas: 
+                    "header header header"
+                    "alerts alerts alerts"
+                    "sensors map visualization"
+                    "controls controls controls"
+                    "timeline timeline timeline";
+                grid-template-columns: 280px 1fr 350px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-container {
+                grid-template-areas: 
+                    "header"
+                    "alerts"
+                    "sensors"
+                    "map"
+                    "visualization"
+                    "controls"
+                    "timeline";
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                overflow-y: auto;
+                height: auto;
+            }
+            
+            body {
+                overflow-y: auto;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-title">
+                <div class="volcano-icon"></div>
+                <h1>Prometheus Real-Time Monitoring</h1>
+                <span id="current-volcano">Loading...</span>
+            </div>
+            <div class="header-status">
+                <div class="connection-status">
+                    <div class="status-indicator"></div>
+                    <span>Live Connection</span>
+                </div>
+                <div id="last-update">Updated: --:--</div>
+            </div>
+        </header>
+
+        <!-- Alert Banner -->
+        <div id="alert-banner" class="alert-banner">
+            <!-- Dynamic alert content will be inserted here -->
+        </div>
+
+        <!-- Sensors Panel -->
+        <div class="sensors-panel">
+            <div class="panel-title">
+                <span class="material-icons">sensors</span>
+                Multi-Sensor Network
+            </div>
+            <div id="sensor-grid" class="sensor-grid">
+                <!-- Dynamic sensor cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div class="map-controls">
+                <button class="map-control-btn" onclick="toggleSensorLayer()">Sensors</button>
+                <button class="map-control-btn" onclick="toggleDeformationLayer()">Deformation</button>
+                <button class="map-control-btn" onclick="toggleThermalLayer()">Thermal</button>
+                <button class="map-control-btn" onclick="toggleSeismicLayer()">Seismic</button>
+            </div>
+            <div id="monitoring-map"></div>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="visualization-panel">
+            <div class="panel-title">
+                <span class="material-icons">analytics</span>
+                Real-Time Analysis
+            </div>
+            
+            <div class="viz-tabs">
+                <button class="viz-tab active" onclick="showVizTab('probability')">Probability</button>
+                <button class="viz-tab" onclick="showVizTab('magnitude')">Magnitude</button>
+                <button class="viz-tab" onclick="showVizTab('uncertainty')">Uncertainty</button>
+            </div>
+
+            <div id="probability-content" class="viz-content active">
+                <div id="probability-chart"></div>
+            </div>
+
+            <div id="magnitude-content" class="viz-content">
+                <div id="magnitude-chart"></div>
+            </div>
+
+            <div id="uncertainty-content" class="viz-content">
+                <div id="uncertainty-chart"></div>
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="panel-title">
+                <span class="material-icons">tune</span>
+                Monitor Controls
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Volcano Selection</label>
+                <select id="volcano-selector" class="control-input">
+                    <option value="">Select Volcano...</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Alert Threshold
+                    <span class="range-value" id="alert-threshold-value">0.75</span>
+                </label>
+                <input type="range" id="alert-threshold" class="range-control" 
+                       min="0.1" max="1.0" step="0.05" value="0.75">
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Update Interval (seconds)
+                    <span class="range-value" id="update-interval-value">30</span>
+                </label>
+                <input type="range" id="update-interval" class="range-control" 
+                       min="5" max="300" step="5" value="30">
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Confidence Threshold
+                    <span class="range-value" id="confidence-threshold-value">0.6</span>
+                </label>
+                <input type="range" id="confidence-threshold" class="range-control" 
+                       min="0.1" max="0.95" step="0.05" value="0.6">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="runScenarioAnalysis()">Run Analysis</button>
+                <button class="btn btn-secondary" onclick="exportData()">Export</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="resetDashboard()">Reset</button>
+                <button class="btn btn-secondary" onclick="showSettings()">Settings</button>
+            </div>
+        </div>
+
+        <!-- Timeline Panel -->
+        <div class="timeline-panel">
+            <div class="panel-title">
+                <span class="material-icons">timeline</span>
+                Temporal Evolution
+            </div>
+
+            <div class="timeline-controls">
+                <div class="time-range-selector">
+                    <button class="time-btn active" onclick="setTimeRange('1h')">1H</button>
+                    <button class="time-btn" onclick="setTimeRange('6h')">6H</button>
+                    <button class="time-btn" onclick="setTimeRange('1d')">1D</button>
+                    <button class="time-btn" onclick="setTimeRange('1w')">1W</button>
+                    <button class="time-btn" onclick="setTimeRange('1m')">1M</button>
+                </div>
+
+                <div class="playback-controls">
+                    <button class="play-btn" onclick="togglePlayback()">
+                        <span class="material-icons" id="play-icon">play_arrow</span>
+                        <span id="play-text">Play</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="timeline-chart"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="alert-details-modal" class="modal">
+        <!-- Modal content will be dynamically inserted -->
+    </div>
+
+    <!-- Include required JavaScript modules -->
+    <script src="../../modules/volcanic_systems/intelligent_alert_system.js"></script>
+    
+    <script>
+        // Dashboard initialization and management
+        class MonitoringDashboard {
+            constructor() {
+                this.currentVolcano = null;
+                this.websocket = null;
+                this.updateInterval = 30000; // 30 seconds
+                this.isPlaying = false;
+                this.alertSystem = null;
+                
+                // Data storage
+                this.sensorData = new Map();
+                this.alertHistory = [];
+                this.timeSeriesData = {
+                    probability: [],
+                    magnitude: [],
+                    uncertainty: [],
+                    timestamps: []
+                };
+                
+                this.initialize();
+            }
+            
+            async initialize() {
+                console.log('Initializing monitoring dashboard...');
+                
+                // Initialize components
+                this.initializeMap();
+                this.initializeCharts();
+                this.initializeWebSocket();
+                this.loadVolcanoList();
+                this.setupEventListeners();
+                
+                // Initialize alert system
+                this.alertSystem = new IntelligentAlertSystem({
+                    alertThresholds: {
+                        anomalyScore: 0.75,
+                        confidenceThreshold: 0.6
+                    }
+                });
+                
+                // Start monitoring
+                this.startMonitoring();
+                
+                console.log('Dashboard initialization complete');
+            }
+            
+            initializeMap() {
+                // Initialize Leaflet map
+                this.map = L.map('monitoring-map', {
+                    center: [46.2, -122.2], // Mount Saint Helens default
+                    zoom: 10,
+                    zoomControl: false
+                });
+                
+                // Add base layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.map);
+                
+                // Add custom zoom control
+                L.control.zoom({ position: 'topright' }).addTo(this.map);
+                
+                // Initialize layer groups
+                this.mapLayers = {
+                    sensors: L.layerGroup().addTo(this.map),
+                    deformation: L.layerGroup(),
+                    thermal: L.layerGroup(),
+                    seismic: L.layerGroup()
+                };
+            }
+            
+            initializeCharts() {
+                // Probability evolution chart
+                const probabilityLayout = {
+                    title: { text: 'Eruption Probability Evolution', font: { color: '#ffffff', size: 12 } },
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#ffffff' },
+                    xaxis: { gridcolor: 'rgba(255,255,255,0.1)', title: 'Time' },
+                    yaxis: { gridcolor: 'rgba(255,255,255,0.1)', title: 'Probability', range: [0, 1] },
+                    margin: { l: 40, r: 20, t: 30, b: 30 }
+                };
+                
+                Plotly.newPlot('probability-chart', [{
+                    x: [],
+                    y: [],
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#3498db', width: 2 },
+                    name: 'Eruption Probability'
+                }], probabilityLayout, { responsive: true, displayModeBar: false });
+                
+                // Magnitude distribution chart
+                const magnitudeLayout = {
+                    title: { text: 'Expected Magnitude Distribution', font: { color: '#ffffff', size: 12 } },
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#ffffff' },
+                    xaxis: { gridcolor: 'rgba(255,255,255,0.1)', title: 'VEI' },
+                    yaxis: { gridcolor: 'rgba(255,255,255,0.1)', title: 'Probability' },
+                    margin: { l: 40, r: 20, t: 30, b: 30 }
+                };
+                
+                Plotly.newPlot('magnitude-chart', [{
+                    x: [0,1,2,3,4,5,6,7,8],
+                    y: [0,0,0,0,0,0,0,0,0],
+                    type: 'bar',
+                    marker: { color: '#e74c3c' },
+                    name: 'VEI Probability'
+                }], magnitudeLayout, { responsive: true, displayModeBar: false });
+                
+                // Uncertainty breakdown chart
+                const uncertaintyLayout = {
+                    title: { text: 'Uncertainty Components', font: { color: '#ffffff', size: 12 } },
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#ffffff' },
+                    margin: { l: 40, r: 20, t: 30, b: 30 }
+                };
+                
+                Plotly.newPlot('uncertainty-chart', [{
+                    labels: ['Parameter', 'Model', 'Scenario'],
+                    values: [33, 33, 34],
+                    type: 'pie',
+                    marker: { colors: ['#3498db', '#e74c3c', '#f39c12'] }
+                }], uncertaintyLayout, { responsive: true, displayModeBar: false });
+                
+                // Timeline chart
+                const timelineLayout = {
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#ffffff' },
+                    xaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+                    yaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+                    margin: { l: 30, r: 20, t: 10, b: 30 },
+                    showlegend: false
+                };
+                
+                Plotly.newPlot('timeline-chart', [{
+                    x: [],
+                    y: [],
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { color: '#3498db' },
+                    marker: { size: 4 }
+                }], timelineLayout, { responsive: true, displayModeBar: false });
+            }
+            
+            initializeWebSocket() {
+                const wsUrl = `ws://${window.location.host}/ws/monitoring`;
+                this.websocket = new WebSocket(wsUrl);
+                
+                this.websocket.onopen = () => {
+                    console.log('WebSocket connection established');
+                    document.querySelector('.connection-status .status-indicator').style.background = '#27ae60';
+                };
+                
+                this.websocket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.handleRealtimeData(data);
+                };
+                
+                this.websocket.onclose = () => {
+                    console.log('WebSocket connection closed');
+                    document.querySelector('.connection-status .status-indicator').style.background = '#e74c3c';
+                    
+                    // Attempt to reconnect
+                    setTimeout(() => this.initializeWebSocket(), 5000);
+                };
+                
+                this.websocket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            }
+            
+            async loadVolcanoList() {
+                // Load list of available volcanoes
+                const volcanoes = [
+                    { id: 'mount_saint_helens', name: 'Mount Saint Helens', coords: [46.2, -122.2] },
+                    { id: 'kilauea', name: 'Kilauea', coords: [19.42, -155.29] },
+                    { id: 'mount_vesuvius', name: 'Mount Vesuvius', coords: [40.821, 14.426] },
+                    { id: 'tungurahua', name: 'Tungurahua', coords: [-2.5, -78.4] },
+                    { id: 'mount_fuji', name: 'Mount Fuji', coords: [35.365, 138.731] },
+                    { id: 'yellowstone', name: 'Yellowstone', coords: [44.428, -110.588] },
+                    { id: 'mount_etna', name: 'Mount Etna', coords: [37.748, 14.999] }
+                ];
+                
+                const selector = document.getElementById('volcano-selector');
+                volcanoes.forEach(volcano => {
+                    const option = document.createElement('option');
+                    option.value = volcano.id;
+                    option.textContent = volcano.name;
+                    selector.appendChild(option);
+                });
+                
+                // Set default volcano
+                this.selectVolcano('mount_saint_helens');
+            }
+            
+            setupEventListeners() {
+                // Volcano selection
+                document.getElementById('volcano-selector').addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        this.selectVolcano(e.target.value);
+                    }
+                });
+                
+                // Range controls
+                document.getElementById('alert-threshold').addEventListener('input', (e) => {
+                    document.getElementById('alert-threshold-value').textContent = e.target.value;
+                    this.updateAlertThreshold(parseFloat(e.target.value));
+                });
+                
+                document.getElementById('update-interval').addEventListener('input', (e) => {
+                    document.getElementById('update-interval-value').textContent = e.target.value;
+                    this.updateInterval = parseInt(e.target.value) * 1000;
+                });
+                
+                document.getElementById('confidence-threshold').addEventListener('input', (e) => {
+                    document.getElementById('confidence-threshold-value').textContent = e.target.value;
+                    this.updateConfidenceThreshold(parseFloat(e.target.value));
+                });
+                
+                // Alert system events
+                document.addEventListener('volcanicAlert', (event) => {
+                    this.handleAlert(event.detail);
+                });
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeModal();
+                    } else if (e.key === 'r' && e.ctrlKey) {
+                        e.preventDefault();
+                        this.runScenarioAnalysis();
+                    }
+                });
+            }
+            
+            selectVolcano(volcanoId) {
+                this.currentVolcano = volcanoId;
+                document.getElementById('current-volcano').textContent = volcanoId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                // Update map center based on volcano coordinates
+                const volcanoCoords = this.getVolcanoCoordinates(volcanoId);
+                if (volcanoCoords) {
+                    this.map.setView(volcanoCoords, 10);
+                }
+                
+                // Request data for selected volcano
+                if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                    this.websocket.send(JSON.stringify({
+                        type: 'select_volcano',
+                        volcano_id: volcanoId
+                    }));
+                }
+                
+                // Update sensor display
+                this.updateSensorDisplay();
+            }
+            
+            getVolcanoCoordinates(volcanoId) {
+                const coords = {
+                    'mount_saint_helens': [46.2, -122.2],
+                    'kilauea': [19.42, -155.29],
+                    'mount_vesuvius': [40.821, 14.426],
+                    'tungurahua': [-2.5, -78.4],
+                    'mount_fuji': [35.365, 138.731],
+                    'yellowstone': [44.428, -110.588],
+                    'mount_etna': [37.748, 14.999]
+                };
+                return coords[volcanoId];
+            }
+            
+            handleRealtimeData(data) {
+                console.log('Received realtime data:', data);
+                
+                if (data.type === 'sensor_update') {
+                    this.updateSensorData(data);
+                } else if (data.type === 'fusion_result') {
+                    this.processFusionResult(data);
+                } else if (data.type === 'alert') {
+                    this.handleAlert(data.alert);
+                } else if (data.type === 'scenario_update') {
+                    this.updateScenarioData(data);
+                }
+                
+                // Update last update time
+                document.getElementById('last-update').textContent = `Updated: ${moment().format('HH:mm:ss')}`;
+            }
+            
+            updateSensorData(data) {
+                this.sensorData.set(data.sensor_id, {
+                    ...data,
+                    timestamp: new Date(data.timestamp)
+                });
+                
+                this.updateSensorDisplay();
+                this.updateMapSensors();
+            }
+            
+            updateSensorDisplay() {
+                const sensorGrid = document.getElementById('sensor-grid');
+                sensorGrid.innerHTML = '';
+                
+                // Generate sample sensor data if none available
+                if (this.sensorData.size === 0) {
+                    this.generateSampleSensorData();
+                }
+                
+                this.sensorData.forEach((sensor, sensorId) => {
+                    const sensorCard = document.createElement('div');
+                    sensorCard.className = `sensor-card ${sensor.status === 'alert' ? 'alert' : ''}`;
+                    
+                    const statusClass = sensor.status === 'online' ? 'online' : 
+                                       sensor.status === 'alert' ? 'warning' : 'offline';
+                    
+                    sensorCard.innerHTML = `
+                        <div class="sensor-header">
+                            <div class="sensor-name">${sensor.name || sensorId}</div>
+                            <div class="sensor-status ${statusClass}">${sensor.status || 'online'}</div>
+                        </div>
+                        <div class="sensor-value">
+                            ${sensor.value?.toFixed(2) || '0.00'}
+                            <span class="sensor-unit">${sensor.unit || ''}</span>
+                        </div>
+                        <div class="sensor-trend">${sensor.trend || 'Stable'}</div>
+                    `;
+                    
+                    sensorGrid.appendChild(sensorCard);
+                });
+            }
+            
+            generateSampleSensorData() {
+                // Generate realistic sample data for demonstration
+                const sampleSensors = [
+                    { id: 'seismic_01', name: 'Seismic Station 1', value: Math.random() * 10, unit: 'events/hour', status: 'online', trend: 'Increasing' },
+                    { id: 'gnss_01', name: 'GNSS Station 1', value: Math.random() * 5 - 2.5, unit: 'mm/day', status: 'online', trend: 'Stable' },
+                    { id: 'thermal_01', name: 'Thermal Camera', value: 285 + Math.random() * 20, unit: 'K', status: 'online', trend: 'Stable' },
+                    { id: 'gas_co2', name: 'CO2 Sensor', value: Math.random() * 100 + 50, unit: 'tons/day', status: 'online', trend: 'Decreasing' },
+                    { id: 'tiltmeter_01', name: 'Tiltmeter North', value: Math.random() * 2 - 1, unit: 'μrad/day', status: 'online', trend: 'Stable' },
+                    { id: 'infrasound_01', name: 'Infrasound Array', value: Math.random() * 0.1, unit: 'Pa', status: 'alert', trend: 'Increasing' }
+                ];
+                
+                sampleSensors.forEach(sensor => {
+                    this.sensorData.set(sensor.id, sensor);
+                });
+            }
+            
+            processFusionResult(data) {
+                const fusionResult = data.result;
+                
+                // Update time series data
+                this.timeSeriesData.timestamps.push(new Date());
+                this.timeSeriesData.probability.push(fusionResult.anomaly_score || 0);
+                this.timeSeriesData.magnitude.push(fusionResult.expected_magnitude || 0);
+                this.timeSeriesData.uncertainty.push(fusionResult.uncertainty || 0);
+                
+                // Limit data points to prevent memory issues
+                const maxPoints = 100;
+                if (this.timeSeriesData.timestamps.length > maxPoints) {
+                    this.timeSeriesData.timestamps.shift();
+                    this.timeSeriesData.probability.shift();
+                    this.timeSeriesData.magnitude.shift();
+                    this.timeSeriesData.uncertainty.shift();
+                }
+                
+                // Update charts
+                this.updateCharts();
+                
+                // Check for alert conditions
+                if (this.alertSystem) {
+                    // Process through alert system
+                    this.alertSystem.processRealtimeData({
+                        volcanoId: this.currentVolcano,
+                        fusionResult: fusionResult,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }
+            
+            updateCharts() {
+                // Update probability chart
+                Plotly.restyle('probability-chart', {
+                    x: [this.timeSeriesData.timestamps],
+                    y: [this.timeSeriesData.probability]
+                });
+                
+                // Update magnitude distribution (simplified)
+                const magnitudes = [0.1, 0.2, 0.3, 0.2, 0.1, 0.05, 0.03, 0.01, 0.01];
+                Plotly.restyle('magnitude-chart', {
+                    y: [magnitudes]
+                });
+                
+                // Update uncertainty breakdown
+                const latest_uncertainty = this.timeSeriesData.uncertainty.slice(-1)[0] || 0.3;
+                Plotly.restyle('uncertainty-chart', {
+                    values: [[latest_uncertainty * 100, (1-latest_uncertainty) * 50, (1-latest_uncertainty) * 50]]
+                });
+                
+                // Update timeline
+                Plotly.restyle('timeline-chart', {
+                    x: [this.timeSeriesData.timestamps.slice(-20)],
+                    y: [this.timeSeriesData.probability.slice(-20)]
+                });
+            }
+            
+            handleAlert(alert) {
+                console.log('Handling alert:', alert);
+                
+                // Show alert banner
+                const alertBanner = document.getElementById('alert-banner');
+                const levelConfig = {
+                    0: { name: 'Normal', color: '#4CAF50' },
+                    1: { name: 'Advisory', color: '#2196F3' },
+                    2: { name: 'Watch', color: '#FF9800' },
+                    3: { name: 'Warning', color: '#FF5722' },
+                    4: { name: 'Alert', color: '#F44336' },
+                    5: { name: 'Emergency', color: '#9C27B0' }
+                }[alert.level || 0];
+                
+                alertBanner.style.backgroundColor = levelConfig.color;
+                alertBanner.classList.add('active');
+                alertBanner.innerHTML = `
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <span class="alert-level">${levelConfig.name}</span>
+                            <span class="alert-volcano">${alert.volcanoId || this.currentVolcano}</span>
+                            <span class="alert-time">${moment(alert.timestamp).format('HH:mm:ss')}</span>
+                        </div>
+                        <div class="alert-details">
+                            <span>Anomaly: ${((alert.anomalyScore || 0) * 100).toFixed(1)}%</span>
+                            <span>Confidence: ${((alert.confidence || 0) * 100).toFixed(1)}%</span>
+                            <span>Probability: ${((alert.probability || 0) * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="alert-actions">
+                            <button onclick="monitoringDashboard.acknowledgeAlert('${alert.id}')" class="btn ack-btn">Acknowledge</button>
+                            <button onclick="monitoringDashboard.viewAlertDetails('${alert.id}')" class="btn details-btn">Details</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Store alert
+                this.alertHistory.push(alert);
+            }
+            
+            acknowledgeAlert(alertId) {
+                const alertBanner = document.getElementById('alert-banner');
+                alertBanner.classList.remove('active');
+                
+                console.log(`Alert ${alertId} acknowledged`);
+            }
+            
+            viewAlertDetails(alertId) {
+                // Find alert in history
+                const alert = this.alertHistory.find(a => a.id === alertId);
+                if (!alert) return;
+                
+                // Create detailed modal content (simplified version)
+                const modalContent = `
+                    <div class="alert-details-modal">
+                        <h3>Alert Details: ${alert.volcanoId}</h3>
+                        <p>Timestamp: ${moment(alert.timestamp).format('YYYY-MM-DD HH:mm:ss')}</p>
+                        <p>Level: ${alert.level}</p>
+                        <p>Anomaly Score: ${((alert.anomalyScore || 0) * 100).toFixed(2)}%</p>
+                        <p>Confidence: ${((alert.confidence || 0) * 100).toFixed(2)}%</p>
+                        <p>Probability: ${((alert.probability || 0) * 100).toFixed(2)}%</p>
+                        <p>Triggers: ${(alert.alertTriggers || []).join(', ')}</p>
+                    </div>
+                `;
+                
+                this.showModal('Alert Details', modalContent);
+            }
+            
+            showModal(title, content) {
+                const modal = document.getElementById('alert-details-modal');
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>${title}</h2>
+                            <span class="close" onclick="monitoringDashboard.closeModal()">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            ${content}
+                        </div>
+                    </div>
+                `;
+                modal.style.display = 'block';
+            }
+            
+            closeModal() {
+                document.getElementById('alert-details-modal').style.display = 'none';
+            }
+            
+            startMonitoring() {
+                // Start periodic updates
+                setInterval(() => {
+                    if (this.currentVolcano && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                        this.websocket.send(JSON.stringify({
+                            type: 'request_update',
+                            volcano_id: this.currentVolcano
+                        }));
+                    }
+                }, this.updateInterval);
+                
+                console.log('Monitoring started');
+            }
+            
+            // Control methods
+            updateAlertThreshold(threshold) {
+                if (this.alertSystem) {
+                    this.alertSystem.config.alertThresholds.anomalyScore = threshold;
+                }
+            }
+            
+            updateConfidenceThreshold(threshold) {
+                if (this.alertSystem) {
+                    this.alertSystem.config.alertThresholds.confidenceThreshold = threshold;
+                }
+            }
+        }
+        
+        // Utility functions for UI controls
+        function showVizTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.viz-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.viz-content').forEach(content => content.classList.remove('active'));
+            
+            // Show selected tab
+            document.querySelector(`.viz-tab[onclick="showVizTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}-content`).classList.add('active');
+        }
+        
+        function setTimeRange(range) {
+            // Update active time button
+            document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.time-btn[onclick="setTimeRange('${range}')"]`).classList.add('active');
+            
+            // Update timeline data based on range
+            console.log(`Time range set to: ${range}`);
+        }
+        
+        function togglePlayback() {
+            const playIcon = document.getElementById('play-icon');
+            const playText = document.getElementById('play-text');
+            
+            if (monitoringDashboard.isPlaying) {
+                playIcon.textContent = 'play_arrow';
+                playText.textContent = 'Play';
+                monitoringDashboard.isPlaying = false;
+            } else {
+                playIcon.textContent = 'pause';
+                playText.textContent = 'Pause';
+                monitoringDashboard.isPlaying = true;
+            }
+        }
+        
+        function runScenarioAnalysis() {
+            console.log('Running scenario analysis...');
+            // Trigger scenario analysis through WebSocket
+            if (monitoringDashboard.websocket && monitoringDashboard.websocket.readyState === WebSocket.OPEN) {
+                monitoringDashboard.websocket.send(JSON.stringify({
+                    type: 'run_scenario_analysis',
+                    volcano_id: monitoringDashboard.currentVolcano
+                }));
+            }
+        }
+        
+        function exportData() {
+            console.log('Exporting data...');
+            // Implement data export functionality
+        }
+        
+        function resetDashboard() {
+            if (confirm('Reset dashboard to default state?')) {
+                location.reload();
+            }
+        }
+        
+        function showSettings() {
+            monitoringDashboard.showModal('Settings', `
+                <div class="settings-panel">
+                    <h4>Dashboard Settings</h4>
+                    <p>Settings functionality will be implemented here.</p>
+                </div>
+            `);
+        }
+        
+        // Map control functions
+        function toggleSensorLayer() {
+            console.log('Toggle sensor layer');
+        }
+        
+        function toggleDeformationLayer() {
+            console.log('Toggle deformation layer');
+        }
+        
+        function toggleThermalLayer() {
+            console.log('Toggle thermal layer');
+        }
+        
+        function toggleSeismicLayer() {
+            console.log('Toggle seismic layer');
+        }
+        
+        // Initialize dashboard when page loads
+        let monitoringDashboard;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            monitoringDashboard = new MonitoringDashboard();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Resize charts
+            setTimeout(() => {
+                Plotly.Plots.resize('probability-chart');
+                Plotly.Plots.resize('magnitude-chart');
+                Plotly.Plots.resize('uncertainty-chart');
+                Plotly.Plots.resize('timeline-chart');
+            }, 100);
+        });
+    </script>
+</body>
+</html>
