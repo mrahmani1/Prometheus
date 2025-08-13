@@ -1,0 +1,52 @@
+{
+  "name": "prometheus-ai-test-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive testing suite for Prometheus AI Geodynamic Platform",
+  "main": "run_tests.js",
+  "scripts": {
+    "test": "node run_tests.js",
+    "test:unit": "node run_tests.js --unit-only",
+    "test:integration": "node run_tests.js --integration-only", 
+    "test:performance": "node run_tests.js --performance-only",
+    "test:no-coverage": "node run_tests.js --no-coverage",
+    "test:verbose": "node run_tests.js --verbose",
+    "benchmark": "node benchmark_runner.js",
+    "test:watch": "nodemon --exec \"npm test\" --watch .",
+    "test:ci": "node run_tests.js --no-coverage",
+    "clean": "rm -rf test_reports/* || true",
+    "setup": "mkdir -p test_reports test_data"
+  },
+  "keywords": [
+    "testing",
+    "geodynamics",
+    "ai",
+    "earth-system",
+    "performance",
+    "benchmarking"
+  ],
+  "author": "Prometheus AI Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  },
+  "directories": {
+    "test": "./",
+    "output": "./test_reports"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prometheus-ai/geodynamic-platform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/prometheus-ai/geodynamic-platform/issues"
+  },
+  "homepage": "https://github.com/prometheus-ai/geodynamic-platform#readme",
+  "config": {
+    "test_timeout": 300000,
+    "benchmark_runs": 10,
+    "coverage_threshold": 80
+  }
+}

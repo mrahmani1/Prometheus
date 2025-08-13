@@ -1,0 +1,144 @@
+{
+  "summary": {
+    "totalTests": 22,
+    "passedTests": 20,
+    "failedTests": 2,
+    "passRate": 90.9090909090909,
+    "totalDuration": 0.1600628
+  },
+  "results": [
+    {
+      "name": "Digital Twin Earth Initialization",
+      "status": "PASSED",
+      "duration": 0.1272999999999982,
+      "error": null
+    },
+    {
+      "name": "Digital Twin Earth State Management",
+      "status": "PASSED",
+      "duration": 0.06820000000000093,
+      "error": null
+    },
+    {
+      "name": "Digital Twin Earth Predictions",
+      "status": "PASSED",
+      "duration": 0.08579999999999899,
+      "error": null
+    },
+    {
+      "name": "Hypothesis Generator Basic Functionality",
+      "status": "PASSED",
+      "duration": 0.1352000000000011,
+      "error": null
+    },
+    {
+      "name": "Hypothesis Generator Domain Focus",
+      "status": "PASSED",
+      "duration": 0.052199999999999136,
+      "error": null
+    },
+    {
+      "name": "Stream Manager Event Production",
+      "status": "PASSED",
+      "duration": 0.07199999999999918,
+      "error": null
+    },
+    {
+      "name": "Stream Manager Event Consumption",
+      "status": "PASSED",
+      "duration": 20.109399999999997,
+      "error": null
+    },
+    {
+      "name": "Digital Twin + Stream Manager Integration",
+      "status": "PASSED",
+      "duration": 0.033799999999999386,
+      "error": null
+    },
+    {
+      "name": "Hypothesis Generator + Digital Twin Integration",
+      "status": "PASSED",
+      "duration": 0.03669999999999618,
+      "error": null
+    },
+    {
+      "name": "End-to-End Data Flow",
+      "status": "PASSED",
+      "duration": 0.06509999999999394,
+      "error": null
+    },
+    {
+      "name": "Matrix Operations",
+      "status": "PASSED",
+      "duration": 0.03820000000000334,
+      "error": null
+    },
+    {
+      "name": "Statistical Calculations",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(Math.abs(std - 3.0276503540974917) < 1e-10)\n"
+    },
+    {
+      "name": "Geospatial Calculations",
+      "status": "PASSED",
+      "duration": 0.07139999999999702,
+      "error": null
+    },
+    {
+      "name": "Time Series Analysis",
+      "status": "PASSED",
+      "duration": 0.17309999999999803,
+      "error": null
+    },
+    {
+      "name": "Anomaly Detection Algorithm",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(detected.length >= 3)\n"
+    },
+    {
+      "name": "Pattern Recognition",
+      "status": "PASSED",
+      "duration": 0.054500000000004434,
+      "error": null
+    },
+    {
+      "name": "Large Dataset Processing",
+      "status": "PASSED",
+      "duration": 31.010699999999993,
+      "error": null
+    },
+    {
+      "name": "Concurrent Hypothesis Generation",
+      "status": "PASSED",
+      "duration": 0.18189999999999884,
+      "error": null
+    },
+    {
+      "name": "Stream Processing Throughput",
+      "status": "PASSED",
+      "duration": 0.5719999999999885,
+      "error": null
+    },
+    {
+      "name": "Pipeline Data Integrity",
+      "status": "PASSED",
+      "duration": 0.06279999999999575,
+      "error": null
+    },
+    {
+      "name": "Error Handling in Data Flow",
+      "status": "PASSED",
+      "duration": 0.03629999999999711,
+      "error": null
+    },
+    {
+      "name": "Data Flow Backpressure",
+      "status": "PASSED",
+      "duration": 100.16000000000001,
+      "error": null
+    }
+  ],
+  "timestamp": "2025-08-10T23:45:48.253Z"
+}

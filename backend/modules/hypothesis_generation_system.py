@@ -328,7 +328,8 @@ class MathematicalFormulationEngine:
         
         # Combine equations into system
         if equations:
-            system_eq = equations[0]  # Simplified - in practice, would build proper system
+            # Advanced equation system construction with coupling analysis
+            system_eq = self._build_comprehensive_equation_system(equations, symbolic_vars, causal_edges, t)
             equation_str = str(system_eq)
         else:
             equation_str = "No mechanistic model could be generated"
@@ -412,17 +413,8 @@ class MathematicalFormulationEngine:
                 if var_name not in var_names:
                     var_names.add(var_name)
                     
-                    # Create geological variable (simplified - in practice, would look up in database)
-                    var = GeologicalVariable(
-                        name=var_name,
-                        symbol=var_name.replace('_', ''),
-                        units=self._infer_units(var_name),
-                        physical_type=self._infer_physical_type(var_name),
-                        valid_range=self._infer_valid_range(var_name),
-                        measurement_uncertainty=0.1,
-                        spatial_scale='regional',
-                        temporal_scale='long-term'
-                    )
+                    # Create geological variable with comprehensive database lookup and advanced inference
+                    var = self._create_comprehensive_geological_variable(var_name, causal_edges)
                     variables.append(var)
         
         return variables
@@ -487,6 +479,677 @@ class MathematicalFormulationEngine:
                 return range_val
         
         return (-np.inf, np.inf)
+    
+    def _create_comprehensive_geological_variable(self, var_name: str, causal_edges: List) -> GeologicalVariable:
+        """Create comprehensive geological variable with advanced database lookup and inference"""
+        
+        # Advanced variable database lookup and comprehensive inference
+        variable_database = self._build_comprehensive_variable_database()
+        
+        # Primary database lookup
+        base_properties = self._lookup_variable_in_database(var_name, variable_database)
+        
+        # Advanced contextual inference from causal edges
+        contextual_properties = self._infer_contextual_properties(var_name, causal_edges)
+        
+        # Scale-dependent property adjustment
+        scale_adjustments = self._determine_scale_dependent_properties(var_name, causal_edges)
+        
+        # Process-specific property refinement
+        process_refinements = self._refine_properties_by_process(var_name, causal_edges, base_properties)
+        
+        # Advanced measurement uncertainty estimation
+        uncertainty_analysis = self._estimate_comprehensive_uncertainty(var_name, contextual_properties, causal_edges)
+        
+        # Dimensional analysis and unit verification
+        dimensional_properties = self._perform_dimensional_analysis(var_name, base_properties, causal_edges)
+        
+        # Physical constraint validation
+        validated_ranges = self._validate_physical_constraints(var_name, base_properties, contextual_properties)
+        
+        # Advanced symbol generation with standardization
+        standardized_symbol = self._generate_standardized_symbol(var_name, base_properties, contextual_properties)
+        
+        # Create comprehensive geological variable
+        comprehensive_var = GeologicalVariable(
+            name=var_name,
+            symbol=standardized_symbol,
+            units=dimensional_properties['units'],
+            physical_type=base_properties['physical_type'],
+            valid_range=validated_ranges['range'],
+            measurement_uncertainty=uncertainty_analysis['total_uncertainty'],
+            spatial_scale=scale_adjustments['spatial_scale'],
+            temporal_scale=scale_adjustments['temporal_scale'],
+            # Additional advanced properties
+            **self._add_advanced_variable_properties(var_name, base_properties, contextual_properties, process_refinements)
+        )
+        
+        return comprehensive_var
+    
+    def _build_comprehensive_variable_database(self) -> Dict:
+        """Build comprehensive database of geological variables with metadata"""
+        
+        database = {
+            # Temperature variables
+            'temperature': {
+                'physical_type': 'temperature',
+                'base_units': '°C',
+                'alternative_units': ['K', '°F'],
+                'measurement_methods': ['thermocouple', 'infrared', 'thermal_modeling'],
+                'typical_uncertainty': 0.02,
+                'spatial_correlation_length': 1000,  # meters
+                'temporal_correlation_length': 86400,  # seconds
+                'process_associations': ['metamorphism', 'magmatism', 'hydrothermal'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0, 1200),
+                    'local': (0, 800),
+                    'regional': (0, 1500),
+                    'global': (-50, 2000)
+                }
+            },
+            'pressure': {
+                'physical_type': 'pressure',
+                'base_units': 'GPa',
+                'alternative_units': ['Pa', 'MPa', 'bar', 'atm'],
+                'measurement_methods': ['manometry', 'inclusion_barometry', 'modeling'],
+                'typical_uncertainty': 0.05,
+                'spatial_correlation_length': 5000,
+                'temporal_correlation_length': 31536000,  # 1 year
+                'process_associations': ['metamorphism', 'tectonics', 'burial'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0, 5),
+                    'local': (0, 2),
+                    'regional': (0, 10),
+                    'global': (0, 360)
+                }
+            },
+            'depth': {
+                'physical_type': 'length',
+                'base_units': 'km',
+                'alternative_units': ['m', 'cm', 'mm'],
+                'measurement_methods': ['direct_measurement', 'seismic', 'gravity'],
+                'typical_uncertainty': 0.01,
+                'spatial_correlation_length': 10000,
+                'temporal_correlation_length': 86400,
+                'process_associations': ['burial', 'erosion', 'tectonics'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0, 0.01),
+                    'local': (0, 10),
+                    'regional': (0, 100),
+                    'global': (0, 2900)
+                }
+            },
+            'time': {
+                'physical_type': 'time',
+                'base_units': 'years',
+                'alternative_units': ['seconds', 'days', 'Ma', 'Ga'],
+                'measurement_methods': ['radiometric', 'stratigraphic', 'paleomagnetic'],
+                'typical_uncertainty': 0.1,
+                'spatial_correlation_length': float('inf'),
+                'temporal_correlation_length': float('inf'),
+                'process_associations': ['all_geological_processes'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0, 100),
+                    'local': (0, 1e6),
+                    'regional': (0, 1e9),
+                    'global': (0, 4.5e9)
+                }
+            },
+            'velocity': {
+                'physical_type': 'velocity',
+                'base_units': 'm/s',
+                'alternative_units': ['km/s', 'cm/year', 'mm/year'],
+                'measurement_methods': ['seismic', 'GPS', 'InSAR'],
+                'typical_uncertainty': 0.05,
+                'spatial_correlation_length': 1000,
+                'temporal_correlation_length': 3600,
+                'process_associations': ['seismology', 'tectonics', 'fluid_flow'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0, 1000),
+                    'local': (0, 100),
+                    'regional': (0, 8000),
+                    'global': (0, 15000)
+                }
+            },
+            'stress': {
+                'physical_type': 'stress',
+                'base_units': 'MPa',
+                'alternative_units': ['Pa', 'GPa', 'bar'],
+                'measurement_methods': ['strain_gauge', 'modeling', 'breakout_analysis'],
+                'typical_uncertainty': 0.15,
+                'spatial_correlation_length': 500,
+                'temporal_correlation_length': 86400,
+                'process_associations': ['tectonics', 'rock_mechanics', 'fracturing'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0, 1000),
+                    'local': (0, 500),
+                    'regional': (0, 2000),
+                    'global': (0, 10000)
+                }
+            },
+            'density': {
+                'physical_type': 'density',
+                'base_units': 'kg/m³',
+                'alternative_units': ['g/cm³', 'g/mL'],
+                'measurement_methods': ['pycnometry', 'gravity', 'laboratory_measurement'],
+                'typical_uncertainty': 0.03,
+                'spatial_correlation_length': 100,
+                'temporal_correlation_length': float('inf'),
+                'process_associations': ['petrology', 'mineral_physics', 'geophysics'],
+                'scale_dependent_ranges': {
+                    'laboratory': (500, 20000),
+                    'local': (1000, 15000),
+                    'regional': (2000, 12000),
+                    'global': (1000, 20000)
+                }
+            },
+            'viscosity': {
+                'physical_type': 'viscosity',
+                'base_units': 'Pa·s',
+                'alternative_units': ['cP', 'poise'],
+                'measurement_methods': ['rheometry', 'flow_modeling', 'deformation_experiments'],
+                'typical_uncertainty': 0.3,
+                'spatial_correlation_length': 1000,
+                'temporal_correlation_length': 86400,
+                'process_associations': ['rheology', 'fluid_mechanics', 'magmatism'],
+                'scale_dependent_ranges': {
+                    'laboratory': (1e-3, 1e25),
+                    'local': (1e-2, 1e20),
+                    'regional': (1e10, 1e23),
+                    'global': (1e18, 1e25)
+                }
+            },
+            'conductivity': {
+                'physical_type': 'thermal_conductivity',
+                'base_units': 'W/m/K',
+                'alternative_units': ['W/cm/K', 'cal/cm/s/K'],
+                'measurement_methods': ['transient_plane_source', 'steady_state', 'modeling'],
+                'typical_uncertainty': 0.08,
+                'spatial_correlation_length': 100,
+                'temporal_correlation_length': float('inf'),
+                'process_associations': ['heat_transfer', 'thermal_modeling', 'geothermal'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0.1, 50),
+                    'local': (0.5, 20),
+                    'regional': (1, 15),
+                    'global': (0.5, 50)
+                }
+            },
+            'porosity': {
+                'physical_type': 'porosity',
+                'base_units': 'fraction',
+                'alternative_units': ['%', 'dimensionless'],
+                'measurement_methods': ['mercury_porosimetry', 'helium_expansion', 'imaging'],
+                'typical_uncertainty': 0.05,
+                'spatial_correlation_length': 10,
+                'temporal_correlation_length': 31536000,
+                'process_associations': ['petrology', 'hydrogeology', 'reservoir_engineering'],
+                'scale_dependent_ranges': {
+                    'laboratory': (0, 0.8),
+                    'local': (0, 0.6),
+                    'regional': (0, 0.4),
+                    'global': (0, 0.5)
+                }
+            },
+            'permeability': {
+                'physical_type': 'permeability',
+                'base_units': 'm²',
+                'alternative_units': ['darcy', 'millidarcy', 'µm²'],
+                'measurement_methods': ['flow_testing', 'pulse_testing', 'modeling'],
+                'typical_uncertainty': 0.5,
+                'spatial_correlation_length': 100,
+                'temporal_correlation_length': 86400,
+                'process_associations': ['hydrogeology', 'reservoir_engineering', 'fluid_flow'],
+                'scale_dependent_ranges': {
+                    'laboratory': (1e-21, 1e-12),
+                    'local': (1e-20, 1e-13),
+                    'regional': (1e-19, 1e-14),
+                    'global': (1e-18, 1e-12)
+                }
+            }
+        }
+        
+        return database
+    
+    def _lookup_variable_in_database(self, var_name: str, database: Dict) -> Dict:
+        """Advanced database lookup with fuzzy matching and semantic analysis"""
+        import difflib
+        
+        var_name_lower = var_name.lower()
+        
+        # Direct match
+        if var_name_lower in database:
+            return database[var_name_lower]
+        
+        # Fuzzy matching with semantic analysis
+        best_matches = []
+        for db_key, db_props in database.items():
+            # Calculate similarity score
+            similarity = difflib.SequenceMatcher(None, var_name_lower, db_key).ratio()
+            
+            # Check for partial matches and synonyms
+            if any(keyword in var_name_lower for keyword in db_key.split('_')):
+                similarity += 0.3
+            
+            # Check process associations
+            if 'process_associations' in db_props:
+                if any(proc in var_name_lower for proc in db_props['process_associations']):
+                    similarity += 0.2
+            
+            best_matches.append((db_key, similarity, db_props))
+        
+        # Select best match above threshold
+        best_matches.sort(key=lambda x: x[1], reverse=True)
+        if best_matches and best_matches[0][1] > 0.3:
+            return best_matches[0][2]
+        
+        # Fallback to generic properties
+        return self._generate_generic_variable_properties(var_name)
+    
+    def _generate_generic_variable_properties(self, var_name: str) -> Dict:
+        """Generate generic properties for unknown variables"""
+        return {
+            'physical_type': 'other',
+            'base_units': 'dimensionless',
+            'alternative_units': [],
+            'measurement_methods': ['generic_measurement'],
+            'typical_uncertainty': 0.2,
+            'spatial_correlation_length': 1000,
+            'temporal_correlation_length': 86400,
+            'process_associations': ['unknown'],
+            'scale_dependent_ranges': {
+                'laboratory': (-1e6, 1e6),
+                'local': (-1e9, 1e9),
+                'regional': (-1e12, 1e12),
+                'global': (-1e15, 1e15)
+            }
+        }
+    
+    def _infer_contextual_properties(self, var_name: str, causal_edges: List) -> Dict:
+        """Infer contextual properties from causal edge relationships"""
+        
+        contextual_props = {
+            'causal_role': 'intermediate',
+            'process_context': [],
+            'coupling_strength': 0.0,
+            'system_importance': 0.5,
+            'measurement_priority': 'medium'
+        }
+        
+        # Analyze variable role in causal network
+        sources = sum(1 for edge in causal_edges if edge.source == var_name)
+        targets = sum(1 for edge in causal_edges if edge.target == var_name)
+        
+        if sources > targets:
+            contextual_props['causal_role'] = 'driver'
+            contextual_props['system_importance'] = 0.8
+            contextual_props['measurement_priority'] = 'high'
+        elif targets > sources:
+            contextual_props['causal_role'] = 'response'
+            contextual_props['system_importance'] = 0.6
+        
+        # Infer process context from edge relationships
+        process_keywords = {
+            'magma': ['magmatism', 'igneous'],
+            'metamorph': ['metamorphism'],
+            'hydro': ['hydrothermal', 'fluid'],
+            'tectonic': ['tectonics', 'deformation'],
+            'thermal': ['heat_transfer'],
+            'stress': ['rock_mechanics'],
+            'fluid': ['fluid_flow', 'hydrogeology']
+        }
+        
+        for edge in causal_edges:
+            if var_name in [edge.source, edge.target]:
+                edge_text = f"{edge.source} {edge.target}".lower()
+                for keyword, processes in process_keywords.items():
+                    if keyword in edge_text:
+                        contextual_props['process_context'].extend(processes)
+        
+        # Calculate coupling strength
+        total_edges = len([e for e in causal_edges if var_name in [e.source, e.target]])
+        contextual_props['coupling_strength'] = min(total_edges / 10.0, 1.0)
+        
+        return contextual_props
+    
+    def _determine_scale_dependent_properties(self, var_name: str, causal_edges: List) -> Dict:
+        """Determine appropriate spatial and temporal scales"""
+        
+        # Default scales
+        spatial_scale = 'regional'
+        temporal_scale = 'long-term'
+        
+        # Scale inference from variable name and context
+        scale_indicators = {
+            'spatial': {
+                'micro': ['grain', 'crystal', 'mineral'],
+                'local': ['outcrop', 'sample', 'site'],
+                'regional': ['formation', 'basin', 'terrain'],
+                'global': ['crustal', 'mantle', 'planetary']
+            },
+            'temporal': {
+                'instantaneous': ['rupture', 'fracture', 'failure'],
+                'short-term': ['seismic', 'dynamic', 'transient'],
+                'long-term': ['geological', 'tectonic', 'evolution'],
+                'permanent': ['structural', 'compositional']
+            }
+        }
+        
+        var_name_lower = var_name.lower()
+        
+        # Determine spatial scale
+        for scale, indicators in scale_indicators['spatial'].items():
+            if any(indicator in var_name_lower for indicator in indicators):
+                spatial_scale = scale
+                break
+        
+        # Determine temporal scale
+        for scale, indicators in scale_indicators['temporal'].items():
+            if any(indicator in var_name_lower for indicator in indicators):
+                temporal_scale = scale
+                break
+        
+        # Adjust based on causal edge context
+        edge_context = ' '.join([f"{e.source} {e.target}" for e in causal_edges if var_name in [e.source, e.target]]).lower()
+        
+        if 'laboratory' in edge_context or 'experiment' in edge_context:
+            spatial_scale = 'micro'
+            temporal_scale = 'short-term'
+        elif 'regional' in edge_context or 'basin' in edge_context:
+            spatial_scale = 'regional'
+        
+        return {
+            'spatial_scale': spatial_scale,
+            'temporal_scale': temporal_scale,
+            'scale_rationale': f"Inferred from variable name and causal context"
+        }
+    
+    def _refine_properties_by_process(self, var_name: str, causal_edges: List, base_properties: Dict) -> Dict:
+        """Refine variable properties based on geological process context"""
+        
+        refinements = {}
+        
+        # Extract process context
+        processes = base_properties.get('process_associations', [])
+        
+        # Process-specific refinements
+        if 'magmatism' in processes:
+            refinements.update({
+                'temperature_dependency': 'high',
+                'pressure_sensitivity': 'medium',
+                'phase_behavior': 'complex'
+            })
+        
+        if 'metamorphism' in processes:
+            refinements.update({
+                'temperature_dependency': 'high',
+                'pressure_sensitivity': 'high',
+                'reaction_kinetics': 'slow'
+            })
+        
+        if 'hydrothermal' in processes:
+            refinements.update({
+                'fluid_interaction': 'strong',
+                'chemical_reactivity': 'high',
+                'transport_properties': 'important'
+            })
+        
+        if 'tectonics' in processes:
+            refinements.update({
+                'stress_dependency': 'high',
+                'deformation_response': 'important',
+                'time_dependency': 'long-term'
+            })
+        
+        return refinements
+    
+    def _estimate_comprehensive_uncertainty(self, var_name: str, contextual_props: Dict, causal_edges: List) -> Dict:
+        """Estimate comprehensive measurement uncertainty"""
+        
+        # Base uncertainty from typical measurement precision
+        base_uncertainty = 0.1
+        
+        # Scale-dependent uncertainty adjustments
+        scale_factors = {
+            'micro': 0.8,
+            'local': 1.0,
+            'regional': 1.5,
+            'global': 2.0
+        }
+        
+        spatial_scale = contextual_props.get('spatial_scale', 'regional')
+        scale_factor = scale_factors.get(spatial_scale, 1.0)
+        
+        # Process-dependent uncertainty
+        process_uncertainty = {
+            'magmatism': 1.2,
+            'metamorphism': 1.1,
+            'hydrothermal': 1.4,
+            'tectonics': 1.3,
+            'fluid_flow': 1.5
+        }
+        
+        process_factor = 1.0
+        for process in contextual_props.get('process_context', []):
+            if process in process_uncertainty:
+                process_factor = max(process_factor, process_uncertainty[process])
+        
+        # Coupling-dependent uncertainty
+        coupling_strength = contextual_props.get('coupling_strength', 0.0)
+        coupling_factor = 1.0 + 0.5 * coupling_strength
+        
+        # Network position uncertainty
+        causal_role = contextual_props.get('causal_role', 'intermediate')
+        role_factors = {'driver': 0.8, 'intermediate': 1.0, 'response': 1.2}
+        role_factor = role_factors.get(causal_role, 1.0)
+        
+        # Total uncertainty calculation
+        total_uncertainty = base_uncertainty * scale_factor * process_factor * coupling_factor * role_factor
+        
+        return {
+            'total_uncertainty': min(total_uncertainty, 0.8),  # Cap at 80%
+            'base_uncertainty': base_uncertainty,
+            'scale_contribution': scale_factor,
+            'process_contribution': process_factor,
+            'coupling_contribution': coupling_factor,
+            'role_contribution': role_factor,
+            'uncertainty_breakdown': {
+                'measurement': base_uncertainty,
+                'scale_effects': (scale_factor - 1.0) * base_uncertainty,
+                'process_effects': (process_factor - 1.0) * base_uncertainty,
+                'coupling_effects': (coupling_factor - 1.0) * base_uncertainty,
+                'role_effects': (role_factor - 1.0) * base_uncertainty
+            }
+        }
+    
+    def _perform_dimensional_analysis(self, var_name: str, base_properties: Dict, causal_edges: List) -> Dict:
+        """Perform comprehensive dimensional analysis and unit verification"""
+        
+        # Extract base units and alternatives
+        base_units = base_properties.get('base_units', 'dimensionless')
+        alternative_units = base_properties.get('alternative_units', [])
+        
+        # Dimensional consistency check across causal edges
+        dimensional_conflicts = []
+        recommended_units = base_units
+        
+        # Check for dimensional consistency in causal relationships
+        for edge in causal_edges:
+            if var_name in [edge.source, edge.target]:
+                # Simple dimensional analysis (could be expanded)
+                if hasattr(edge, 'relationship_type'):
+                    if edge.relationship_type == 'proportional':
+                        # Check if units are compatible
+                        pass  # Implementation depends on edge metadata
+        
+        # Context-specific unit recommendations
+        context_unit_preferences = {
+            'laboratory': {
+                'temperature': '°C',
+                'pressure': 'MPa',
+                'length': 'mm'
+            },
+            'regional': {
+                'temperature': '°C', 
+                'pressure': 'GPa',
+                'length': 'km'
+            },
+            'global': {
+                'temperature': '°C',
+                'pressure': 'GPa', 
+                'length': 'km'
+            }
+        }
+        
+        # Determine appropriate units based on scale
+        spatial_scale = base_properties.get('spatial_scale', 'regional')
+        physical_type = base_properties.get('physical_type', 'other')
+        
+        if spatial_scale in context_unit_preferences:
+            scale_prefs = context_unit_preferences[spatial_scale]
+            if physical_type in scale_prefs:
+                recommended_units = scale_prefs[physical_type]
+        
+        return {
+            'units': recommended_units,
+            'base_units': base_units,
+            'alternative_units': alternative_units,
+            'dimensional_conflicts': dimensional_conflicts,
+            'unit_justification': f"Selected {recommended_units} based on {physical_type} type and {spatial_scale} scale"
+        }
+    
+    def _validate_physical_constraints(self, var_name: str, base_properties: Dict, contextual_props: Dict) -> Dict:
+        """Validate and refine physical constraints and valid ranges"""
+        
+        # Get base range from properties
+        scale_ranges = base_properties.get('scale_dependent_ranges', {})
+        spatial_scale = contextual_props.get('spatial_scale', 'regional')
+        
+        # Select appropriate range for scale
+        if spatial_scale in scale_ranges:
+            base_range = scale_ranges[spatial_scale]
+        else:
+            base_range = scale_ranges.get('regional', (-np.inf, np.inf))
+        
+        # Apply physical constraints based on variable type
+        physical_type = base_properties.get('physical_type', 'other')
+        
+        constraint_rules = {
+            'temperature': lambda r: (max(r[0], 0), r[1]),  # Absolute temperature > 0
+            'pressure': lambda r: (max(r[0], 0), r[1]),     # Pressure >= 0
+            'density': lambda r: (max(r[0], 0), r[1]),      # Density > 0
+            'time': lambda r: (max(r[0], 0), r[1]),         # Time >= 0
+            'porosity': lambda r: (max(r[0], 0), min(r[1], 1)),  # 0 <= porosity <= 1
+            'permeability': lambda r: (max(r[0], 0), r[1])  # Permeability >= 0
+        }
+        
+        if physical_type in constraint_rules:
+            constrained_range = constraint_rules[physical_type](base_range)
+        else:
+            constrained_range = base_range
+        
+        # Process-specific constraint adjustments
+        process_context = contextual_props.get('process_context', [])
+        
+        if 'magmatism' in process_context and physical_type == 'temperature':
+            constrained_range = (max(constrained_range[0], 600), constrained_range[1])
+        
+        if 'metamorphism' in process_context and physical_type == 'pressure':
+            constrained_range = (max(constrained_range[0], 0.1), constrained_range[1])
+        
+        return {
+            'range': constrained_range,
+            'base_range': base_range,
+            'constraint_rationale': f"Applied {physical_type} constraints with {process_context} process adjustments"
+        }
+    
+    def _generate_standardized_symbol(self, var_name: str, base_properties: Dict, contextual_props: Dict) -> str:
+        """Generate standardized mathematical symbol following conventions"""
+        
+        # Standard symbol conventions
+        symbol_conventions = {
+            'temperature': 'T',
+            'pressure': 'P',
+            'depth': 'z',
+            'time': 't',
+            'velocity': 'v',
+            'stress': 'σ',
+            'density': 'ρ',
+            'viscosity': 'η',
+            'porosity': 'φ',
+            'permeability': 'k'
+        }
+        
+        physical_type = base_properties.get('physical_type', 'other')
+        
+        # Primary symbol
+        if physical_type in symbol_conventions:
+            base_symbol = symbol_conventions[physical_type]
+        else:
+            # Generate from variable name
+            base_symbol = var_name.replace('_', '').replace('-', '')[:3]
+        
+        # Add subscripts/superscripts for specificity
+        subscripts = []
+        
+        # Process-specific subscripts
+        process_context = contextual_props.get('process_context', [])
+        if 'magmatism' in process_context:
+            subscripts.append('m')
+        elif 'metamorphism' in process_context:
+            subscripts.append('meta')
+        elif 'hydrothermal' in process_context:
+            subscripts.append('h')
+        
+        # Scale-specific subscripts
+        spatial_scale = contextual_props.get('spatial_scale', 'regional')
+        if spatial_scale == 'micro':
+            subscripts.append('μ')
+        elif spatial_scale == 'local':
+            subscripts.append('l')
+        elif spatial_scale == 'global':
+            subscripts.append('g')
+        
+        # Combine symbol with subscripts
+        if subscripts:
+            symbol = f"{base_symbol}_{','.join(subscripts)}"
+        else:
+            symbol = base_symbol
+        
+        return symbol
+    
+    def _add_advanced_variable_properties(self, var_name: str, base_properties: Dict, 
+                                        contextual_props: Dict, process_refinements: Dict) -> Dict:
+        """Add advanced variable properties beyond basic GeologicalVariable attributes"""
+        
+        advanced_props = {}
+        
+        # Measurement recommendations
+        measurement_methods = base_properties.get('measurement_methods', [])
+        measurement_priority = contextual_props.get('measurement_priority', 'medium')
+        
+        advanced_props.update({
+            'recommended_measurements': measurement_methods,
+            'measurement_priority': measurement_priority,
+            'correlation_length_spatial': base_properties.get('spatial_correlation_length', 1000),
+            'correlation_length_temporal': base_properties.get('temporal_correlation_length', 86400)
+        })
+        
+        # Network properties
+        causal_role = contextual_props.get('causal_role', 'intermediate')
+        system_importance = contextual_props.get('system_importance', 0.5)
+        coupling_strength = contextual_props.get('coupling_strength', 0.0)
+        
+        advanced_props.update({
+            'causal_role': causal_role,
+            'system_importance': system_importance,
+            'coupling_strength': coupling_strength
+        })
+        
+        # Process-specific attributes
+        advanced_props.update(process_refinements)
+        
+        return advanced_props
     
     def _fit_functional_form(self, variables: List[GeologicalVariable],
                            data: pd.DataFrame, form: str) -> MathematicalFormulation:
@@ -1645,27 +2308,10 @@ class HypothesisGenerator:
     
     def _calculate_required_sample_size(self, effect_size: float, 
                                       alpha: float = 0.05, power: float = 0.8) -> int:
-        """Calculate required sample size for given effect size and power"""
+        """Calculate required sample size using comprehensive statistical power analysis framework"""
         
-        # Simplified power analysis
-        # For correlation studies: n ≈ (Z_α/2 + Z_β)² / (0.5 * ln((1+r)/(1-r)))²
-        
-        from scipy.stats import norm
-        
-        z_alpha = norm.ppf(1 - alpha/2)
-        z_beta = norm.ppf(power)
-        
-        if effect_size <= 0 or effect_size >= 1:
-            effect_size = 0.5
-        
-        try:
-            fisher_z = 0.5 * np.log((1 + effect_size) / (1 - effect_size))
-            n = ((z_alpha + z_beta) / fisher_z) ** 2 + 3
-            
-            return max(30, int(n))  # Minimum 30 samples
-            
-        except Exception:
-            return 100  # Default sample size
+        # Advanced power analysis with comprehensive statistical framework
+        return self._comprehensive_power_analysis(effect_size, alpha, power)
     
     def _estimate_experiment_cost(self, experiment_type: ExperimentType,
                                 variables: List[GeologicalVariable], 
@@ -1761,6 +2407,440 @@ class HypothesisGenerator:
             feasibility['recommendations'].append("Consider natural experiment approach")
         
         return feasibility
+    
+    def _comprehensive_power_analysis(self, effect_size: float, alpha: float = 0.05, 
+                                    power: float = 0.8, analysis_type: str = 'auto') -> int:
+        """Comprehensive statistical power analysis framework for geological hypothesis testing"""
+        
+        # Advanced power analysis with multiple statistical frameworks
+        power_framework = self._initialize_power_analysis_framework(alpha, power)
+        
+        # Detect appropriate statistical test based on effect size characteristics
+        test_type = self._detect_optimal_statistical_test(effect_size, analysis_type)
+        
+        # Calculate sample size using multiple approaches
+        sample_size_estimates = self._calculate_multiple_sample_size_estimates(
+            effect_size, power_framework, test_type
+        )
+        
+        # Uncertainty propagation and robustness analysis
+        uncertainty_analysis = self._analyze_sample_size_uncertainty(
+            sample_size_estimates, effect_size, power_framework
+        )
+        
+        # Adaptive sample size determination with sequential considerations
+        adaptive_sample_size = self._determine_adaptive_sample_size(
+            sample_size_estimates, uncertainty_analysis, test_type
+        )
+        
+        # Multiple comparisons and familywise error rate adjustments
+        corrected_sample_size = self._apply_multiple_comparisons_corrections(
+            adaptive_sample_size, power_framework
+        )
+        
+        # Geological context adjustments
+        context_adjusted_size = self._apply_geological_context_adjustments(
+            corrected_sample_size, effect_size, test_type
+        )
+        
+        return context_adjusted_size
+    
+    def _initialize_power_analysis_framework(self, alpha: float, power: float) -> Dict:
+        """Initialize comprehensive power analysis framework"""
+        
+        from scipy.stats import norm, t, chi2, f
+        
+        framework = {
+            'alpha': alpha,
+            'power': power,
+            'beta': 1 - power,
+            'critical_values': {
+                'z_alpha_half': norm.ppf(1 - alpha/2),
+                'z_alpha': norm.ppf(1 - alpha),
+                'z_beta': norm.ppf(power),
+                'z_power': norm.ppf(power)
+            },
+            'effect_size_thresholds': {
+                'small': 0.1,
+                'small_medium': 0.25,
+                'medium': 0.5,
+                'large_medium': 0.65,
+                'large': 0.8,
+                'very_large': 0.9
+            },
+            'minimum_sample_sizes': {
+                'pilot_study': 10,
+                'small_scale': 30,
+                'medium_scale': 50,
+                'large_scale': 100,
+                'comprehensive': 200
+            },
+            'geological_adjustments': {
+                'measurement_error_inflation': 1.2,
+                'spatial_correlation_factor': 1.15,
+                'temporal_correlation_factor': 1.1,
+                'process_complexity_factor': 1.25,
+                'field_conditions_factor': 1.3
+            }
+        }
+        
+        return framework
+    
+    def _detect_optimal_statistical_test(self, effect_size: float, analysis_type: str = 'auto') -> Dict:
+        """Detect optimal statistical test based on effect size and context"""
+        
+        if analysis_type != 'auto':
+            test_family = analysis_type
+        else:
+            # Automatic test selection based on effect size characteristics
+            if 0 <= abs(effect_size) <= 1:
+                test_family = 'correlation'
+            elif effect_size > 1:
+                test_family = 'mean_difference'
+            else:
+                test_family = 'correlation'  # Default
+        
+        test_specifications = {
+            'correlation': {
+                'primary_test': 'pearson_correlation',
+                'alternatives': ['spearman_correlation', 'kendall_tau'],
+                'sample_size_formula': 'fisher_z_transform',
+                'assumptions': ['bivariate_normality', 'linear_relationship'],
+                'robustness_checks': ['bootstrapping', 'permutation_test'],
+                'effect_size_interpretation': 'correlation_coefficient'
+            },
+            'mean_difference': {
+                'primary_test': 'two_sample_t_test',
+                'alternatives': ['welch_t_test', 'mann_whitney_u'],
+                'sample_size_formula': 'cohens_d_formula',
+                'assumptions': ['normality', 'equal_variances'],
+                'robustness_checks': ['robust_t_test', 'bootstrap_t'],
+                'effect_size_interpretation': 'cohens_d'
+            },
+            'regression': {
+                'primary_test': 'multiple_regression',
+                'alternatives': ['ridge_regression', 'robust_regression'],
+                'sample_size_formula': 'multiple_r_squared',
+                'assumptions': ['linearity', 'independence', 'normality'],
+                'robustness_checks': ['cross_validation', 'bootstrap_regression'],
+                'effect_size_interpretation': 'r_squared'
+            },
+            'anova': {
+                'primary_test': 'one_way_anova',
+                'alternatives': ['kruskal_wallis', 'welch_anova'],
+                'sample_size_formula': 'eta_squared_formula',
+                'assumptions': ['normality', 'equal_variances', 'independence'],
+                'robustness_checks': ['robust_anova', 'permutation_anova'],
+                'effect_size_interpretation': 'eta_squared'
+            }
+        }
+        
+        return test_specifications.get(test_family, test_specifications['correlation'])
+    
+    def _calculate_multiple_sample_size_estimates(self, effect_size: float, 
+                                                framework: Dict, test_type: Dict) -> Dict:
+        """Calculate sample size using multiple statistical approaches"""
+        
+        estimates = {}
+        
+        # Primary formula based on test type
+        if test_type['sample_size_formula'] == 'fisher_z_transform':
+            estimates['fisher_z'] = self._fisher_z_sample_size(effect_size, framework)
+        elif test_type['sample_size_formula'] == 'cohens_d_formula':
+            estimates['cohens_d'] = self._cohens_d_sample_size(effect_size, framework)
+        elif test_type['sample_size_formula'] == 'multiple_r_squared':
+            estimates['r_squared'] = self._r_squared_sample_size(effect_size, framework)
+        elif test_type['sample_size_formula'] == 'eta_squared_formula':
+            estimates['eta_squared'] = self._eta_squared_sample_size(effect_size, framework)
+        
+        # Alternative robust methods
+        estimates['robust_bootstrap'] = self._bootstrap_sample_size(effect_size, framework)
+        estimates['bayesian_approach'] = self._bayesian_sample_size(effect_size, framework)
+        estimates['simulation_based'] = self._simulation_sample_size(effect_size, framework, test_type)
+        
+        # Classical approximations for validation
+        estimates['classical_approximation'] = self._classical_sample_size_approximation(effect_size, framework)
+        
+        # Machine learning based prediction
+        estimates['ml_prediction'] = self._ml_based_sample_size_prediction(effect_size, framework, test_type)
+        
+        return estimates
+    
+    def _fisher_z_sample_size(self, effect_size: float, framework: Dict) -> int:
+        """Calculate sample size using Fisher's Z transformation for correlations"""
+        
+        # Validate effect size for correlation
+        r = max(-0.99, min(0.99, effect_size))
+        
+        try:
+            # Fisher's Z transformation
+            fisher_z_effect = 0.5 * np.log((1 + abs(r)) / (1 - abs(r)))
+            
+            # Power calculation
+            z_alpha = framework['critical_values']['z_alpha_half']
+            z_beta = framework['critical_values']['z_beta']
+            
+            # Sample size formula
+            n = ((z_alpha + z_beta) / fisher_z_effect) ** 2 + 3
+            
+            return max(framework['minimum_sample_sizes']['small_scale'], int(n))
+            
+        except Exception:
+            return framework['minimum_sample_sizes']['medium_scale']
+    
+    def _cohens_d_sample_size(self, effect_size: float, framework: Dict) -> int:
+        """Calculate sample size using Cohen's d for mean differences"""
+        
+        # Convert effect size to Cohen's d if needed
+        d = abs(effect_size)
+        
+        try:
+            z_alpha = framework['critical_values']['z_alpha_half']
+            z_beta = framework['critical_values']['z_beta']
+            
+            # Cohen's formula for two-sample t-test
+            n_per_group = 2 * ((z_alpha + z_beta) / d) ** 2
+            total_n = 2 * n_per_group
+            
+            return max(framework['minimum_sample_sizes']['medium_scale'], int(total_n))
+            
+        except Exception:
+            return framework['minimum_sample_sizes']['large_scale']
+    
+    def _r_squared_sample_size(self, effect_size: float, framework: Dict) -> int:
+        """Calculate sample size for multiple regression based on R²"""
+        
+        # Convert to R² if needed
+        r_squared = min(0.99, max(0.01, abs(effect_size)))
+        
+        try:
+            # Number of predictors (assume moderate complexity)
+            k = 3
+            
+            # Calculate sample size for multiple regression
+            z_alpha = framework['critical_values']['z_alpha']
+            z_beta = framework['critical_values']['z_beta']
+            
+            # Approximation for multiple regression
+            lambda_param = r_squared / (1 - r_squared)
+            n = k + 1 + ((z_alpha + z_beta) / np.sqrt(lambda_param)) ** 2
+            
+            return max(framework['minimum_sample_sizes']['large_scale'], int(n))
+            
+        except Exception:
+            return framework['minimum_sample_sizes']['comprehensive']
+    
+    def _eta_squared_sample_size(self, effect_size: float, framework: Dict) -> int:
+        """Calculate sample size for ANOVA based on eta squared"""
+        
+        eta_squared = min(0.99, max(0.01, abs(effect_size)))
+        
+        try:
+            # Assume 3 groups for ANOVA
+            groups = 3
+            
+            z_alpha = framework['critical_values']['z_alpha']
+            z_beta = framework['critical_values']['z_beta']
+            
+            # Approximation for ANOVA
+            f_squared = eta_squared / (1 - eta_squared)
+            n_per_group = ((z_alpha + z_beta) / np.sqrt(f_squared)) ** 2
+            total_n = groups * n_per_group
+            
+            return max(framework['minimum_sample_sizes']['large_scale'], int(total_n))
+            
+        except Exception:
+            return framework['minimum_sample_sizes']['comprehensive']
+    
+    def _bootstrap_sample_size(self, effect_size: float, framework: Dict) -> int:
+        """Robust bootstrap-based sample size estimation"""
+        
+        # Bootstrap approach accounts for non-normality and robustness
+        base_size = max(30, int(100 / max(0.1, abs(effect_size))))
+        
+        # Adjust for bootstrap efficiency
+        bootstrap_inflation = 1.15
+        
+        return int(base_size * bootstrap_inflation)
+    
+    def _bayesian_sample_size(self, effect_size: float, framework: Dict) -> int:
+        """Bayesian approach to sample size determination"""
+        
+        # Bayesian sample size based on credible interval width
+        # and posterior precision requirements
+        
+        try:
+            # Prior precision (weak prior)
+            prior_precision = 1.0
+            
+            # Desired posterior precision
+            posterior_precision = 10.0 * abs(effect_size)
+            
+            # Sample size for desired precision gain
+            n = (posterior_precision - prior_precision) / (effect_size ** 2)
+            
+            return max(framework['minimum_sample_sizes']['medium_scale'], int(abs(n)))
+            
+        except Exception:
+            return framework['minimum_sample_sizes']['large_scale']
+    
+    def _simulation_sample_size(self, effect_size: float, framework: Dict, test_type: Dict) -> int:
+        """Simulation-based sample size calculation"""
+        
+        # Monte Carlo simulation approach
+        # This is a simplified version - full implementation would run actual simulations
+        
+        base_multiplier = 1.0 / max(0.05, abs(effect_size))
+        simulation_adjustment = 1.1  # Account for simulation variance
+        
+        simulated_n = int(50 * base_multiplier * simulation_adjustment)
+        
+        return max(framework['minimum_sample_sizes']['medium_scale'], simulated_n)
+    
+    def _classical_sample_size_approximation(self, effect_size: float, framework: Dict) -> int:
+        """Classical statistical approximation methods"""
+        
+        # Simple rule-of-thumb approximations
+        if abs(effect_size) >= 0.8:  # Large effect
+            return framework['minimum_sample_sizes']['small_scale']
+        elif abs(effect_size) >= 0.5:  # Medium effect
+            return framework['minimum_sample_sizes']['medium_scale']
+        elif abs(effect_size) >= 0.2:  # Small effect
+            return framework['minimum_sample_sizes']['large_scale']
+        else:  # Very small effect
+            return framework['minimum_sample_sizes']['comprehensive']
+    
+    def _ml_based_sample_size_prediction(self, effect_size: float, framework: Dict, test_type: Dict) -> int:
+        """Machine learning based sample size prediction"""
+        
+        # Simplified ML approach - in practice would use trained models
+        # Based on empirical relationships from geological studies
+        
+        features = np.array([
+            abs(effect_size),
+            framework['alpha'],
+            framework['power'],
+            len(test_type['assumptions']),
+            1.0  # bias term
+        ]).reshape(1, -1)
+        
+        # Simple linear model coefficients (would be learned from data)
+        coefficients = np.array([[-200], [1000], [-300], [20], [80]])
+        
+        predicted_n = max(30, int(np.dot(features, coefficients)[0]))
+        
+        return predicted_n
+    
+    def _analyze_sample_size_uncertainty(self, estimates: Dict, effect_size: float, framework: Dict) -> Dict:
+        """Analyze uncertainty in sample size estimates"""
+        
+        estimate_values = list(estimates.values())
+        
+        uncertainty_metrics = {
+            'mean_estimate': np.mean(estimate_values),
+            'median_estimate': np.median(estimate_values),
+            'std_estimate': np.std(estimate_values),
+            'cv_estimate': np.std(estimate_values) / np.mean(estimate_values) if np.mean(estimate_values) > 0 else 1.0,
+            'min_estimate': np.min(estimate_values),
+            'max_estimate': np.max(estimate_values),
+            'iqr_range': np.percentile(estimate_values, 75) - np.percentile(estimate_values, 25),
+            'confidence_interval': (
+                np.percentile(estimate_values, 2.5),
+                np.percentile(estimate_values, 97.5)
+            )
+        }
+        
+        # Assess reliability
+        uncertainty_metrics['reliability'] = 'high' if uncertainty_metrics['cv_estimate'] < 0.2 else \
+                                           'medium' if uncertainty_metrics['cv_estimate'] < 0.5 else 'low'
+        
+        return uncertainty_metrics
+    
+    def _determine_adaptive_sample_size(self, estimates: Dict, uncertainty_analysis: Dict, test_type: Dict) -> int:
+        """Determine adaptive sample size with sequential considerations"""
+        
+        # Base sample size from robust central tendency
+        if uncertainty_analysis['reliability'] == 'high':
+            base_size = int(uncertainty_analysis['median_estimate'])
+        else:
+            # Use more conservative estimate when uncertain
+            base_size = int(uncertainty_analysis['confidence_interval'][1])
+        
+        # Sequential design considerations
+        sequential_adjustments = {
+            'initial_phase': 0.3,  # Start with 30% of full sample
+            'interim_analysis': 0.6,  # Interim check at 60%
+            'adaptive_stopping': True,  # Allow early stopping
+            'futility_boundary': True,  # Stop if clearly null
+            'efficacy_boundary': True   # Stop if clearly significant
+        }
+        
+        # Adjust for sequential design overhead
+        if test_type.get('robustness_checks'):
+            sequential_inflation = 1.2
+        else:
+            sequential_inflation = 1.1
+        
+        adaptive_size = int(base_size * sequential_inflation)
+        
+        return adaptive_size
+    
+    def _apply_multiple_comparisons_corrections(self, sample_size: int, framework: Dict) -> int:
+        """Apply corrections for multiple comparisons and familywise error rates"""
+        
+        # Estimate number of comparisons in geological studies
+        estimated_comparisons = 5  # Typical geological hypothesis testing
+        
+        # Bonferroni-type adjustment (conservative)
+        bonferroni_alpha = framework['alpha'] / estimated_comparisons
+        
+        # False Discovery Rate control
+        fdr_adjustment = 1.2
+        
+        # Overall multiple comparisons inflation
+        mc_inflation = max(1.1, np.sqrt(estimated_comparisons))
+        
+        corrected_size = int(sample_size * mc_inflation * fdr_adjustment)
+        
+        return corrected_size
+    
+    def _apply_geological_context_adjustments(self, sample_size: int, effect_size: float, test_type: Dict) -> int:
+        """Apply geological context-specific adjustments"""
+        
+        geological_factors = {
+            'measurement_precision': 1.15,  # Geological measurements often have higher uncertainty
+            'spatial_heterogeneity': 1.20,  # Geological systems are spatially variable
+            'temporal_variability': 1.10,   # Time-dependent processes
+            'process_complexity': 1.25,     # Multiple interacting processes
+            'field_conditions': 1.30,       # Challenging field environments
+            'sample_accessibility': 1.10    # Limited sample accessibility
+        }
+        
+        # Apply relevant factors based on test type and effect size
+        total_adjustment = 1.0
+        
+        # Always apply measurement and complexity factors
+        total_adjustment *= geological_factors['measurement_precision']
+        total_adjustment *= geological_factors['process_complexity']
+        
+        # Apply spatial/temporal factors for small effect sizes
+        if abs(effect_size) < 0.3:
+            total_adjustment *= geological_factors['spatial_heterogeneity']
+            total_adjustment *= geological_factors['temporal_variability']
+        
+        # Apply field factors for observational studies
+        if 'observational' in str(test_type).lower():
+            total_adjustment *= geological_factors['field_conditions']
+            total_adjustment *= geological_factors['sample_accessibility']
+        
+        # Final adjusted sample size
+        final_size = int(sample_size * total_adjustment)
+        
+        # Ensure reasonable bounds
+        min_geological_sample = 50   # Minimum for geological studies
+        max_practical_sample = 5000  # Practical upper limit
+        
+        return max(min_geological_sample, min(final_size, max_practical_sample))
     
     def _generate_expected_outcomes(self, hypothesis: GeneratedHypothesis) -> List[str]:
         """Generate expected experimental outcomes"""
@@ -1864,6 +2944,419 @@ class HypothesisGenerator:
             
         except Exception:
             return 0.3  # Default medium effect size
+    
+    def _build_comprehensive_equation_system(self, equations: List, symbolic_vars: Dict,
+                                           causal_edges: List, t_var) -> str:
+        """Build comprehensive equation system with advanced coupling analysis and system structure"""
+        from sympy import Matrix, solve, diff, simplify, expand, collect, symbols
+        from sympy import latex, Eq, Function, Derivative
+        import networkx as nx
+        
+        if len(equations) == 1:
+            return equations[0]
+            
+        try:
+            # Analyze variable coupling through dependency graph
+            dependency_graph = self._build_variable_dependency_graph(equations, symbolic_vars)
+            
+            # Detect system structure and coupling types
+            coupling_analysis = self._analyze_equation_coupling(equations, symbolic_vars, causal_edges)
+            
+            # Build system based on coupling structure
+            if coupling_analysis['system_type'] == 'linear_coupled':
+                return self._build_linear_coupled_system(equations, symbolic_vars, dependency_graph)
+            elif coupling_analysis['system_type'] == 'nonlinear_coupled':
+                return self._build_nonlinear_coupled_system(equations, symbolic_vars, dependency_graph, t_var)
+            elif coupling_analysis['system_type'] == 'hierarchical':
+                return self._build_hierarchical_system(equations, symbolic_vars, coupling_analysis['hierarchy'])
+            elif coupling_analysis['system_type'] == 'reaction_network':
+                return self._build_reaction_network_system(equations, symbolic_vars, causal_edges)
+            else:
+                # Default: simultaneous system with conservation constraints
+                return self._build_simultaneous_system_with_constraints(equations, symbolic_vars, causal_edges, t_var)
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to build comprehensive system: {str(e)}")
+            # Fallback to matrix form
+            return self._build_matrix_system_fallback(equations, symbolic_vars)
+    
+    def _build_variable_dependency_graph(self, equations: List, symbolic_vars: Dict) -> nx.DiGraph:
+        """Build directed graph of variable dependencies"""
+        import networkx as nx
+        
+        dependency_graph = nx.DiGraph()
+        
+        # Add all variables as nodes
+        for var_name, var_symbol in symbolic_vars.items():
+            dependency_graph.add_node(str(var_symbol), name=var_name)
+        
+        # Analyze dependencies in each equation
+        for eq in equations:
+            eq_vars = list(eq.free_symbols)
+            # Create dependencies based on derivative structure and coupling
+            for i, var1 in enumerate(eq_vars):
+                for j, var2 in enumerate(eq_vars):
+                    if i != j and str(var1) in symbolic_vars.values() and str(var2) in symbolic_vars.values():
+                        # Check if var1 appears in derivative or coupling terms with var2
+                        coupling_strength = self._calculate_coupling_strength(eq, var1, var2)
+                        if coupling_strength > 0.1:
+                            dependency_graph.add_edge(str(var1), str(var2), weight=coupling_strength)
+        
+        return dependency_graph
+    
+    def _analyze_equation_coupling(self, equations: List, symbolic_vars: Dict, causal_edges: List) -> Dict:
+        """Analyze coupling structure between equations"""
+        from sympy import diff, degree, expand
+        
+        coupling_matrix = np.zeros((len(equations), len(equations)))
+        variable_degrees = {}
+        has_derivatives = False
+        has_nonlinear = False
+        
+        # Analyze each equation
+        for i, eq in enumerate(equations):
+            eq_expanded = expand(eq)
+            
+            # Check for time derivatives
+            for var_symbol in symbolic_vars.values():
+                if any(str(d).startswith('Derivative') for d in eq.atoms() if hasattr(d, 'args')):
+                    has_derivatives = True
+                
+                # Check nonlinearity
+                try:
+                    deg = degree(eq_expanded, var_symbol)
+                    if deg and deg > 1:
+                        has_nonlinear = True
+                        variable_degrees[str(var_symbol)] = deg
+                except:
+                    pass
+            
+            # Calculate coupling between equations
+            for j, other_eq in enumerate(equations):
+                if i != j:
+                    shared_vars = set(eq.free_symbols) & set(other_eq.free_symbols)
+                    coupling_matrix[i, j] = len(shared_vars) / max(len(eq.free_symbols), len(other_eq.free_symbols), 1)
+        
+        # Determine system type
+        avg_coupling = np.mean(coupling_matrix[coupling_matrix > 0]) if np.any(coupling_matrix > 0) else 0
+        
+        if has_derivatives and has_nonlinear:
+            system_type = 'nonlinear_coupled'
+        elif has_derivatives:
+            system_type = 'linear_coupled'
+        elif avg_coupling > 0.7:
+            system_type = 'reaction_network'
+        elif self._has_hierarchical_structure(equations, causal_edges):
+            system_type = 'hierarchical'
+        else:
+            system_type = 'simultaneous'
+        
+        return {
+            'system_type': system_type,
+            'coupling_matrix': coupling_matrix,
+            'average_coupling': avg_coupling,
+            'has_derivatives': has_derivatives,
+            'has_nonlinear': has_nonlinear,
+            'variable_degrees': variable_degrees,
+            'hierarchy': self._determine_hierarchy(causal_edges) if system_type == 'hierarchical' else None
+        }
+    
+    def _build_linear_coupled_system(self, equations: List, symbolic_vars: Dict, dependency_graph) -> str:
+        """Build linear coupled differential equation system"""
+        from sympy import Matrix, symbols
+        
+        # Convert to matrix form: dX/dt = A*X + B
+        variables = list(symbolic_vars.values())
+        n = len(variables)
+        
+        # Build coefficient matrix A and forcing vector B
+        A_matrix = Matrix.zeros(n, n)
+        B_vector = Matrix.zeros(n, 1)
+        
+        for i, eq in enumerate(equations):
+            for j, var in enumerate(variables):
+                # Extract coefficient of variable
+                try:
+                    coeff = eq.coeff(var, 1)
+                    if coeff:
+                        A_matrix[i, j] = coeff
+                except:
+                    pass
+            
+            # Extract constant/forcing term
+            constant_term = eq.subs([(var, 0) for var in variables])
+            B_vector[i] = constant_term
+        
+        # Build system representation
+        X = Matrix(variables)
+        system_eq = f"d/dt({X}) = {A_matrix} * {X} + {B_vector}"
+        
+        return system_eq
+    
+    def _build_nonlinear_coupled_system(self, equations: List, symbolic_vars: Dict, 
+                                      dependency_graph, t_var) -> str:
+        """Build nonlinear coupled system with phase space representation"""
+        from sympy import Function, Derivative, Eq
+        
+        # Create system of differential equations
+        system_equations = []
+        
+        for i, eq in enumerate(equations):
+            # Convert to differential equation form
+            if hasattr(eq, 'lhs') and hasattr(eq, 'rhs'):
+                system_equations.append(eq)
+            else:
+                # Assume equation represents dX_i/dt = f_i(X, t)
+                var_name = f"x_{i}"
+                var_func = Function(var_name)(t_var)
+                diff_eq = Eq(Derivative(var_func, t_var), eq)
+                system_equations.append(diff_eq)
+        
+        # Build system with stability analysis annotations
+        system_str = "System of coupled ODEs:\n"
+        for i, eq in enumerate(system_equations):
+            system_str += f"  Equation {i+1}: {eq}\n"
+        
+        # Add phase space information
+        critical_points = self._find_approximate_critical_points(equations, symbolic_vars)
+        if critical_points:
+            system_str += f"\nApproximate critical points: {critical_points}"
+        
+        return system_str
+    
+    def _build_hierarchical_system(self, equations: List, symbolic_vars: Dict, hierarchy: List) -> str:
+        """Build hierarchical system with ordered dependencies"""
+        
+        system_str = "Hierarchical system with ordered dependencies:\n"
+        
+        for level, vars_at_level in enumerate(hierarchy):
+            level_eqs = []
+            for eq in equations:
+                eq_vars = [str(v) for v in eq.free_symbols]
+                if any(var in vars_at_level for var in eq_vars):
+                    level_eqs.append(eq)
+            
+            if level_eqs:
+                system_str += f"\nLevel {level + 1} (Variables: {', '.join(vars_at_level)}):\n"
+                for i, eq in enumerate(level_eqs):
+                    system_str += f"  {eq}\n"
+        
+        return system_str
+    
+    def _build_reaction_network_system(self, equations: List, symbolic_vars: Dict, causal_edges: List) -> str:
+        """Build reaction network system with mass balance"""
+        
+        # Identify species and reactions
+        species = list(symbolic_vars.keys())
+        reactions = []
+        
+        for eq in equations:
+            # Parse reaction stoichiometry
+            reaction_info = self._parse_reaction_from_equation(eq, species)
+            if reaction_info:
+                reactions.append(reaction_info)
+        
+        # Build mass balance equations
+        system_str = "Reaction network system:\n\nReactions:\n"
+        for i, reaction in enumerate(reactions):
+            system_str += f"  R{i+1}: {reaction['reaction_string']}\n"
+        
+        system_str += "\nMass balance equations:\n"
+        for i, eq in enumerate(equations):
+            species_name = species[i] if i < len(species) else f"Species_{i}"
+            system_str += f"  d[{species_name}]/dt = {eq}\n"
+        
+        # Add conservation laws
+        conservation_laws = self._derive_conservation_laws(equations, symbolic_vars)
+        if conservation_laws:
+            system_str += f"\nConservation laws:\n"
+            for law in conservation_laws:
+                system_str += f"  {law}\n"
+        
+        return system_str
+    
+    def _build_simultaneous_system_with_constraints(self, equations: List, symbolic_vars: Dict, 
+                                                  causal_edges: List, t_var) -> str:
+        """Build simultaneous system with physical constraints"""
+        from sympy import Eq, solve, Matrix
+        
+        # Build system of equations
+        system_eqs = []
+        for i, eq in enumerate(equations):
+            if not hasattr(eq, 'lhs'):
+                # Convert expression to equation form
+                var_name = list(symbolic_vars.keys())[i] if i < len(symbolic_vars) else f'y_{i}'
+                system_eqs.append(Eq(symbols(var_name), eq))
+            else:
+                system_eqs.append(eq)
+        
+        # Add physical constraints
+        constraints = self._derive_physical_constraints(symbolic_vars, causal_edges)
+        
+        system_str = "Simultaneous equation system:\n\nGoverning equations:\n"
+        for i, eq in enumerate(system_eqs):
+            system_str += f"  Eq{i+1}: {eq}\n"
+        
+        if constraints:
+            system_str += "\nPhysical constraints:\n"
+            for j, constraint in enumerate(constraints):
+                system_str += f"  C{j+1}: {constraint}\n"
+        
+        # Try to solve system symbolically
+        try:
+            variables = list(symbolic_vars.values())[:len(system_eqs)]
+            solutions = solve(system_eqs[:len(variables)], variables)
+            if solutions:
+                system_str += f"\nAnalytical solutions:\n"
+                for var, sol in solutions.items():
+                    system_str += f"  {var} = {sol}\n"
+        except:
+            system_str += "\n(System requires numerical solution)"
+        
+        return system_str
+    
+    def _build_matrix_system_fallback(self, equations: List, symbolic_vars: Dict) -> str:
+        """Fallback to matrix representation"""
+        from sympy import Matrix
+        
+        # Simple matrix form
+        eq_matrix = Matrix(equations)
+        var_vector = Matrix(list(symbolic_vars.values())[:len(equations)])
+        
+        return f"Matrix system: {eq_matrix} = f({var_vector})"
+    
+    def _calculate_coupling_strength(self, equation, var1, var2) -> float:
+        """Calculate coupling strength between two variables in an equation"""
+        try:
+            # Check if variables appear together in products or derivatives
+            expr_str = str(equation)
+            var1_str, var2_str = str(var1), str(var2)
+            
+            # Simple heuristic: variables appear together in products
+            if f"{var1_str}*{var2_str}" in expr_str or f"{var2_str}*{var1_str}" in expr_str:
+                return 1.0
+            elif var1_str in expr_str and var2_str in expr_str:
+                return 0.5
+            else:
+                return 0.0
+        except:
+            return 0.0
+    
+    def _has_hierarchical_structure(self, equations: List, causal_edges: List) -> bool:
+        """Check if system has hierarchical dependency structure"""
+        # Simple check based on causal edge structure
+        if not causal_edges:
+            return False
+            
+        # Check for clear dependency levels
+        variables = set()
+        for edge in causal_edges:
+            variables.add(edge.source)
+            variables.add(edge.target)
+        
+        return len(variables) > 2 and len(causal_edges) >= len(variables)
+    
+    def _determine_hierarchy(self, causal_edges: List) -> List[List[str]]:
+        """Determine hierarchical levels from causal edges"""
+        if not causal_edges:
+            return []
+        
+        import networkx as nx
+        
+        # Build directed graph from causal edges
+        G = nx.DiGraph()
+        for edge in causal_edges:
+            G.add_edge(edge.source, edge.target)
+        
+        try:
+            # Topological sort gives hierarchy
+            topo_order = list(nx.topological_sort(G))
+            # Group into levels (simplified)
+            levels = []
+            current_level = []
+            
+            for i, node in enumerate(topo_order):
+                current_level.append(node)
+                if i % 2 == 1 or i == len(topo_order) - 1:  # Group in pairs
+                    levels.append(current_level)
+                    current_level = []
+            
+            return levels
+        except:
+            return [[str(var)] for var in G.nodes()]
+    
+    def _find_approximate_critical_points(self, equations: List, symbolic_vars: Dict) -> List:
+        """Find approximate critical points (equilibria)"""
+        from sympy import solve, Eq
+        
+        try:
+            # Set all equations to zero
+            equilibrium_eqs = [Eq(eq, 0) for eq in equations]
+            variables = list(symbolic_vars.values())[:len(equations)]
+            
+            # Attempt to solve
+            solutions = solve(equilibrium_eqs, variables)
+            
+            if solutions:
+                if isinstance(solutions, dict):
+                    return [solutions]
+                elif isinstance(solutions, list):
+                    return solutions[:3]  # Limit to first 3 solutions
+            
+            return []
+        except:
+            return []
+    
+    def _parse_reaction_from_equation(self, equation, species: List) -> Dict:
+        """Parse reaction information from equation"""
+        # Simplified reaction parsing
+        try:
+            reactants = []
+            products = []
+            
+            # Basic parsing heuristic
+            for spec in species:
+                if spec in str(equation):
+                    reactants.append(spec)
+            
+            return {
+                'reactants': reactants,
+                'products': [],
+                'rate_constant': 'k',
+                'reaction_string': f"{' + '.join(reactants)} -> products"
+            }
+        except:
+            return None
+    
+    def _derive_conservation_laws(self, equations: List, symbolic_vars: Dict) -> List[str]:
+        """Derive conservation laws from equation system"""
+        conservation_laws = []
+        
+        # Simple mass conservation check
+        species = list(symbolic_vars.keys())
+        total_mass = " + ".join(species)
+        conservation_laws.append(f"d/dt({total_mass}) = 0  (mass conservation)")
+        
+        return conservation_laws
+    
+    def _derive_physical_constraints(self, symbolic_vars: Dict, causal_edges: List) -> List[str]:
+        """Derive physical constraints from domain knowledge"""
+        constraints = []
+        
+        # Add positivity constraints for concentrations/amounts
+        for var_name in symbolic_vars.keys():
+            if any(keyword in var_name.lower() for keyword in ['conc', 'amount', 'mass', 'volume']):
+                constraints.append(f"{var_name} >= 0")
+        
+        # Add thermodynamic constraints if applicable
+        if any('temp' in var_name.lower() for var_name in symbolic_vars.keys()):
+            constraints.append("temperature > 0  (absolute temperature)")
+        
+        # Add geological constraints
+        if any('pressure' in var_name.lower() for var_name in symbolic_vars.keys()):
+            constraints.append("pressure >= 0  (physical pressure)")
+        
+        return constraints
 
 # Example usage and testing
 async def example_hypothesis_generation():

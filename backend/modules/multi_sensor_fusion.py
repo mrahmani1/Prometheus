@@ -474,43 +474,755 @@ class AdvancedFeatureExtractor:
         return np.array([f if not np.isnan(f) else 0 for f in features], dtype=np.float32)
     
     def extract_cross_sensor_features(self, readings_dict: Dict[str, List[SensorReading]]) -> np.ndarray:
-        """Extract features from cross-sensor relationships"""
+        """Extract comprehensive features from cross-sensor relationships and interactions"""
         sensor_types = list(readings_dict.keys())
         n_types = len(sensor_types)
         
         if n_types < 2:
-            return np.zeros(15)
+            return np.zeros(75)  # Expanded feature vector
         
-        # Cross-correlations between sensor types
-        correlations = []
+        features = []
+        
+        # 1. Advanced Cross-Correlations with Time Lag Analysis
+        time_series_dict = {}
+        for sensor_type, readings in readings_dict.items():
+            if readings:
+                df = pd.DataFrame([{
+                    'timestamp': r.timestamp,
+                    'value': r.value,
+                    'quality': r.quality,
+                    'uncertainty': r.uncertainty
+                } for r in readings])
+                df = df.sort_values('timestamp')
+                time_series_dict[sensor_type] = df
+        
+        # Cross-correlation matrix with multiple time lags
+        correlation_features = []
+        coherence_features = []
+        phase_features = []
+        
         for i, type1 in enumerate(sensor_types):
             for j, type2 in enumerate(sensor_types[i+1:], i+1):
-                readings1 = readings_dict[type1]
-                readings2 = readings_dict[type2]
-                
-                if readings1 and readings2:
-                    values1 = [r.value for r in readings1]
-                    values2 = [r.value for r in readings2]
+                if type1 in time_series_dict and type2 in time_series_dict:
+                    ts1 = time_series_dict[type1]
+                    ts2 = time_series_dict[type2]
                     
-                    # Temporal alignment (simplified)
-                    min_len = min(len(values1), len(values2))
-                    if min_len > 1:
-                        corr = np.corrcoef(values1[:min_len], values2[:min_len])[0, 1]
-                        correlations.append(corr if not np.isnan(corr) else 0)
+                    # Temporal interpolation for alignment
+                    merged_ts = self._align_time_series(ts1, ts2)
+                    
+                    if len(merged_ts) > 5:
+                        values1 = merged_ts['value1'].dropna()
+                        values2 = merged_ts['value2'].dropna()
+                        
+                        if len(values1) > 3 and len(values2) > 3:
+                            # Zero-lag correlation
+                            zero_lag_corr = np.corrcoef(values1, values2)[0, 1] if len(values1) == len(values2) else 0
+                            correlation_features.append(zero_lag_corr if not np.isnan(zero_lag_corr) else 0)
+                            
+                            # Maximum cross-correlation with time lag
+                            if len(values1) > 10 and len(values2) > 10:
+                                cross_corr = np.correlate(
+                                    values1 - np.mean(values1), 
+                                    values2 - np.mean(values2), 
+                                    mode='full'
+                                )
+                                cross_corr = cross_corr / (np.std(values1) * np.std(values2) * len(values1))
+                                max_corr_idx = np.argmax(np.abs(cross_corr))
+                                max_corr = cross_corr[max_corr_idx]
+                                lag = max_corr_idx - len(values1) + 1
+                                
+                                correlation_features.extend([max_corr, lag / len(values1)])
+                                
+                                # Coherence analysis using Welch's method
+                                try:
+                                    freqs, coherence = signal.coherence(values1, values2, nperseg=min(len(values1)//4, 32))
+                                    coherence_features.extend([
+                                        np.mean(coherence),
+                                        np.max(coherence),
+                                        freqs[np.argmax(coherence)] if len(freqs) > 0 else 0
+                                    ])
+                                    
+                                    # Phase relationship
+                                    freqs, phase = signal.welch(values1, values2, nperseg=min(len(values1)//4, 32))
+                                    phase_features.append(np.mean(np.angle(phase)) if len(phase) > 0 else 0)
+                                    
+                                except:
+                                    coherence_features.extend([0, 0, 0])
+                                    phase_features.append(0)
+                            else:
+                                correlation_features.extend([0, 0])
+                                coherence_features.extend([0, 0, 0])
+                                phase_features.append(0)
+                        else:
+                            correlation_features.extend([0, 0, 0])
+                            coherence_features.extend([0, 0, 0])
+                            phase_features.append(0)
                     else:
-                        correlations.append(0)
+                        correlation_features.extend([0, 0, 0])
+                        coherence_features.extend([0, 0, 0])
+                        phase_features.append(0)
                 else:
-                    correlations.append(0)
+                    correlation_features.extend([0, 0, 0])
+                    coherence_features.extend([0, 0, 0])
+                    phase_features.append(0)
         
-        # Pad correlations to fixed size
-        while len(correlations) < 10:
-            correlations.append(0)
+        # Ensure consistent feature count (pad or truncate)
+        correlation_features = (correlation_features + [0]*15)[:15]
+        coherence_features = (coherence_features + [0]*15)[:15]
+        phase_features = (phase_features + [0]*10)[:10]
         
-        # Data availability features
-        availability = [len(readings_dict.get(sensor_type, [])) for sensor_type in 
-                       ['seismic', 'insar', 'gnss', 'thermal', 'gas']]
+        features.extend(correlation_features)
+        features.extend(coherence_features)
+        features.extend(phase_features)
         
-        return np.array(correlations[:10] + availability, dtype=np.float32)
+        # 2. Information-Theoretic Measures
+        info_features = []
+        for i, type1 in enumerate(sensor_types):
+            for j, type2 in enumerate(sensor_types[i+1:], i+1):
+                if type1 in time_series_dict and type2 in time_series_dict:
+                    ts1 = time_series_dict[type1]['value'].values
+                    ts2 = time_series_dict[type2]['value'].values
+                    
+                    if len(ts1) > 5 and len(ts2) > 5:
+                        # Mutual Information
+                        try:
+                            from sklearn.feature_selection import mutual_info_regression
+                            mi = mutual_info_regression(ts1.reshape(-1, 1), ts2)[0]
+                            info_features.append(mi)
+                        except:
+                            info_features.append(0)
+                        
+                        # Transfer Entropy approximation using conditional entropy
+                        try:
+                            # Discretize for entropy calculation
+                            ts1_discrete = np.digitize(ts1, np.percentile(ts1, [20, 40, 60, 80]))
+                            ts2_discrete = np.digitize(ts2, np.percentile(ts2, [20, 40, 60, 80]))
+                            
+                            # Simple transfer entropy approximation
+                            te = self._transfer_entropy(ts1_discrete, ts2_discrete)
+                            info_features.append(te)
+                        except:
+                            info_features.append(0)
+                    else:
+                        info_features.extend([0, 0])
+                else:
+                    info_features.extend([0, 0])
+        
+        info_features = (info_features + [0]*10)[:10]
+        features.extend(info_features)
+        
+        # 3. Multi-sensor Anomaly Patterns
+        anomaly_features = []
+        
+        # Collective anomaly indicators
+        all_values = []
+        all_qualities = []
+        for sensor_type, readings in readings_dict.items():
+            if readings:
+                values = [r.value for r in readings]
+                qualities = [r.quality for r in readings]
+                all_values.extend(values)
+                all_qualities.extend(qualities)
+        
+        if all_values:
+            # Global statistical moments
+            anomaly_features.extend([
+                np.mean(all_values),
+                np.std(all_values),
+                stats.skew(all_values),
+                stats.kurtosis(all_values)
+            ])
+            
+            # Quality-weighted statistics
+            if all_qualities and len(all_qualities) == len(all_values):
+                weighted_mean = np.average(all_values, weights=all_qualities)
+                weighted_var = np.average((all_values - weighted_mean)**2, weights=all_qualities)
+                anomaly_features.extend([weighted_mean, np.sqrt(weighted_var)])
+            else:
+                anomaly_features.extend([0, 0])
+            
+            # Outlier detection across all sensors
+            if len(all_values) > 3:
+                q1, q3 = np.percentile(all_values, [25, 75])
+                iqr = q3 - q1
+                outliers = [v for v in all_values if v < q1 - 1.5*iqr or v > q3 + 1.5*iqr]
+                anomaly_features.append(len(outliers) / len(all_values))
+            else:
+                anomaly_features.append(0)
+        else:
+            anomaly_features.extend([0]*7)
+        
+        # 4. Sensor Network Topology Features
+        network_features = []
+        sensor_locations = []
+        sensor_weights = []
+        
+        for sensor_type, readings in readings_dict.items():
+            if readings:
+                # Average location and aggregate strength
+                lats = [r.location[0] for r in readings if r.location[0] != 0]
+                lons = [r.location[1] for r in readings if r.location[1] != 0]
+                values = [r.value for r in readings]
+                
+                if lats and lons:
+                    avg_lat = np.mean(lats)
+                    avg_lon = np.mean(lons)
+                    avg_value = np.mean(values)
+                    sensor_locations.append([avg_lat, avg_lon])
+                    sensor_weights.append(avg_value)
+        
+        if len(sensor_locations) > 1:
+            locations = np.array(sensor_locations)
+            weights = np.array(sensor_weights)
+            
+            # Network diameter
+            distances = []
+            for i in range(len(locations)):
+                for j in range(i+1, len(locations)):
+                    dist = self._haversine_distance(locations[i], locations[j])
+                    distances.append(dist)
+            
+            if distances:
+                network_features.extend([
+                    np.mean(distances),     # Average network distance
+                    np.max(distances),      # Network diameter
+                    np.std(distances),      # Distance variability
+                ])
+            else:
+                network_features.extend([0, 0, 0])
+            
+            # Weighted network center of mass
+            if len(weights) > 0:
+                center_lat = np.average(locations[:, 0], weights=np.abs(weights))
+                center_lon = np.average(locations[:, 1], weights=np.abs(weights))
+                
+                # Distance from weighted center
+                center_distances = [self._haversine_distance([center_lat, center_lon], loc) for loc in locations]
+                network_features.extend([
+                    np.mean(center_distances),
+                    np.std(center_distances)
+                ])
+            else:
+                network_features.extend([0, 0])
+        else:
+            network_features.extend([0, 0, 0, 0, 0])
+        
+        features.extend(network_features)
+        
+        # 5. Data Quality and Availability Metrics
+        availability_features = []
+        
+        # Enhanced availability metrics
+        sensor_priority = {'seismic': 1.0, 'insar': 0.8, 'gnss': 0.9, 'thermal': 0.7, 'gas': 0.6}
+        
+        for sensor_type in ['seismic', 'insar', 'gnss', 'thermal', 'gas']:
+            readings = readings_dict.get(sensor_type, [])
+            count = len(readings)
+            
+            if readings:
+                # Quality metrics
+                qualities = [r.quality for r in readings]
+                uncertainties = [r.uncertainty for r in readings]
+                
+                avg_quality = np.mean(qualities)
+                avg_uncertainty = np.mean(uncertainties)
+                
+                # Temporal coverage
+                timestamps = [r.timestamp for r in readings]
+                time_span = (max(timestamps) - min(timestamps)).total_seconds() if len(timestamps) > 1 else 0
+                
+                # Weighted availability score
+                weighted_count = count * sensor_priority.get(sensor_type, 0.5) * avg_quality
+                
+                availability_features.extend([count, avg_quality, avg_uncertainty, time_span/3600, weighted_count])
+            else:
+                availability_features.extend([0, 0, 1, 0, 0])
+        
+        features.extend(availability_features)
+        
+        # Ensure exactly 75 features
+        features = features[:75]
+        while len(features) < 75:
+            features.append(0)
+        
+        return np.array(features, dtype=np.float32)
+    
+    def _align_time_series(self, ts1: pd.DataFrame, ts2: pd.DataFrame, tolerance_minutes: int = 30) -> pd.DataFrame:
+        """Align two time series with tolerance for temporal matching"""
+        ts1 = ts1.copy()
+        ts2 = ts2.copy()
+        
+        # Convert to common time index
+        all_times = pd.concat([ts1['timestamp'], ts2['timestamp']]).drop_duplicates().sort_values()
+        
+        # Create aligned dataframe
+        aligned = pd.DataFrame({'timestamp': all_times})
+        
+        # Merge with tolerance
+        ts1_resampled = ts1.set_index('timestamp').resample(f'{tolerance_minutes}min').mean()
+        ts2_resampled = ts2.set_index('timestamp').resample(f'{tolerance_minutes}min').mean()
+        
+        aligned = aligned.set_index('timestamp')
+        aligned['value1'] = ts1_resampled['value']
+        aligned['value2'] = ts2_resampled['value']
+        
+        return aligned.reset_index()
+    
+    def _transfer_entropy(self, x: np.ndarray, y: np.ndarray, k: int = 1, 
+                         method: str = 'kraskov', l: int = 1, tau: int = 1) -> float:
+        """
+        Compute advanced transfer entropy from x to y using multiple estimation methods
+        
+        Transfer Entropy: TE_X->Y = H(Y_t+1 | Y_t^k) - H(Y_t+1 | Y_t^k, X_t^l)
+        
+        Args:
+            x, y: Input time series
+            k: History length for Y (embedding dimension)
+            method: Estimation method ('kraskov', 'gaussian', 'symbolic', 'kernel')
+            l: History length for X
+            tau: Time delay for embedding
+        
+        Returns:
+            Transfer entropy value (bits)
+        """
+        if len(x) < max(k, l) + 5 or len(y) < max(k, l) + 5:
+            return 0.0
+        
+        try:
+            # Prepare embedded time series with proper delays
+            max_embed = max(k, l)
+            n_samples = len(y) - max_embed
+            
+            # Create embedding matrices
+            Y_future = y[max_embed:]  # Y_{t+1}
+            Y_past = self._create_embedding(y, k, tau, max_embed - k)  # Y_t^k
+            X_past = self._create_embedding(x, l, tau, max_embed - l)  # X_t^l
+            
+            if len(Y_future) == 0 or Y_past.size == 0 or X_past.size == 0:
+                return 0.0
+            
+            # Select estimation method
+            if method == 'kraskov':
+                return self._te_kraskov_estimator(Y_future, Y_past, X_past)
+            elif method == 'gaussian':
+                return self._te_gaussian_estimator(Y_future, Y_past, X_past)
+            elif method == 'symbolic':
+                return self._te_symbolic_estimator(Y_future, Y_past, X_past)
+            elif method == 'kernel':
+                return self._te_kernel_estimator(Y_future, Y_past, X_past)
+            else:
+                # Fallback to adaptive method selection
+                return self._te_adaptive_estimator(Y_future, Y_past, X_past)
+                
+        except Exception as e:
+            return 0.0
+    
+    def _create_embedding(self, series: np.ndarray, dim: int, tau: int, offset: int) -> np.ndarray:
+        """Create time-delay embedding matrix"""
+        if dim == 1:
+            return series[offset:offset + len(series) - max(1, tau*(dim-1))].reshape(-1, 1)
+        
+        n_samples = len(series) - offset - tau * (dim - 1)
+        if n_samples <= 0:
+            return np.array([]).reshape(0, dim)
+        
+        embedded = np.zeros((n_samples, dim))
+        for i in range(dim):
+            start_idx = offset + i * tau
+            end_idx = start_idx + n_samples
+            embedded[:, i] = series[start_idx:end_idx]
+        
+        return embedded
+    
+    def _te_kraskov_estimator(self, Y_future: np.ndarray, Y_past: np.ndarray, X_past: np.ndarray) -> float:
+        """
+        Kraskov-Stögbauer-Grassberger (KSG) estimator for transfer entropy
+        Uses k-nearest neighbors in joint and marginal spaces
+        """
+        try:
+            from sklearn.neighbors import NearestNeighbors
+            
+            n_samples = len(Y_future)
+            if n_samples < 10:
+                return 0.0
+            
+            # Ensure proper dimensions
+            if Y_future.ndim == 1:
+                Y_future = Y_future.reshape(-1, 1)
+            if Y_past.ndim == 1:
+                Y_past = Y_past.reshape(-1, 1)
+            if X_past.ndim == 1:
+                X_past = X_past.reshape(-1, 1)
+            
+            # Normalize data
+            Y_future = self._robust_normalize(Y_future)
+            Y_past = self._robust_normalize(Y_past)
+            X_past = self._robust_normalize(X_past)
+            
+            # Joint space: [Y_future, Y_past, X_past]
+            joint_data = np.hstack([Y_future, Y_past, X_past])
+            
+            # Marginal spaces
+            y_y_data = np.hstack([Y_future, Y_past])  # [Y_future, Y_past]
+            y_past_data = Y_past                      # [Y_past]
+            y_yx_data = np.hstack([Y_future, Y_past]) # For conditional entropy
+            
+            k_neighbors = min(10, n_samples // 4)  # Adaptive k selection
+            
+            # Compute digamma functions using KSG estimator
+            psi_k = self._digamma(k_neighbors)
+            psi_n = self._digamma(n_samples)
+            
+            # Find k-nearest neighbors in joint space
+            joint_tree = NearestNeighbors(n_neighbors=k_neighbors + 1, 
+                                        metric='chebyshev')
+            joint_tree.fit(joint_data)
+            joint_distances, joint_indices = joint_tree.kneighbors(joint_data)
+            joint_eps = joint_distances[:, k_neighbors]  # k-th nearest neighbor distance
+            
+            # Count neighbors in marginal spaces within joint_eps
+            n_y_y = self._count_neighbors_within_radius(y_y_data, joint_eps)
+            n_y_past = self._count_neighbors_within_radius(y_past_data, joint_eps)
+            n_y_yx = self._count_neighbors_within_radius(y_yx_data, joint_eps)
+            
+            # KSG estimator: TE = psi(k) - <psi(n_y_y + 1)> + <psi(n_y_past + 1)> + psi(n)
+            te = psi_k - np.mean([self._digamma(n + 1) for n in n_y_y]) + \
+                 np.mean([self._digamma(n + 1) for n in n_y_past]) + psi_n - \
+                 np.mean([self._digamma(n + 1) for n in n_y_yx])
+            
+            return max(0.0, te / np.log(2))  # Convert to bits
+            
+        except Exception:
+            return self._te_gaussian_estimator(Y_future, Y_past, X_past)
+    
+    def _te_gaussian_estimator(self, Y_future: np.ndarray, Y_past: np.ndarray, X_past: np.ndarray) -> float:
+        """
+        Gaussian estimator for transfer entropy using covariance matrices
+        Assumes underlying Gaussian distribution
+        """
+        try:
+            # Ensure proper dimensions
+            if Y_future.ndim == 1:
+                Y_future = Y_future.reshape(-1, 1)
+            if Y_past.ndim == 1:
+                Y_past = Y_past.reshape(-1, 1)
+            if X_past.ndim == 1:
+                X_past = X_past.reshape(-1, 1)
+            
+            n_samples = len(Y_future)
+            if n_samples < 5:
+                return 0.0
+            
+            # Combine all variables
+            joint_data = np.hstack([Y_future, Y_past, X_past])
+            
+            # Remove mean
+            joint_data = joint_data - np.mean(joint_data, axis=0)
+            
+            # Compute covariance matrix with regularization
+            cov_full = np.cov(joint_data.T) + np.eye(joint_data.shape[1]) * 1e-10
+            
+            # Partition covariance matrix
+            dim_y_fut = Y_future.shape[1]
+            dim_y_past = Y_past.shape[1]
+            dim_x_past = X_past.shape[1]
+            
+            # Indices for different variable groups
+            idx_y_fut = slice(0, dim_y_fut)
+            idx_y_past = slice(dim_y_fut, dim_y_fut + dim_y_past)
+            idx_x_past = slice(dim_y_fut + dim_y_past, dim_y_fut + dim_y_past + dim_x_past)
+            
+            # Extract relevant covariance blocks
+            cov_yy = cov_full[np.ix_([idx_y_fut, idx_y_past], [idx_y_fut, idx_y_past])]
+            cov_y_past = cov_full[idx_y_past, idx_y_past].reshape(dim_y_past, dim_y_past)
+            cov_yyx = cov_full  # Full covariance matrix
+            
+            # Compute conditional entropies using determinants
+            # H(Y_fut | Y_past) = 0.5 * log(det(Sigma_Y_fut|Y_past))
+            sigma_y_fut_given_y_past = self._conditional_covariance(cov_full, idx_y_fut, idx_y_past)
+            
+            # H(Y_fut | Y_past, X_past)
+            sigma_y_fut_given_yx = self._conditional_covariance(
+                cov_full, idx_y_fut, slice(dim_y_fut, cov_full.shape[0])
+            )
+            
+            # Transfer entropy = H(Y_fut | Y_past) - H(Y_fut | Y_past, X_past)
+            h1 = 0.5 * np.log(np.linalg.det(sigma_y_fut_given_y_past) + 1e-10)
+            h2 = 0.5 * np.log(np.linalg.det(sigma_y_fut_given_yx) + 1e-10)
+            
+            te = h1 - h2
+            return max(0.0, te / np.log(2))  # Convert to bits
+            
+        except Exception:
+            return self._te_symbolic_estimator(Y_future, Y_past, X_past)
+    
+    def _te_symbolic_estimator(self, Y_future: np.ndarray, Y_past: np.ndarray, X_past: np.ndarray) -> float:
+        """
+        Symbolic transfer entropy using ordinal patterns
+        Robust to noise and outliers
+        """
+        try:
+            # Flatten arrays if multidimensional
+            y_fut = Y_future.flatten() if Y_future.ndim > 1 else Y_future
+            y_past = Y_past.flatten() if Y_past.ndim > 1 else Y_past
+            x_past = X_past.flatten() if X_past.ndim > 1 else X_past
+            
+            if len(y_fut) < 10:
+                return 0.0
+            
+            # Convert to ordinal patterns (symbolic dynamics)
+            pattern_length = min(3, len(y_fut) // 3)
+            
+            y_fut_symbols = self._to_ordinal_patterns(y_fut, pattern_length)
+            y_past_symbols = self._to_ordinal_patterns(y_past, pattern_length)
+            x_past_symbols = self._to_ordinal_patterns(x_past, pattern_length)
+            
+            # Align symbol sequences
+            min_len = min(len(y_fut_symbols), len(y_past_symbols), len(x_past_symbols))
+            y_fut_symbols = y_fut_symbols[:min_len]
+            y_past_symbols = y_past_symbols[:min_len]
+            x_past_symbols = x_past_symbols[:min_len]
+            
+            # Compute symbolic transfer entropy
+            # TE = H(Y_fut | Y_past) - H(Y_fut | Y_past, X_past)
+            
+            # Joint distributions
+            joint_yy = list(zip(y_fut_symbols, y_past_symbols))
+            joint_yyx = list(zip(y_fut_symbols, y_past_symbols, x_past_symbols))
+            
+            # Compute conditional entropies
+            h_y_fut_given_y_past = self._conditional_entropy_symbolic(y_fut_symbols, y_past_symbols)
+            h_y_fut_given_yx = self._conditional_entropy_symbolic_3d(y_fut_symbols, y_past_symbols, x_past_symbols)
+            
+            te = h_y_fut_given_y_past - h_y_fut_given_yx
+            return max(0.0, te)
+            
+        except Exception:
+            return 0.0
+    
+    def _te_kernel_estimator(self, Y_future: np.ndarray, Y_past: np.ndarray, X_past: np.ndarray) -> float:
+        """
+        Kernel density estimation approach for transfer entropy
+        Uses Gaussian kernels with adaptive bandwidth
+        """
+        try:
+            from scipy.stats import gaussian_kde
+            
+            n_samples = len(Y_future)
+            if n_samples < 15:
+                return 0.0
+            
+            # Flatten and normalize
+            y_fut = self._robust_normalize(Y_future.flatten()).reshape(-1, 1)
+            y_past = self._robust_normalize(Y_past.flatten()).reshape(-1, 1)
+            x_past = self._robust_normalize(X_past.flatten()).reshape(-1, 1)
+            
+            # Create joint datasets
+            yy_data = np.hstack([y_fut, y_past])
+            yyx_data = np.hstack([y_fut, y_past, x_past])
+            
+            # Kernel density estimation
+            kde_yy = gaussian_kde(yy_data.T)
+            kde_y_past = gaussian_kde(y_past.T)
+            kde_yyx = gaussian_kde(yyx_data.T)
+            kde_yx = gaussian_kde(np.hstack([y_past, x_past]).T)
+            
+            # Sample points for integration
+            n_integration_points = min(100, n_samples)
+            sample_indices = np.random.choice(n_samples, n_integration_points, replace=False)
+            
+            # Compute conditional entropies via kernel density ratios
+            log_ratios_1 = []
+            log_ratios_2 = []
+            
+            for i in sample_indices:
+                try:
+                    # H(Y_fut | Y_past) term
+                    p_yy = kde_yy(yy_data[i])
+                    p_y_past = kde_y_past(y_past[i])
+                    if p_yy > 1e-10 and p_y_past > 1e-10:
+                        log_ratios_1.append(np.log(p_yy / p_y_past))
+                    
+                    # H(Y_fut | Y_past, X_past) term
+                    p_yyx = kde_yyx(yyx_data[i])
+                    p_yx = kde_yx(np.hstack([y_past[i], x_past[i]]).reshape(1, -1).T)
+                    if p_yyx > 1e-10 and p_yx > 1e-10:
+                        log_ratios_2.append(np.log(p_yyx / p_yx))
+                        
+                except:
+                    continue
+            
+            if log_ratios_1 and log_ratios_2:
+                te = np.mean(log_ratios_2) - np.mean(log_ratios_1)
+                return max(0.0, te / np.log(2))  # Convert to bits
+            else:
+                return 0.0
+                
+        except Exception:
+            return 0.0
+    
+    def _te_adaptive_estimator(self, Y_future: np.ndarray, Y_past: np.ndarray, X_past: np.ndarray) -> float:
+        """
+        Adaptive transfer entropy estimator that selects best method based on data characteristics
+        """
+        n_samples = len(Y_future)
+        
+        # Data characteristics analysis
+        y_fut_flat = Y_future.flatten()
+        normality_test = self._test_gaussianity(y_fut_flat)
+        noise_level = np.std(y_fut_flat) / (np.mean(np.abs(y_fut_flat)) + 1e-10)
+        
+        # Method selection based on data properties
+        if n_samples > 50 and normality_test > 0.1:
+            # Large sample, likely Gaussian -> KSG estimator
+            return self._te_kraskov_estimator(Y_future, Y_past, X_past)
+        elif normality_test > 0.05 and noise_level < 0.5:
+            # Approximately Gaussian, low noise -> Gaussian estimator
+            return self._te_gaussian_estimator(Y_future, Y_past, X_past)
+        elif noise_level > 1.0 or n_samples < 30:
+            # High noise or small sample -> Symbolic estimator
+            return self._te_symbolic_estimator(Y_future, Y_past, X_past)
+        else:
+            # Default to kernel estimator
+            return self._te_kernel_estimator(Y_future, Y_past, X_past)
+    
+    def _robust_normalize(self, data: np.ndarray) -> np.ndarray:
+        """Robust normalization using median and MAD"""
+        median = np.median(data, axis=0)
+        mad = np.median(np.abs(data - median), axis=0)
+        mad = np.where(mad == 0, 1, mad)  # Avoid division by zero
+        return (data - median) / (1.4826 * mad)  # 1.4826 for Gaussian consistency
+    
+    def _digamma(self, x: float) -> float:
+        """Compute digamma function (derivative of log gamma)"""
+        from scipy.special import digamma
+        return digamma(x)
+    
+    def _count_neighbors_within_radius(self, data: np.ndarray, radii: np.ndarray) -> List[int]:
+        """Count neighbors within given radii for each point"""
+        from sklearn.neighbors import NearestNeighbors
+        
+        if data.ndim == 1:
+            data = data.reshape(-1, 1)
+        
+        tree = NearestNeighbors(metric='chebyshev')
+        tree.fit(data)
+        
+        counts = []
+        for i, radius in enumerate(radii):
+            # Find neighbors within radius
+            neighbors = tree.radius_neighbors([data[i]], radius=radius, return_distance=False)[0]
+            counts.append(len(neighbors) - 1)  # Exclude self
+        
+        return counts
+    
+    def _conditional_covariance(self, cov: np.ndarray, target_idx: slice, condition_idx: slice) -> np.ndarray:
+        """Compute conditional covariance matrix Sigma_{target|condition}"""
+        # Sigma_{A|B} = Sigma_A - Sigma_{AB} @ Sigma_B^{-1} @ Sigma_{BA}
+        
+        sigma_target = cov[target_idx, target_idx]
+        sigma_condition = cov[condition_idx, condition_idx]
+        sigma_cross = cov[target_idx, condition_idx]
+        
+        if sigma_target.ndim == 0:
+            sigma_target = sigma_target.reshape(1, 1)
+        if sigma_condition.ndim == 0:
+            sigma_condition = sigma_condition.reshape(1, 1)
+        if sigma_cross.ndim == 0:
+            sigma_cross = sigma_cross.reshape(1, 1)
+        
+        # Regularize condition covariance
+        sigma_condition_reg = sigma_condition + np.eye(sigma_condition.shape[0]) * 1e-10
+        
+        try:
+            sigma_condition_inv = np.linalg.pinv(sigma_condition_reg)
+            conditional_cov = sigma_target - sigma_cross @ sigma_condition_inv @ sigma_cross.T
+        except:
+            conditional_cov = sigma_target
+        
+        # Ensure positive definite
+        eigenvals, eigenvecs = np.linalg.eigh(conditional_cov)
+        eigenvals = np.maximum(eigenvals, 1e-10)
+        conditional_cov = eigenvecs @ np.diag(eigenvals) @ eigenvecs.T
+        
+        return conditional_cov
+    
+    def _to_ordinal_patterns(self, data: np.ndarray, pattern_length: int = 3) -> List[tuple]:
+        """Convert time series to ordinal patterns"""
+        patterns = []
+        for i in range(len(data) - pattern_length + 1):
+            window = data[i:i + pattern_length]
+            # Get ordinal pattern (rank order)
+            pattern = tuple(np.argsort(window))
+            patterns.append(pattern)
+        return patterns
+    
+    def _conditional_entropy_symbolic(self, target: List, condition: List) -> float:
+        """Compute conditional entropy H(target|condition) for symbolic sequences"""
+        from collections import defaultdict, Counter
+        
+        joint_counts = Counter(zip(target, condition))
+        condition_counts = Counter(condition)
+        
+        h = 0.0
+        n_total = len(target)
+        
+        for (t, c), joint_count in joint_counts.items():
+            p_joint = joint_count / n_total
+            p_condition = condition_counts[c] / n_total
+            
+            if p_joint > 0 and p_condition > 0:
+                h -= p_joint * np.log2(p_joint / p_condition)
+        
+        return h
+    
+    def _conditional_entropy_symbolic_3d(self, target: List, condition1: List, condition2: List) -> float:
+        """Compute conditional entropy H(target|condition1,condition2)"""
+        from collections import Counter
+        
+        joint_counts = Counter(zip(target, condition1, condition2))
+        condition_counts = Counter(zip(condition1, condition2))
+        
+        h = 0.0
+        n_total = len(target)
+        
+        for (t, c1, c2), joint_count in joint_counts.items():
+            p_joint = joint_count / n_total
+            p_condition = condition_counts[(c1, c2)] / n_total
+            
+            if p_joint > 0 and p_condition > 0:
+                h -= p_joint * np.log2(p_joint / p_condition)
+        
+        return h
+    
+    def _test_gaussianity(self, data: np.ndarray) -> float:
+        """Test for Gaussianity using Shapiro-Wilk test p-value"""
+        try:
+            from scipy.stats import shapiro
+            if len(data) < 8 or len(data) > 5000:
+                # Use skewness and kurtosis for large samples
+                skewness = abs(stats.skew(data))
+                kurt = abs(stats.kurtosis(data))
+                # Approximate normality score
+                return max(0, 1 - (skewness + kurt) / 4)
+            else:
+                _, p_value = shapiro(data)
+                return p_value
+        except:
+            return 0.1  # Conservative default
+    
+    def _haversine_distance(self, coord1: List[float], coord2: List[float]) -> float:
+        """Calculate haversine distance between two coordinates"""
+        lat1, lon1 = np.radians(coord1)
+        lat2, lon2 = np.radians(coord2)
+        
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        
+        a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+        c = 2 * np.arcsin(np.sqrt(a))
+        
+        return 6371 * c  # Earth radius in km
 
 class MultiSensorFusionNet(nn.Module):
     """Advanced neural network for multi-sensor fusion"""

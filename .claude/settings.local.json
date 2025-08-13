@@ -46,7 +46,9 @@
       "Bash(tree:*)",
       "Bash(git fetch:*)",
       "Bash(git checkout:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

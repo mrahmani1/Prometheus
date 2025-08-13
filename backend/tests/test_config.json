@@ -1,0 +1,78 @@
+{
+  "testSuite": {
+    "name": "Prometheus AI Geodynamic Platform Test Suite",
+    "version": "1.0.0",
+    "description": "Comprehensive testing suite for all algorithms and components"
+  },
+  "unitTests": {
+    "enabled": true,
+    "timeout": 30000,
+    "retries": 3,
+    "parallel": true,
+    "coverage": {
+      "enabled": true,
+      "threshold": {
+        "lines": 80,
+        "functions": 80,
+        "branches": 75,
+        "statements": 80
+      }
+    }
+  },
+  "integrationTests": {
+    "enabled": true,
+    "timeout": 60000,
+    "retries": 2,
+    "setupTimeout": 10000,
+    "teardownTimeout": 5000
+  },
+  "performanceTests": {
+    "enabled": true,
+    "warmupRuns": 3,
+    "benchmarkRuns": 10,
+    "timeoutPerBenchmark": 300000,
+    "memoryThreshold": 104857600,
+    "performanceThresholds": {
+      "digital_twin_initialization": 5000,
+      "hypothesis_generation": 10000,
+      "stream_processing": 1000,
+      "data_integration": 15000
+    }
+  },
+  "testData": {
+    "sampleSize": {
+      "small": 100,
+      "medium": 1000,
+      "large": 10000,
+      "xlarge": 100000
+    },
+    "concurrencyLevels": [1, 5, 10, 25, 50, 100],
+    "dataSizes": [100, 1000, 10000, 100000]
+  },
+  "reporting": {
+    "formats": ["json", "html", "csv", "junit"],
+    "outputDirectory": "./test_reports",
+    "includeSystemInfo": true,
+    "includePerformanceMetrics": true,
+    "includeCoverageReport": true
+  },
+  "environment": {
+    "nodeVersion": ">=14.0.0",
+    "memoryLimit": "2GB",
+    "timeZone": "UTC"
+  },
+  "mockServices": {
+    "digitalTwinEarth": {
+      "enabled": true,
+      "mockDataPath": "./test_data/earth_states.json"
+    },
+    "streamProcessing": {
+      "enabled": true,
+      "eventBufferSize": 10000
+    },
+    "database": {
+      "enabled": true,
+      "inMemory": true
+    }
+  }
+}

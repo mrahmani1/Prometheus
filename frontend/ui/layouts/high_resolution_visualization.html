@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI - High-Resolution Visualization Dashboard</title>
+    
+    <!-- High-DPI support -->
+    <meta name="theme-color" content="#1a1a1a">
+    
+    <!-- CSS Libraries -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #007acc;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --background-dark: #1a1a1a;
+            --background-light: #2d3436;
+            --text-primary: #ffffff;
+            --text-secondary: #b2bec3;
+            --border-color: #4a5568;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--background-dark) 0%, var(--background-light) 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        .dashboard-header {
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dashboard-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .dashboard-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        /* Main Layout */
+        .dashboard-container {
+            margin-top: 80px;
+            padding: 2rem;
+            min-height: calc(100vh - 80px);
+        }
+        
+        .visualization-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 1.5rem;
+            height: calc(100vh - 120px);
+        }
+        
+        /* Visualization Panels */
+        .viz-panel {
+            background: rgba(45, 52, 54, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .viz-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .viz-panel.primary {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            min-height: 400px;
+        }
+        
+        .viz-panel.secondary {
+            min-height: 300px;
+        }
+        
+        .viz-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .viz-panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .viz-panel-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .viz-canvas-container {
+            width: 100%;
+            height: calc(100% - 60px);
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .viz-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+        
+        /* Control Panel */
+        .control-panel {
+            position: fixed;
+            top: 80px;
+            right: -320px;
+            width: 300px;
+            height: calc(100vh - 80px);
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid var(--border-color);
+            padding: 2rem;
+            transition: right 0.3s ease;
+            z-index: 999;
+            overflow-y: auto;
+        }
+        
+        .control-panel.active {
+            right: 0;
+        }
+        
+        .control-section {
+            margin-bottom: 2rem;
+        }
+        
+        .control-section h3 {
+            color: var(--primary-color);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Form Controls */
+        .form-control, .form-select {
+            background: rgba(45, 52, 54, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background: rgba(45, 52, 54, 0.9);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 122, 204, 0.25);
+            color: var(--text-primary);
+        }
+        
+        .range-control {
+            margin: 1rem 0;
+        }
+        
+        .range-control input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-color);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .range-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+        }
+        
+        /* Buttons */
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #005a9e 100%);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-primary-custom:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.4);
+        }
+        
+        .btn-secondary-custom {
+            background: rgba(45, 52, 54, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(45, 52, 54, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-icon:hover {
+            background: var(--primary-color);
+            transform: scale(1.05);
+        }
+        
+        /* Loading Animation */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 122, 204, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        /* Progressive Loading Indicator */
+        .progress-indicator {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            right: 1rem;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), #00d2ff);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        /* Performance Metrics */
+        .performance-metrics {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(26, 26, 26, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 200px;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric:last-child {
+            margin-bottom: 0;
+        }
+        
+        .metric-value {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .visualization-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+            
+            .viz-panel.primary {
+                grid-column: 1;
+                grid-row: 1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 1rem;
+            }
+            
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .control-panel {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .performance-metrics {
+                position: relative;
+                bottom: auto;
+                left: auto;
+                margin-top: 2rem;
+                width: 100%;
+            }
+        }
+        
+        /* Animation for panel transitions */
+        .viz-panel {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Quality indicators */
+        .quality-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(0, 122, 204, 0.8);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .quality-indicator.ultra { background: rgba(46, 204, 113, 0.8); }
+        .quality-indicator.high { background: rgba(0, 122, 204, 0.8); }
+        .quality-indicator.medium { background: rgba(241, 196, 15, 0.8); }
+        .quality-indicator.low { background: rgba(231, 76, 60, 0.8); }
+    </style>
+</head>
+<body>
+    <!-- Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="dashboard-title">
+            <i class="fas fa-chart-line"></i>
+            Prometheus AI - High-Resolution Visualization
+        </div>
+        
+        <div class="dashboard-controls">
+            <button class="btn-icon" id="controlPanelToggle" title="Toggle Control Panel">
+                <i class="fas fa-cog"></i>
+            </button>
+            
+            <button class="btn-icon" id="fullscreenToggle" title="Toggle Fullscreen">
+                <i class="fas fa-expand"></i>
+            </button>
+            
+            <button class="btn-icon" id="exportButton" title="Export Visualization">
+                <i class="fas fa-download"></i>
+            </button>
+            
+            <button class="btn-icon" id="refreshButton" title="Refresh Data">
+                <i class="fas fa-sync"></i>
+            </button>
+        </div>
+    </header>
+    
+    <!-- Main Dashboard Container -->
+    <main class="dashboard-container">
+        <!-- Visualization Grid -->
+        <div class="visualization-grid">
+            <!-- Primary Visualization Panel -->
+            <div class="viz-panel primary" id="primaryVizPanel">
+                <div class="viz-panel-header">
+                    <h3 class="viz-panel-title">
+                        <i class="fas fa-globe"></i>
+                        Earth System Globe - Ultra High Resolution
+                    </h3>
+                    <div class="viz-panel-controls">
+                        <select class="form-select" id="globeViewMode">
+                            <option value="global">Global View</option>
+                            <option value="regional">Regional View</option>
+                            <option value="local">Local View</option>
+                            <option value="multi_scale">Multi-Scale</option>
+                        </select>
+                        <button class="btn-icon" id="globe3DToggle" title="Toggle 3D Mode">
+                            <i class="fas fa-cube"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="viz-canvas-container">
+                    <canvas class="viz-canvas" id="globeCanvas"></canvas>
+                    <div class="quality-indicator high" id="globeQuality">HIGH</div>
+                    
+                    <div class="loading-overlay" id="globeLoading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">Rendering high-resolution globe...</div>
+                    </div>
+                    
+                    <div class="progress-indicator" id="globeProgress" style="display: none;">
+                        <div class="progress-bar" id="globeProgressBar"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Time Series Panel -->
+            <div class="viz-panel secondary" id="timeSeriesPanel">
+                <div class="viz-panel-header">
+                    <h3 class="viz-panel-title">
+                        <i class="fas fa-chart-line"></i>
+                        Time Series - HD
+                    </h3>
+                    <div class="viz-panel-controls">
+                        <select class="form-select" id="timeSeriesComponent">
+                            <option value="all">All Components</option>
+                            <option value="atmosphere">Atmosphere</option>
+                            <option value="hydrosphere">Hydrosphere</option>
+                            <option value="lithosphere">Lithosphere</option>
+                            <option value="biosphere">Biosphere</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="viz-canvas-container">
+                    <canvas class="viz-canvas" id="timeSeriesCanvas"></canvas>
+                    <div class="quality-indicator ultra" id="timeSeriesQuality">ULTRA</div>
+                    
+                    <div class="loading-overlay" id="timeSeriesLoading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">Rendering time series...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Volumetric 3D Panel -->
+            <div class="viz-panel secondary" id="volumetric3DPanel">
+                <div class="viz-panel-header">
+                    <h3 class="viz-panel-title">
+                        <i class="fas fa-cubes"></i>
+                        Volumetric 3D
+                    </h3>
+                    <div class="viz-panel-controls">
+                        <select class="form-select" id="volumetricDataType">
+                            <option value="seismic">Seismic Tomography</option>
+                            <option value="atmospheric">Atmospheric</option>
+                            <option value="oceanic">Oceanic</option>
+                            <option value="mantle">Mantle Dynamics</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="viz-canvas-container">
+                    <canvas class="viz-canvas" id="volumetricCanvas"></canvas>
+                    <div class="quality-indicator high" id="volumetricQuality">HIGH</div>
+                    
+                    <div class="loading-overlay" id="volumetricLoading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">Rendering 3D volume...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Multi-Scale Terrain Panel -->
+            <div class="viz-panel secondary" id="terrainPanel">
+                <div class="viz-panel-header">
+                    <h3 class="viz-panel-title">
+                        <i class="fas fa-mountain"></i>
+                        Multi-Scale Terrain
+                    </h3>
+                    <div class="viz-panel-controls">
+                        <select class="form-select" id="terrainResolution">
+                            <option value="ultra_high">Ultra High</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="adaptive">Adaptive</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="viz-canvas-container">
+                    <canvas class="viz-canvas" id="terrainCanvas"></canvas>
+                    <div class="quality-indicator ultra" id="terrainQuality">ULTRA</div>
+                    
+                    <div class="loading-overlay" id="terrainLoading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">Rendering terrain...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Control Panel -->
+    <div class="control-panel" id="controlPanel">
+        <div class="control-section">
+            <h3><i class="fas fa-sliders-h"></i> Rendering Quality</h3>
+            
+            <label for="qualityLevel">Quality Level:</label>
+            <select class="form-select" id="qualityLevel">
+                <option value="ultra">Ultra (16x)</option>
+                <option value="high" selected>High (8x)</option>
+                <option value="medium">Medium (4x)</option>
+                <option value="low">Low (2x)</option>
+            </select>
+            
+            <label for="resolutionScale">Resolution Scale:</label>
+            <div class="range-control">
+                <input type="range" id="resolutionScale" min="0.25" max="4" step="0.25" value="1">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary);">
+                    <span>0.25x</span>
+                    <span>4x</span>
+                </div>
+            </div>
+            
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="enableAntiAliasing" checked>
+                <label class="form-check-label" for="enableAntiAliasing">Anti-aliasing</label>
+            </div>
+            
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="enableProgressiveLoading" checked>
+                <label class="form-check-label" for="enableProgressiveLoading">Progressive Loading</label>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3><i class="fas fa-eye"></i> View Settings</h3>
+            
+            <label for="centerLatitude">Center Latitude:</label>
+            <div class="range-control">
+                <input type="range" id="centerLatitude" min="-90" max="90" step="1" value="0">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary);">
+                    <span>-90°</span>
+                    <span>90°</span>
+                </div>
+            </div>
+            
+            <label for="centerLongitude">Center Longitude:</label>
+            <div class="range-control">
+                <input type="range" id="centerLongitude" min="-180" max="180" step="1" value="0">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary);">
+                    <span>-180°</span>
+                    <span>180°</span>
+                </div>
+            </div>
+            
+            <label for="zoomLevel">Zoom Level:</label>
+            <div class="range-control">
+                <input type="range" id="zoomLevel" min="0.1" max="10" step="0.1" value="1">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary);">
+                    <span>0.1x</span>
+                    <span>10x</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3><i class="fas fa-palette"></i> Color & Style</h3>
+            
+            <label for="colorScheme">Color Scheme:</label>
+            <select class="form-select" id="colorScheme">
+                <option value="viridis">Viridis</option>
+                <option value="plasma">Plasma</option>
+                <option value="inferno">Inferno</option>
+                <option value="scientific">Scientific</option>
+                <option value="terrain">Terrain</option>
+            </select>
+            
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="enableShadows" checked>
+                <label class="form-check-label" for="enableShadows">Shadows</label>
+            </div>
+            
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="enableReflections">
+                <label class="form-check-label" for="enableReflections">Reflections</label>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3><i class="fas fa-clock"></i> Time Controls</h3>
+            
+            <label for="timeRange">Time Range:</label>
+            <select class="form-select" id="timeRange">
+                <option value="1h">Last Hour</option>
+                <option value="6h">Last 6 Hours</option>
+                <option value="24h" selected>Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+            </select>
+            
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="enableRealTimeUpdates" checked>
+                <label class="form-check-label" for="enableRealTimeUpdates">Real-time Updates</label>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3><i class="fas fa-download"></i> Export Options</h3>
+            
+            <label for="exportFormat">Export Format:</label>
+            <select class="form-select" id="exportFormat">
+                <option value="png">PNG (High Quality)</option>
+                <option value="svg">SVG (Vector)</option>
+                <option value="pdf">PDF (Document)</option>
+                <option value="webp">WebP (Compressed)</option>
+            </select>
+            
+            <label for="exportResolution">Export Resolution:</label>
+            <select class="form-select" id="exportResolution">
+                <option value="1920x1080">1920x1080 (Full HD)</option>
+                <option value="2560x1440">2560x1440 (QHD)</option>
+                <option value="3840x2160">3840x2160 (4K)</option>
+                <option value="7680x4320">7680x4320 (8K)</option>
+                <option value="custom">Custom</option>
+            </select>
+            
+            <button class="btn-primary-custom w-100 mt-2" id="exportAllButton">
+                <i class="fas fa-download"></i>
+                Export All Visualizations
+            </button>
+        </div>
+    </div>
+    
+    <!-- Performance Metrics Display -->
+    <div class="performance-metrics" id="performanceMetrics">
+        <h4 style="color: var(--primary-color); margin-bottom: 1rem; font-size: 1rem;">
+            <i class="fas fa-tachometer-alt"></i> Performance
+        </h4>
+        
+        <div class="metric">
+            <span>Render Time:</span>
+            <span class="metric-value" id="renderTime">-- ms</span>
+        </div>
+        
+        <div class="metric">
+            <span>Frame Rate:</span>
+            <span class="metric-value" id="frameRate">-- fps</span>
+        </div>
+        
+        <div class="metric">
+            <span>Cache Hit Rate:</span>
+            <span class="metric-value" id="cacheHitRate">-- %</span>
+        </div>
+        
+        <div class="metric">
+            <span>Memory Usage:</span>
+            <span class="metric-value" id="memoryUsage">-- MB</span>
+        </div>
+        
+        <div class="metric">
+            <span>WebGL Support:</span>
+            <span class="metric-value" id="webglSupport">--</span>
+        </div>
+    </div>
+    
+    <!-- JavaScript Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.24.1/plotly.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- High-Resolution Visualization Client -->
+    <script src="../modules/high_resolution_viz/high_res_visualization.js"></script>
+    
+    <script>
+        // Initialize High-Resolution Visualization Dashboard
+        class HighResolutionDashboard {
+            constructor() {
+                this.vizClient = null;
+                this.canvases = {};
+                this.renderingContexts = {};
+                this.performanceMetrics = {};
+                
+                this.initialize();
+            }
+            
+            async initialize() {
+                try {
+                    // Initialize visualization client
+                    this.vizClient = new HighResolutionVisualizationClient({
+                        enableWebGL: true,
+                        enableWebAssembly: true,
+                        maxResolution: [4096, 4096],
+                        quality: 'high'
+                    });
+                    
+                    await this.vizClient.initialize();
+                    
+                    // Setup canvases
+                    this.setupCanvases();
+                    
+                    // Setup event handlers
+                    this.setupEventHandlers();
+                    
+                    // Setup performance monitoring
+                    this.setupPerformanceMonitoring();
+                    
+                    // Initial render
+                    await this.renderAllVisualizations();
+                    
+                    console.log('High-resolution dashboard initialized');
+                    
+                } catch (error) {
+                    console.error('Failed to initialize dashboard:', error);
+                }
+            }
+            
+            setupCanvases() {
+                this.canvases = {
+                    globe: document.getElementById('globeCanvas'),
+                    timeSeries: document.getElementById('timeSeriesCanvas'),
+                    volumetric: document.getElementById('volumetricCanvas'),
+                    terrain: document.getElementById('terrainCanvas')
+                };
+                
+                // Set up canvas properties for high-DPI displays
+                Object.values(this.canvases).forEach(canvas => {
+                    const dpr = window.devicePixelRatio || 1;
+                    const rect = canvas.getBoundingClientRect();
+                    
+                    canvas.width = rect.width * dpr;
+                    canvas.height = rect.height * dpr;
+                    canvas.style.width = rect.width + 'px';
+                    canvas.style.height = rect.height + 'px';
+                    
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.scale(dpr, dpr);
+                    }
+                });
+            }
+            
+            setupEventHandlers() {
+                // Control panel toggle
+                document.getElementById('controlPanelToggle').addEventListener('click', () => {
+                    document.getElementById('controlPanel').classList.toggle('active');
+                });
+                
+                // Quality controls
+                document.getElementById('qualityLevel').addEventListener('change', (e) => {
+                    this.vizClient.config.quality = e.target.value;
+                    this.updateQualityIndicators();
+                    this.renderAllVisualizations();
+                });
+                
+                // View controls
+                ['centerLatitude', 'centerLongitude', 'zoomLevel'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', () => {
+                        this.updateViewContext();
+                    });
+                });
+                
+                // Export functionality
+                document.getElementById('exportButton').addEventListener('click', () => {
+                    this.exportCurrentView();
+                });
+                
+                document.getElementById('exportAllButton').addEventListener('click', () => {
+                    this.exportAllVisualizations();
+                });
+                
+                // Refresh button
+                document.getElementById('refreshButton').addEventListener('click', () => {
+                    this.renderAllVisualizations();
+                });
+                
+                // Fullscreen toggle
+                document.getElementById('fullscreenToggle').addEventListener('click', () => {
+                    if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen();
+                    } else {
+                        document.exitFullscreen();
+                    }
+                });
+                
+                // Visualization-specific controls
+                document.getElementById('globeViewMode').addEventListener('change', () => {
+                    this.renderGlobe();
+                });
+                
+                document.getElementById('timeSeriesComponent').addEventListener('change', () => {
+                    this.renderTimeSeries();
+                });
+                
+                // Progressive loading events
+                this.vizClient.on('progressiveUpdate', (data) => {
+                    this.updateProgressIndicator(data);
+                });
+                
+                this.vizClient.on('renderComplete', (data) => {
+                    this.hideLoadingIndicator(data.visualizationType);
+                    this.updatePerformanceDisplay();
+                });
+                
+                this.vizClient.on('renderError', (data) => {
+                    console.error('Render error:', data.error);
+                    this.showErrorMessage(data.error);
+                });
+            }
+            
+            setupPerformanceMonitoring() {
+                // Update performance metrics every 5 seconds
+                setInterval(() => {
+                    this.updatePerformanceDisplay();
+                }, 5000);
+                
+                // Initial performance display
+                this.updatePerformanceDisplay();
+            }
+            
+            async renderAllVisualizations() {
+                try {
+                    // Show loading indicators
+                    this.showLoadingIndicators();
+                    
+                    // Generate sample data (in production, this would come from the backend)
+                    const sampleData = this.generateSampleData();
+                    
+                    // Render all visualizations concurrently
+                    await Promise.all([
+                        this.renderGlobe(sampleData),
+                        this.renderTimeSeries(sampleData),
+                        this.renderVolumetric(sampleData),
+                        this.renderTerrain(sampleData)
+                    ]);
+                    
+                } catch (error) {
+                    console.error('Error rendering visualizations:', error);
+                }
+            }
+            
+            async renderGlobe(data = null) {
+                if (!data) data = this.generateSampleGlobeData();
+                
+                try {
+                    this.showLoadingIndicator('globe');
+                    
+                    const context = this.createRenderContext('globe');
+                    const result = await this.vizClient.renderVisualization(
+                        data, 'earth_system_globe', context
+                    );
+                    
+                    this.displayResult('globe', result);
+                    
+                } catch (error) {
+                    console.error('Error rendering globe:', error);
+                } finally {
+                    this.hideLoadingIndicator('globe');
+                }
+            }
+            
+            async renderTimeSeries(data = null) {
+                if (!data) data = this.generateSampleTimeSeriesData();
+                
+                try {
+                    this.showLoadingIndicator('timeSeries');
+                    
+                    const context = this.createRenderContext('timeSeries');
+                    const result = await this.vizClient.renderVisualization(
+                        data, 'time_series_hd', context
+                    );
+                    
+                    this.displayResult('timeSeries', result);
+                    
+                } catch (error) {
+                    console.error('Error rendering time series:', error);
+                } finally {
+                    this.hideLoadingIndicator('timeSeries');
+                }
+            }
+            
+            async renderVolumetric(data = null) {
+                if (!data) data = this.generateSampleVolumetricData();
+                
+                try {
+                    this.showLoadingIndicator('volumetric');
+                    
+                    const context = this.createRenderContext('volumetric');
+                    const result = await this.vizClient.renderVisualization(
+                        data, 'volumetric_3d', context
+                    );
+                    
+                    this.displayResult('volumetric', result);
+                    
+                } catch (error) {
+                    console.error('Error rendering volumetric:', error);
+                } finally {
+                    this.hideLoadingIndicator('volumetric');
+                }
+            }
+            
+            async renderTerrain(data = null) {
+                if (!data) data = this.generateSampleTerrainData();
+                
+                try {
+                    this.showLoadingIndicator('terrain');
+                    
+                    const context = this.createRenderContext('terrain');
+                    const result = await this.vizClient.renderVisualization(
+                        data, 'multi_scale_terrain', context
+                    );
+                    
+                    this.displayResult('terrain', result);
+                    
+                } catch (error) {
+                    console.error('Error rendering terrain:', error);
+                } finally {
+                    this.hideLoadingIndicator('terrain');
+                }
+            }
+            
+            createRenderContext(type) {
+                const canvas = this.canvases[type];
+                return {
+                    viewportSize: [canvas.width, canvas.height],
+                    zoomLevel: parseFloat(document.getElementById('zoomLevel').value),
+                    centerPoint: [
+                        parseFloat(document.getElementById('centerLongitude').value),
+                        parseFloat(document.getElementById('centerLatitude').value),
+                        0
+                    ],
+                    timeRange: this.getTimeRange(),
+                    dataResolution: this.getDataResolution(),
+                    qualityLevel: this.getQualityLevel(),
+                    renderingBudgetMs: 10000
+                };
+            }
+            
+            displayResult(type, result) {
+                const canvas = this.canvases[type];
+                const ctx = canvas.getContext('2d');
+                
+                if (result.canvas) {
+                    // Draw result canvas to display canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(result.canvas, 0, 0);
+                } else if (result.imageData) {
+                    // Display image data
+                    const imageData = new ImageData(result.imageData, canvas.width, canvas.height);
+                    ctx.putImageData(imageData, 0, 0);
+                }
+            }
+            
+            showLoadingIndicator(type) {
+                const loading = document.getElementById(type + 'Loading');
+                if (loading) {
+                    loading.style.display = 'flex';
+                }
+            }
+            
+            hideLoadingIndicator(type) {
+                const loading = document.getElementById(type + 'Loading');
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+            }
+            
+            showLoadingIndicators() {
+                ['globe', 'timeSeries', 'volumetric', 'terrain'].forEach(type => {
+                    this.showLoadingIndicator(type);
+                });
+            }
+            
+            updateProgressIndicator(data) {
+                const progressBar = document.getElementById(`${data.visualizationType}ProgressBar`);
+                const progressIndicator = document.getElementById(`${data.visualizationType}Progress`);
+                
+                if (progressBar && progressIndicator) {
+                    progressIndicator.style.display = 'block';
+                    progressBar.style.width = (data.level * 100) + '%';
+                    
+                    if (data.level >= 1.0) {
+                        setTimeout(() => {
+                            progressIndicator.style.display = 'none';
+                        }, 1000);
+                    }
+                }
+            }
+            
+            updateQualityIndicators() {
+                const quality = document.getElementById('qualityLevel').value;
+                
+                ['globe', 'timeSeries', 'volumetric', 'terrain'].forEach(type => {
+                    const indicator = document.getElementById(type + 'Quality');
+                    if (indicator) {
+                        indicator.textContent = quality.toUpperCase();
+                        indicator.className = 'quality-indicator ' + quality;
+                    }
+                });
+            }
+            
+            updateViewContext() {
+                // Debounce view updates
+                clearTimeout(this.viewUpdateTimeout);
+                this.viewUpdateTimeout = setTimeout(() => {
+                    this.renderAllVisualizations();
+                }, 500);
+            }
+            
+            updatePerformanceDisplay() {
+                const metrics = this.vizClient.getPerformanceMetrics();
+                
+                document.getElementById('renderTime').textContent = 
+                    Math.round(metrics.averageRenderTime) + ' ms';
+                
+                document.getElementById('frameRate').textContent = 
+                    Math.round(1000 / metrics.averageRenderTime) + ' fps';
+                
+                document.getElementById('cacheHitRate').textContent = 
+                    Math.round(metrics.cacheHitRate * 100) + '%';
+                
+                document.getElementById('memoryUsage').textContent = 
+                    Math.round(metrics.memoryUsage) + ' MB';
+                
+                document.getElementById('webglSupport').textContent = 
+                    metrics.webglSupport ? 'Yes' : 'No';
+            }
+            
+            async exportCurrentView() {
+                try {
+                    const format = document.getElementById('exportFormat').value;
+                    const resolution = document.getElementById('exportResolution').value;
+                    
+                    // Export primary visualization (globe)
+                    const context = this.createRenderContext('globe');
+                    if (resolution !== 'custom') {
+                        const [width, height] = resolution.split('x').map(Number);
+                        context.viewportSize = [width, height];
+                    }
+                    
+                    const data = this.generateSampleGlobeData();
+                    const result = await this.vizClient.renderVisualization(
+                        data, 'earth_system_globe', context
+                    );
+                    
+                    const exportResult = await this.vizClient.exportVisualization(result, format);
+                    
+                    // Download the exported file
+                    const url = URL.createObjectURL(exportResult.blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = exportResult.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                } catch (error) {
+                    console.error('Export failed:', error);
+                    alert('Export failed: ' + error.message);
+                }
+            }
+            
+            async exportAllVisualizations() {
+                // Implementation for exporting all visualizations
+                console.log('Exporting all visualizations...');
+                // This would iterate through all visualizations and export them
+            }
+            
+            getTimeRange() {
+                const range = document.getElementById('timeRange').value;
+                const now = new Date();
+                const start = new Date(now);
+                
+                switch (range) {
+                    case '1h':
+                        start.setHours(now.getHours() - 1);
+                        break;
+                    case '6h':
+                        start.setHours(now.getHours() - 6);
+                        break;
+                    case '24h':
+                        start.setDate(now.getDate() - 1);
+                        break;
+                    case '7d':
+                        start.setDate(now.getDate() - 7);
+                        break;
+                    case '30d':
+                        start.setDate(now.getDate() - 30);
+                        break;
+                }
+                
+                return [start, now];
+            }
+            
+            getDataResolution() {
+                const quality = document.getElementById('qualityLevel').value;
+                switch (quality) {
+                    case 'ultra': return 'ultra_high';
+                    case 'high': return 'high';
+                    case 'medium': return 'medium';
+                    case 'low': return 'low';
+                    default: return 'high';
+                }
+            }
+            
+            getQualityLevel() {
+                const quality = document.getElementById('qualityLevel').value;
+                const qualityMap = { ultra: 16, high: 8, medium: 4, low: 2 };
+                return qualityMap[quality] || 8;
+            }
+            
+            showErrorMessage(error) {
+                // Show error message to user
+                console.error('Dashboard error:', error);
+                // Could implement toast notifications here
+            }
+            
+            // Sample data generators
+            generateSampleData() {
+                return {
+                    globe: this.generateSampleGlobeData(),
+                    timeSeries: this.generateSampleTimeSeriesData(),
+                    volumetric: this.generateSampleVolumetricData(),
+                    terrain: this.generateSampleTerrainData()
+                };
+            }
+            
+            generateSampleGlobeData() {
+                const points = [];
+                for (let i = 0; i < 1000; i++) {
+                    points.push({
+                        latitude: (Math.random() - 0.5) * 180,
+                        longitude: (Math.random() - 0.5) * 360,
+                        value: Math.random() * 100
+                    });
+                }
+                
+                return {
+                    earthSurface: {
+                        latitude: points.map(p => p.latitude),
+                        longitude: points.map(p => p.longitude),
+                        values: points.map(p => p.value)
+                    },
+                    timestamp: new Date().toISOString()
+                };
+            }
+            
+            generateSampleTimeSeriesData() {
+                const now = new Date();
+                const points = [];
+                
+                for (let i = 0; i < 100; i++) {
+                    const time = new Date(now.getTime() - (99 - i) * 3600000);
+                    points.push({
+                        timestamp: time.toISOString(),
+                        atmosphere: Math.sin(i * 0.1) + Math.random() * 0.5,
+                        hydrosphere: Math.cos(i * 0.15) + Math.random() * 0.3,
+                        lithosphere: Math.sin(i * 0.05) * 2 + Math.random() * 0.8
+                    });
+                }
+                
+                return {
+                    timeSeries: [{
+                        name: 'Atmosphere',
+                        points: points.map((p, i) => ({ x: i, y: p.atmosphere, maxX: 100, maxY: 3 }))
+                    }, {
+                        name: 'Hydrosphere',
+                        points: points.map((p, i) => ({ x: i, y: p.hydrosphere, maxX: 100, maxY: 3 }))
+                    }, {
+                        name: 'Lithosphere',
+                        points: points.map((p, i) => ({ x: i, y: p.lithosphere, maxX: 100, maxY: 3 }))
+                    }]
+                };
+            }
+            
+            generateSampleVolumetricData() {
+                // Generate 3D volumetric data
+                const size = 64;
+                const data = new Float32Array(size * size * size);
+                
+                for (let z = 0; z < size; z++) {
+                    for (let y = 0; y < size; y++) {
+                        for (let x = 0; x < size; x++) {
+                            const index = z * size * size + y * size + x;
+                            const distance = Math.sqrt(
+                                Math.pow(x - size/2, 2) + 
+                                Math.pow(y - size/2, 2) + 
+                                Math.pow(z - size/2, 2)
+                            );
+                            data[index] = Math.max(0, 1 - distance / (size/2));
+                        }
+                    }
+                }
+                
+                return {
+                    volumetricData: data,
+                    dimensions: [size, size, size]
+                };
+            }
+            
+            generateSampleTerrainData() {
+                // Generate terrain elevation data
+                const width = 256;
+                const height = 256;
+                const elevations = new Float32Array(width * height);
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const index = y * width + x;
+                        elevations[index] = 
+                            Math.sin(x * 0.01) * Math.cos(y * 0.01) * 1000 +
+                            Math.random() * 100;
+                    }
+                }
+                
+                return {
+                    terrain: {
+                        elevations: elevations,
+                        width: width,
+                        height: height
+                    }
+                };
+            }
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new HighResolutionDashboard();
+        });
+    </script>
+</body>
+</html>

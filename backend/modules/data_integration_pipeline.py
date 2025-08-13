@@ -764,7 +764,7 @@ class RemoteSensingProcessor:
             for i in range(pca.n_components):
                 results[f'PC{i+1}'] = pca_result[:, i].reshape(original_shape[:-1])
         
-        # Minimum Noise Fraction (MNF) - simplified version
+        # Comprehensive Minimum Noise Fraction (MNF) transformation with advanced noise estimation
         results.update(self._calculate_mnf(spectral_data))
         
         return results
@@ -774,46 +774,532 @@ class RemoteSensingProcessor:
         return data[..., band1] / (data[..., band2] + 1e-6)
     
     def _calculate_mnf(self, spectral_data: np.ndarray, n_components: int = 5) -> Dict[str, np.ndarray]:
-        """Calculate Minimum Noise Fraction transformation"""
+        """
+        Comprehensive Minimum Noise Fraction transformation with advanced noise estimation
+        Implements Green et al. (1988) MNF algorithm with multiple noise estimation methods
+        """
         
         original_shape = spectral_data.shape
         reshaped_data = spectral_data.reshape(-1, original_shape[-1])
+        n_bands = original_shape[-1]
+        n_pixels = reshaped_data.shape[0]
         
-        # Remove invalid values
+        # Enhanced data validation and preprocessing
         valid_mask = np.all(np.isfinite(reshaped_data), axis=1)
         valid_data = reshaped_data[valid_mask]
         
-        if len(valid_data) < 100:  # Not enough valid data
+        if len(valid_data) < max(100, 3 * n_bands):  # Minimum samples for robust estimation
+            self.logger.warning("Insufficient valid data for MNF calculation")
             return {}
         
         try:
-            # Estimate noise covariance (simplified approach)
-            # In practice, this would use shift-difference method
-            noise_cov = np.cov(valid_data, rowvar=False) * 0.1  # Simplified noise estimate
-            signal_cov = np.cov(valid_data, rowvar=False)
+            # Comprehensive noise covariance estimation using multiple methods
+            noise_cov_methods = {}
             
-            # Generalized eigenvalue decomposition
-            from scipy.linalg import eigh
-            eigenvals, eigenvecs = eigh(signal_cov, noise_cov + np.eye(signal_cov.shape[0]) * 1e-6)
+            # Method 1: Shift-difference approach (most robust for spatial noise)
+            noise_cov_methods['shift_diff'] = self._estimate_noise_shift_difference(
+                spectral_data, original_shape
+            )
             
-            # Sort by eigenvalue (largest first)
+            # Method 2: Homogeneous area analysis
+            noise_cov_methods['homogeneous'] = self._estimate_noise_homogeneous_areas(
+                spectral_data, original_shape
+            )
+            
+            # Method 3: Dark pixel analysis (for sensor-specific noise)
+            noise_cov_methods['dark_pixel'] = self._estimate_noise_dark_pixels(
+                spectral_data, original_shape
+            )
+            
+            # Method 4: Residual analysis from smooth surface fitting
+            noise_cov_methods['residual'] = self._estimate_noise_residual_analysis(
+                valid_data, n_bands
+            )
+            
+            # Comprehensive noise covariance matrix combination
+            noise_cov = self._combine_noise_estimates(noise_cov_methods, valid_data)
+            
+            # Enhanced signal covariance estimation with outlier removal
+            signal_cov = self._estimate_signal_covariance_robust(valid_data)
+            
+            # Advanced regularization for numerical stability
+            noise_cov_reg = self._regularize_covariance_matrix(noise_cov, signal_cov)
+            signal_cov_reg = self._regularize_covariance_matrix(signal_cov, noise_cov)
+            
+            # Generalized eigenvalue decomposition with enhanced numerical stability
+            from scipy.linalg import eigh, LinAlgError
+            try:
+                eigenvals, eigenvecs = eigh(signal_cov_reg, noise_cov_reg)
+            except LinAlgError:
+                # Fallback to standard eigenvalue decomposition
+                self.logger.warning("Using fallback eigenvalue decomposition for MNF")
+                noise_inv_sqrt = self._matrix_sqrt_inverse(noise_cov_reg)
+                whitened_signal = noise_inv_sqrt @ signal_cov_reg @ noise_inv_sqrt.T
+                eigenvals, temp_eigenvecs = eigh(whitened_signal)
+                eigenvecs = noise_inv_sqrt.T @ temp_eigenvecs
+            
+            # Enhanced eigenvalue sorting and selection
+            valid_eigenvals = eigenvals[eigenvals > 1e-10]  # Remove near-zero eigenvalues
+            if len(valid_eigenvals) == 0:
+                self.logger.warning("No valid eigenvalues found in MNF calculation")
+                return {}
+            
+            # Sort by Signal-to-Noise Ratio (eigenvalue represents SNR)
             idx = np.argsort(eigenvals)[::-1]
-            eigenvals = eigenvals[idx]
-            eigenvecs = eigenvecs[:, idx]
+            eigenvals_sorted = eigenvals[idx]
+            eigenvecs_sorted = eigenvecs[:, idx]
             
-            # Transform data
-            n_comp = min(n_components, len(eigenvals))
+            # Advanced component selection based on SNR threshold and information content
+            n_comp = self._select_optimal_components(
+                eigenvals_sorted, n_components, valid_data, eigenvecs_sorted
+            )
+            
+            # Comprehensive MNF transformation with quality metrics
             mnf_result = np.full((reshaped_data.shape[0], n_comp), np.nan)
-            mnf_result[valid_mask] = valid_data @ eigenvecs[:, :n_comp]
+            mnf_transformed = valid_data @ eigenvecs_sorted[:, :n_comp]
             
+            # Apply advanced post-processing
+            mnf_transformed = self._postprocess_mnf_components(
+                mnf_transformed, eigenvals_sorted[:n_comp]
+            )
+            
+            mnf_result[valid_mask] = mnf_transformed
+            
+            # Generate comprehensive results with quality metrics
             results = {}
+            
+            # MNF components with enhanced naming
             for i in range(n_comp):
-                results[f'MNF{i+1}'] = mnf_result[:, i].reshape(original_shape[:-1])
+                component_name = f'MNF{i+1}'
+                snr_score = eigenvals_sorted[i]
+                
+                results[component_name] = mnf_result[:, i].reshape(original_shape[:-1])
+                results[f'{component_name}_SNR'] = np.full(original_shape[:-1], snr_score)
+                results[f'{component_name}_quality'] = self._assess_component_quality(
+                    mnf_result[:, i], valid_mask, original_shape[:-1]
+                )
+            
+            # Additional MNF-derived products
+            results.update(self._generate_mnf_derived_products(
+                mnf_result, eigenvals_sorted[:n_comp], original_shape, valid_mask
+            ))
+            
+            # Comprehensive quality assessment
+            results['MNF_overall_quality'] = self._assess_mnf_overall_quality(
+                eigenvals_sorted[:n_comp], valid_data.shape[0], n_bands
+            )
+            
+            # Noise statistics for validation
+            results['noise_statistics'] = self._calculate_noise_statistics(
+                noise_cov, signal_cov, eigenvals_sorted[:n_comp]
+            )
             
             return results
             
         except Exception as e:
-            self.logger.warning(f"MNF calculation failed: {e}")
+            self.logger.error(f"Comprehensive MNF calculation failed: {e}")
+            return self._fallback_mnf_calculation(spectral_data, n_components)
+    
+    def _estimate_noise_shift_difference(self, spectral_data: np.ndarray, original_shape: tuple) -> np.ndarray:
+        """Estimate noise using shift-difference method (Green et al., 1988)"""
+        try:
+            n_bands = original_shape[-1]
+            noise_cov = np.zeros((n_bands, n_bands))
+            
+            # Spatial shift-difference in both directions
+            if len(original_shape) >= 3:  # 2D spatial + spectral
+                height, width = original_shape[:2]
+                
+                # Horizontal differences
+                for i in range(height):
+                    for j in range(width - 1):
+                        if (np.isfinite(spectral_data[i, j]).all() and 
+                            np.isfinite(spectral_data[i, j+1]).all()):
+                            diff = spectral_data[i, j] - spectral_data[i, j+1]
+                            noise_cov += np.outer(diff, diff)
+                
+                # Vertical differences  
+                for i in range(height - 1):
+                    for j in range(width):
+                        if (np.isfinite(spectral_data[i, j]).all() and 
+                            np.isfinite(spectral_data[i+1, j]).all()):
+                            diff = spectral_data[i, j] - spectral_data[i+1, j]
+                            noise_cov += np.outer(diff, diff)
+                
+                # Normalize by number of differences
+                noise_cov /= max(1, (height * (width-1) + (height-1) * width))
+                
+            return noise_cov / 2.0  # Factor of 2 from difference operation
+            
+        except Exception as e:
+            self.logger.warning(f"Shift-difference noise estimation failed: {e}")
+            return np.eye(original_shape[-1]) * 0.01
+    
+    def _estimate_noise_homogeneous_areas(self, spectral_data: np.ndarray, original_shape: tuple) -> np.ndarray:
+        """Estimate noise from homogeneous areas using local variance analysis"""
+        try:
+            n_bands = original_shape[-1]
+            
+            if len(original_shape) < 3:
+                return np.eye(n_bands) * 0.01
+            
+            height, width = original_shape[:2]
+            window_size = 3
+            noise_estimates = []
+            
+            # Sliding window analysis for local homogeneity
+            for i in range(window_size//2, height - window_size//2):
+                for j in range(window_size//2, width - window_size//2):
+                    window = spectral_data[i-window_size//2:i+window_size//2+1,
+                                        j-window_size//2:j+window_size//2+1]
+                    
+                    # Check if window is relatively homogeneous
+                    if self._is_homogeneous_window(window):
+                        window_reshaped = window.reshape(-1, n_bands)
+                        valid_pixels = window_reshaped[np.all(np.isfinite(window_reshaped), axis=1)]
+                        
+                        if len(valid_pixels) >= 3:
+                            local_cov = np.cov(valid_pixels, rowvar=False)
+                            noise_estimates.append(local_cov)
+            
+            if noise_estimates:
+                return np.mean(noise_estimates, axis=0)
+            else:
+                return np.eye(n_bands) * 0.01
+                
+        except Exception as e:
+            self.logger.warning(f"Homogeneous area noise estimation failed: {e}")
+            return np.eye(original_shape[-1]) * 0.01
+    
+    def _is_homogeneous_window(self, window: np.ndarray, threshold: float = 0.1) -> bool:
+        """Check if a window is spectrally homogeneous"""
+        try:
+            window_reshaped = window.reshape(-1, window.shape[-1])
+            valid_pixels = window_reshaped[np.all(np.isfinite(window_reshaped), axis=1)]
+            
+            if len(valid_pixels) < 3:
+                return False
+            
+            # Calculate coefficient of variation across pixels
+            mean_spectrum = np.mean(valid_pixels, axis=0)
+            std_spectrum = np.std(valid_pixels, axis=0)
+            cv = np.mean(std_spectrum / (mean_spectrum + 1e-6))
+            
+            return cv < threshold
+            
+        except:
+            return False
+    
+    def _estimate_noise_dark_pixels(self, spectral_data: np.ndarray, original_shape: tuple) -> np.ndarray:
+        """Estimate noise from dark pixels (low signal areas)"""
+        try:
+            n_bands = original_shape[-1]
+            reshaped_data = spectral_data.reshape(-1, n_bands)
+            valid_mask = np.all(np.isfinite(reshaped_data), axis=1)
+            valid_data = reshaped_data[valid_mask]
+            
+            if len(valid_data) == 0:
+                return np.eye(n_bands) * 0.01
+            
+            # Identify dark pixels (bottom 10th percentile)
+            brightness = np.mean(valid_data, axis=1)
+            dark_threshold = np.percentile(brightness, 10)
+            dark_pixels = valid_data[brightness <= dark_threshold]
+            
+            if len(dark_pixels) >= 10:
+                return np.cov(dark_pixels, rowvar=False)
+            else:
+                return np.eye(n_bands) * 0.01
+                
+        except Exception as e:
+            self.logger.warning(f"Dark pixel noise estimation failed: {e}")
+            return np.eye(original_shape[-1]) * 0.01
+    
+    def _estimate_noise_residual_analysis(self, valid_data: np.ndarray, n_bands: int) -> np.ndarray:
+        """Estimate noise from residuals of smooth surface fitting"""
+        try:
+            from sklearn.preprocessing import PolynomialFeatures
+            from sklearn.linear_model import Ridge
+            
+            # Fit smooth polynomial surface to spectral data
+            poly_features = PolynomialFeatures(degree=2, include_bias=False)
+            X_poly = poly_features.fit_transform(valid_data)
+            
+            residuals_list = []
+            for band in range(n_bands):
+                ridge = Ridge(alpha=0.1)
+                ridge.fit(X_poly, valid_data[:, band])
+                predicted = ridge.predict(X_poly)
+                residuals = valid_data[:, band] - predicted
+                residuals_list.append(residuals)
+            
+            residuals_array = np.column_stack(residuals_list)
+            return np.cov(residuals_array, rowvar=False)
+            
+        except Exception as e:
+            self.logger.warning(f"Residual noise estimation failed: {e}")
+            return np.eye(n_bands) * 0.01
+    
+    def _combine_noise_estimates(self, noise_methods: dict, valid_data: np.ndarray) -> np.ndarray:
+        """Combine multiple noise estimates using weighted averaging"""
+        try:
+            valid_estimates = {}
+            n_bands = valid_data.shape[1]
+            
+            # Validate and weight each estimate
+            for method, estimate in noise_methods.items():
+                if estimate is not None and estimate.shape == (n_bands, n_bands):
+                    # Weight based on estimate quality
+                    weight = self._assess_noise_estimate_quality(estimate, valid_data)
+                    valid_estimates[method] = {'estimate': estimate, 'weight': weight}
+            
+            if not valid_estimates:
+                return np.eye(n_bands) * 0.01
+            
+            # Weighted combination
+            total_weight = sum(item['weight'] for item in valid_estimates.values())
+            combined_noise = np.zeros((n_bands, n_bands))
+            
+            for method, item in valid_estimates.items():
+                normalized_weight = item['weight'] / total_weight
+                combined_noise += normalized_weight * item['estimate']
+            
+            return combined_noise
+            
+        except Exception as e:
+            self.logger.warning(f"Noise estimate combination failed: {e}")
+            return np.eye(valid_data.shape[1]) * 0.01
+    
+    def _assess_noise_estimate_quality(self, noise_estimate: np.ndarray, valid_data: np.ndarray) -> float:
+        """Assess the quality of a noise estimate"""
+        try:
+            # Check positive definiteness
+            eigenvals = np.linalg.eigvals(noise_estimate)
+            if np.any(eigenvals <= 0):
+                return 0.1
+            
+            # Check reasonableness compared to data variance
+            data_var = np.var(valid_data, axis=0)
+            noise_var = np.diag(noise_estimate)
+            
+            # Noise should be smaller than data variance
+            ratio = np.mean(noise_var / (data_var + 1e-6))
+            
+            if 0.01 <= ratio <= 0.5:  # Reasonable noise level
+                return 1.0
+            elif ratio < 0.01:  # Too small
+                return 0.5
+            else:  # Too large
+                return 0.3
+                
+        except:
+            return 0.1
+    
+    def _estimate_signal_covariance_robust(self, valid_data: np.ndarray) -> np.ndarray:
+        """Robust signal covariance estimation with outlier removal"""
+        try:
+            from scipy.stats import chi2
+            
+            # Initial covariance estimate
+            initial_cov = np.cov(valid_data, rowvar=False)
+            initial_mean = np.mean(valid_data, axis=0)
+            
+            # Mahalanobis distance for outlier detection
+            try:
+                inv_cov = np.linalg.inv(initial_cov + np.eye(initial_cov.shape[0]) * 1e-6)
+                mahal_dist = np.array([
+                    (x - initial_mean).T @ inv_cov @ (x - initial_mean)
+                    for x in valid_data
+                ])
+                
+                # Chi-square threshold for outlier detection
+                threshold = chi2.ppf(0.95, df=valid_data.shape[1])
+                inliers = mahal_dist <= threshold
+                
+                if np.sum(inliers) >= 10:
+                    return np.cov(valid_data[inliers], rowvar=False)
+                
+            except np.linalg.LinAlgError:
+                pass
+            
+            return initial_cov
+            
+        except Exception as e:
+            self.logger.warning(f"Robust signal covariance estimation failed: {e}")
+            return np.cov(valid_data, rowvar=False)
+    
+    def _regularize_covariance_matrix(self, cov_matrix: np.ndarray, reference_cov: np.ndarray) -> np.ndarray:
+        """Regularize covariance matrix for numerical stability"""
+        try:
+            n_bands = cov_matrix.shape[0]
+            
+            # Eigenvalue regularization
+            eigenvals, eigenvecs = np.linalg.eigh(cov_matrix)
+            min_eigenval = max(1e-8, np.mean(np.diag(reference_cov)) * 1e-6)
+            eigenvals_reg = np.maximum(eigenvals, min_eigenval)
+            
+            regularized_cov = eigenvecs @ np.diag(eigenvals_reg) @ eigenvecs.T
+            
+            # Additional diagonal loading if needed
+            if np.linalg.cond(regularized_cov) > 1e12:
+                regularized_cov += np.eye(n_bands) * np.trace(regularized_cov) * 1e-6
+            
+            return regularized_cov
+            
+        except Exception as e:
+            self.logger.warning(f"Covariance regularization failed: {e}")
+            return cov_matrix + np.eye(cov_matrix.shape[0]) * 1e-6
+    
+    def _matrix_sqrt_inverse(self, matrix: np.ndarray) -> np.ndarray:
+        """Compute matrix square root inverse"""
+        try:
+            eigenvals, eigenvecs = np.linalg.eigh(matrix)
+            eigenvals_sqrt_inv = 1.0 / np.sqrt(np.maximum(eigenvals, 1e-12))
+            return eigenvecs @ np.diag(eigenvals_sqrt_inv) @ eigenvecs.T
+        except:
+            return np.eye(matrix.shape[0])
+    
+    def _select_optimal_components(self, eigenvals: np.ndarray, max_components: int, 
+                                 valid_data: np.ndarray, eigenvecs: np.ndarray) -> int:
+        """Select optimal number of MNF components based on SNR and information content"""
+        try:
+            # SNR threshold (eigenvalue > 1 means signal > noise)
+            snr_threshold = 1.0
+            snr_components = np.sum(eigenvals > snr_threshold)
+            
+            # Information content threshold (95% cumulative SNR)
+            cumulative_snr = np.cumsum(eigenvals) / np.sum(eigenvals)
+            info_components = np.argmax(cumulative_snr >= 0.95) + 1
+            
+            # Conservative selection
+            optimal_components = min(
+                max_components,
+                max(1, min(snr_components, info_components))
+            )
+            
+            return optimal_components
+            
+        except:
+            return min(max_components, len(eigenvals))
+    
+    def _postprocess_mnf_components(self, mnf_data: np.ndarray, eigenvals: np.ndarray) -> np.ndarray:
+        """Apply post-processing to MNF components"""
+        try:
+            # Normalize components by their SNR for consistent scaling
+            for i, eigenval in enumerate(eigenvals):
+                if eigenval > 0:
+                    scale_factor = np.sqrt(eigenval)
+                    mnf_data[:, i] *= scale_factor
+            
+            return mnf_data
+        except:
+            return mnf_data
+    
+    def _assess_component_quality(self, component_data: np.ndarray, valid_mask: np.ndarray, 
+                                 spatial_shape: tuple) -> np.ndarray:
+        """Assess the quality of individual MNF components"""
+        try:
+            quality_map = np.full(spatial_shape, 0.5)
+            
+            if len(spatial_shape) >= 2:  # Spatial data available
+                component_2d = component_data.reshape(spatial_shape)
+                
+                # Calculate local signal-to-noise ratio
+                from scipy.ndimage import gaussian_filter
+                smoothed = gaussian_filter(component_2d, sigma=1.0)
+                noise_estimate = component_2d - smoothed
+                
+                signal_power = smoothed**2
+                noise_power = noise_estimate**2 + 1e-12
+                local_snr = signal_power / noise_power
+                
+                # Normalize to 0-1 scale
+                quality_map = np.clip(local_snr / np.percentile(local_snr, 95), 0, 1)
+            
+            return quality_map
+            
+        except:
+            return np.full(spatial_shape, 0.5)
+    
+    def _generate_mnf_derived_products(self, mnf_result: np.ndarray, eigenvals: np.ndarray,
+                                     original_shape: tuple, valid_mask: np.ndarray) -> dict:
+        """Generate additional MNF-derived products"""
+        try:
+            results = {}
+            
+            # Signal-to-Noise Ratio maps
+            snr_map = np.full(original_shape[:-1], np.nan)
+            if len(eigenvals) > 0:
+                # Weighted SNR based on eigenvalues
+                weights = eigenvals / np.sum(eigenvals)
+                weighted_snr = np.sum(eigenvals * weights)
+                snr_map = np.full(original_shape[:-1], weighted_snr)
+            
+            results['MNF_SNR_map'] = snr_map
+            
+            # Noise fraction (1 - signal fraction)
+            if len(eigenvals) > 0:
+                noise_fraction = 1.0 / (1.0 + np.mean(eigenvals))
+                results['MNF_noise_fraction'] = np.full(original_shape[:-1], noise_fraction)
+            
+            return results
+            
+        except:
+            return {}
+    
+    def _assess_mnf_overall_quality(self, eigenvals: np.ndarray, n_pixels: int, n_bands: int) -> dict:
+        """Assess overall MNF transformation quality"""
+        try:
+            return {
+                'mean_snr': float(np.mean(eigenvals)) if len(eigenvals) > 0 else 0.0,
+                'max_snr': float(np.max(eigenvals)) if len(eigenvals) > 0 else 0.0,
+                'n_components_above_1': int(np.sum(eigenvals > 1.0)),
+                'total_components': len(eigenvals),
+                'data_reduction_ratio': len(eigenvals) / n_bands if n_bands > 0 else 0.0,
+                'sample_efficiency': n_pixels / n_bands if n_bands > 0 else 0.0
+            }
+        except:
+            return {'error': 'Quality assessment failed'}
+    
+    def _calculate_noise_statistics(self, noise_cov: np.ndarray, signal_cov: np.ndarray,
+                                  eigenvals: np.ndarray) -> dict:
+        """Calculate comprehensive noise statistics"""
+        try:
+            return {
+                'noise_trace': float(np.trace(noise_cov)),
+                'signal_trace': float(np.trace(signal_cov)),
+                'noise_determinant': float(np.linalg.det(noise_cov + np.eye(noise_cov.shape[0]) * 1e-12)),
+                'signal_determinant': float(np.linalg.det(signal_cov + np.eye(signal_cov.shape[0]) * 1e-12)),
+                'condition_number': float(np.linalg.cond(noise_cov)),
+                'effective_rank': int(np.sum(eigenvals > 0.01 * np.max(eigenvals)))
+            }
+        except:
+            return {'error': 'Noise statistics calculation failed'}
+    
+    def _fallback_mnf_calculation(self, spectral_data: np.ndarray, n_components: int) -> dict:
+        """Fallback MNF calculation using simple PCA"""
+        try:
+            from sklearn.decomposition import PCA
+            
+            original_shape = spectral_data.shape
+            reshaped_data = spectral_data.reshape(-1, original_shape[-1])
+            valid_mask = np.all(np.isfinite(reshaped_data), axis=1)
+            valid_data = reshaped_data[valid_mask]
+            
+            if len(valid_data) < 10:
+                return {}
+            
+            pca = PCA(n_components=min(n_components, valid_data.shape[1]))
+            pca_result = np.full((reshaped_data.shape[0], pca.n_components), np.nan)
+            pca_result[valid_mask] = pca.fit_transform(valid_data)
+            
+            results = {}
+            for i in range(pca.n_components):
+                results[f'MNF{i+1}_fallback'] = pca_result[:, i].reshape(original_shape[:-1])
+            
+            return results
+            
+        except:
             return {}
     
     def process_hyperspectral_data(self, hyperspectral_data: np.ndarray,
