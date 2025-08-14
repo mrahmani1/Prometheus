@@ -540,10 +540,158 @@ class PostgreSQLGISManager:
             return []
     
     def _extract_location(self, geometry) -> Optional[Tuple[float, float, float]]:
-        """Extract location from PostGIS geometry"""
-        # This would need proper implementation with PostGIS functions
-        # For now, return None
-        return None
+        """Extract location from PostGIS geometry using advanced spatial processing"""
+        if not geometry or not GIS_AVAILABLE:
+            return None
+        
+        try:
+            # Handle different geometry input types
+            if hasattr(geometry, '__geo_interface__'):
+                # GeoAlchemy2 geometry object
+                geom_dict = geometry.__geo_interface__
+            elif isinstance(geometry, str):
+                # WKT string
+                try:
+                    from shapely.wkt import loads as wkt_loads
+                    shapely_geom = wkt_loads(geometry)
+                    geom_dict = shapely_geom.__geo_interface__
+                except Exception:
+                    return None
+            elif hasattr(geometry, 'coordinates'):
+                # GeoJSON-like object
+                geom_dict = geometry
+            else:
+                return None
+            
+            # Extract coordinates based on geometry type
+            geom_type = geom_dict.get('type', '').lower()
+            coordinates = geom_dict.get('coordinates', [])
+            
+            if not coordinates:
+                return None
+            
+            if geom_type == 'point':
+                # Point geometry: [lon, lat] or [lon, lat, elevation]
+                if len(coordinates) >= 2:
+                    lon, lat = coordinates[0], coordinates[1]
+                    elev = coordinates[2] if len(coordinates) > 2 else 0.0
+                    return (lat, lon, elev)
+            
+            elif geom_type in ['linestring', 'multilinestring']:
+                # For lines, extract centroid
+                if geom_type == 'linestring':
+                    coords = coordinates
+                else:
+                    coords = coordinates[0] if coordinates else []
+                
+                if coords:
+                    # Calculate weighted centroid along the line
+                    total_length = 0.0
+                    weighted_lon = 0.0
+                    weighted_lat = 0.0
+                    weighted_elev = 0.0
+                    
+                    for i in range(len(coords) - 1):
+                        p1 = coords[i]
+                        p2 = coords[i + 1]
+                        
+                        # Calculate segment length using haversine formula
+                        if len(p1) >= 2 and len(p2) >= 2:
+                            from math import radians, cos, sin, asin, sqrt
+                            
+                            lon1, lat1 = radians(p1[0]), radians(p1[1])
+                            lon2, lat2 = radians(p2[0]), radians(p2[1])
+                            
+                            # Haversine formula
+                            dlat = lat2 - lat1
+                            dlon = lon2 - lon1
+                            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                            segment_length = 2 * asin(sqrt(a)) * 6371000  # Earth radius in meters
+                            
+                            if segment_length > 0:
+                                mid_lon = (p1[0] + p2[0]) / 2
+                                mid_lat = (p1[1] + p2[1]) / 2
+                                mid_elev = ((p1[2] if len(p1) > 2 else 0) + 
+                                           (p2[2] if len(p2) > 2 else 0)) / 2
+                                
+                                weighted_lon += mid_lon * segment_length
+                                weighted_lat += mid_lat * segment_length
+                                weighted_elev += mid_elev * segment_length
+                                total_length += segment_length
+                    
+                    if total_length > 0:
+                        return (weighted_lat / total_length, 
+                               weighted_lon / total_length,
+                               weighted_elev / total_length)
+            
+            elif geom_type in ['polygon', 'multipolygon']:
+                # For polygons, calculate area-weighted centroid
+                if geom_type == 'polygon':
+                    rings = coordinates
+                else:
+                    rings = coordinates[0] if coordinates else []
+                
+                if rings and rings[0]:  # Exterior ring
+                    exterior_coords = rings[0]
+                    
+                    # Use shoelace formula for centroid calculation
+                    if len(exterior_coords) >= 4:  # Minimum for a closed polygon
+                        area = 0.0
+                        cx = 0.0
+                        cy = 0.0
+                        cz = 0.0
+                        
+                        n = len(exterior_coords) - 1  # Exclude closing point
+                        
+                        for i in range(n):
+                            j = (i + 1) % n
+                            xi, yi = exterior_coords[i][0], exterior_coords[i][1]
+                            xj, yj = exterior_coords[j][0], exterior_coords[j][1]
+                            
+                            cross = xi * yj - xj * yi
+                            area += cross
+                            cx += (xi + xj) * cross
+                            cy += (yi + yj) * cross
+                            
+                            # Handle elevation
+                            zi = exterior_coords[i][2] if len(exterior_coords[i]) > 2 else 0
+                            zj = exterior_coords[j][2] if len(exterior_coords[j]) > 2 else 0
+                            cz += (zi + zj) * cross
+                        
+                        area /= 2.0
+                        if abs(area) > 1e-10:  # Avoid division by zero
+                            cx /= (6.0 * area)
+                            cy /= (6.0 * area)
+                            cz /= (6.0 * area)
+                            return (cy, cx, cz)  # Return as (lat, lon, elev)
+            
+            elif geom_type in ['multipoint', 'geometrycollection']:
+                # For collections, calculate average of all points
+                all_points = []
+                
+                if geom_type == 'multipoint':
+                    all_points = coordinates
+                else:
+                    # Extract points from geometry collection
+                    geometries = geom_dict.get('geometries', [])
+                    for geom in geometries:
+                        if geom.get('type', '').lower() == 'point':
+                            point_coords = geom.get('coordinates', [])
+                            if len(point_coords) >= 2:
+                                all_points.append(point_coords)
+                
+                if all_points:
+                    # Calculate arithmetic mean
+                    mean_lon = sum(p[0] for p in all_points) / len(all_points)
+                    mean_lat = sum(p[1] for p in all_points) / len(all_points)
+                    mean_elev = sum(p[2] if len(p) > 2 else 0 for p in all_points) / len(all_points)
+                    return (mean_lat, mean_lon, mean_elev)
+            
+            return None
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to extract location from geometry: {e}")
+            return None
     
     async def query_deformation_time_series(self, station_id: str, 
                                           start_time: datetime, 
@@ -647,13 +795,680 @@ class PostgreSQLGISManager:
             return {'error': str(e)}
     
     def _calculate_spatial_distribution(self, events) -> Dict[str, Any]:
-        """Calculate spatial distribution statistics"""
-        # This would implement spatial clustering and distribution analysis
-        return {
-            'centroid': None,
-            'spread': None,
-            'clusters': []
-        }
+        """Calculate comprehensive spatial distribution statistics with advanced clustering analysis"""
+        if not events or not GIS_AVAILABLE:
+            return {
+                'centroid': None,
+                'spread': None,
+                'clusters': [],
+                'spatial_metrics': {},
+                'error': 'No events or GIS not available'
+            }
+        
+        try:
+            # Extract locations from events
+            locations = []
+            magnitudes = []
+            depths = []
+            
+            for event in events:
+                if hasattr(event, 'location') and event.location:
+                    location = self._extract_location(event.location)
+                    if location:
+                        lat, lon, elev = location
+                        locations.append([lon, lat, elev])  # [lon, lat, depth/elevation]
+                        magnitudes.append(event.magnitude if event.magnitude else 0.0)
+                        depths.append(event.depth if event.depth else 0.0)
+            
+            if not locations:
+                return {
+                    'centroid': None,
+                    'spread': None,
+                    'clusters': [],
+                    'spatial_metrics': {},
+                    'error': 'No valid locations found'
+                }
+            
+            locations = np.array(locations)
+            magnitudes = np.array(magnitudes)
+            depths = np.array(depths)
+            
+            # Calculate spatial centroid (weighted by magnitude)
+            if np.sum(magnitudes) > 0:
+                weights = magnitudes / np.sum(magnitudes)
+                centroid_lon = np.sum(locations[:, 0] * weights)
+                centroid_lat = np.sum(locations[:, 1] * weights) 
+                centroid_elev = np.sum(locations[:, 2] * weights)
+            else:
+                centroid_lon = np.mean(locations[:, 0])
+                centroid_lat = np.mean(locations[:, 1])
+                centroid_elev = np.mean(locations[:, 2])
+            
+            centroid = (centroid_lat, centroid_lon, centroid_elev)
+            
+            # Calculate spatial spread metrics
+            spread_metrics = self._calculate_spatial_spread(locations, magnitudes, centroid)
+            
+            # Perform clustering analysis
+            clustering_results = self._perform_spatial_clustering(locations, magnitudes, depths)
+            
+            # Calculate spatial autocorrelation (Moran's I)
+            morans_i = self._calculate_morans_i(locations, magnitudes)
+            
+            # Calculate nearest neighbor analysis
+            nn_analysis = self._calculate_nearest_neighbor_analysis(locations)
+            
+            # Calculate spatial hotspots (Getis-Ord Gi*)
+            hotspots = self._calculate_hotspots(locations, magnitudes)
+            
+            # Calculate fractal dimension
+            fractal_dim = self._calculate_fractal_dimension(locations)
+            
+            # Directional analysis
+            directional_stats = self._calculate_directional_statistics(locations, centroid)
+            
+            # Kernel density estimation
+            kde_analysis = self._perform_kde_analysis(locations, magnitudes)
+            
+            return {
+                'centroid': centroid,
+                'spread': spread_metrics,
+                'clusters': clustering_results,
+                'spatial_metrics': {
+                    'morans_i': morans_i,
+                    'nearest_neighbor': nn_analysis,
+                    'hotspots': hotspots,
+                    'fractal_dimension': fractal_dim,
+                    'directional_stats': directional_stats,
+                    'kde_analysis': kde_analysis,
+                    'total_events': len(events),
+                    'valid_locations': len(locations),
+                    'spatial_extent': {
+                        'min_lon': float(np.min(locations[:, 0])),
+                        'max_lon': float(np.max(locations[:, 0])),
+                        'min_lat': float(np.min(locations[:, 1])),
+                        'max_lat': float(np.max(locations[:, 1])),
+                        'min_elev': float(np.min(locations[:, 2])),
+                        'max_elev': float(np.max(locations[:, 2]))
+                    }
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to calculate spatial distribution: {e}")
+            return {
+                'centroid': None,
+                'spread': None,
+                'clusters': [],
+                'spatial_metrics': {},
+                'error': str(e)
+            }
+    
+    def _calculate_spatial_spread(self, locations: np.ndarray, magnitudes: np.ndarray, 
+                                centroid: Tuple[float, float, float]) -> Dict[str, float]:
+        """Calculate various spatial spread metrics"""
+        try:
+            centroid_lon, centroid_lat, _ = centroid[1], centroid[0], centroid[2]
+            
+            # Calculate distances from centroid using haversine formula
+            distances = []
+            for i, (lon, lat, _) in enumerate(locations):
+                from math import radians, cos, sin, asin, sqrt
+                
+                lat1, lon1 = radians(centroid_lat), radians(centroid_lon)
+                lat2, lon2 = radians(lat), radians(lon)
+                
+                dlat = lat2 - lat1
+                dlon = lon2 - lon1
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                distance = 2 * asin(sqrt(a)) * 6371000  # Earth radius in meters
+                distances.append(distance)
+            
+            distances = np.array(distances)
+            
+            # Standard distance (spatial standard deviation)
+            if np.sum(magnitudes) > 0:
+                weights = magnitudes / np.sum(magnitudes)
+                std_distance = np.sqrt(np.sum(weights * distances**2))
+            else:
+                std_distance = np.std(distances)
+            
+            # Calculate additional spread metrics
+            mean_distance = np.mean(distances)
+            median_distance = np.median(distances)
+            max_distance = np.max(distances)
+            range_distance = np.max(distances) - np.min(distances)
+            
+            # Calculate spatial dispersion index
+            variance_distance = np.var(distances)
+            dispersion_index = variance_distance / mean_distance if mean_distance > 0 else 0
+            
+            # Calculate convex hull area
+            try:
+                from scipy.spatial import ConvexHull
+                if len(locations) >= 3:
+                    hull = ConvexHull(locations[:, :2])  # Use only lon, lat
+                    hull_area = hull.volume  # In 2D, volume is area
+                else:
+                    hull_area = 0
+            except:
+                hull_area = 0
+            
+            return {
+                'standard_distance': float(std_distance),
+                'mean_distance': float(mean_distance),
+                'median_distance': float(median_distance),
+                'max_distance': float(max_distance),
+                'range_distance': float(range_distance),
+                'dispersion_index': float(dispersion_index),
+                'convex_hull_area': float(hull_area)
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate spatial spread: {e}")
+            return {}
+    
+    def _perform_spatial_clustering(self, locations: np.ndarray, magnitudes: np.ndarray, 
+                                  depths: np.ndarray) -> List[Dict[str, Any]]:
+        """Perform advanced spatial clustering analysis"""
+        try:
+            clusters = []
+            
+            # K-means clustering
+            try:
+                from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+                from sklearn.metrics import silhouette_score
+                
+                # Determine optimal number of clusters using elbow method
+                max_clusters = min(10, len(locations) // 2)
+                if max_clusters >= 2:
+                    inertias = []
+                    k_range = range(2, max_clusters + 1)
+                    
+                    for k in k_range:
+                        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+                        kmeans.fit(locations[:, :2])  # Use only lon, lat
+                        inertias.append(kmeans.inertia_)
+                    
+                    # Find elbow point
+                    if len(inertias) >= 2:
+                        # Simple elbow detection
+                        diffs = np.diff(inertias)
+                        optimal_k = np.argmax(diffs[:-1] - diffs[1:]) + 2 if len(diffs) > 1 else 2
+                        optimal_k = min(optimal_k, max_clusters)
+                        
+                        # Perform K-means with optimal k
+                        kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+                        labels = kmeans.fit_predict(locations[:, :2])
+                        silhouette_avg = silhouette_score(locations[:, :2], labels)
+                        
+                        cluster_centers = kmeans.cluster_centers_
+                        for i, center in enumerate(cluster_centers):
+                            mask = labels == i
+                            cluster_points = locations[mask]
+                            cluster_mags = magnitudes[mask]
+                            cluster_depths = depths[mask]
+                            
+                            clusters.append({
+                                'algorithm': 'k-means',
+                                'cluster_id': int(i),
+                                'center': (float(center[1]), float(center[0])),  # (lat, lon)
+                                'size': int(np.sum(mask)),
+                                'mean_magnitude': float(np.mean(cluster_mags)) if len(cluster_mags) > 0 else 0,
+                                'mean_depth': float(np.mean(cluster_depths)) if len(cluster_depths) > 0 else 0,
+                                'silhouette_score': float(silhouette_avg)
+                            })
+                
+                # DBSCAN clustering (density-based)
+                eps_values = [0.01, 0.05, 0.1, 0.2]  # Different epsilon values to try
+                best_dbscan = None
+                best_score = -1
+                
+                for eps in eps_values:
+                    dbscan = DBSCAN(eps=eps, min_samples=max(2, len(locations) // 10))
+                    labels = dbscan.fit_predict(locations[:, :2])
+                    
+                    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+                    n_noise = list(labels).count(-1)
+                    
+                    if n_clusters > 0 and n_clusters < len(locations) // 2:
+                        try:
+                            score = silhouette_score(locations[:, :2], labels)
+                            if score > best_score:
+                                best_score = score
+                                best_dbscan = (labels, n_clusters, n_noise, eps)
+                        except:
+                            pass
+                
+                if best_dbscan:
+                    labels, n_clusters, n_noise, eps = best_dbscan
+                    for cluster_id in set(labels):
+                        if cluster_id != -1:  # Skip noise points
+                            mask = labels == cluster_id
+                            cluster_points = locations[mask]
+                            cluster_mags = magnitudes[mask]
+                            cluster_depths = depths[mask]
+                            
+                            center_lon = np.mean(cluster_points[:, 0])
+                            center_lat = np.mean(cluster_points[:, 1])
+                            
+                            clusters.append({
+                                'algorithm': 'dbscan',
+                                'cluster_id': int(cluster_id),
+                                'center': (float(center_lat), float(center_lon)),
+                                'size': int(np.sum(mask)),
+                                'mean_magnitude': float(np.mean(cluster_mags)) if len(cluster_mags) > 0 else 0,
+                                'mean_depth': float(np.mean(cluster_depths)) if len(cluster_depths) > 0 else 0,
+                                'eps': float(eps),
+                                'noise_points': int(n_noise)
+                            })
+                
+            except ImportError:
+                self.logger.warning("Scikit-learn not available for clustering analysis")
+            except Exception as e:
+                self.logger.warning(f"Clustering analysis failed: {e}")
+            
+            return clusters
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to perform spatial clustering: {e}")
+            return []
+    
+    def _calculate_morans_i(self, locations: np.ndarray, magnitudes: np.ndarray) -> Dict[str, float]:
+        """Calculate Moran's I spatial autocorrelation index"""
+        try:
+            n = len(locations)
+            if n < 3:
+                return {'morans_i': 0.0, 'expected_i': 0.0, 'z_score': 0.0, 'p_value': 1.0}
+            
+            # Create spatial weights matrix (inverse distance)
+            W = np.zeros((n, n))
+            for i in range(n):
+                for j in range(n):
+                    if i != j:
+                        # Calculate distance
+                        from math import radians, cos, sin, asin, sqrt
+                        lat1, lon1 = radians(locations[i, 1]), radians(locations[i, 0])
+                        lat2, lon2 = radians(locations[j, 1]), radians(locations[j, 0])
+                        
+                        dlat = lat2 - lat1
+                        dlon = lon2 - lon1
+                        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                        distance = 2 * asin(sqrt(a)) * 6371000  # meters
+                        
+                        if distance > 0:
+                            W[i, j] = 1.0 / distance
+            
+            # Row normalize weights
+            row_sums = np.sum(W, axis=1)
+            for i in range(n):
+                if row_sums[i] > 0:
+                    W[i, :] = W[i, :] / row_sums[i]
+            
+            # Calculate Moran's I
+            x = magnitudes - np.mean(magnitudes)
+            numerator = 0.0
+            denominator = np.sum(x**2)
+            
+            for i in range(n):
+                for j in range(n):
+                    numerator += W[i, j] * x[i] * x[j]
+            
+            if denominator > 0:
+                morans_i = (n * numerator) / (np.sum(W) * denominator)
+            else:
+                morans_i = 0.0
+            
+            # Expected value and variance
+            expected_i = -1.0 / (n - 1)
+            
+            # Simplified z-score calculation
+            var_i = 2.0 / (n * (n - 1))  # Simplified variance
+            z_score = (morans_i - expected_i) / np.sqrt(var_i) if var_i > 0 else 0.0
+            
+            # Approximate p-value (two-tailed)
+            from scipy.stats import norm
+            p_value = 2 * (1 - norm.cdf(abs(z_score)))
+            
+            return {
+                'morans_i': float(morans_i),
+                'expected_i': float(expected_i),
+                'z_score': float(z_score),
+                'p_value': float(p_value)
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate Moran's I: {e}")
+            return {'morans_i': 0.0, 'expected_i': 0.0, 'z_score': 0.0, 'p_value': 1.0}
+    
+    def _calculate_nearest_neighbor_analysis(self, locations: np.ndarray) -> Dict[str, float]:
+        """Calculate nearest neighbor analysis statistics"""
+        try:
+            n = len(locations)
+            if n < 2:
+                return {'nn_index': 1.0, 'mean_nn_distance': 0.0, 'expected_distance': 0.0}
+            
+            # Calculate nearest neighbor distances
+            nn_distances = []
+            for i in range(n):
+                min_dist = float('inf')
+                for j in range(n):
+                    if i != j:
+                        # Calculate distance
+                        from math import radians, cos, sin, asin, sqrt
+                        lat1, lon1 = radians(locations[i, 1]), radians(locations[i, 0])
+                        lat2, lon2 = radians(locations[j, 1]), radians(locations[j, 0])
+                        
+                        dlat = lat2 - lat1
+                        dlon = lon2 - lon1
+                        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                        distance = 2 * asin(sqrt(a)) * 6371000  # meters
+                        
+                        if distance < min_dist:
+                            min_dist = distance
+                
+                nn_distances.append(min_dist)
+            
+            mean_nn_distance = np.mean(nn_distances)
+            
+            # Calculate expected distance for random distribution
+            # Approximate area (bounding box)
+            min_lon, max_lon = np.min(locations[:, 0]), np.max(locations[:, 0])
+            min_lat, max_lat = np.min(locations[:, 1]), np.max(locations[:, 1])
+            
+            # Convert to approximate area in square meters
+            area_km2 = ((max_lon - min_lon) * 111.32 * np.cos(radians((min_lat + max_lat) / 2))) * \
+                      ((max_lat - min_lat) * 110.57)
+            area_m2 = area_km2 * 1e6
+            
+            density = n / area_m2 if area_m2 > 0 else 0
+            expected_distance = 0.5 / np.sqrt(density) if density > 0 else 0
+            
+            # Nearest neighbor index
+            nn_index = mean_nn_distance / expected_distance if expected_distance > 0 else 1.0
+            
+            return {
+                'nn_index': float(nn_index),
+                'mean_nn_distance': float(mean_nn_distance),
+                'expected_distance': float(expected_distance),
+                'interpretation': 'clustered' if nn_index < 1.0 else 'dispersed' if nn_index > 1.0 else 'random'
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate nearest neighbor analysis: {e}")
+            return {'nn_index': 1.0, 'mean_nn_distance': 0.0, 'expected_distance': 0.0}
+    
+    def _calculate_hotspots(self, locations: np.ndarray, magnitudes: np.ndarray) -> List[Dict[str, Any]]:
+        """Calculate spatial hotspots using Getis-Ord Gi* statistic"""
+        try:
+            n = len(locations)
+            if n < 3:
+                return []
+            
+            hotspots = []
+            
+            # Calculate Gi* for each location
+            for i in range(n):
+                # Define neighborhood (within certain distance)
+                neighborhood_distance = 50000  # 50km in meters
+                neighbors = []
+                weights = []
+                
+                for j in range(n):
+                    # Calculate distance
+                    from math import radians, cos, sin, asin, sqrt
+                    lat1, lon1 = radians(locations[i, 1]), radians(locations[i, 0])
+                    lat2, lon2 = radians(locations[j, 1]), radians(locations[j, 0])
+                    
+                    dlat = lat2 - lat1
+                    dlon = lon2 - lon1
+                    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                    distance = 2 * asin(sqrt(a)) * 6371000  # meters
+                    
+                    if distance <= neighborhood_distance:
+                        neighbors.append(j)
+                        # Inverse distance weighting
+                        weight = 1.0 / (distance + 1.0)  # Add 1 to avoid division by zero
+                        weights.append(weight)
+                
+                if len(neighbors) > 1:
+                    weights = np.array(weights)
+                    weights = weights / np.sum(weights)  # Normalize
+                    
+                    # Calculate Gi*
+                    local_sum = np.sum([weights[k] * magnitudes[neighbors[k]] for k in range(len(neighbors))])
+                    global_mean = np.mean(magnitudes)
+                    
+                    # Simplified Gi* calculation
+                    gi_star = (local_sum - global_mean * np.sum(weights)) / np.std(magnitudes)
+                    
+                    # Determine if it's a hotspot (high values) or coldspot (low values)
+                    if abs(gi_star) > 1.96:  # 95% confidence level
+                        hotspot_type = 'hot' if gi_star > 0 else 'cold'
+                        significance = 'high' if abs(gi_star) > 2.58 else 'moderate'  # 99% vs 95%
+                        
+                        hotspots.append({
+                            'location': (float(locations[i, 1]), float(locations[i, 0])),
+                            'gi_star': float(gi_star),
+                            'type': hotspot_type,
+                            'significance': significance,
+                            'local_mean': float(local_sum),
+                            'global_mean': float(global_mean),
+                            'neighbor_count': len(neighbors)
+                        })
+            
+            return hotspots
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate hotspots: {e}")
+            return []
+    
+    def _calculate_fractal_dimension(self, locations: np.ndarray) -> float:
+        """Calculate fractal dimension using box-counting method"""
+        try:
+            if len(locations) < 10:
+                return 0.0
+            
+            # Normalize coordinates to [0, 1] range
+            coords = locations[:, :2].copy()  # Use only lon, lat
+            mins = np.min(coords, axis=0)
+            maxs = np.max(coords, axis=0)
+            ranges = maxs - mins
+            
+            if np.any(ranges == 0):
+                return 0.0
+            
+            coords = (coords - mins) / ranges
+            
+            # Box sizes (as fractions of the total range)
+            box_sizes = np.logspace(-3, -1, 10)  # From 0.001 to 0.1
+            box_counts = []
+            
+            for box_size in box_sizes:
+                # Count boxes containing at least one point
+                n_boxes_x = int(1.0 / box_size) + 1
+                n_boxes_y = int(1.0 / box_size) + 1
+                
+                occupied_boxes = set()
+                for coord in coords:
+                    box_x = int(coord[0] / box_size)
+                    box_y = int(coord[1] / box_size)
+                    occupied_boxes.add((box_x, box_y))
+                
+                box_counts.append(len(occupied_boxes))
+            
+            # Calculate fractal dimension using linear regression
+            log_box_sizes = np.log(box_sizes)
+            log_box_counts = np.log(box_counts)
+            
+            # Linear regression
+            coeffs = np.polyfit(log_box_sizes, log_box_counts, 1)
+            fractal_dimension = -coeffs[0]  # Negative slope
+            
+            return float(fractal_dimension)
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate fractal dimension: {e}")
+            return 0.0
+    
+    def _calculate_directional_statistics(self, locations: np.ndarray, 
+                                        centroid: Tuple[float, float, float]) -> Dict[str, Any]:
+        """Calculate directional statistics relative to centroid"""
+        try:
+            if len(locations) < 2:
+                return {}
+            
+            centroid_lat, centroid_lon = centroid[0], centroid[1]
+            
+            # Calculate bearings from centroid to each point
+            bearings = []
+            distances = []
+            
+            for lon, lat, _ in locations:
+                from math import atan2, degrees, radians, cos, sin, asin, sqrt
+                
+                # Calculate bearing
+                lat1, lon1 = radians(centroid_lat), radians(centroid_lon)
+                lat2, lon2 = radians(lat), radians(lon)
+                
+                dlon = lon2 - lon1
+                y = sin(dlon) * cos(lat2)
+                x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dlon)
+                
+                bearing = degrees(atan2(y, x))
+                bearing = (bearing + 360) % 360  # Normalize to 0-360
+                bearings.append(bearing)
+                
+                # Calculate distance
+                dlat = lat2 - lat1
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                distance = 2 * asin(sqrt(a)) * 6371000  # meters
+                distances.append(distance)
+            
+            bearings = np.array(bearings)
+            distances = np.array(distances)
+            
+            # Convert bearings to radians for circular statistics
+            bearings_rad = np.radians(bearings)
+            
+            # Calculate circular mean and variance
+            cos_bearings = np.cos(bearings_rad)
+            sin_bearings = np.sin(bearings_rad)
+            
+            mean_cos = np.mean(cos_bearings)
+            mean_sin = np.mean(sin_bearings)
+            
+            # Resultant vector length (measure of concentration)
+            R = np.sqrt(mean_cos**2 + mean_sin**2)
+            
+            # Mean direction
+            mean_bearing = degrees(atan2(mean_sin, mean_cos))
+            mean_bearing = (mean_bearing + 360) % 360
+            
+            # Circular variance
+            circular_variance = 1 - R
+            
+            # Concentration parameter (von Mises distribution)
+            if R < 0.53:
+                kappa = 2 * R + R**3 + 5 * R**5 / 6
+            elif R < 0.85:
+                kappa = -0.4 + 1.39 * R + 0.43 / (1 - R)
+            else:
+                kappa = 1 / (R**3 - 4 * R**2 + 3 * R)
+            
+            return {
+                'mean_bearing': float(mean_bearing),
+                'resultant_length': float(R),
+                'circular_variance': float(circular_variance),
+                'concentration': float(kappa),
+                'num_points': len(bearings),
+                'mean_distance': float(np.mean(distances)),
+                'max_distance': float(np.max(distances))
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate directional statistics: {e}")
+            return {}
+    
+    def _perform_kde_analysis(self, locations: np.ndarray, magnitudes: np.ndarray) -> Dict[str, Any]:
+        """Perform kernel density estimation analysis"""
+        try:
+            if len(locations) < 3:
+                return {}
+            
+            # Grid resolution for KDE
+            grid_resolution = 50
+            
+            # Create grid
+            min_lon, max_lon = np.min(locations[:, 0]), np.max(locations[:, 0])
+            min_lat, max_lat = np.min(locations[:, 1]), np.max(locations[:, 1])
+            
+            # Add padding
+            lon_range = max_lon - min_lon
+            lat_range = max_lat - min_lat
+            padding = 0.1  # 10% padding
+            
+            lon_grid = np.linspace(min_lon - padding * lon_range, 
+                                 max_lon + padding * lon_range, grid_resolution)
+            lat_grid = np.linspace(min_lat - padding * lat_range,
+                                 max_lat + padding * lat_range, grid_resolution)
+            
+            # Simple Gaussian KDE implementation
+            bandwidth = 0.1  # Adjust as needed
+            density_grid = np.zeros((grid_resolution, grid_resolution))
+            
+            for i, lat in enumerate(lat_grid):
+                for j, lon in enumerate(lon_grid):
+                    density = 0.0
+                    for k, (event_lon, event_lat, _) in enumerate(locations):
+                        # Gaussian kernel
+                        distance_sq = (lon - event_lon)**2 + (lat - event_lat)**2
+                        kernel_value = np.exp(-distance_sq / (2 * bandwidth**2))
+                        # Weight by magnitude
+                        weight = magnitudes[k] if magnitudes[k] > 0 else 1.0
+                        density += kernel_value * weight
+                    
+                    density_grid[i, j] = density
+            
+            # Find peaks in density
+            max_density = np.max(density_grid)
+            peak_threshold = 0.7 * max_density
+            
+            peaks = []
+            for i in range(1, grid_resolution - 1):
+                for j in range(1, grid_resolution - 1):
+                    if (density_grid[i, j] > peak_threshold and
+                        density_grid[i, j] > density_grid[i-1, j] and
+                        density_grid[i, j] > density_grid[i+1, j] and
+                        density_grid[i, j] > density_grid[i, j-1] and
+                        density_grid[i, j] > density_grid[i, j+1]):
+                        
+                        peaks.append({
+                            'location': (float(lat_grid[i]), float(lon_grid[j])),
+                            'density': float(density_grid[i, j]),
+                            'relative_density': float(density_grid[i, j] / max_density)
+                        })
+            
+            # Sort peaks by density
+            peaks.sort(key=lambda x: x['density'], reverse=True)
+            
+            return {
+                'bandwidth': float(bandwidth),
+                'max_density': float(max_density),
+                'num_peaks': len(peaks),
+                'peaks': peaks[:10],  # Top 10 peaks
+                'grid_resolution': grid_resolution,
+                'spatial_extent': {
+                    'min_lon': float(min_lon),
+                    'max_lon': float(max_lon),
+                    'min_lat': float(min_lat),
+                    'max_lat': float(max_lat)
+                }
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to perform KDE analysis: {e}")
+            return {}
     
     def _calculate_temporal_pattern(self, events) -> Dict[str, Any]:
         """Calculate temporal pattern statistics"""

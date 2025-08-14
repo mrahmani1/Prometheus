@@ -48,8 +48,14 @@
       "Bash(git checkout:*)",
       "Bash(git stash:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "WebFetch(domain:agupubs.onlinelibrary.wiley.com)",
+      "WebSearch",
+      "WebFetch(domain:www.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:www.science.org)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }
