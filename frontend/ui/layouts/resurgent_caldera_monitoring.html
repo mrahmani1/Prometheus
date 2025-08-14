@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resurgent Caldera Monitoring System - Prometheus AI</title>
+    
+    <!-- Emergency Scripts -->
+    <script src="../core/emergency_systems/immediate_emergency_loader.js"></script>
+    <script src="../core/emergency_systems/suppress_sourcemap_warnings.js"></script>
+    <script src="../core/emergency_systems/prometheus_universal_fix.js"></script>
+    
+    <!-- CSS Libraries -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Visualization Libraries -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Three.js for advanced 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="../styles/resurgent_caldera_monitor.css">
+    
+    <style>
+        /* Additional specific styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0f;
+            overflow: hidden;
+        }
+        
+        /* Loading screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: #4fc3f7;
+        }
+        
+        .loading-logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        
+        .loading-progress {
+            width: 300px;
+            height: 4px;
+            background: rgba(79, 195, 247, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #29b6f6);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .loading-status {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #78909c;
+        }
+        
+        /* Error display */
+        .error-banner {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(244, 67, 54, 0.4);
+            z-index: 10000;
+            max-width: 400px;
+            display: none;
+        }
+        
+        .error-banner.show {
+            display: block;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .error-banner .close-btn {
+            float: right;
+            cursor: pointer;
+            font-size: 18px;
+            margin-left: 10px;
+        }
+        
+        /* Success notification */
+        .success-banner {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+            z-index: 10000;
+            max-width: 400px;
+            display: none;
+        }
+        
+        .success-banner.show {
+            display: block;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+            .resurgent-caldera-monitor {
+                font-size: 14px;
+            }
+            
+            .monitor-header {
+                padding: 10px 15px;
+            }
+            
+            .header-left h2 {
+                font-size: 20px;
+            }
+            
+            .dashboard-panel {
+                min-width: 250px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .monitor-dashboard {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+            }
+            
+            .dashboard-panel {
+                min-height: 300px;
+                max-height: 400px;
+            }
+            
+            .header-left, .header-center, .header-right {
+                margin-bottom: 10px;
+            }
+            
+            .control-buttons {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loading-logo">
+            <i class="fas fa-mountain"></i>
+        </div>
+        <div class="loading-text">Prometheus AI - Resurgent Caldera Monitor</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="progressBar"></div>
+        </div>
+        <div class="loading-status" id="loadingStatus">Initializing system...</div>
+    </div>
+    
+    <!-- Error Banner -->
+    <div class="error-banner" id="errorBanner">
+        <span class="close-btn" onclick="this.parentElement.classList.remove('show')">&times;</span>
+        <strong>Error:</strong> <span id="errorMessage"></span>
+    </div>
+    
+    <!-- Success Banner -->
+    <div class="success-banner" id="successBanner">
+        <span class="close-btn" onclick="this.parentElement.classList.remove('show')">&times;</span>
+        <strong>Success:</strong> <span id="successMessage"></span>
+    </div>
+    
+    <!-- Main Application Container -->
+    <div id="calderaMonitorContainer"></div>
+    
+    <!-- Scripts -->
+    <script>
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            showError('Application error: ' + e.message);
+        });
+        
+        // Global promise rejection handler
+        window.addEventListener('unhandledpromise', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            showError('System error: ' + e.reason);
+        });
+        
+        // Utility functions
+        function showError(message) {
+            const errorBanner = document.getElementById('errorBanner');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorBanner.classList.add('show');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorBanner.classList.remove('show');
+            }, 5000);
+        }
+        
+        function showSuccess(message) {
+            const successBanner = document.getElementById('successBanner');
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = message;
+            successBanner.classList.add('show');
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                successBanner.classList.remove('show');
+            }, 3000);
+        }
+        
+        function updateLoadingProgress(progress, status) {
+            const progressBar = document.getElementById('progressBar');
+            const loadingStatus = document.getElementById('loadingStatus');
+            
+            progressBar.style.width = progress + '%';
+            loadingStatus.textContent = status;
+        }
+        
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            loadingScreen.style.opacity = '0';
+            loadingScreen.style.transition = 'opacity 0.5s ease';
+            
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }
+        
+        // Enhanced library loader with progress tracking
+        class EnhancedLibraryLoader {
+            constructor() {
+                this.libraries = [
+                    { name: 'Plotly', check: () => typeof Plotly !== 'undefined' },
+                    { name: 'Leaflet', check: () => typeof L !== 'undefined' },
+                    { name: 'Three.js', check: () => typeof THREE !== 'undefined' },
+                    { name: 'Font Awesome', check: () => document.querySelector('link[href*="font-awesome"]') !== null }
+                ];
+                this.loadedCount = 0;
+            }
+            
+            async checkLibraries() {
+                let allLoaded = true;
+                
+                for (let lib of this.libraries) {
+                    if (lib.check()) {
+                        this.loadedCount++;
+                        updateLoadingProgress((this.loadedCount / this.libraries.length) * 50, `${lib.name} loaded`);
+                    } else {
+                        allLoaded = false;
+                        console.warn(`${lib.name} not loaded`);
+                    }
+                }
+                
+                return allLoaded;
+            }
+            
+            async waitForLibraries(timeout = 10000) {
+                const startTime = Date.now();
+                
+                while (Date.now() - startTime < timeout) {
+                    if (await this.checkLibraries()) {
+                        return true;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                return false;
+            }
+        }
+        
+        // Application initialization
+        class CalderaMonitorApp {
+            constructor() {
+                this.monitor = null;
+                this.initialized = false;
+            }
+            
+            async init() {
+                try {
+                    updateLoadingProgress(10, 'Loading libraries...');
+                    
+                    // Check if libraries are loaded
+                    const loader = new EnhancedLibraryLoader();
+                    const librariesLoaded = await loader.waitForLibraries();
+                    
+                    if (!librariesLoaded) {
+                        throw new Error('Required libraries failed to load');
+                    }
+                    
+                    updateLoadingProgress(60, 'Initializing ResurgentCalderaMonitor...');
+                    
+                    // Wait for ResurgentCalderaMonitor class to be available
+                    await this.waitForClass('ResurgentCalderaMonitor');
+                    
+                    updateLoadingProgress(80, 'Creating monitor instance...');
+                    
+                    // Initialize the monitor
+                    this.monitor = new ResurgentCalderaMonitor('calderaMonitorContainer', {
+                        apiBaseUrl: '/api/caldera-monitoring',
+                        updateInterval: 60000,
+                        visualization: {
+                            enable3D: true,
+                            showStressField: true,
+                            showMagmaChambersIn3D: true,
+                            showDeformation: true,
+                            animateEvolution: true
+                        }
+                    });
+                    
+                    updateLoadingProgress(100, 'Monitor ready!');
+                    
+                    // Hide loading screen
+                    setTimeout(() => {
+                        hideLoadingScreen();
+                        showSuccess('Resurgent Caldera Monitor initialized successfully');
+                        this.initialized = true;
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('Failed to initialize application:', error);
+                    updateLoadingProgress(0, 'Initialization failed');
+                    showError('Failed to initialize: ' + error.message);
+                    
+                    // Still hide loading screen to show error state
+                    setTimeout(() => {
+                        hideLoadingScreen();
+                    }, 1000);
+                }
+            }
+            
+            async waitForClass(className, timeout = 5000) {
+                const startTime = Date.now();
+                
+                while (Date.now() - startTime < timeout) {
+                    if (window[className]) {
+                        return true;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                throw new Error(`Class ${className} not found`);
+            }
+        }
+        
+        // Auto-start application
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Add small delay to ensure all resources are loaded
+            setTimeout(async () => {
+                const app = new CalderaMonitorApp();
+                await app.init();
+            }, 500);
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            // Trigger resize event for visualizations
+            if (window.Plotly) {
+                try {
+                    Plotly.Plots.resize('viz3D');
+                } catch (e) {
+                    // Ignore resize errors
+                }
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + R to refresh data
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                if (window.calderaMonitor && window.calderaMonitor.fetchRealTimeData) {
+                    window.calderaMonitor.fetchRealTimeData();
+                    showSuccess('Data refreshed');
+                }
+            }
+            
+            // Ctrl/Cmd + S to export data
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (window.calderaMonitor && window.calderaMonitor.exportData) {
+                    window.calderaMonitor.exportData();
+                }
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+        });
+        
+        // Performance monitoring
+        function logPerformanceMetrics() {
+            if (window.performance && window.performance.timing) {
+                const timing = window.performance.timing;
+                const loadTime = timing.loadEventEnd - timing.navigationStart;
+                const domReady = timing.domContentLoadedEventEnd - timing.navigationStart;
+                
+                console.log(`Page Load Metrics:
+                    Total Load Time: ${loadTime}ms
+                    DOM Ready: ${domReady}ms`);
+            }
+        }
+        
+        window.addEventListener('load', logPerformanceMetrics);
+        
+        // Service worker registration (if available)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+    
+    <!-- Load the ResurgentCalderaMonitor class -->
+    <script src="../modules/volcanic_systems/resurgent_caldera_monitor.js"></script>
+    
+    <!-- Additional initialization -->
+    <script>
+        // Make monitor globally accessible for debugging
+        window.addEventListener('load', function() {
+            // Expose monitor instance globally after a short delay
+            setTimeout(() => {
+                if (window.ResurgentCalderaMonitor) {
+                    console.log('✓ ResurgentCalderaMonitor class loaded');
+                } else {
+                    console.error('✗ ResurgentCalderaMonitor class not loaded');
+                    showError('Failed to load ResurgentCalderaMonitor class');
+                }
+            }, 1000);
+        });
+        
+        // Development helpers (only in development mode)
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            // Add development tools
+            console.log('%c🌋 Prometheus AI - Resurgent Caldera Monitor', 
+                       'color: #4fc3f7; font-size: 16px; font-weight: bold;');
+            console.log('%cDevelopment mode enabled', 'color: #ff9800;');
+            
+            // Global debugging helpers
+            window.debugCalderaMonitor = {
+                getMonitorInstance: () => window.calderaMonitor,
+                showTestAlert: (level) => {
+                    if (level === 'error') {
+                        showError('This is a test error message');
+                    } else {
+                        showSuccess('This is a test success message');
+                    }
+                },
+                simulateDataUpdate: () => {
+                    console.log('Simulating data update...');
+                    // Simulate data update logic here
+                }
+            };
+        }
+    </script>
+</body>
+</html>

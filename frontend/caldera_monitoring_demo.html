@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI - Resurgent Caldera Monitor Demo</title>
+    
+    <!-- Redirect to main monitoring interface -->
+    <script>
+        // Auto-redirect to the main monitoring interface
+        window.location.href = './ui/layouts/resurgent_caldera_monitoring.html';
+    </script>
+    
+    <!-- Fallback content if JavaScript is disabled -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .redirect-message {
+            background: rgba(79, 195, 247, 0.1);
+            border: 2px solid #4fc3f7;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            margin: 100px auto;
+        }
+        
+        h1 {
+            color: #4fc3f7;
+            margin-bottom: 20px;
+        }
+        
+        .volcano-icon {
+            font-size: 48px;
+            color: #ff6b35;
+            margin-bottom: 20px;
+        }
+        
+        a {
+            color: #4fc3f7;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            border: 2px solid #4fc3f7;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        a:hover {
+            background: #4fc3f7;
+            color: #1a1a2e;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-message">
+        <div class="volcano-icon">🌋</div>
+        <h1>Prometheus AI</h1>
+        <h2>Resurgent Caldera Monitor</h2>
+        <p>You are being redirected to the monitoring interface...</p>
+        <p>If you are not redirected automatically, please click the link below:</p>
+        <a href="./ui/layouts/resurgent_caldera_monitoring.html">Launch Caldera Monitor</a>
+    </div>
+</body>
+</html>
