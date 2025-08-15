@@ -16,6 +16,7 @@ try:
     from modules.resurgent_caldera_monitoring import ResurgentCalderaMonitoringSystem
     from modules.integrated_caldera_monitoring import IntegratedCalderaMonitoring
     from modules.supereruption_analysis import *  # Import all classes from supereruption_analysis
+    from modules.thermodynamic_engine import ThermodynamicEngine
     MODULES_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Could not import monitoring modules: {e}")
@@ -31,15 +32,17 @@ logger = logging.getLogger(__name__)
 # Global instances
 monitoring_system = None
 integrated_monitoring = None
+thermodynamic_engine = None
 
 def init_systems():
     """Initialize monitoring systems"""
-    global monitoring_system, integrated_monitoring
+    global monitoring_system, integrated_monitoring, thermodynamic_engine
     
     if MODULES_AVAILABLE:
         monitoring_system = ResurgentCalderaMonitoringSystem()
         integrated_monitoring = IntegratedCalderaMonitoring()
-        logger.info("Monitoring systems initialized")
+        thermodynamic_engine = ThermodynamicEngine()
+        logger.info("Monitoring and thermodynamic systems initialized")
     else:
         logger.warning("Modules not available - using mock responses")
 
@@ -399,6 +402,102 @@ def export_data(session_id: str):
             
     except Exception as e:
         logger.error(f"Failed to export data: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Thermodynamic Engine API Endpoints
+@app.route('/api/thermodynamics/phase-equilibrium', methods=['POST'])
+def calculate_phase_equilibrium():
+    """Calculate thermodynamic phase equilibrium"""
+    try:
+        if not thermodynamic_engine:
+            return jsonify({"error": "Thermodynamic engine not available"}), 503
+            
+        data = request.get_json()
+        composition = data.get('composition', {})
+        temperature = data.get('temperature', 298.15)
+        pressure = data.get('pressure', 1.0)
+        
+        result = thermodynamic_engine.solve_multicomponent_equilibrium(
+            composition, temperature, pressure
+        )
+        
+        return jsonify({
+            "status": "success",
+            "result": result,
+            "parameters": {
+                "temperature": temperature,
+                "pressure": pressure,
+                "composition": composition
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Phase equilibrium calculation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/thermodynamics/reaction-path', methods=['POST']) 
+def calculate_reaction_path():
+    """Calculate thermodynamic reaction path"""
+    try:
+        if not thermodynamic_engine:
+            return jsonify({"error": "Thermodynamic engine not available"}), 503
+            
+        data = request.get_json()
+        initial_composition = data.get('initial_composition', {})
+        final_composition = data.get('final_composition', {})
+        temperature_range = data.get('temperature_range', [298.15, 1273.15])
+        pressure = data.get('pressure', 1.0)
+        n_steps = data.get('n_steps', 100)
+        
+        result = thermodynamic_engine.calculate_reaction_path(
+            initial_composition, final_composition, 
+            temperature_range, pressure, n_steps
+        )
+        
+        return jsonify({
+            "status": "success", 
+            "result": result,
+            "parameters": {
+                "initial_composition": initial_composition,
+                "final_composition": final_composition,
+                "temperature_range": temperature_range,
+                "pressure": pressure,
+                "n_steps": n_steps
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Reaction path calculation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/thermodynamics/pt-diagram', methods=['POST'])
+def generate_pt_diagram():
+    """Generate pressure-temperature diagram"""
+    try:
+        if not thermodynamic_engine:
+            return jsonify({"error": "Thermodynamic engine not available"}), 503
+            
+        data = request.get_json()
+        composition = data.get('composition', {})
+        temperature_range = data.get('temperature_range', [298.15, 1273.15])
+        pressure_range = data.get('pressure_range', [0.001, 10.0])
+        
+        result = thermodynamic_engine.generate_pt_diagram(
+            composition, temperature_range, pressure_range
+        )
+        
+        return jsonify({
+            "status": "success",
+            "result": result,
+            "parameters": {
+                "composition": composition,
+                "temperature_range": temperature_range,
+                "pressure_range": pressure_range
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"P-T diagram generation failed: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.errorhandler(404)

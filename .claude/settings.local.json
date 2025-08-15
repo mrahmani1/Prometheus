@@ -56,6 +56,11 @@
       "WebFetch(domain:www.science.org)"
     ],
     "deny": [],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "c:\\Users\\Mario\\Desktop\\Prometheus\\backend\\modules",
+      "c:\\Users\\Mario\\Desktop\\Prometheus\\backend",
+      "C:\\c\\Users\\Mario\\Desktop\\Prometheus"
+    ]
   }
 }
