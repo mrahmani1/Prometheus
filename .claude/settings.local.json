@@ -53,7 +53,12 @@
       "WebSearch",
       "WebFetch(domain:www.ncbi.nlm.nih.gov)",
       "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
-      "WebFetch(domain:www.science.org)"
+      "WebFetch(domain:www.science.org)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
