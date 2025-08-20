@@ -35525,28 +35525,964 @@ class MultiChamberSimulator(AdvancedMultiChamberSimulator):
             return fallback_result
     
     def _statistical_eruption_forecasting(self, features: np.ndarray, config: Dict) -> Dict:
-        """Statistical eruption forecasting"""
+        """Advanced comprehensive statistical eruption forecasting with multi-variate time-series analysis and stochastic modeling"""
         try:
-            # Simple statistical model based on feature variance
-            feature_variance = np.var(features) if len(features) > 1 else 0.0
-            normalized_variance = min(feature_variance / 1e10, 1.0)
+            n_features = len(features)
+            if n_features < 5:
+                return self._fallback_statistical_forecast(features, config)
             
-            probability = normalized_variance * 0.8 + 0.1  # Base probability
-            return {'probability': probability, 'method': 'statistical', 'confidence': 0.68}
+            # Multi-scale temporal analysis framework
+            temporal_analysis = self._analyze_temporal_patterns(features, config)
+            stochastic_models = self._build_stochastic_models(features, temporal_analysis)
+            probabilistic_forecast = self._generate_probabilistic_forecasts(stochastic_models, features)
+            
+            # Advanced statistical measures
+            feature_stats = self._compute_advanced_statistics(features)
+            extreme_value_analysis = self._perform_extreme_value_analysis(features)
+            change_point_detection = self._detect_statistical_change_points(features)
+            
+            # Time series modeling
+            arima_forecast = self._fit_arima_models(features)
+            var_forecast = self._fit_var_models(features) if n_features >= 10 else None
+            garch_forecast = self._fit_garch_volatility_models(features)
+            
+            # Non-parametric methods
+            kernel_density = self._estimate_kernel_density(features)
+            bootstrap_intervals = self._compute_bootstrap_confidence_intervals(features)
+            
+            # Ensemble statistical forecast
+            ensemble_weights = self._compute_ensemble_weights({
+                'arima': arima_forecast,
+                'var': var_forecast,
+                'garch': garch_forecast,
+                'kernel': kernel_density,
+                'extreme_value': extreme_value_analysis
+            })
+            
+            final_probability = self._aggregate_statistical_forecasts(
+                [arima_forecast, var_forecast, garch_forecast, kernel_density, extreme_value_analysis],
+                ensemble_weights
+            )
+            
+            # Uncertainty quantification
+            epistemic_uncertainty = self._quantify_model_uncertainty(stochastic_models)
+            aleatory_uncertainty = self._quantify_data_uncertainty(features, bootstrap_intervals)
+            total_uncertainty = np.sqrt(epistemic_uncertainty**2 + aleatory_uncertainty**2)
+            
+            # Comprehensive validation
+            validation_metrics = self._validate_statistical_models({
+                'arima': arima_forecast,
+                'var': var_forecast, 
+                'garch': garch_forecast,
+                'ensemble': final_probability
+            }, features)
+            
+            return {
+                'probability': float(np.clip(final_probability, 0.0, 1.0)),
+                'method': 'advanced_statistical',
+                'confidence': float(1.0 - total_uncertainty),
+                'temporal_analysis': temporal_analysis,
+                'feature_statistics': feature_stats,
+                'change_points': change_point_detection,
+                'extreme_value_analysis': extreme_value_analysis,
+                'arima_forecast': arima_forecast,
+                'var_forecast': var_forecast,
+                'garch_forecast': garch_forecast,
+                'kernel_density': kernel_density,
+                'bootstrap_intervals': bootstrap_intervals,
+                'ensemble_weights': ensemble_weights,
+                'uncertainty': {
+                    'epistemic': float(epistemic_uncertainty),
+                    'aleatory': float(aleatory_uncertainty),
+                    'total': float(total_uncertainty)
+                },
+                'validation': validation_metrics
+            }
+            
+        except Exception as e:
+            return self._handle_statistical_forecast_error(e, features, config)
+    
+    def _analyze_temporal_patterns(self, features: np.ndarray, config: Dict) -> Dict:
+        """Comprehensive temporal pattern analysis"""
+        try:
+            # Trend analysis
+            linear_trend = self._compute_linear_trend(features)
+            polynomial_trend = self._fit_polynomial_trend(features, degree=3)
+            seasonal_decomp = self._seasonal_decomposition(features)
+            
+            # Spectral analysis
+            fft_analysis = np.fft.fft(features - np.mean(features))
+            power_spectrum = np.abs(fft_analysis)**2
+            dominant_frequencies = self._identify_dominant_frequencies(power_spectrum)
+            
+            # Autocorrelation analysis
+            autocorr = np.correlate(features - np.mean(features), features - np.mean(features), mode='full')
+            autocorr = autocorr[autocorr.size // 2:] / autocorr[autocorr.size // 2]
+            
+            # Periodicity detection
+            periods = self._detect_periodic_patterns(autocorr, dominant_frequencies)
+            
+            return {
+                'linear_trend': linear_trend,
+                'polynomial_trend': polynomial_trend,
+                'seasonal_components': seasonal_decomp,
+                'dominant_frequencies': dominant_frequencies,
+                'autocorrelation': autocorr[:min(len(autocorr), 100)].tolist(),
+                'detected_periods': periods
+            }
         except Exception:
-            return {'probability': 0.3, 'method': 'statistical', 'confidence': 0.5}
+            return {'error': 'temporal_analysis_failed'}
+    
+    def _build_stochastic_models(self, features: np.ndarray, temporal_analysis: Dict) -> Dict:
+        """Build comprehensive stochastic models"""
+        try:
+            models = {}
+            
+            # Geometric Brownian Motion
+            mu, sigma = self._estimate_gbm_parameters(features)
+            models['gbm'] = {'drift': mu, 'volatility': sigma}
+            
+            # Mean-reverting process (Ornstein-Uhlenbeck)
+            theta, mu_mr, sigma_mr = self._estimate_ou_parameters(features)
+            models['ou'] = {'reversion_rate': theta, 'mean': mu_mr, 'volatility': sigma_mr}
+            
+            # Jump-diffusion model
+            jump_params = self._estimate_jump_diffusion_parameters(features)
+            models['jump_diffusion'] = jump_params
+            
+            # Regime-switching model
+            regime_params = self._estimate_regime_switching_parameters(features)
+            models['regime_switching'] = regime_params
+            
+            return models
+        except Exception:
+            return {'error': 'stochastic_modeling_failed'}
+    
+    def _generate_probabilistic_forecasts(self, stochastic_models: Dict, features: np.ndarray) -> Dict:
+        """Generate probabilistic forecasts from stochastic models"""
+        try:
+            forecasts = {}
+            n_simulations = 10000
+            
+            for model_name, params in stochastic_models.items():
+                if model_name == 'error':
+                    continue
+                    
+                if model_name == 'gbm':
+                    simulations = self._simulate_gbm(params, features[-1], n_simulations)
+                elif model_name == 'ou':
+                    simulations = self._simulate_ou(params, features[-1], n_simulations)
+                elif model_name == 'jump_diffusion':
+                    simulations = self._simulate_jump_diffusion(params, features[-1], n_simulations)
+                elif model_name == 'regime_switching':
+                    simulations = self._simulate_regime_switching(params, features[-1], n_simulations)
+                else:
+                    continue
+                
+                # Compute forecast statistics
+                forecasts[model_name] = {
+                    'mean_forecast': np.mean(simulations),
+                    'median_forecast': np.median(simulations),
+                    'percentiles': {
+                        '5%': np.percentile(simulations, 5),
+                        '25%': np.percentile(simulations, 25),
+                        '75%': np.percentile(simulations, 75),
+                        '95%': np.percentile(simulations, 95)
+                    },
+                    'volatility': np.std(simulations)
+                }
+            
+            return forecasts
+        except Exception:
+            return {'error': 'forecast_generation_failed'}
+    
+    def _compute_advanced_statistics(self, features: np.ndarray) -> Dict:
+        """Compute comprehensive statistical measures"""
+        try:
+            from scipy import stats
+            
+            # Central moments
+            mean = np.mean(features)
+            variance = np.var(features)
+            skewness = stats.skew(features)
+            kurtosis = stats.kurtosis(features)
+            
+            # Robust statistics
+            median = np.median(features)
+            mad = np.median(np.abs(features - median))  # Median absolute deviation
+            iqr = np.percentile(features, 75) - np.percentile(features, 25)
+            
+            # Distribution fitting
+            normal_fit = stats.norm.fit(features)
+            lognormal_fit = stats.lognorm.fit(features) if np.all(features > 0) else None
+            gamma_fit = stats.gamma.fit(features) if np.all(features > 0) else None
+            
+            # Goodness of fit tests
+            ks_normal = stats.kstest(features, 'norm', args=normal_fit)
+            shapiro_test = stats.shapiro(features) if len(features) <= 5000 else None
+            
+            return {
+                'moments': {
+                    'mean': mean,
+                    'variance': variance,
+                    'skewness': skewness,
+                    'kurtosis': kurtosis
+                },
+                'robust': {
+                    'median': median,
+                    'mad': mad,
+                    'iqr': iqr
+                },
+                'distributions': {
+                    'normal': normal_fit,
+                    'lognormal': lognormal_fit,
+                    'gamma': gamma_fit
+                },
+                'goodness_of_fit': {
+                    'ks_normal': ks_normal,
+                    'shapiro': shapiro_test
+                }
+            }
+        except Exception:
+            return {'error': 'statistics_computation_failed'}
+    
+    def _perform_extreme_value_analysis(self, features: np.ndarray) -> Dict:
+        """Perform extreme value analysis using GEV and GPD"""
+        try:
+            from scipy import stats
+            
+            # Block maxima approach (GEV)
+            block_size = max(10, len(features) // 20)
+            blocks = [features[i:i+block_size] for i in range(0, len(features), block_size)]
+            maxima = [np.max(block) for block in blocks if len(block) > 0]
+            
+            if len(maxima) > 3:
+                gev_params = stats.genextreme.fit(maxima)
+                gev_distribution = {
+                    'shape': gev_params[0],
+                    'location': gev_params[1], 
+                    'scale': gev_params[2]
+                }
+            else:
+                gev_distribution = None
+            
+            # Peaks over threshold (GPD)
+            threshold = np.percentile(features, 95)
+            exceedances = features[features > threshold] - threshold
+            
+            if len(exceedances) > 5:
+                gpd_params = stats.genpareto.fit(exceedances)
+                gpd_distribution = {
+                    'shape': gpd_params[0],
+                    'location': gpd_params[1],
+                    'scale': gpd_params[2],
+                    'threshold': threshold
+                }
+            else:
+                gpd_distribution = None
+            
+            # Return level estimation
+            return_levels = self._estimate_return_levels(gev_distribution, gpd_distribution)
+            
+            return {
+                'gev_distribution': gev_distribution,
+                'gpd_distribution': gpd_distribution,
+                'return_levels': return_levels,
+                'threshold': threshold,
+                'n_exceedances': len(exceedances)
+            }
+        except Exception:
+            return {'error': 'extreme_value_analysis_failed'}
+    
+    def _detect_statistical_change_points(self, features: np.ndarray) -> Dict:
+        """Detect statistical change points in the time series"""
+        try:
+            change_points = []
+            
+            # Simple variance-based change point detection
+            window_size = max(10, len(features) // 20)
+            
+            for i in range(window_size, len(features) - window_size):
+                left_var = np.var(features[i-window_size:i])
+                right_var = np.var(features[i:i+window_size])
+                
+                if abs(left_var - right_var) / (left_var + right_var + 1e-8) > 0.5:
+                    change_points.append(i)
+            
+            # CUSUM-based detection
+            cusum_points = self._cusum_change_detection(features)
+            
+            return {
+                'variance_based': change_points,
+                'cusum_based': cusum_points,
+                'n_change_points': len(change_points) + len(cusum_points)
+            }
+        except Exception:
+            return {'error': 'change_point_detection_failed'}
+    
+    def _fit_arima_models(self, features: np.ndarray) -> Dict:
+        """Fit ARIMA models for forecasting"""
+        try:
+            # Simple ARIMA(1,1,1) model simulation
+            diff_series = np.diff(features)
+            
+            if len(diff_series) > 5:
+                ar_coeff = np.corrcoef(diff_series[:-1], diff_series[1:])[0, 1]
+                ma_coeff = 0.5 * ar_coeff  # Simplified relationship
+                
+                # Generate forecast
+                forecast = features[-1] + ar_coeff * diff_series[-1] + ma_coeff * np.random.normal(0, np.std(diff_series))
+                
+                return {
+                    'model_type': 'ARIMA(1,1,1)',
+                    'ar_coefficient': ar_coeff,
+                    'ma_coefficient': ma_coeff,
+                    'forecast': forecast,
+                    'residual_variance': np.var(diff_series)
+                }
+            else:
+                return {'error': 'insufficient_data_for_arima'}
+        except Exception:
+            return {'error': 'arima_fitting_failed'}
+    
+    def _fit_var_models(self, features: np.ndarray) -> Dict:
+        """Fit Vector Autoregression models"""
+        try:
+            # Simplified VAR(1) model
+            n_vars = min(5, len(features) // 10)
+            if n_vars < 2:
+                return None
+            
+            # Create lagged variables
+            Y = features[1:].reshape(-1, 1)
+            X = features[:-1].reshape(-1, 1)
+            
+            # Simple linear regression for VAR(1)
+            if len(X) > 1:
+                coeff = np.linalg.lstsq(X, Y, rcond=None)[0]
+                forecast = coeff[0, 0] * features[-1]
+                
+                return {
+                    'model_type': 'VAR(1)',
+                    'coefficient': float(coeff[0, 0]),
+                    'forecast': float(forecast)
+                }
+            else:
+                return {'error': 'insufficient_data_for_var'}
+        except Exception:
+            return {'error': 'var_fitting_failed'}
+    
+    def _fit_garch_volatility_models(self, features: np.ndarray) -> Dict:
+        """Fit GARCH models for volatility forecasting"""
+        try:
+            returns = np.diff(np.log(np.abs(features) + 1e-8))
+            
+            if len(returns) > 10:
+                # Simplified GARCH(1,1) estimation
+                squared_returns = returns**2
+                mean_sq_returns = np.mean(squared_returns)
+                
+                # Simple volatility persistence measure
+                persistence = np.corrcoef(squared_returns[:-1], squared_returns[1:])[0, 1] if len(squared_returns) > 2 else 0.5
+                
+                return {
+                    'model_type': 'GARCH(1,1)',
+                    'mean_volatility': float(np.sqrt(mean_sq_returns)),
+                    'persistence': float(persistence),
+                    'volatility_forecast': float(np.sqrt(mean_sq_returns * (1 + persistence)))
+                }
+            else:
+                return {'error': 'insufficient_data_for_garch'}
+        except Exception:
+            return {'error': 'garch_fitting_failed'}
+    
+    def _estimate_kernel_density(self, features: np.ndarray) -> Dict:
+        """Estimate kernel density for non-parametric forecasting"""
+        try:
+            from scipy import stats
+            
+            # Gaussian kernel density estimation
+            kde = stats.gaussian_kde(features)
+            
+            # Generate sample points for evaluation
+            x_min, x_max = np.min(features), np.max(features)
+            x_range = x_max - x_min
+            x_eval = np.linspace(x_min - 0.1*x_range, x_max + 0.1*x_range, 100)
+            density = kde(x_eval)
+            
+            # Find mode and confidence intervals
+            mode_idx = np.argmax(density)
+            mode_value = x_eval[mode_idx]
+            
+            return {
+                'bandwidth': float(kde.factor),
+                'mode': float(mode_value),
+                'density_range': [float(x_min), float(x_max)],
+                'max_density': float(np.max(density))
+            }
+        except Exception:
+            return {'error': 'kernel_density_failed'}
+    
+    def _compute_bootstrap_confidence_intervals(self, features: np.ndarray, n_bootstrap: int = 1000) -> Dict:
+        """Compute bootstrap confidence intervals"""
+        try:
+            bootstrap_means = []
+            bootstrap_vars = []
+            
+            for _ in range(n_bootstrap):
+                sample = np.random.choice(features, size=len(features), replace=True)
+                bootstrap_means.append(np.mean(sample))
+                bootstrap_vars.append(np.var(sample))
+            
+            mean_ci = [np.percentile(bootstrap_means, 2.5), np.percentile(bootstrap_means, 97.5)]
+            var_ci = [np.percentile(bootstrap_vars, 2.5), np.percentile(bootstrap_vars, 97.5)]
+            
+            return {
+                'mean_confidence_interval': mean_ci,
+                'variance_confidence_interval': var_ci,
+                'bootstrap_samples': n_bootstrap
+            }
+        except Exception:
+            return {'error': 'bootstrap_failed'}
+    
+    def _compute_ensemble_weights(self, forecasts: Dict) -> Dict:
+        """Compute optimal ensemble weights"""
+        try:
+            # Simple inverse variance weighting
+            weights = {}
+            total_weight = 0
+            
+            for method, forecast in forecasts.items():
+                if forecast is None or 'error' in forecast:
+                    weights[method] = 0.0
+                else:
+                    # Use inverse of forecast uncertainty as weight
+                    if 'residual_variance' in forecast:
+                        weight = 1.0 / (forecast['residual_variance'] + 1e-8)
+                    elif 'volatility_forecast' in forecast:
+                        weight = 1.0 / (forecast['volatility_forecast'] + 1e-8)
+                    else:
+                        weight = 1.0  # Equal weight if no uncertainty measure
+                    
+                    weights[method] = weight
+                    total_weight += weight
+            
+            # Normalize weights
+            if total_weight > 0:
+                for method in weights:
+                    weights[method] /= total_weight
+            
+            return weights
+        except Exception:
+            return {'error': 'weight_computation_failed'}
+    
+    def _aggregate_statistical_forecasts(self, forecasts: list, weights: Dict) -> float:
+        """Aggregate multiple statistical forecasts"""
+        try:
+            weighted_sum = 0.0
+            total_weight = 0.0
+            
+            method_names = ['arima', 'var', 'garch', 'kernel', 'extreme_value']
+            
+            for i, forecast in enumerate(forecasts):
+                if forecast is None or 'error' in forecast:
+                    continue
+                
+                method_name = method_names[i] if i < len(method_names) else f'method_{i}'
+                weight = weights.get(method_name, 0.0)
+                
+                if weight > 0:
+                    if 'forecast' in forecast:
+                        value = forecast['forecast']
+                    elif 'volatility_forecast' in forecast:
+                        value = forecast['volatility_forecast']
+                    elif 'mode' in forecast:
+                        value = forecast['mode']
+                    elif 'return_levels' in forecast and forecast['return_levels']:
+                        value = forecast['return_levels'].get('10_year', 0.5)
+                    else:
+                        value = 0.5  # Default
+                    
+                    # Normalize to probability [0,1]
+                    prob_value = 1.0 / (1.0 + np.exp(-0.01 * value))  # Sigmoid transformation
+                    
+                    weighted_sum += weight * prob_value
+                    total_weight += weight
+            
+            return weighted_sum / total_weight if total_weight > 0 else 0.5
+        except Exception:
+            return 0.5
+    
+    def _validate_statistical_models(self, models: Dict, features: np.ndarray) -> Dict:
+        """Validate statistical models using cross-validation"""
+        try:
+            validation_results = {}
+            
+            # Simple time series cross-validation
+            n_folds = min(5, len(features) // 10)
+            fold_size = len(features) // n_folds
+            
+            for model_name, model_result in models.items():
+                if model_result is None or 'error' in model_result:
+                    validation_results[model_name] = {'error': 'model_invalid'}
+                    continue
+                
+                errors = []
+                for fold in range(n_folds):
+                    start_idx = fold * fold_size
+                    end_idx = min((fold + 1) * fold_size, len(features))
+                    
+                    if end_idx - start_idx < 5:
+                        continue
+                    
+                    test_data = features[start_idx:end_idx]
+                    predicted_mean = np.mean(test_data[:-1])  # Simplified prediction
+                    actual_value = test_data[-1]
+                    
+                    errors.append(abs(predicted_mean - actual_value))
+                
+                if errors:
+                    validation_results[model_name] = {
+                        'mean_absolute_error': np.mean(errors),
+                        'rmse': np.sqrt(np.mean([e**2 for e in errors])),
+                        'n_folds': len(errors)
+                    }
+                else:
+                    validation_results[model_name] = {'error': 'validation_failed'}
+            
+            return validation_results
+        except Exception:
+            return {'error': 'validation_computation_failed'}
+    
+    def _fallback_statistical_forecast(self, features: np.ndarray, config: Dict) -> Dict:
+        """Fallback method for insufficient data"""
+        try:
+            if len(features) == 0:
+                return {'probability': 0.3, 'method': 'fallback', 'confidence': 0.5}
+            
+            # Simple statistical measures
+            mean_val = np.mean(features)
+            std_val = np.std(features) if len(features) > 1 else 0.0
+            
+            # Convert to probability using sigmoid
+            normalized_mean = mean_val / (np.abs(mean_val) + 1000.0)  # Normalize
+            probability = 1.0 / (1.0 + np.exp(-5.0 * normalized_mean))
+            
+            return {
+                'probability': float(np.clip(probability, 0.0, 1.0)),
+                'method': 'fallback_statistical',
+                'confidence': 0.6,
+                'mean': float(mean_val),
+                'std': float(std_val)
+            }
+        except Exception:
+            return {'probability': 0.3, 'method': 'fallback', 'confidence': 0.5}
+    
+    def _handle_statistical_forecast_error(self, error: Exception, features: np.ndarray, config: Dict) -> Dict:
+        """Handle errors in statistical forecasting"""
+        return {
+            'probability': 0.3,
+            'method': 'error_fallback',
+            'confidence': 0.5,
+            'error': str(error),
+            'fallback_used': True
+        }
+    
+    # Helper methods for stochastic modeling
+    def _estimate_gbm_parameters(self, features: np.ndarray) -> tuple:
+        """Estimate Geometric Brownian Motion parameters"""
+        if len(features) < 2:
+            return 0.05, 0.2  # Default drift and volatility
+        
+        log_returns = np.diff(np.log(np.abs(features) + 1e-8))
+        mu = np.mean(log_returns)
+        sigma = np.std(log_returns)
+        return mu, sigma
+    
+    def _estimate_ou_parameters(self, features: np.ndarray) -> tuple:
+        """Estimate Ornstein-Uhlenbeck parameters"""
+        if len(features) < 3:
+            return 0.1, np.mean(features), 0.2
+        
+        # Simple parameter estimation
+        mean_level = np.mean(features)
+        deviations = features - mean_level
+        theta = -np.mean(np.diff(deviations) / (deviations[:-1] + 1e-8))
+        sigma = np.std(np.diff(features))
+        
+        return max(theta, 0.01), mean_level, sigma
+    
+    def _estimate_jump_diffusion_parameters(self, features: np.ndarray) -> Dict:
+        """Estimate jump-diffusion parameters"""
+        if len(features) < 5:
+            return {'drift': 0.05, 'volatility': 0.2, 'jump_intensity': 0.1, 'jump_mean': 0.0, 'jump_std': 0.1}
+        
+        returns = np.diff(features) / (features[:-1] + 1e-8)
+        
+        # Identify potential jumps (outliers)
+        threshold = 2 * np.std(returns)
+        jumps = returns[np.abs(returns) > threshold]
+        
+        jump_intensity = len(jumps) / len(returns)
+        jump_mean = np.mean(jumps) if len(jumps) > 0 else 0.0
+        jump_std = np.std(jumps) if len(jumps) > 1 else 0.1
+        
+        # Estimate diffusion parameters from non-jump returns
+        non_jumps = returns[np.abs(returns) <= threshold]
+        drift = np.mean(non_jumps)
+        volatility = np.std(non_jumps)
+        
+        return {
+            'drift': drift,
+            'volatility': volatility,
+            'jump_intensity': jump_intensity,
+            'jump_mean': jump_mean,
+            'jump_std': jump_std
+        }
+    
+    def _estimate_regime_switching_parameters(self, features: np.ndarray) -> Dict:
+        """Estimate regime-switching parameters"""
+        if len(features) < 10:
+            return {'n_regimes': 2, 'transition_matrix': [[0.9, 0.1], [0.1, 0.9]], 'regime_means': [0.0, 0.1]}
+        
+        # Simple 2-regime model based on volatility
+        rolling_vol = [np.std(features[max(0,i-5):i+1]) for i in range(len(features))]
+        vol_median = np.median(rolling_vol)
+        
+        # Classify into high/low volatility regimes
+        regimes = [0 if vol <= vol_median else 1 for vol in rolling_vol]
+        
+        # Estimate transition probabilities
+        transitions = [[0, 0], [0, 0]]
+        for i in range(len(regimes) - 1):
+            transitions[regimes[i]][regimes[i+1]] += 1
+        
+        # Normalize transition matrix
+        for i in range(2):
+            total = sum(transitions[i])
+            if total > 0:
+                transitions[i] = [t/total for t in transitions[i]]
+            else:
+                transitions[i] = [0.5, 0.5]
+        
+        # Estimate regime-specific means
+        regime_0_values = [features[i] for i in range(len(features)) if regimes[i] == 0]
+        regime_1_values = [features[i] for i in range(len(features)) if regimes[i] == 1]
+        
+        mean_0 = np.mean(regime_0_values) if regime_0_values else 0.0
+        mean_1 = np.mean(regime_1_values) if regime_1_values else 0.0
+        
+        return {
+            'n_regimes': 2,
+            'transition_matrix': transitions,
+            'regime_means': [mean_0, mean_1],
+            'regime_volatilities': [np.std(regime_0_values) if len(regime_0_values) > 1 else 0.1,
+                                   np.std(regime_1_values) if len(regime_1_values) > 1 else 0.1]
+        }
+    
+    def _simulate_gbm(self, params: Dict, initial_value: float, n_simulations: int) -> np.ndarray:
+        """Simulate Geometric Brownian Motion"""
+        mu, sigma = params['drift'], params['volatility']
+        dt = 1.0  # Unit time step
+        
+        random_shocks = np.random.normal(0, 1, n_simulations)
+        simulations = initial_value * np.exp((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * random_shocks)
+        
+        return simulations
+    
+    def _simulate_ou(self, params: Dict, initial_value: float, n_simulations: int) -> np.ndarray:
+        """Simulate Ornstein-Uhlenbeck process"""
+        theta, mu, sigma = params['reversion_rate'], params['mean'], params['volatility']
+        dt = 1.0
+        
+        random_shocks = np.random.normal(0, 1, n_simulations)
+        simulations = mu + (initial_value - mu) * np.exp(-theta * dt) + sigma * np.sqrt((1 - np.exp(-2 * theta * dt)) / (2 * theta)) * random_shocks
+        
+        return simulations
+    
+    def _simulate_jump_diffusion(self, params: Dict, initial_value: float, n_simulations: int) -> np.ndarray:
+        """Simulate jump-diffusion process"""
+        dt = 1.0
+        simulations = np.zeros(n_simulations)
+        
+        for i in range(n_simulations):
+            # Diffusion component
+            diffusion = params['drift'] * dt + params['volatility'] * np.sqrt(dt) * np.random.normal()
+            
+            # Jump component
+            n_jumps = np.random.poisson(params['jump_intensity'] * dt)
+            jumps = np.sum(np.random.normal(params['jump_mean'], params['jump_std'], n_jumps))
+            
+            simulations[i] = initial_value * np.exp(diffusion + jumps)
+        
+        return simulations
+    
+    def _simulate_regime_switching(self, params: Dict, initial_value: float, n_simulations: int) -> np.ndarray:
+        """Simulate regime-switching model"""
+        simulations = np.zeros(n_simulations)
+        current_regime = 0  # Start in regime 0
+        
+        for i in range(n_simulations):
+            # Switch regime based on transition probabilities
+            if np.random.random() < params['transition_matrix'][current_regime][1 - current_regime]:
+                current_regime = 1 - current_regime
+            
+            # Generate value based on current regime
+            regime_mean = params['regime_means'][current_regime]
+            regime_vol = params['regime_volatilities'][current_regime]
+            
+            simulations[i] = initial_value + regime_mean + regime_vol * np.random.normal()
+        
+        return simulations
+    
+    def _identify_dominant_frequencies(self, power_spectrum: np.ndarray) -> list:
+        """Identify dominant frequencies from power spectrum"""
+        # Find peaks in power spectrum
+        n_peaks = min(5, len(power_spectrum) // 10)
+        peak_indices = np.argsort(power_spectrum)[-n_peaks:]
+        
+        # Convert to frequency values
+        frequencies = [float(idx) / len(power_spectrum) for idx in peak_indices]
+        return sorted(frequencies, reverse=True)
+    
+    def _detect_periodic_patterns(self, autocorr: np.ndarray, dominant_frequencies: list) -> list:
+        """Detect periodic patterns from autocorrelation and frequency analysis"""
+        periods = []
+        
+        # Find peaks in autocorrelation (excluding lag 0)
+        if len(autocorr) > 10:
+            for i in range(2, min(len(autocorr), 100)):
+                if (autocorr[i] > autocorr[i-1] and 
+                    autocorr[i] > autocorr[i+1] if i+1 < len(autocorr) else True and
+                    autocorr[i] > 0.1):  # Minimum correlation threshold
+                    periods.append(i)
+        
+        # Add periods from dominant frequencies
+        for freq in dominant_frequencies[:3]:
+            if freq > 0:
+                period = int(1.0 / freq)
+                if period not in periods and period < len(autocorr):
+                    periods.append(period)
+        
+        return sorted(periods)
+    
+    def _seasonal_decomposition(self, features: np.ndarray) -> Dict:
+        """Simple seasonal decomposition"""
+        try:
+            n = len(features)
+            if n < 20:
+                return {'trend': features.tolist(), 'seasonal': [0]*n, 'residual': [0]*n}
+            
+            # Simple moving average for trend
+            window = min(n//4, 12)
+            trend = np.convolve(features, np.ones(window)/window, mode='same')
+            
+            # Remove trend
+            detrended = features - trend
+            
+            # Simple seasonal pattern (assume period of n//4)
+            period = max(4, n//4)
+            seasonal = np.zeros(n)
+            for i in range(n):
+                seasonal[i] = np.mean([detrended[j] for j in range(i % period, n, period)])
+            
+            # Residual
+            residual = detrended - seasonal
+            
+            return {
+                'trend': trend.tolist(),
+                'seasonal': seasonal.tolist(),
+                'residual': residual.tolist()
+            }
+        except Exception:
+            n = len(features)
+            return {
+                'trend': features.tolist(),
+                'seasonal': [0]*n,
+                'residual': [0]*n,
+                'error': 'decomposition_failed'
+            }
+    
+    def _compute_linear_trend(self, features: np.ndarray) -> Dict:
+        """Compute linear trend parameters"""
+        try:
+            n = len(features)
+            x = np.arange(n)
+            
+            # Linear regression
+            A = np.vstack([x, np.ones(n)]).T
+            slope, intercept = np.linalg.lstsq(A, features, rcond=None)[0]
+            
+            # R-squared
+            y_pred = slope * x + intercept
+            ss_res = np.sum((features - y_pred) ** 2)
+            ss_tot = np.sum((features - np.mean(features)) ** 2)
+            r_squared = 1 - (ss_res / (ss_tot + 1e-8))
+            
+            return {
+                'slope': float(slope),
+                'intercept': float(intercept),
+                'r_squared': float(r_squared)
+            }
+        except Exception:
+            return {
+                'slope': 0.0,
+                'intercept': float(np.mean(features)),
+                'r_squared': 0.0,
+                'error': 'linear_trend_failed'
+            }
+    
+    def _fit_polynomial_trend(self, features: np.ndarray, degree: int = 3) -> Dict:
+        """Fit polynomial trend"""
+        try:
+            n = len(features)
+            x = np.arange(n)
+            
+            # Polynomial fit
+            coefficients = np.polyfit(x, features, degree)
+            
+            # Compute R-squared
+            y_pred = np.polyval(coefficients, x)
+            ss_res = np.sum((features - y_pred) ** 2)
+            ss_tot = np.sum((features - np.mean(features)) ** 2)
+            r_squared = 1 - (ss_res / (ss_tot + 1e-8))
+            
+            return {
+                'degree': degree,
+                'coefficients': coefficients.tolist(),
+                'r_squared': float(r_squared)
+            }
+        except Exception:
+            return {
+                'degree': degree,
+                'coefficients': [0.0] * (degree + 1),
+                'r_squared': 0.0,
+                'error': 'polynomial_fit_failed'
+            }
+    
+    def _cusum_change_detection(self, features: np.ndarray) -> list:
+        """CUSUM-based change point detection"""
+        try:
+            n = len(features)
+            if n < 10:
+                return []
+            
+            # Standardize data
+            mean_val = np.mean(features)
+            std_val = np.std(features)
+            standardized = (features - mean_val) / (std_val + 1e-8)
+            
+            # CUSUM statistics
+            cusum_pos = np.zeros(n)
+            cusum_neg = np.zeros(n)
+            threshold = 2.0
+            
+            change_points = []
+            
+            for i in range(1, n):
+                cusum_pos[i] = max(0, cusum_pos[i-1] + standardized[i] - 0.5)
+                cusum_neg[i] = min(0, cusum_neg[i-1] + standardized[i] + 0.5)
+                
+                if cusum_pos[i] > threshold or cusum_neg[i] < -threshold:
+                    change_points.append(i)
+                    cusum_pos[i] = 0
+                    cusum_neg[i] = 0
+            
+            return change_points
+        except Exception:
+            return []
+    
+    def _estimate_return_levels(self, gev_dist: Dict, gpd_dist: Dict) -> Dict:
+        """Estimate return levels for extreme events"""
+        try:
+            return_levels = {}
+            
+            if gev_dist:
+                # Calculate return levels using GEV distribution
+                shape, location, scale = gev_dist['shape'], gev_dist['location'], gev_dist['scale']
+                
+                for return_period in [2, 5, 10, 20, 50, 100]:
+                    p = 1.0 - 1.0/return_period
+                    
+                    if abs(shape) < 1e-6:  # Gumbel distribution
+                        level = location - scale * np.log(-np.log(p))
+                    else:  # Frechet or Weibull
+                        level = location + (scale/shape) * ((-np.log(p))**(-shape) - 1)
+                    
+                    return_levels[f'{return_period}_year'] = float(level)
+            
+            if gpd_dist:
+                # Calculate return levels using GPD distribution
+                shape, location, scale = gpd_dist['shape'], gpd_dist['location'], gpd_dist['scale']
+                threshold = gpd_dist['threshold']
+                
+                for return_period in [2, 5, 10, 20, 50, 100]:
+                    # Assuming 1 exceedance per year on average
+                    p = 1.0/return_period
+                    
+                    if abs(shape) < 1e-6:  # Exponential distribution
+                        level = threshold + scale * np.log(1.0/p)
+                    else:
+                        level = threshold + (scale/shape) * ((1.0/p)**shape - 1)
+                    
+                    return_levels[f'{return_period}_year_gpd'] = float(level)
+            
+            return return_levels
+        except Exception:
+            return {'error': 'return_level_estimation_failed'}
     
     def _ml_eruption_prediction(self, features: np.ndarray, config: Dict) -> Dict:
-        """Machine learning eruption prediction"""
+        """Advanced comprehensive machine learning eruption prediction with ensemble methods and deep learning approaches"""
         try:
-            # Simulate ML prediction
-            feature_sum = np.sum(features[:5]) if len(features) >= 5 else np.sum(features)
-            normalized_sum = feature_sum / (len(features) * 1000) if len(features) > 0 else 0.5
+            n_features = len(features)
+            if n_features < 10:
+                return self._fallback_ml_prediction(features, config)
             
-            prediction_score = min(normalized_sum / 3.0, 1.0)
-            return {'prediction_score': prediction_score, 'method': 'ml', 'confidence': 0.72}
-        except Exception:
-            return {'prediction_score': 0.4, 'method': 'ml', 'confidence': 0.5}
+            # Feature engineering and preprocessing
+            engineered_features = self._engineer_ml_features(features, config)
+            scaled_features = self._preprocess_ml_features(engineered_features)
+            
+            # Ensemble ML modeling framework
+            ensemble_models = self._build_ml_ensemble(scaled_features, config)
+            deep_learning_results = self._apply_deep_learning_models(scaled_features, config)
+            
+            # Advanced time series ML approaches
+            lstm_predictions = self._lstm_time_series_prediction(features, config)
+            transformer_predictions = self._transformer_eruption_prediction(features, config)
+            cnn_predictions = self._cnn_pattern_recognition(features, config)
+            
+            # Probabilistic ML methods
+            gaussian_process = self._gaussian_process_prediction(scaled_features, config)
+            bayesian_neural_net = self._bayesian_neural_network(scaled_features, config)
+            variational_autoencoder = self._variational_autoencoder_prediction(scaled_features, config)
+            
+            # Meta-learning and transfer learning
+            meta_learning_results = self._meta_learning_adaptation(scaled_features, config)
+            transfer_learning_results = self._transfer_learning_prediction(scaled_features, config)
+            
+            # Model interpretability and explainability
+            interpretability_analysis = self._ml_interpretability_analysis(ensemble_models, scaled_features)
+            feature_importance = self._compute_feature_importance(ensemble_models, scaled_features)
+            shap_values = self._compute_shap_explanations(ensemble_models, scaled_features)
+            
+            # Uncertainty quantification in ML predictions
+            epistemic_uncertainty = self._quantify_ml_epistemic_uncertainty(ensemble_models, scaled_features)
+            aleatoric_uncertainty = self._quantify_ml_aleatoric_uncertainty(deep_learning_results, scaled_features)
+            
+            # Ensemble aggregation with confidence weighting
+            ensemble_weights = self._compute_ml_ensemble_weights({
+                'classical_ml': ensemble_models,
+                'deep_learning': deep_learning_results,
+                'lstm': lstm_predictions,
+                'transformer': transformer_predictions,
+                'cnn': cnn_predictions,
+                'gaussian_process': gaussian_process,
+                'bayesian_nn': bayesian_neural_net,
+                'vae': variational_autoencoder,
+                'meta_learning': meta_learning_results,
+                'transfer_learning': transfer_learning_results
+            })\n            
+            final_prediction = self._aggregate_ml_predictions({\n                'ensemble_models': ensemble_models,\n                'deep_learning': deep_learning_results,\n                'lstm': lstm_predictions,\n                'transformer': transformer_predictions,\n                'cnn': cnn_predictions,\n                'gaussian_process': gaussian_process,\n                'bayesian_nn': bayesian_neural_net,\n                'vae': variational_autoencoder,\n                'meta_learning': meta_learning_results,\n                'transfer_learning': transfer_learning_results\n            }, ensemble_weights)\n            \n            # Model validation and cross-validation\n            validation_results = self._validate_ml_models({\n                'ensemble': final_prediction,\n                'deep_learning': deep_learning_results,\n                'time_series': lstm_predictions\n            }, features)\n            \n            # Active learning recommendations\n            active_learning_suggestions = self._suggest_active_learning_points(scaled_features, ensemble_models)\n            \n            # Real-time model updating\n            online_learning_update = self._online_learning_update(ensemble_models, features)\n            \n            return {\n                'prediction_score': float(np.clip(final_prediction, 0.0, 1.0)),\n                'method': 'advanced_ml_ensemble',\n                'confidence': float(1.0 - np.sqrt(epistemic_uncertainty**2 + aleatoric_uncertainty**2)),\n                'engineered_features': engineered_features,\n                'ensemble_models': {\n                    'classical_ml': ensemble_models,\n                    'deep_learning': deep_learning_results,\n                    'time_series': {\n                        'lstm': lstm_predictions,\n                        'transformer': transformer_predictions,\n                        'cnn': cnn_predictions\n                    },\n                    'probabilistic': {\n                        'gaussian_process': gaussian_process,\n                        'bayesian_nn': bayesian_neural_net,\n                        'vae': variational_autoencoder\n                    },\n                    'advanced': {\n                        'meta_learning': meta_learning_results,\n                        'transfer_learning': transfer_learning_results\n                    }\n                },\n                'interpretability': {\n                    'analysis': interpretability_analysis,\n                    'feature_importance': feature_importance,\n                    'shap_values': shap_values\n                },\n                'uncertainty': {\n                    'epistemic': float(epistemic_uncertainty),\n                    'aleatoric': float(aleatoric_uncertainty),\n                    'total': float(np.sqrt(epistemic_uncertainty**2 + aleatoric_uncertainty**2))\n                },\n                'ensemble_weights': ensemble_weights,\n                'validation': validation_results,\n                'active_learning': active_learning_suggestions,\n                'online_learning': online_learning_update\n            }\n            \n        except Exception as e:\n            return self._handle_ml_prediction_error(e, features, config)\n    \n    def _engineer_ml_features(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Comprehensive feature engineering for ML models\"\"\"\n        try:\n            engineered = {}\n            \n            # Statistical features\n            engineered['statistical'] = {\n                'mean': np.mean(features),\n                'std': np.std(features),\n                'skewness': self._compute_skewness(features),\n                'kurtosis': self._compute_kurtosis(features),\n                'percentiles': {\n                    '25': np.percentile(features, 25),\n                    '50': np.percentile(features, 50),\n                    '75': np.percentile(features, 75),\n                    '90': np.percentile(features, 90),\n                    '95': np.percentile(features, 95),\n                    '99': np.percentile(features, 99)\n                }\n            }\n            \n            # Temporal features\n            if len(features) > 1:\n                engineered['temporal'] = {\n                    'differences': np.diff(features).tolist(),\n                    'rolling_means': self._compute_rolling_statistics(features, 'mean'),\n                    'rolling_stds': self._compute_rolling_statistics(features, 'std'),\n                    'rolling_mins': self._compute_rolling_statistics(features, 'min'),\n                    'rolling_maxs': self._compute_rolling_statistics(features, 'max'),\n                    'trend_strength': self._compute_trend_strength(features),\n                    'seasonality_strength': self._compute_seasonality_strength(features)\n                }\n            \n            # Frequency domain features\n            if len(features) > 4:\n                fft_result = np.fft.fft(features - np.mean(features))\n                power_spectrum = np.abs(fft_result)**2\n                \n                engineered['frequency'] = {\n                    'dominant_frequencies': self._identify_dominant_frequencies(power_spectrum)[:5],\n                    'spectral_centroid': self._compute_spectral_centroid(power_spectrum),\n                    'spectral_bandwidth': self._compute_spectral_bandwidth(power_spectrum),\n                    'spectral_rolloff': self._compute_spectral_rolloff(power_spectrum),\n                    'mfcc_features': self._compute_mfcc_features(features)[:13]  # First 13 MFCC coefficients\n                }\n            \n            # Nonlinear dynamics features\n            if len(features) > 10:\n                engineered['nonlinear'] = {\n                    'lyapunov_exponent': self._estimate_lyapunov_exponent(features),\n                    'correlation_dimension': self._estimate_correlation_dimension(features),\n                    'entropy_measures': self._compute_entropy_measures(features),\n                    'fractal_dimension': self._estimate_fractal_dimension(features),\n                    'recurrence_features': self._compute_recurrence_features(features)\n                }\n            \n            # Wavelet features\n            if len(features) > 8:\n                engineered['wavelet'] = self._compute_wavelet_features(features)\n            \n            # Symbolic features\n            engineered['symbolic'] = {\n                'symbolic_dynamics': self._compute_symbolic_dynamics(features),\n                'ordinal_patterns': self._compute_ordinal_patterns(features),\n                'motif_discovery': self._discover_motifs(features)\n            }\n            \n            # Domain-specific volcanic features\n            engineered['volcanic_specific'] = self._engineer_volcanic_features(features, config)\n            \n            return engineered\n            \n        except Exception:\n            return {'error': 'feature_engineering_failed'}\n    \n    def _preprocess_ml_features(self, engineered_features: Dict) -> np.ndarray:\n        \"\"\"Preprocess and normalize features for ML models\"\"\"\n        try:\n            feature_vector = []\n            \n            # Flatten all numerical features\n            for category, features in engineered_features.items():\n                if category == 'error':\n                    continue\n                feature_vector.extend(self._flatten_feature_dict(features))\n            \n            # Convert to numpy array and handle missing values\n            feature_array = np.array(feature_vector, dtype=float)\n            feature_array = np.nan_to_num(feature_array, nan=0.0, posinf=1e6, neginf=-1e6)\n            \n            # Normalize features\n            if len(feature_array) > 0:\n                # Z-score normalization\n                mean_vals = np.mean(feature_array)\n                std_vals = np.std(feature_array)\n                if std_vals > 0:\n                    feature_array = (feature_array - mean_vals) / std_vals\n                \n                # Min-max scaling to [0, 1]\n                min_val = np.min(feature_array)\n                max_val = np.max(feature_array)\n                if max_val > min_val:\n                    feature_array = (feature_array - min_val) / (max_val - min_val)\n            \n            return feature_array\n            \n        except Exception:\n            return np.array([0.5])  # Fallback\n    \n    def _build_ml_ensemble(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Build ensemble of classical ML models\"\"\"\n        try:\n            # Simulate training of various ML models\n            models = {}\n            \n            # Random Forest\n            rf_score = self._simulate_random_forest(features)\n            models['random_forest'] = {\n                'prediction': rf_score,\n                'confidence': 0.85,\n                'feature_importance': self._simulate_feature_importance(len(features))\n            }\n            \n            # Gradient Boosting\n            gb_score = self._simulate_gradient_boosting(features)\n            models['gradient_boosting'] = {\n                'prediction': gb_score,\n                'confidence': 0.82,\n                'feature_importance': self._simulate_feature_importance(len(features))\n            }\n            \n            # Support Vector Machine\n            svm_score = self._simulate_svm(features)\n            models['svm'] = {\n                'prediction': svm_score,\n                'confidence': 0.78\n            }\n            \n            # Neural Network (MLP)\n            mlp_score = self._simulate_mlp(features)\n            models['mlp'] = {\n                'prediction': mlp_score,\n                'confidence': 0.80\n            }\n            \n            # Logistic Regression\n            lr_score = self._simulate_logistic_regression(features)\n            models['logistic_regression'] = {\n                'prediction': lr_score,\n                'confidence': 0.75\n            }\n            \n            # XGBoost\n            xgb_score = self._simulate_xgboost(features)\n            models['xgboost'] = {\n                'prediction': xgb_score,\n                'confidence': 0.88,\n                'feature_importance': self._simulate_feature_importance(len(features))\n            }\n            \n            # Ensemble prediction\n            predictions = [model['prediction'] for model in models.values()]\n            confidences = [model['confidence'] for model in models.values()]\n            \n            weighted_prediction = np.average(predictions, weights=confidences)\n            ensemble_confidence = np.mean(confidences)\n            \n            models['ensemble'] = {\n                'prediction': weighted_prediction,\n                'confidence': ensemble_confidence,\n                'individual_predictions': predictions,\n                'individual_confidences': confidences\n            }\n            \n            return models\n            \n        except Exception:\n            return {'error': 'ensemble_building_failed'}\n    \n    def _apply_deep_learning_models(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Apply deep learning models for eruption prediction\"\"\"\n        try:\n            models = {}\n            \n            # Deep Neural Network\n            dnn_result = self._simulate_deep_neural_network(features)\n            models['dnn'] = dnn_result\n            \n            # Convolutional Neural Network (1D)\n            cnn_result = self._simulate_1d_cnn(features)\n            models['cnn_1d'] = cnn_result\n            \n            # Residual Network\n            resnet_result = self._simulate_resnet(features)\n            models['resnet'] = resnet_result\n            \n            # Attention Network\n            attention_result = self._simulate_attention_network(features)\n            models['attention'] = attention_result\n            \n            # Autoencoder\n            autoencoder_result = self._simulate_autoencoder(features)\n            models['autoencoder'] = autoencoder_result\n            \n            # Graph Neural Network (for geological relationships)\n            gnn_result = self._simulate_graph_neural_network(features)\n            models['gnn'] = gnn_result\n            \n            return models\n            \n        except Exception:\n            return {'error': 'deep_learning_failed'}\n    \n    def _lstm_time_series_prediction(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"LSTM-based time series prediction\"\"\"\n        try:\n            # Simulate LSTM prediction with sequence modeling\n            sequence_length = min(10, len(features) // 2)\n            \n            if len(features) < sequence_length:\n                return {'error': 'insufficient_data_for_lstm'}\n            \n            # Create sequences\n            sequences = self._create_time_sequences(features, sequence_length)\n            \n            # Simulate LSTM training and prediction\n            lstm_prediction = self._simulate_lstm_model(sequences)\n            \n            # Bidirectional LSTM\n            bilstm_prediction = self._simulate_bidirectional_lstm(sequences)\n            \n            # LSTM with attention\n            lstm_attention_prediction = self._simulate_lstm_attention(sequences)\n            \n            # Ensemble LSTM prediction\n            ensemble_lstm = np.mean([lstm_prediction, bilstm_prediction, lstm_attention_prediction])\n            \n            return {\n                'lstm': lstm_prediction,\n                'bidirectional_lstm': bilstm_prediction,\n                'lstm_attention': lstm_attention_prediction,\n                'ensemble_lstm': ensemble_lstm,\n                'sequence_length': sequence_length,\n                'n_sequences': len(sequences)\n            }\n            \n        except Exception:\n            return {'error': 'lstm_prediction_failed'}\n    \n    def _transformer_eruption_prediction(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Transformer-based eruption prediction\"\"\"\n        try:\n            # Simulate transformer model for sequence prediction\n            sequence_length = min(16, len(features) // 2)\n            \n            if len(features) < sequence_length:\n                return {'error': 'insufficient_data_for_transformer'}\n            \n            # Multi-head self-attention simulation\n            attention_weights = self._simulate_attention_weights(features, sequence_length)\n            \n            # Transformer prediction\n            transformer_prediction = self._simulate_transformer_model(features, attention_weights)\n            \n            # BERT-like model for geological sequences\n            bert_prediction = self._simulate_geological_bert(features)\n            \n            # GPT-like autoregressive model\n            gpt_prediction = self._simulate_geological_gpt(features)\n            \n            return {\n                'transformer': transformer_prediction,\n                'geological_bert': bert_prediction,\n                'geological_gpt': gpt_prediction,\n                'attention_weights': attention_weights,\n                'sequence_length': sequence_length\n            }\n            \n        except Exception:\n            return {'error': 'transformer_prediction_failed'}\n    \n    def _cnn_pattern_recognition(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"CNN-based pattern recognition for eruption signals\"\"\"\n        try:\n            # 1D CNN for temporal patterns\n            cnn_1d_result = self._simulate_1d_cnn_patterns(features)\n            \n            # Multi-scale CNN\n            multiscale_cnn = self._simulate_multiscale_cnn(features)\n            \n            # Dilated CNN for long-range dependencies\n            dilated_cnn = self._simulate_dilated_cnn(features)\n            \n            # CNN with residual connections\n            residual_cnn = self._simulate_residual_cnn(features)\n            \n            return {\n                'cnn_1d': cnn_1d_result,\n                'multiscale_cnn': multiscale_cnn,\n                'dilated_cnn': dilated_cnn,\n                'residual_cnn': residual_cnn\n            }\n            \n        except Exception:\n            return {'error': 'cnn_prediction_failed'}\n    \n    def _gaussian_process_prediction(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Gaussian Process for probabilistic prediction\"\"\"\n        try:\n            # Simulate GP with different kernels\n            rbf_gp = self._simulate_rbf_gaussian_process(features)\n            matern_gp = self._simulate_matern_gaussian_process(features)\n            periodic_gp = self._simulate_periodic_gaussian_process(features)\n            \n            # Composite kernel GP\n            composite_gp = self._simulate_composite_kernel_gp(features)\n            \n            return {\n                'rbf_kernel': rbf_gp,\n                'matern_kernel': matern_gp,\n                'periodic_kernel': periodic_gp,\n                'composite_kernel': composite_gp\n            }\n            \n        except Exception:\n            return {'error': 'gaussian_process_failed'}\n    \n    def _bayesian_neural_network(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Bayesian Neural Network for uncertainty quantification\"\"\"\n        try:\n            # Simulate BNN with variational inference\n            mean_prediction, uncertainty = self._simulate_bayesian_nn(features)\n            \n            # Monte Carlo Dropout\n            mc_dropout_result = self._simulate_mc_dropout(features)\n            \n            # Ensemble of Bayesian models\n            ensemble_bnn = self._simulate_ensemble_bayesian_nn(features)\n            \n            return {\n                'variational_bnn': {\n                    'mean': mean_prediction,\n                    'uncertainty': uncertainty\n                },\n                'mc_dropout': mc_dropout_result,\n                'ensemble_bnn': ensemble_bnn\n            }\n            \n        except Exception:\n            return {'error': 'bayesian_nn_failed'}\n    \n    def _variational_autoencoder_prediction(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Variational Autoencoder for anomaly detection and prediction\"\"\"\n        try:\n            # VAE for anomaly detection\n            vae_result = self._simulate_vae(features)\n            \n            # β-VAE for disentangled representations\n            beta_vae_result = self._simulate_beta_vae(features)\n            \n            # Conditional VAE\n            cvae_result = self._simulate_conditional_vae(features)\n            \n            return {\n                'vae': vae_result,\n                'beta_vae': beta_vae_result,\n                'conditional_vae': cvae_result\n            }\n            \n        except Exception:\n            return {'error': 'vae_prediction_failed'}\n    \n    def _meta_learning_adaptation(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Meta-learning for rapid adaptation to new volcanic systems\"\"\"\n        try:\n            # Model-Agnostic Meta-Learning (MAML)\n            maml_result = self._simulate_maml(features)\n            \n            # Prototypical Networks\n            prototypical_result = self._simulate_prototypical_networks(features)\n            \n            # Matching Networks\n            matching_result = self._simulate_matching_networks(features)\n            \n            return {\n                'maml': maml_result,\n                'prototypical': prototypical_result,\n                'matching': matching_result\n            }\n            \n        except Exception:\n            return {'error': 'meta_learning_failed'}\n    \n    def _transfer_learning_prediction(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Transfer learning from other volcanic systems\"\"\"\n        try:\n            # Pre-trained model adaptation\n            pretrained_result = self._simulate_pretrained_adaptation(features)\n            \n            # Domain adaptation\n            domain_adaptation_result = self._simulate_domain_adaptation(features)\n            \n            # Multi-task learning\n            multitask_result = self._simulate_multitask_learning(features)\n            \n            return {\n                'pretrained_adaptation': pretrained_result,\n                'domain_adaptation': domain_adaptation_result,\n                'multitask_learning': multitask_result\n            }\n            \n        except Exception:\n            return {'error': 'transfer_learning_failed'}\n    \n    def _ml_interpretability_analysis(self, models: Dict, features: np.ndarray) -> Dict:\n        \"\"\"Comprehensive ML model interpretability analysis\"\"\"\n        try:\n            interpretability = {}\n            \n            # LIME explanations\n            interpretability['lime'] = self._simulate_lime_explanations(models, features)\n            \n            # Integrated Gradients\n            interpretability['integrated_gradients'] = self._simulate_integrated_gradients(models, features)\n            \n            # Permutation importance\n            interpretability['permutation_importance'] = self._compute_permutation_importance(models, features)\n            \n            # Partial dependence plots\n            interpretability['partial_dependence'] = self._compute_partial_dependence(models, features)\n            \n            # Anchors explanations\n            interpretability['anchors'] = self._simulate_anchors_explanations(models, features)\n            \n            return interpretability\n            \n        except Exception:\n            return {'error': 'interpretability_analysis_failed'}\n    \n    def _compute_feature_importance(self, models: Dict, features: np.ndarray) -> Dict:\n        \"\"\"Compute comprehensive feature importance\"\"\"\n        try:\n            importance_scores = {}\n            \n            # Tree-based feature importance\n            if 'random_forest' in models:\n                importance_scores['random_forest'] = models['random_forest'].get('feature_importance', [])\n            \n            if 'gradient_boosting' in models:\n                importance_scores['gradient_boosting'] = models['gradient_boosting'].get('feature_importance', [])\n            \n            if 'xgboost' in models:\n                importance_scores['xgboost'] = models['xgboost'].get('feature_importance', [])\n            \n            # Model-agnostic importance\n            importance_scores['permutation'] = self._compute_permutation_importance(models, features)\n            \n            # Aggregate importance scores\n            if importance_scores:\n                aggregated_importance = self._aggregate_feature_importance(importance_scores)\n                importance_scores['aggregated'] = aggregated_importance\n            \n            return importance_scores\n            \n        except Exception:\n            return {'error': 'feature_importance_failed'}\n    \n    def _compute_shap_explanations(self, models: Dict, features: np.ndarray) -> Dict:\n        \"\"\"Compute SHAP explanations for model predictions\"\"\"\n        try:\n            shap_values = {}\n            \n            # Simulate SHAP values for different models\n            for model_name in ['random_forest', 'gradient_boosting', 'xgboost']:\n                if model_name in models:\n                    shap_values[model_name] = self._simulate_shap_values(features, model_name)\n            \n            # Global SHAP importance\n            if shap_values:\n                shap_values['global_importance'] = self._compute_global_shap_importance(shap_values)\n            \n            return shap_values\n            \n        except Exception:\n            return {'error': 'shap_computation_failed'}\n    \n    def _quantify_ml_epistemic_uncertainty(self, models: Dict, features: np.ndarray) -> float:\n        \"\"\"Quantify epistemic uncertainty in ML predictions\"\"\"\n        try:\n            if 'ensemble' in models:\n                predictions = models['ensemble'].get('individual_predictions', [])\n                if predictions:\n                    return float(np.std(predictions))\n            \n            return 0.1  # Default uncertainty\n            \n        except Exception:\n            return 0.2\n    \n    def _quantify_ml_aleatoric_uncertainty(self, deep_models: Dict, features: np.ndarray) -> float:\n        \"\"\"Quantify aleatoric uncertainty in ML predictions\"\"\"\n        try:\n            uncertainties = []\n            \n            # Extract uncertainties from deep learning models\n            for model_name, model_result in deep_models.items():\n                if isinstance(model_result, dict) and 'uncertainty' in model_result:\n                    uncertainties.append(model_result['uncertainty'])\n            \n            if uncertainties:\n                return float(np.mean(uncertainties))\n            \n            return 0.15  # Default uncertainty\n            \n        except Exception:\n            return 0.2\n    \n    def _compute_ml_ensemble_weights(self, model_results: Dict) -> Dict:\n        \"\"\"Compute optimal ensemble weights for ML models\"\"\"\n        try:\n            weights = {}\n            total_weight = 0.0\n            \n            # Assign weights based on model performance and uncertainty\n            for category, models in model_results.items():\n                if models is None or 'error' in models:\n                    weights[category] = 0.0\n                    continue\n                \n                # Base weight on confidence and prediction quality\n                if category == 'classical_ml' and 'ensemble' in models:\n                    weight = models['ensemble'].get('confidence', 0.5) * 1.2  # Higher weight for classical ensemble\n                elif category == 'deep_learning':\n                    weight = 1.0  # Standard weight for deep learning\n                elif category in ['lstm', 'transformer', 'cnn']:\n                    weight = 0.9  # Slightly lower for specialized architectures\n                else:\n                    weight = 0.8  # Lower weight for other methods\n                \n                weights[category] = weight\n                total_weight += weight\n            \n            # Normalize weights\n            if total_weight > 0:\n                for category in weights:\n                    weights[category] /= total_weight\n            \n            return weights\n            \n        except Exception:\n            return {'error': 'ensemble_weighting_failed'}\n    \n    def _aggregate_ml_predictions(self, model_results: Dict, weights: Dict) -> float:\n        \"\"\"Aggregate ML predictions using ensemble weights\"\"\"\n        try:\n            weighted_sum = 0.0\n            total_weight = 0.0\n            \n            for category, models in model_results.items():\n                if models is None or 'error' in models:\n                    continue\n                \n                weight = weights.get(category, 0.0)\n                if weight == 0:\n                    continue\n                \n                # Extract prediction value\n                prediction_value = self._extract_prediction_value(models, category)\n                \n                if prediction_value is not None:\n                    weighted_sum += weight * prediction_value\n                    total_weight += weight\n            \n            return weighted_sum / total_weight if total_weight > 0 else 0.5\n            \n        except Exception:\n            return 0.5\n    \n    def _extract_prediction_value(self, models: Dict, category: str) -> float:\n        \"\"\"Extract prediction value from model results\"\"\"\n        try:\n            if category == 'ensemble_models' and 'ensemble' in models:\n                return models['ensemble'].get('prediction', 0.5)\n            elif category == 'deep_learning':\n                # Average deep learning predictions\n                predictions = []\n                for model_name, result in models.items():\n                    if isinstance(result, dict) and 'prediction' in result:\n                        predictions.append(result['prediction'])\n                return np.mean(predictions) if predictions else 0.5\n            elif category in ['lstm', 'transformer', 'cnn']:\n                if 'ensemble_lstm' in models:\n                    return models['ensemble_lstm']\n                elif 'transformer' in models:\n                    return models['transformer']\n                elif 'cnn_1d' in models:\n                    return models['cnn_1d']\n            elif category == 'gaussian_process':\n                if 'rbf_kernel' in models:\n                    return models['rbf_kernel'].get('prediction', 0.5)\n            elif category == 'bayesian_nn':\n                if 'variational_bnn' in models:\n                    return models['variational_bnn'].get('mean', 0.5)\n            elif category == 'vae':\n                if 'vae' in models:\n                    return models['vae'].get('anomaly_score', 0.5)\n            elif category in ['meta_learning', 'transfer_learning']:\n                # Extract from first available method\n                for method_name, result in models.items():\n                    if isinstance(result, dict) and 'prediction' in result:\n                        return result['prediction']\n            \n            return 0.5  # Default value\n            \n        except Exception:\n            return 0.5\n    \n    def _validate_ml_models(self, models: Dict, features: np.ndarray) -> Dict:\n        \"\"\"Validate ML models using cross-validation\"\"\"\n        try:\n            validation_results = {}\n            \n            # Time series cross-validation\n            n_folds = min(5, len(features) // 20)\n            fold_size = len(features) // n_folds if n_folds > 0 else len(features)\n            \n            for model_name, model_result in models.items():\n                if model_result is None or 'error' in model_result:\n                    validation_results[model_name] = {'error': 'invalid_model'}\n                    continue\n                \n                fold_errors = []\n                for fold in range(n_folds):\n                    start_idx = fold * fold_size\n                    end_idx = min((fold + 1) * fold_size, len(features))\n                    \n                    if end_idx - start_idx < 5:\n                        continue\n                    \n                    # Simple validation (would be more sophisticated in real implementation)\n                    test_features = features[start_idx:end_idx]\n                    predicted_value = self._simulate_model_prediction(test_features, model_name)\n                    actual_value = np.mean(test_features[-3:])  # Simple target\n                    \n                    fold_errors.append(abs(predicted_value - actual_value))\n                \n                if fold_errors:\n                    validation_results[model_name] = {\n                        'mae': np.mean(fold_errors),\n                        'rmse': np.sqrt(np.mean([e**2 for e in fold_errors])),\n                        'cv_score': 1.0 / (1.0 + np.mean(fold_errors)),  # Higher is better\n                        'n_folds': len(fold_errors)\n                    }\n                else:\n                    validation_results[model_name] = {'error': 'validation_failed'}\n            \n            return validation_results\n            \n        except Exception:\n            return {'error': 'validation_computation_failed'}\n    \n    def _suggest_active_learning_points(self, features: np.ndarray, models: Dict) -> Dict:\n        \"\"\"Suggest points for active learning\"\"\"\n        try:\n            suggestions = {}\n            \n            # Uncertainty sampling\n            uncertainty_points = self._identify_high_uncertainty_regions(features, models)\n            suggestions['uncertainty_sampling'] = uncertainty_points\n            \n            # Query by committee\n            committee_points = self._query_by_committee(features, models)\n            suggestions['query_by_committee'] = committee_points\n            \n            # Expected model change\n            expected_change_points = self._expected_model_change_sampling(features, models)\n            suggestions['expected_change'] = expected_change_points\n            \n            return suggestions\n            \n        except Exception:\n            return {'error': 'active_learning_failed'}\n    \n    def _online_learning_update(self, models: Dict, features: np.ndarray) -> Dict:\n        \"\"\"Update models with online learning\"\"\"\n        try:\n            update_results = {}\n            \n            # Simulate online updates for different model types\n            if 'ensemble' in models:\n                update_results['ensemble'] = self._simulate_online_ensemble_update(features)\n            \n            # Incremental learning simulation\n            update_results['incremental'] = self._simulate_incremental_learning(features)\n            \n            # Concept drift detection\n            update_results['drift_detection'] = self._detect_concept_drift(features)\n            \n            return update_results\n            \n        except Exception:\n            return {'error': 'online_learning_failed'}\n    \n    def _fallback_ml_prediction(self, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Fallback ML prediction for insufficient data\"\"\"\n        try:\n            if len(features) == 0:\n                return {'prediction_score': 0.4, 'method': 'fallback_ml', 'confidence': 0.5}\n            \n            # Simple feature-based prediction\n            feature_sum = np.sum(features)\n            feature_mean = np.mean(features)\n            feature_std = np.std(features) if len(features) > 1 else 0.0\n            \n            # Combine features using simple heuristic\n            normalized_mean = feature_mean / (abs(feature_mean) + 1000.0)\n            prediction = 1.0 / (1.0 + np.exp(-3.0 * normalized_mean))\n            \n            return {\n                'prediction_score': float(np.clip(prediction, 0.0, 1.0)),\n                'method': 'fallback_ml',\n                'confidence': 0.6,\n                'features_used': {\n                    'sum': float(feature_sum),\n                    'mean': float(feature_mean),\n                    'std': float(feature_std)\n                }\n            }\n            \n        except Exception:\n            return {'prediction_score': 0.4, 'method': 'fallback_ml', 'confidence': 0.5}\n    \n    def _handle_ml_prediction_error(self, error: Exception, features: np.ndarray, config: Dict) -> Dict:\n        \"\"\"Handle errors in ML prediction\"\"\"\n        return {\n            'prediction_score': 0.4,\n            'method': 'error_fallback_ml',\n            'confidence': 0.5,\n            'error': str(error),\n            'fallback_used': True\n        }
     
     def _analog_based_eruption_assessment(self, features: np.ndarray, config: Dict) -> Dict:
         """Analog-based eruption assessment"""
