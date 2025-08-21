@@ -59,7 +59,15 @@
       "Bash(git reset:*)",
       "WebFetch(domain:github.com)",
       "Bash(git pull:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(where claude)",
+      "Bash(where node)",
+      "Bash(claude --version)",
+      "Bash(claude config --mcp list)",
+      "Bash(claude mcp:*)",
+      "Bash(npx @zilliz/claude-context-mcp@latest)",
+      "Bash(npx:*)",
+      "Bash(where npx)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
