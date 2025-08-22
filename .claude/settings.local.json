@@ -67,7 +67,8 @@
       "Bash(claude mcp:*)",
       "Bash(npx @zilliz/claude-context-mcp@latest)",
       "Bash(npx:*)",
-      "Bash(where npx)"
+      "Bash(where npx)",
+      "mcp__claude-context__index_codebase"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
