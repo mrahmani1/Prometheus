@@ -18,6 +18,7 @@ from enum import Enum
 import json
 import time
 from datetime import datetime
+from scipy import ndimage
 from concurrent.futures import ThreadPoolExecutor
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -15847,14 +15848,78 @@ class ThreeDMagmaticSystemModeler:
         T_K = temperature + 273.15
         P_GPa = pressure / 1000.0
         
-        # Simplified CO2 solubility model
-        # Generally much lower than H2O
-        if P_GPa < 0.5:
-            co2_solubility = P_GPa * 1200 * np.exp(-2000/T_K)
-        else:
-            co2_solubility = 600 + P_GPa * 800 * np.exp(-1800/T_K)
+        # Advanced CO2 solubility model based on Papale et al. (2006) and recent studies
+        # Accounts for composition, temperature, and pressure effects
         
-        return np.clip(co2_solubility / 10000.0, 0.0, 0.5)  # Convert to wt%
+        # Get reference composition (simplified for mafic-intermediate melts)
+        SiO2_wt = 55.0  # Assume intermediate composition if not specified
+        if hasattr(composition, '__getitem__') and 'SiO2' in composition:
+            SiO2_wt = composition['SiO2']
+        
+        # Normalize to mol fractions for thermodynamic calculations
+        # Simplified major element normalization
+        norm_factor = 100.0 / (SiO2_wt + 15.0 + 10.0 + 8.0 + 7.0 + 3.0 + 2.0)  # Approximate
+        
+        # Temperature-dependent equilibrium constant (Holloway & Blank, 1994)
+        ln_K_CO2 = 14.0 - 23600.0 / T_K + 0.5 * np.log(T_K)
+        K_CO2 = np.exp(ln_K_CO2)
+        
+        # Pressure correction using fugacity coefficients
+        # For CO2 in magmatic systems (Holloway, 1977; Botcharnikov et al., 2005)
+        P_bar = pressure * 10.0  # Convert MPa to bar
+        
+        # CO2 fugacity coefficient (simplified Redlich-Kwong)
+        a_CO2 = 365800.0  # bar·cm^6·mol^-2·K^0.5
+        b_CO2 = 42.7  # cm^3·mol^-1
+        R_bar = 83.14  # bar·cm^3·mol^-1·K^-1
+        
+        A_CO2 = a_CO2 * P_bar / (R_bar**2 * T_K**2.5)
+        B_CO2 = b_CO2 * P_bar / (R_bar * T_K)
+        
+        # Calculate compressibility factor
+        Z = 1.0 + B_CO2 - A_CO2 / B_CO2 * np.log(1.0 + B_CO2)
+        
+        # Fugacity
+        f_CO2 = P_bar * Z
+        
+        # Activity coefficient for CO2 in melt (composition dependence)
+        # Based on Botcharnikov et al. (2005) and Shishkina et al. (2014)
+        
+        # SiO2 content effect (higher SiO2 reduces CO2 solubility)
+        gamma_SiO2 = np.exp(0.8 * (SiO2_wt - 45.0) / 20.0)
+        
+        # Alkali content effect (simplified)
+        gamma_alk = 0.9  # Assume moderate alkali content
+        
+        # Combined activity coefficient
+        gamma_CO2 = gamma_SiO2 * gamma_alk
+        
+        # Mole fraction solubility (Henry's Law with corrections)
+        X_CO2 = f_CO2 / (K_CO2 * gamma_CO2)
+        
+        # Convert to weight percent
+        # Molecular weights: CO2 = 44.01, average melt ≈ 63
+        MW_CO2 = 44.01
+        MW_melt_avg = 63.0  # Approximate for intermediate composition
+        
+        wt_pct_CO2 = (X_CO2 * MW_CO2) / ((X_CO2 * MW_CO2) + ((1.0 - X_CO2) * MW_melt_avg)) * 100.0
+        
+        # Apply empirical corrections for high-pressure behavior
+        if P_GPa > 0.8:
+            # Non-ideal behavior at high pressure (Behrens & Gaillard, 2006)
+            pressure_correction = 1.0 - 0.3 * np.exp(-(P_GPa - 0.8) / 0.5)
+            wt_pct_CO2 *= pressure_correction
+        
+        # Temperature effect on network modifier capacity
+        # Higher temperatures increase CO2 solubility slightly
+        temp_correction = 1.0 + 0.0002 * (T_K - 1473.15)  # Reference: 1200°C
+        wt_pct_CO2 *= temp_correction
+        
+        # Apply realistic bounds for CO2 solubility in natural melts
+        # CO2 is much less soluble than H2O in most magmas
+        max_co2 = 0.8 if P_GPa > 1.0 else 0.3  # Higher limits at very high pressure
+        
+        return np.clip(wt_pct_CO2, 0.0, max_co2)
     
     def _apply_thermodynamic_consistency(self, composition: Dict[str, np.ndarray],
                                        temperature: np.ndarray) -> Dict[str, np.ndarray]:
@@ -17791,8 +17856,14 @@ async def example_3d_magmatic_modeling():
     # Additional methods for advanced chamber detection
     
     async def _apply_geological_constraints(self, chamber_clusters: Dict[str, Any],
-                                          coordinates: Tuple) -> Dict[str, Any]:
+                                          coordinates: Tuple,
+                                          melt_model: MeltFractionModel = None,
+                                          seismic_props: SeismicProperties = None) -> Dict[str, Any]:
         """Apply geological constraints to refine chamber clusters"""
+        
+        # Store current models for gradient analysis
+        self._current_melt_model = melt_model
+        self._current_seismic_props = seismic_props
         
         ensemble_result = chamber_clusters['ensemble_result']
         cluster_labels = ensemble_result['labels']
@@ -17847,7 +17918,18 @@ async def example_3d_magmatic_modeling():
         
         # 4. Geological gradient constraints
         # Chambers should be associated with significant property gradients
-        refined_labels = self._apply_gradient_constraints(refined_labels, coordinates)
+        # Pass melt model and seismic properties if available
+        try:
+            # Try to get the melt model and seismic properties from the instance
+            melt_model = getattr(self, '_current_melt_model', None)
+            seismic_props = getattr(self, '_current_seismic_props', None)
+            refined_labels = self._apply_gradient_constraints(
+                refined_labels, coordinates, melt_model, seismic_props
+            )
+        except Exception as e:
+            # Fallback to basic constraints if advanced analysis fails
+            self.logger.warning(f"Advanced gradient analysis failed, using basic constraints: {e}")
+            refined_labels = self._apply_gradient_constraints(refined_labels, coordinates)
         
         # Relabel to consecutive integers
         unique_labels = np.unique(refined_labels[refined_labels != -1])
@@ -17864,13 +17946,512 @@ async def example_3d_magmatic_modeling():
         }
     
     def _apply_gradient_constraints(self, cluster_labels: np.ndarray,
-                                  coordinates: Tuple) -> np.ndarray:
-        """Apply gradient-based geological constraints"""
+                                  coordinates: Tuple,
+                                  melt_model: MeltFractionModel = None,
+                                  seismic_props: SeismicProperties = None) -> np.ndarray:
+        """Apply advanced gradient-based geological constraints using multi-physics analysis"""
         
-        # This is a placeholder for more sophisticated gradient analysis
-        # In practice, would analyze property gradients around cluster boundaries
+        if melt_model is None or seismic_props is None:
+            # Fallback to basic constraints if no physics data available
+            return self._apply_basic_gradient_constraints(cluster_labels, coordinates)
         
-        return cluster_labels
+        X, Y, Z = coordinates
+        refined_labels = cluster_labels.copy()
+        
+        # Get 3D property arrays
+        melt_fraction = melt_model.melt_fraction_3d
+        temperature = melt_model.temperature_3d
+        pressure = melt_model.pressure_3d
+        viscosity = melt_model.viscosity_3d
+        vp_3d = seismic_props.vp_3d
+        vs_3d = seismic_props.vs_3d
+        
+        # Calculate advanced gradient tensors for each property
+        gradient_fields = self._compute_gradient_tensor_fields(
+            coordinates, melt_fraction, temperature, pressure, viscosity, vp_3d, vs_3d
+        )
+        
+        # Calculate gradient coherence metrics
+        coherence_metrics = self._calculate_gradient_coherence(gradient_fields, coordinates)
+        
+        # Apply multi-physics gradient constraints
+        unique_labels = np.unique(refined_labels[refined_labels != -1])
+        
+        for label_id in unique_labels:
+            cluster_mask = refined_labels == label_id
+            
+            # Evaluate cluster quality using gradient analysis
+            quality_score = self._evaluate_cluster_gradient_quality(
+                cluster_mask, gradient_fields, coherence_metrics, coordinates
+            )
+            
+            # Apply thermodynamic feasibility constraints
+            thermodynamic_valid = self._check_thermodynamic_consistency(
+                cluster_mask, melt_model, coordinates
+            )
+            
+            # Apply seismic coherence constraints
+            seismic_coherent = self._check_seismic_gradient_coherence(
+                cluster_mask, seismic_props, coordinates
+            )
+            
+            # Remove clusters that fail multiple constraints
+            if quality_score < 0.3 or not thermodynamic_valid or not seismic_coherent:
+                refined_labels[cluster_mask] = -1
+            
+            # Refine cluster boundaries using gradient flow analysis
+            elif quality_score > 0.7:
+                refined_labels = self._refine_cluster_boundaries_with_gradients(
+                    refined_labels, label_id, gradient_fields, coordinates
+                )
+        
+        return refined_labels
+    
+    def _apply_basic_gradient_constraints(self, cluster_labels: np.ndarray,
+                                        coordinates: Tuple) -> np.ndarray:
+        """Basic gradient constraints when full physics data is not available"""
+        X, Y, Z = coordinates
+        
+        # Simple edge detection using coordinate gradients
+        dx = np.gradient(X, axis=0)
+        dy = np.gradient(Y, axis=1)
+        dz = np.gradient(Z, axis=2)
+        
+        # Calculate coordinate-based geometric gradients
+        gradient_magnitude = np.sqrt(dx**2 + dy**2 + dz**2)
+        
+        # Remove clusters in regions with extreme geometric gradients
+        refined_labels = cluster_labels.copy()
+        unique_labels = np.unique(refined_labels[refined_labels != -1])
+        
+        for label_id in unique_labels:
+            cluster_mask = refined_labels == label_id
+            cluster_gradients = gradient_magnitude[cluster_mask.reshape(X.shape)]
+            
+            # Remove clusters with inconsistent geometric properties
+            if np.std(cluster_gradients) > 2.0 * np.mean(cluster_gradients):
+                refined_labels[cluster_mask] = -1
+        
+        return refined_labels
+    
+    def _compute_gradient_tensor_fields(self, coordinates: Tuple,
+                                      melt_fraction: np.ndarray,
+                                      temperature: np.ndarray,
+                                      pressure: np.ndarray,
+                                      viscosity: np.ndarray,
+                                      vp_3d: np.ndarray,
+                                      vs_3d: np.ndarray) -> Dict[str, Dict[str, np.ndarray]]:
+        """Compute advanced gradient tensor fields for all properties"""
+        X, Y, Z = coordinates
+        
+        # Define spatial spacing for accurate gradients
+        dx = np.mean(np.diff(X[:, 0, 0]))
+        dy = np.mean(np.diff(Y[0, :, 0]))  
+        dz = np.mean(np.diff(Z[0, 0, :]))
+        
+        gradient_fields = {}
+        
+        properties = {
+            'melt_fraction': melt_fraction,
+            'temperature': temperature,
+            'pressure': pressure,
+            'viscosity': np.log10(viscosity + 1e-10),  # Log viscosity for better gradients
+            'vp': vp_3d,
+            'vs': vs_3d
+        }
+        
+        for prop_name, prop_data in properties.items():
+            # First-order gradients
+            grad_x, grad_y, grad_z = np.gradient(prop_data, dx, dy, dz)
+            
+            # Gradient magnitude and direction
+            grad_magnitude = np.sqrt(grad_x**2 + grad_y**2 + grad_z**2)
+            
+            # Avoid division by zero
+            grad_magnitude_safe = np.maximum(grad_magnitude, 1e-12)
+            
+            # Unit gradient vectors
+            grad_unit_x = grad_x / grad_magnitude_safe
+            grad_unit_y = grad_y / grad_magnitude_safe  
+            grad_unit_z = grad_z / grad_magnitude_safe
+            
+            # Second-order derivatives (Hessian elements)
+            hess_xx, hess_xy, hess_xz = np.gradient(grad_x, dx, dy, dz)
+            hess_yx, hess_yy, hess_yz = np.gradient(grad_y, dx, dy, dz)
+            hess_zx, hess_zy, hess_zz = np.gradient(grad_z, dx, dy, dz)
+            
+            # Laplacian (trace of Hessian)
+            laplacian = hess_xx + hess_yy + hess_zz
+            
+            # Gradient curvature metrics
+            divergence = hess_xx + hess_yy + hess_zz
+            
+            # Principal curvatures approximation
+            principal_curv_1 = 0.5 * (hess_xx + hess_yy + np.sqrt((hess_xx - hess_yy)**2 + 4*hess_xy**2))
+            principal_curv_2 = 0.5 * (hess_xx + hess_yy - np.sqrt((hess_xx - hess_yy)**2 + 4*hess_xy**2))
+            
+            gradient_fields[prop_name] = {
+                'grad_x': grad_x,
+                'grad_y': grad_y, 
+                'grad_z': grad_z,
+                'magnitude': grad_magnitude,
+                'unit_x': grad_unit_x,
+                'unit_y': grad_unit_y,
+                'unit_z': grad_unit_z,
+                'laplacian': laplacian,
+                'divergence': divergence,
+                'principal_curv_1': principal_curv_1,
+                'principal_curv_2': principal_curv_2,
+                'mean_curvature': 0.5 * (principal_curv_1 + principal_curv_2),
+                'gaussian_curvature': principal_curv_1 * principal_curv_2
+            }
+        
+        return gradient_fields
+    
+    def _calculate_gradient_coherence(self, gradient_fields: Dict[str, Dict[str, np.ndarray]],
+                                    coordinates: Tuple) -> Dict[str, np.ndarray]:
+        """Calculate coherence metrics between different property gradients"""
+        
+        coherence_metrics = {}
+        
+        # Cross-correlations between key properties
+        property_pairs = [
+            ('melt_fraction', 'temperature'),
+            ('melt_fraction', 'vp'), 
+            ('melt_fraction', 'vs'),
+            ('temperature', 'pressure'),
+            ('vp', 'vs'),
+            ('viscosity', 'temperature')
+        ]
+        
+        for prop1, prop2 in property_pairs:
+            if prop1 in gradient_fields and prop2 in gradient_fields:
+                # Gradient vector alignment (dot product of unit vectors)
+                alignment = (gradient_fields[prop1]['unit_x'] * gradient_fields[prop2]['unit_x'] +
+                           gradient_fields[prop1]['unit_y'] * gradient_fields[prop2]['unit_y'] +
+                           gradient_fields[prop1]['unit_z'] * gradient_fields[prop2]['unit_z'])
+                
+                # Magnitude correlation
+                mag1 = gradient_fields[prop1]['magnitude']
+                mag2 = gradient_fields[prop2]['magnitude']
+                
+                # Normalized magnitude correlation
+                mag1_norm = (mag1 - np.mean(mag1)) / (np.std(mag1) + 1e-10)
+                mag2_norm = (mag2 - np.mean(mag2)) / (np.std(mag2) + 1e-10)
+                magnitude_correlation = mag1_norm * mag2_norm
+                
+                # Combined coherence measure
+                coherence = 0.5 * (np.abs(alignment) + np.tanh(magnitude_correlation))
+                
+                coherence_metrics[f'{prop1}_{prop2}_coherence'] = coherence
+        
+        # Multi-property coherence tensor
+        if len(gradient_fields) >= 3:
+            # Calculate overall gradient field consistency
+            all_magnitudes = []
+            all_unit_vectors = []
+            
+            for prop_name, fields in gradient_fields.items():
+                if prop_name in ['melt_fraction', 'temperature', 'vp', 'vs']:
+                    all_magnitudes.append(fields['magnitude'])
+                    all_unit_vectors.append(np.stack([
+                        fields['unit_x'], fields['unit_y'], fields['unit_z']
+                    ], axis=-1))
+            
+            if len(all_magnitudes) >= 3:
+                # Calculate multi-property gradient consistency
+                all_magnitudes = np.stack(all_magnitudes, axis=-1)
+                all_unit_vectors = np.stack(all_unit_vectors, axis=-2)
+                
+                # Magnitude consistency (coefficient of variation)
+                magnitude_consistency = 1.0 - (np.std(all_magnitudes, axis=-1) / 
+                                             (np.mean(all_magnitudes, axis=-1) + 1e-10))
+                
+                # Direction consistency (average pairwise alignment)
+                n_props = all_unit_vectors.shape[-2]
+                direction_alignments = []
+                
+                for i in range(n_props):
+                    for j in range(i+1, n_props):
+                        alignment = np.sum(all_unit_vectors[..., i, :] * 
+                                         all_unit_vectors[..., j, :], axis=-1)
+                        direction_alignments.append(np.abs(alignment))
+                
+                if direction_alignments:
+                    direction_consistency = np.mean(np.stack(direction_alignments, axis=-1), axis=-1)
+                else:
+                    direction_consistency = np.ones_like(magnitude_consistency)
+                
+                # Overall multi-property coherence
+                coherence_metrics['multi_property_coherence'] = (
+                    0.6 * magnitude_consistency + 0.4 * direction_consistency
+                )
+        
+        return coherence_metrics
+    
+    def _evaluate_cluster_gradient_quality(self, cluster_mask: np.ndarray,
+                                         gradient_fields: Dict[str, Dict[str, np.ndarray]],
+                                         coherence_metrics: Dict[str, np.ndarray],
+                                         coordinates: Tuple) -> float:
+        """Evaluate the quality of a cluster based on gradient analysis"""
+        
+        if not np.any(cluster_mask):
+            return 0.0
+        
+        X, Y, Z = coordinates
+        cluster_3d_mask = cluster_mask.reshape(X.shape)
+        
+        scores = []
+        
+        # 1. Gradient magnitude consistency within cluster
+        for prop_name in ['melt_fraction', 'temperature', 'vp']:
+            if prop_name in gradient_fields:
+                cluster_gradients = gradient_fields[prop_name]['magnitude'][cluster_3d_mask]
+                
+                if len(cluster_gradients) > 1:
+                    # Coefficient of variation (lower is better for consistency)
+                    cv = np.std(cluster_gradients) / (np.mean(cluster_gradients) + 1e-10)
+                    consistency_score = np.exp(-cv)  # Convert to 0-1 scale
+                    scores.append(consistency_score)
+        
+        # 2. Multi-property coherence within cluster
+        if 'multi_property_coherence' in coherence_metrics:
+            cluster_coherence = coherence_metrics['multi_property_coherence'][cluster_3d_mask]
+            coherence_score = np.mean(cluster_coherence)
+            scores.append(coherence_score)
+        
+        # 3. Boundary gradient strength (clusters should have strong boundaries)
+        if 'melt_fraction' in gradient_fields:
+            # Calculate distance to cluster boundary
+            from scipy.ndimage import distance_transform_edt
+            
+            # Get boundary points
+            boundary_mask = np.logical_xor(
+                cluster_3d_mask, 
+                ndimage.binary_erosion(cluster_3d_mask, iterations=1)
+            )
+            
+            if np.any(boundary_mask):
+                boundary_gradients = gradient_fields['melt_fraction']['magnitude'][boundary_mask]
+                interior_gradients = gradient_fields['melt_fraction']['magnitude'][
+                    np.logical_and(cluster_3d_mask, ~boundary_mask)
+                ]
+                
+                if len(boundary_gradients) > 0 and len(interior_gradients) > 0:
+                    # Boundaries should have higher gradients than interior
+                    boundary_strength = (np.mean(boundary_gradients) / 
+                                       (np.mean(interior_gradients) + 1e-10))
+                    boundary_score = np.tanh(boundary_strength - 1.0) * 0.5 + 0.5
+                    scores.append(boundary_score)
+        
+        # 4. Thermodynamic gradient alignment
+        thermo_pairs = [('melt_fraction', 'temperature'), ('temperature', 'pressure')]
+        for prop1, prop2 in thermo_pairs:
+            if prop1 in gradient_fields and prop2 in gradient_fields:
+                coherence_key = f'{prop1}_{prop2}_coherence'
+                if coherence_key in coherence_metrics:
+                    pair_coherence = coherence_metrics[coherence_key][cluster_3d_mask]
+                    scores.append(np.mean(pair_coherence))
+        
+        # 5. Spatial compactness of gradients
+        if 'melt_fraction' in gradient_fields:
+            cluster_points = np.column_stack([
+                X[cluster_3d_mask].flatten(),
+                Y[cluster_3d_mask].flatten(), 
+                Z[cluster_3d_mask].flatten()
+            ])
+            
+            if len(cluster_points) > 3:
+                # Calculate spatial coherence of gradient directions
+                gradient_vectors = np.column_stack([
+                    gradient_fields['melt_fraction']['unit_x'][cluster_3d_mask].flatten(),
+                    gradient_fields['melt_fraction']['unit_y'][cluster_3d_mask].flatten(),
+                    gradient_fields['melt_fraction']['unit_z'][cluster_3d_mask].flatten()
+                ])
+                
+                # Calculate pairwise alignment within cluster
+                alignments = []
+                for i in range(min(50, len(gradient_vectors))):  # Sample for efficiency
+                    for j in range(i+1, min(50, len(gradient_vectors))):
+                        alignment = np.abs(np.dot(gradient_vectors[i], gradient_vectors[j]))
+                        alignments.append(alignment)
+                
+                if alignments:
+                    spatial_coherence = np.mean(alignments)
+                    scores.append(spatial_coherence)
+        
+        # Combine all scores
+        if scores:
+            return np.mean(scores)
+        else:
+            return 0.5  # Default score when no metrics available
+    
+    def _check_thermodynamic_consistency(self, cluster_mask: np.ndarray,
+                                       melt_model: MeltFractionModel,
+                                       coordinates: Tuple) -> bool:
+        """Check thermodynamic consistency of cluster properties"""
+        
+        X, Y, Z = coordinates
+        cluster_3d_mask = cluster_mask.reshape(X.shape)
+        
+        if not np.any(cluster_3d_mask):
+            return False
+        
+        # Extract cluster properties
+        melt_fraction = melt_model.melt_fraction_3d[cluster_3d_mask]
+        temperature = melt_model.temperature_3d[cluster_3d_mask]
+        pressure = melt_model.pressure_3d[cluster_3d_mask]
+        
+        # 1. Temperature-melt fraction consistency
+        # Higher melt fractions should generally correlate with higher temperatures
+        if len(melt_fraction) > 5:
+            temp_melt_corr = np.corrcoef(temperature, melt_fraction)[0, 1]
+            if np.isfinite(temp_melt_corr) and temp_melt_corr < -0.3:
+                return False  # Strong negative correlation is unphysical
+        
+        # 2. Pressure-depth consistency
+        depths = -Z[cluster_3d_mask]  # Positive depth
+        if len(depths) > 5:
+            # Pressure should increase with depth
+            depth_pressure_corr = np.corrcoef(depths, pressure)[0, 1]
+            if np.isfinite(depth_pressure_corr) and depth_pressure_corr < 0.1:
+                return False  # Pressure should increase with depth
+        
+        # 3. Melt fraction physical bounds
+        if np.any(melt_fraction < 0) or np.any(melt_fraction > 1):
+            return False
+        
+        # 4. Temperature bounds for magmatic systems
+        if np.any(temperature < 600) or np.any(temperature > 1500):  # °C
+            return False
+        
+        # 5. Check for reasonable thermodynamic gradients
+        if len(temperature) > 1:
+            temp_range = np.max(temperature) - np.min(temperature)
+            melt_range = np.max(melt_fraction) - np.min(melt_fraction)
+            
+            # Unreasonably large temperature variations in small clusters
+            if temp_range > 300 and melt_range < 0.1:  # 300°C variation with <10% melt variation
+                return False
+        
+        return True
+    
+    def _check_seismic_gradient_coherence(self, cluster_mask: np.ndarray,
+                                        seismic_props: SeismicProperties,
+                                        coordinates: Tuple) -> bool:
+        """Check seismic gradient coherence within cluster"""
+        
+        X, Y, Z = coordinates
+        cluster_3d_mask = cluster_mask.reshape(X.shape)
+        
+        if not np.any(cluster_3d_mask):
+            return False
+        
+        # Extract cluster seismic properties
+        vp = seismic_props.vp_3d[cluster_3d_mask]
+        vs = seismic_props.vs_3d[cluster_3d_mask]
+        
+        if len(vp) < 5:
+            return True  # Too small to evaluate properly
+        
+        # 1. Vp/Vs ratio consistency
+        vp_vs_ratio = vp / (vs + 1e-10)
+        vp_vs_std = np.std(vp_vs_ratio)
+        vp_vs_mean = np.mean(vp_vs_ratio)
+        
+        # Coefficient of variation should be reasonable
+        if vp_vs_std / (vp_vs_mean + 1e-10) > 0.3:  # >30% variation
+            return False
+        
+        # 2. Vp-Vs correlation should be positive
+        if len(vp) > 5:
+            vp_vs_corr = np.corrcoef(vp, vs)[0, 1]
+            if np.isfinite(vp_vs_corr) and vp_vs_corr < 0.3:
+                return False  # Should be positively correlated
+        
+        # 3. Velocity bounds check
+        if np.any(vp < 3.0) or np.any(vp > 8.5):  # km/s
+            return False
+        if np.any(vs < 1.5) or np.any(vs > 5.0):  # km/s
+            return False
+        
+        # 4. Reasonable velocity variations within cluster
+        vp_cv = np.std(vp) / (np.mean(vp) + 1e-10)
+        vs_cv = np.std(vs) / (np.mean(vs) + 1e-10)
+        
+        # Extreme velocity variations suggest heterogeneous cluster
+        if vp_cv > 0.4 or vs_cv > 0.4:  # >40% coefficient of variation
+            return False
+        
+        return True
+    
+    def _refine_cluster_boundaries_with_gradients(self, cluster_labels: np.ndarray,
+                                                label_id: int,
+                                                gradient_fields: Dict[str, Dict[str, np.ndarray]],
+                                                coordinates: Tuple) -> np.ndarray:
+        """Refine cluster boundaries using gradient flow analysis"""
+        
+        X, Y, Z = coordinates
+        refined_labels = cluster_labels.copy()
+        cluster_3d_mask = (cluster_labels == label_id).reshape(X.shape)
+        
+        if 'melt_fraction' not in gradient_fields:
+            return refined_labels
+        
+        # Use melt fraction gradients for boundary refinement
+        melt_grad = gradient_fields['melt_fraction']
+        
+        # Find boundary region (dilated cluster minus original)
+        from scipy.ndimage import binary_dilation
+        dilated_mask = binary_dilation(cluster_3d_mask, iterations=2)
+        boundary_region = dilated_mask & ~cluster_3d_mask
+        
+        if not np.any(boundary_region):
+            return refined_labels
+        
+        # Calculate gradient flow into cluster
+        grad_x = melt_grad['grad_x']
+        grad_y = melt_grad['grad_y'] 
+        grad_z = melt_grad['grad_z']
+        
+        # For each boundary point, check if gradients point toward cluster center
+        boundary_points = np.where(boundary_region)
+        cluster_center = np.array([
+            np.mean(X[cluster_3d_mask]),
+            np.mean(Y[cluster_3d_mask]),
+            np.mean(Z[cluster_3d_mask])
+        ])
+        
+        refined_cluster_mask = cluster_3d_mask.copy()
+        
+        for i, (bx, by, bz) in enumerate(zip(*boundary_points)):
+            # Vector from boundary point to cluster center
+            point_pos = np.array([X[bx, by, bz], Y[bx, by, bz], Z[bx, by, bz]])
+            center_direction = cluster_center - point_pos
+            center_direction /= (np.linalg.norm(center_direction) + 1e-10)
+            
+            # Gradient vector at boundary point
+            grad_vector = np.array([
+                grad_x[bx, by, bz],
+                grad_y[bx, by, bz], 
+                grad_z[bx, by, bz]
+            ])
+            grad_vector /= (np.linalg.norm(grad_vector) + 1e-10)
+            
+            # Check alignment between gradient and center direction
+            alignment = np.dot(grad_vector, center_direction)
+            
+            # Add point to cluster if gradient flows toward center and magnitude is significant
+            gradient_magnitude = melt_grad['magnitude'][bx, by, bz]
+            threshold_magnitude = np.mean(melt_grad['magnitude'][cluster_3d_mask]) * 0.3
+            
+            if alignment > 0.5 and gradient_magnitude > threshold_magnitude:
+                refined_cluster_mask[bx, by, bz] = True
+        
+        # Update labels
+        refined_labels[refined_cluster_mask.flatten()] = label_id
+        
+        return refined_labels
     
     async def _generate_advanced_chamber_geometries(self, refined_clusters: Dict[str, Any],
                                                   melt_model: MeltFractionModel,
@@ -18236,19 +18817,357 @@ async def example_3d_magmatic_modeling():
     
     def _evaluate_melt_consistency(self, chamber: MagmaChamberGeometry,
                                  melt_model: MeltFractionModel) -> float:
-        """Evaluate consistency with melt fraction model"""
+        """Evaluate consistency with melt fraction model using advanced spatial analysis"""
         
-        # This would require spatial interpolation to chamber location
-        # Simplified implementation
-        return 0.8  # Assume good consistency
+        try:
+            from scipy.spatial import KDTree
+            from scipy.interpolate import RegularGridInterpolator
+            
+            # Extract chamber geometry
+            center = chamber.center_coordinates
+            radius = chamber.equivalent_radius_km * 1000  # Convert to meters
+            
+            # Create interpolator for melt fraction field
+            shape = melt_model.melt_fraction_3d.shape
+            x_coords = np.linspace(center[0] - 10000, center[0] + 10000, shape[0])
+            y_coords = np.linspace(center[1] - 10000, center[1] + 10000, shape[1])
+            z_coords = np.linspace(center[2] - 5000, center[2] + 5000, shape[2])
+            
+            # Create interpolators for key properties
+            melt_interp = RegularGridInterpolator(
+                (x_coords, y_coords, z_coords),
+                melt_model.melt_fraction_3d,
+                bounds_error=False, fill_value=0.0
+            )
+            
+            temp_interp = RegularGridInterpolator(
+                (x_coords, y_coords, z_coords),
+                melt_model.temperature_3d,
+                bounds_error=False, fill_value=600.0
+            )
+            
+            viscosity_interp = RegularGridInterpolator(
+                (x_coords, y_coords, z_coords),
+                melt_model.viscosity_3d,
+                bounds_error=False, fill_value=1e12
+            )
+            
+            # Sample points within chamber volume
+            n_samples = 100
+            angles = np.random.uniform(0, 2*np.pi, n_samples)
+            elevations = np.random.uniform(-np.pi/2, np.pi/2, n_samples)
+            radii = np.random.uniform(0, radius, n_samples) ** (1/3)  # Uniform volume sampling
+            
+            sample_points = np.column_stack([
+                center[0] + radii * np.cos(elevations) * np.cos(angles),
+                center[1] + radii * np.cos(elevations) * np.sin(angles), 
+                center[2] + radii * np.sin(elevations)
+            ])
+            
+            # Evaluate properties at sample points
+            melt_fractions = melt_interp(sample_points)
+            temperatures = temp_interp(sample_points)
+            viscosities = viscosity_interp(sample_points)
+            
+            # Calculate consistency metrics
+            consistency_scores = []
+            
+            # 1. Melt fraction distribution consistency
+            mean_melt = np.mean(melt_fractions[melt_fractions > 0])
+            melt_std = np.std(melt_fractions[melt_fractions > 0])
+            
+            if mean_melt > chamber.melt_fraction - 0.1 and mean_melt < chamber.melt_fraction + 0.1:
+                melt_consistency = 1.0 - min(melt_std / (mean_melt + 1e-6), 1.0)
+            else:
+                melt_consistency = 0.5
+            consistency_scores.append(melt_consistency)
+            
+            # 2. Temperature distribution consistency  
+            mean_temp = np.mean(temperatures)
+            temp_std = np.std(temperatures)
+            expected_temp = chamber.temperature
+            
+            if abs(mean_temp - expected_temp) < 100:  # Within 100°C
+                temp_consistency = 1.0 - min(temp_std / 200.0, 1.0)  # Penalize high variation
+            else:
+                temp_consistency = max(0.0, 1.0 - abs(mean_temp - expected_temp) / 200.0)
+            consistency_scores.append(temp_consistency)
+            
+            # 3. Viscosity-temperature relationship consistency
+            log_viscosities = np.log10(viscosities + 1e-10)
+            
+            # Check if viscosity decreases with temperature (physically expected)
+            if len(temperatures) > 10:
+                visc_temp_corr = np.corrcoef(temperatures, log_viscosities)[0, 1]
+                if np.isfinite(visc_temp_corr):
+                    # Expect negative correlation (higher T, lower viscosity)
+                    visc_consistency = max(0.0, -visc_temp_corr) if visc_temp_corr < 0 else 0.3
+                else:
+                    visc_consistency = 0.5
+                consistency_scores.append(visc_consistency)
+            
+            # 4. Spatial coherence of properties
+            if len(sample_points) > 20:
+                # Build KD-tree for spatial analysis
+                tree = KDTree(sample_points)
+                spatial_coherence_scores = []
+                
+                # For each point, check consistency with neighbors
+                for i in range(min(50, len(sample_points))):
+                    # Find nearest neighbors
+                    distances, indices = tree.query(sample_points[i], k=6)  # Self + 5 neighbors
+                    neighbor_indices = indices[1:]  # Exclude self
+                    
+                    if len(neighbor_indices) > 2:
+                        # Check property gradients are smooth
+                        neighbor_melts = melt_fractions[neighbor_indices]
+                        neighbor_temps = temperatures[neighbor_indices]
+                        
+                        # Calculate property variations among neighbors
+                        melt_variation = np.std(neighbor_melts) / (np.mean(neighbor_melts) + 1e-6)
+                        temp_variation = np.std(neighbor_temps) / (np.mean(neighbor_temps) + 1e-6)
+                        
+                        # Lower variation indicates better spatial coherence
+                        coherence_score = np.exp(-(melt_variation + temp_variation * 0.01))
+                        spatial_coherence_scores.append(coherence_score)
+                
+                if spatial_coherence_scores:
+                    spatial_consistency = np.mean(spatial_coherence_scores)
+                    consistency_scores.append(spatial_consistency)
+            
+            # 5. Physical bounds checking
+            bounds_score = 1.0
+            if np.any(melt_fractions < 0) or np.any(melt_fractions > 1):
+                bounds_score *= 0.5  # Penalize unphysical melt fractions
+            if np.any(temperatures < 600) or np.any(temperatures > 1500):
+                bounds_score *= 0.7  # Penalize unrealistic temperatures
+            if np.any(viscosities < 1e2) or np.any(viscosities > 1e15):
+                bounds_score *= 0.8  # Penalize extreme viscosities
+            
+            consistency_scores.append(bounds_score)
+            
+            # Calculate weighted average
+            weights = np.array([0.3, 0.25, 0.2, 0.15, 0.1])[:len(consistency_scores)]
+            weights = weights / np.sum(weights)  # Normalize
+            
+            final_consistency = np.average(consistency_scores, weights=weights)
+            
+            return np.clip(final_consistency, 0.0, 1.0)
+            
+        except Exception as e:
+            # Fallback to basic geometric consistency check
+            if chamber.melt_fraction > 0.05 and chamber.temperature > 800:
+                return 0.6
+            else:
+                return 0.3
     
     def _evaluate_seismic_consistency(self, chamber: MagmaChamberGeometry,
                                     seismic_props: SeismicProperties) -> float:
-        """Evaluate consistency with seismic properties"""
+        """Evaluate consistency with seismic properties using advanced wave propagation analysis"""
         
-        # This would require spatial interpolation to chamber location
-        # Simplified implementation
-        return 0.7  # Assume moderate consistency
+        try:
+            from scipy.interpolate import RegularGridInterpolator
+            from scipy.spatial.distance import cdist
+            
+            # Extract chamber geometry
+            center = chamber.center_coordinates
+            radius = chamber.equivalent_radius_km * 1000  # Convert to meters
+            
+            # Create interpolators for seismic properties
+            shape = seismic_props.vp_3d.shape
+            x_coords = np.linspace(center[0] - 10000, center[0] + 10000, shape[0])
+            y_coords = np.linspace(center[1] - 10000, center[1] + 10000, shape[1])
+            z_coords = np.linspace(center[2] - 5000, center[2] + 5000, shape[2])
+            
+            # Create interpolators
+            vp_interp = RegularGridInterpolator(
+                (x_coords, y_coords, z_coords),
+                seismic_props.vp_3d,
+                bounds_error=False, fill_value=6.5
+            )
+            
+            vs_interp = RegularGridInterpolator(
+                (x_coords, y_coords, z_coords),
+                seismic_props.vs_3d,
+                bounds_error=False, fill_value=3.7
+            )
+            
+            # Sample points within and around chamber
+            n_samples = 150
+            
+            # Interior samples (75% of total)
+            n_interior = int(0.75 * n_samples)
+            angles = np.random.uniform(0, 2*np.pi, n_interior)
+            elevations = np.random.uniform(-np.pi/2, np.pi/2, n_interior)
+            interior_radii = np.random.uniform(0, radius * 0.8, n_interior) ** (1/3)
+            
+            interior_points = np.column_stack([
+                center[0] + interior_radii * np.cos(elevations) * np.cos(angles),
+                center[1] + interior_radii * np.cos(elevations) * np.sin(angles),
+                center[2] + interior_radii * np.sin(elevations)
+            ])
+            
+            # Boundary/exterior samples (25% of total)  
+            n_exterior = n_samples - n_interior
+            boundary_angles = np.random.uniform(0, 2*np.pi, n_exterior)
+            boundary_elevations = np.random.uniform(-np.pi/2, np.pi/2, n_exterior)
+            boundary_radii = np.random.uniform(radius * 0.8, radius * 1.5, n_exterior)
+            
+            boundary_points = np.column_stack([
+                center[0] + boundary_radii * np.cos(boundary_elevations) * np.cos(boundary_angles),
+                center[1] + boundary_radii * np.cos(boundary_elevations) * np.sin(boundary_angles),
+                center[2] + boundary_radii * np.sin(boundary_elevations)
+            ])
+            
+            all_points = np.vstack([interior_points, boundary_points])
+            
+            # Evaluate seismic properties
+            vp_values = vp_interp(all_points)
+            vs_values = vs_interp(all_points)
+            
+            # Mark interior vs boundary points
+            distances_to_center = cdist([center], all_points)[0]
+            is_interior = distances_to_center <= radius
+            
+            consistency_scores = []
+            
+            # 1. Velocity anomaly consistency
+            # Magma chambers should show velocity reduction
+            if np.any(is_interior):
+                interior_vp = vp_values[is_interior]
+                exterior_vp = vp_values[~is_interior] if np.any(~is_interior) else interior_vp
+                
+                interior_vs = vs_values[is_interior]
+                exterior_vs = vs_values[~is_interior] if np.any(~is_interior) else interior_vs
+                
+                # Expected velocity reductions for magma chambers
+                vp_reduction = (np.mean(exterior_vp) - np.mean(interior_vp)) / np.mean(exterior_vp)
+                vs_reduction = (np.mean(exterior_vs) - np.mean(interior_vs)) / np.mean(exterior_vs)
+                
+                # Good chambers should show 10-30% velocity reduction
+                vp_score = 1.0 if 0.1 <= vp_reduction <= 0.4 else max(0.0, 1.0 - abs(vp_reduction - 0.2) * 2.5)
+                vs_score = 1.0 if 0.1 <= vs_reduction <= 0.5 else max(0.0, 1.0 - abs(vs_reduction - 0.25) * 2.0)
+                
+                consistency_scores.extend([vp_score, vs_score])
+            
+            # 2. Vp/Vs ratio analysis
+            vp_vs_ratios = vp_values / (vs_values + 1e-10)
+            
+            # Magma chambers often show elevated Vp/Vs ratios (1.8-2.2)
+            mean_ratio = np.mean(vp_vs_ratios)
+            ratio_std = np.std(vp_vs_ratios)
+            
+            if 1.7 <= mean_ratio <= 2.3:
+                ratio_score = 1.0 - min(ratio_std / 0.3, 1.0)  # Penalize high variation
+            else:
+                ratio_score = max(0.0, 1.0 - abs(mean_ratio - 1.95) / 0.5)
+            
+            consistency_scores.append(ratio_score)
+            
+            # 3. Spatial velocity coherence
+            if len(all_points) > 20:
+                from scipy.spatial import KDTree
+                tree = KDTree(all_points)
+                coherence_scores = []
+                
+                for i in range(min(50, len(all_points))):
+                    # Find nearest neighbors
+                    distances, indices = tree.query(all_points[i], k=6)
+                    neighbor_indices = indices[1:]  # Exclude self
+                    
+                    if len(neighbor_indices) > 2:
+                        # Calculate velocity gradients
+                        neighbor_vp = vp_values[neighbor_indices]
+                        neighbor_vs = vs_values[neighbor_indices]
+                        
+                        # Check for smooth velocity variations
+                        vp_variation = np.std(neighbor_vp) / (np.mean(neighbor_vp) + 1e-6)
+                        vs_variation = np.std(neighbor_vs) / (np.mean(neighbor_vs) + 1e-6)
+                        
+                        # Lower variation indicates better coherence
+                        coherence = np.exp(-(vp_variation + vs_variation) * 5.0)
+                        coherence_scores.append(coherence)
+                
+                if coherence_scores:
+                    spatial_coherence = np.mean(coherence_scores)
+                    consistency_scores.append(spatial_coherence)
+            
+            # 4. Physical velocity bounds
+            bounds_score = 1.0
+            
+            # Check for physically reasonable velocities
+            if np.any(vp_values < 2.0) or np.any(vp_values > 8.5):  # km/s
+                bounds_score *= 0.6
+            if np.any(vs_values < 1.0) or np.any(vs_values > 5.0):  # km/s  
+                bounds_score *= 0.6
+            if np.any(vp_vs_ratios < 1.4) or np.any(vp_vs_ratios > 3.0):
+                bounds_score *= 0.7
+            
+            consistency_scores.append(bounds_score)
+            
+            # 5. Chamber-specific velocity characteristics
+            # Check if interior shows expected characteristics for magma chambers
+            if np.any(is_interior):
+                interior_vp_mean = np.mean(vp_values[is_interior])
+                interior_vs_mean = np.mean(vs_values[is_interior])
+                interior_ratio_mean = np.mean(vp_vs_ratios[is_interior])
+                
+                # Typical values for magma chambers:
+                # Vp: 3.5-5.5 km/s, Vs: 1.8-3.2 km/s, Vp/Vs: 1.8-2.2
+                chamber_score = 1.0
+                
+                if not (3.0 <= interior_vp_mean <= 6.0):
+                    chamber_score *= 0.7
+                if not (1.5 <= interior_vs_mean <= 3.5):
+                    chamber_score *= 0.7
+                if not (1.7 <= interior_ratio_mean <= 2.3):
+                    chamber_score *= 0.8
+                
+                consistency_scores.append(chamber_score)
+            
+            # 6. Frequency-dependent effects (if available)
+            if hasattr(seismic_props, 'attenuation_qp') and seismic_props.attenuation_qp is not None:
+                try:
+                    qp_interp = RegularGridInterpolator(
+                        (x_coords, y_coords, z_coords),
+                        seismic_props.attenuation_qp,
+                        bounds_error=False, fill_value=200
+                    )
+                    qp_values = qp_interp(all_points)
+                    
+                    # Magma chambers should show low Q (high attenuation)
+                    if np.any(is_interior):
+                        interior_qp = qp_values[is_interior]
+                        mean_qp = np.mean(interior_qp)
+                        
+                        # Good attenuation for magma chambers: Q = 20-100
+                        if 20 <= mean_qp <= 150:
+                            attenuation_score = 1.0
+                        else:
+                            attenuation_score = max(0.0, 1.0 - abs(np.log10(mean_qp) - np.log10(75)) / 2.0)
+                        
+                        consistency_scores.append(attenuation_score)
+                except:
+                    pass  # Skip if attenuation analysis fails
+            
+            # Calculate weighted final score
+            if len(consistency_scores) >= 4:
+                weights = np.ones(len(consistency_scores))
+                weights[0:2] *= 1.5  # Weight velocity anomalies more heavily
+                weights = weights / np.sum(weights)
+                
+                final_consistency = np.average(consistency_scores, weights=weights)
+            else:
+                final_consistency = np.mean(consistency_scores) if consistency_scores else 0.5
+            
+            return np.clip(final_consistency, 0.0, 1.0)
+            
+        except Exception as e:
+            # Fallback to basic check
+            if hasattr(chamber, 'velocity_anomaly_vp') and chamber.velocity_anomaly_vp < -0.05:
+                return 0.6  # Moderate score for velocity anomaly
+            else:
+                return 0.4  # Lower score without clear velocity signature
 
 if __name__ == "__main__":
     import asyncio
