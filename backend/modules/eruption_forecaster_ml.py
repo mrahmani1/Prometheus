@@ -22,9 +22,18 @@ import json
 import asyncio
 from datetime import datetime, timedelta
 import logging
+import os
 from dataclasses import dataclass
 import warnings
 warnings.filterwarnings('ignore')
+
+# Deep Earth ML Integration
+try:
+    from .deep_earth_ml import DeepEarthMLSystem
+    DEEP_EARTH_ML_AVAILABLE = True
+except ImportError:
+    DEEP_EARTH_ML_AVAILABLE = False
+    logging.warning("Deep Earth ML not available. Thermal evolution features will be limited.")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -400,6 +409,11 @@ class EruptionForecaster:
         self.anomaly_detector = IsolationForest(contamination=0.1, random_state=42)
         self.feature_importance = {}
         
+        # Initialize Deep Earth ML system for thermal evolution
+        self.deep_earth_ml = None
+        if DEEP_EARTH_ML_AVAILABLE:
+            self._initialize_deep_earth_ml()
+        
         # Load pre-trained model if available
         if model_path and os.path.exists(model_path):
             self.load_model(model_path)
@@ -414,6 +428,149 @@ class EruptionForecaster:
         }
         
         logger.info("Eruption Forecaster initialized")
+    
+    def _initialize_deep_earth_ml(self):
+        """Initialize Deep Earth ML system configured for volcanic thermal evolution"""
+        try:
+            # Configure Deep Earth ML for volcanic thermal evolution
+            deep_earth_config = {
+                'use_physics_informed': True,  # Essential for thermal physics
+                'use_fourier_operator': True,  # For spatial thermal patterns
+                'use_deeponet': True,         # For operator learning in thermal evolution
+                'use_graph_operator': False,  # Not needed for thermal evolution
+                'learning_rate': 1e-4,
+                'hidden_dim': 256,           # Higher capacity for complex thermal dynamics
+                'fno_modes': 24,             # Suitable for volcanic thermal patterns
+                'fno_width': 128,
+                'num_layers': 6              # Deep enough for thermal evolution complexity
+            }
+            
+            self.deep_earth_ml = DeepEarthMLSystem(**deep_earth_config)
+            logger.info("Deep Earth ML system initialized for volcanic thermal evolution")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize Deep Earth ML system: {e}")
+            self.deep_earth_ml = None
+    
+    def get_thermal_evolution_features(self, coordinates: Tuple[float, float], 
+                                     depth_range: Tuple[float, float],
+                                     time_horizon_days: int = 30) -> Dict[str, np.ndarray]:
+        """
+        Extract thermal evolution features from Deep Earth ML for volcanic forecasting
+        
+        Args:
+            coordinates: (latitude, longitude) of volcanic system
+            depth_range: (min_depth, max_depth) in meters for thermal analysis
+            time_horizon_days: Time horizon for thermal evolution prediction
+            
+        Returns:
+            Dictionary containing thermal evolution features for eruption prediction
+        """
+        if not self.deep_earth_ml:
+            logger.warning("Deep Earth ML not available. Returning default thermal features.")
+            return self._get_default_thermal_features(time_horizon_days)
+        
+        try:
+            # Create 3D volcanic thermal model grid
+            lat, lon = coordinates
+            min_depth, max_depth = depth_range
+            
+            # Volcanic depth levels (focused on magma chamber depths)
+            depths = np.linspace(min_depth, max_depth, 20)  # 20 depth levels
+            volcanic_grid = np.array([[lat, lon, d] for d in depths])
+            
+            # Time points for thermal evolution (daily resolution)
+            time_points = np.arange(0, time_horizon_days + 1, 1.0)  # Daily time steps
+            
+            # Run thermal evolution simulation
+            thermal_evolution_results = []
+            current_temp = None
+            
+            for day in time_points:
+                # Get thermal state at current time
+                if current_temp is None:
+                    # Initialize with geothermal background
+                    current_temp = self.deep_earth_ml.get_thermal_field(volcanic_grid)
+                else:
+                    # Evolve thermal field forward
+                    dt = 86400.0  # 1 day in seconds
+                    current_temp = self.deep_earth_ml.evolve_thermal_field(
+                        current_temp, volcanic_grid, dt
+                    )
+                
+                thermal_evolution_results.append(current_temp.copy())
+            
+            # Convert to numpy array for analysis
+            thermal_evolution = np.array(thermal_evolution_results)  # Shape: (time_steps, depth_levels)
+            
+            # Extract key thermal features for eruption prediction
+            features = {}
+            
+            # 1. Thermal gradient features
+            depth_gradients = np.gradient(thermal_evolution, axis=1)  # dT/dz at each time
+            features['thermal_gradient_mean'] = np.mean(depth_gradients, axis=1)
+            features['thermal_gradient_std'] = np.std(depth_gradients, axis=1)
+            features['thermal_gradient_max'] = np.max(np.abs(depth_gradients), axis=1)
+            
+            # 2. Temporal thermal change features
+            if len(thermal_evolution) > 1:
+                temporal_changes = np.diff(thermal_evolution, axis=0)
+                features['thermal_rate_mean'] = np.mean(temporal_changes, axis=1)
+                features['thermal_rate_std'] = np.std(temporal_changes, axis=1)
+                features['thermal_acceleration'] = np.diff(features['thermal_rate_mean'])
+            else:
+                features['thermal_rate_mean'] = np.zeros(1)
+                features['thermal_rate_std'] = np.zeros(1)
+                features['thermal_acceleration'] = np.zeros(1)
+            
+            # 3. Depth-integrated thermal features
+            features['integrated_thermal_energy'] = np.trapz(thermal_evolution, axis=1)
+            features['thermal_center_of_mass'] = np.array([
+                np.trapz(thermal_evolution[i] * depths, depths) / np.trapz(thermal_evolution[i], depths)
+                for i in range(len(thermal_evolution))
+            ])
+            
+            # 4. Thermal anomaly detection
+            baseline_temp = thermal_evolution[0]  # Initial thermal state
+            thermal_anomalies = thermal_evolution - baseline_temp
+            features['thermal_anomaly_magnitude'] = np.max(np.abs(thermal_anomalies), axis=1)
+            features['thermal_anomaly_volume'] = np.sum(thermal_anomalies > 50.0, axis=1)  # Points >50K above baseline
+            
+            # 5. Critical thermal thresholds
+            magma_temp_threshold = 1200.0  # Approximate solidus temperature for basaltic magma
+            features['critical_thermal_fraction'] = np.sum(thermal_evolution > magma_temp_threshold, axis=1) / len(depths)
+            
+            # 6. Thermal stability indicators
+            thermal_variance = np.var(thermal_evolution, axis=1)
+            features['thermal_stability'] = 1.0 / (1.0 + thermal_variance)  # Inverse stability
+            
+            logger.info(f"Generated thermal evolution features for {time_horizon_days} days")
+            return features
+            
+        except Exception as e:
+            logger.error(f"Error in thermal evolution feature extraction: {e}")
+            return self._get_default_thermal_features(time_horizon_days)
+    
+    def _get_default_thermal_features(self, time_horizon_days: int) -> Dict[str, np.ndarray]:
+        """Generate default thermal features when Deep Earth ML is not available"""
+        features = {}
+        time_points = np.arange(time_horizon_days + 1)
+        
+        # Default features (zeros or simple models)
+        features['thermal_gradient_mean'] = np.zeros(len(time_points))
+        features['thermal_gradient_std'] = np.zeros(len(time_points))
+        features['thermal_gradient_max'] = np.zeros(len(time_points))
+        features['thermal_rate_mean'] = np.zeros(max(1, len(time_points) - 1))
+        features['thermal_rate_std'] = np.zeros(max(1, len(time_points) - 1))
+        features['thermal_acceleration'] = np.zeros(max(1, len(time_points) - 2))
+        features['integrated_thermal_energy'] = np.zeros(len(time_points))
+        features['thermal_center_of_mass'] = np.zeros(len(time_points))
+        features['thermal_anomaly_magnitude'] = np.zeros(len(time_points))
+        features['thermal_anomaly_volume'] = np.zeros(len(time_points))
+        features['critical_thermal_fraction'] = np.zeros(len(time_points))
+        features['thermal_stability'] = np.ones(len(time_points))
+        
+        return features
     
     def train(self, data: pd.DataFrame, epochs: int = 100, 
               val_split: float = 0.2, optimize_hyperparameters: bool = True):
@@ -593,7 +750,21 @@ class EruptionForecaster:
         return forecast
     
     def prepare_prediction_data(self, monitoring_data: Dict) -> torch.Tensor:
-        """Prepare monitoring data for model prediction"""
+        """Prepare monitoring data for model prediction with thermal evolution features"""
+        # Extract thermal evolution features if coordinates are available
+        thermal_features = {}
+        if self.deep_earth_ml and 'coordinates' in monitoring_data and 'depth_range' in monitoring_data:
+            try:
+                thermal_features = self.get_thermal_evolution_features(
+                    coordinates=monitoring_data['coordinates'],
+                    depth_range=monitoring_data['depth_range'],
+                    time_horizon_days=30
+                )
+                logger.info("Integrated thermal evolution features into prediction data")
+            except Exception as e:
+                logger.warning(f"Failed to get thermal evolution features: {e}")
+                thermal_features = {}
+        
         # Extract time series data (last 30 days)
         sequence_data = []
         
@@ -624,6 +795,44 @@ class EruptionForecaster:
                 monitoring_data.get('regional_seismicity', [0]*30)[day],
                 monitoring_data.get('precipitation', [0]*30)[day]
             ]
+            
+            # Add thermal evolution features if available
+            if thermal_features:
+                try:
+                    if day < len(thermal_features.get('thermal_gradient_mean', [])):
+                        daily_features.extend([
+                            thermal_features['thermal_gradient_mean'][day],
+                            thermal_features['thermal_gradient_std'][day],
+                            thermal_features['thermal_gradient_max'][day],
+                            thermal_features['integrated_thermal_energy'][day],
+                            thermal_features['thermal_center_of_mass'][day],
+                            thermal_features['thermal_anomaly_magnitude'][day],
+                            thermal_features['thermal_anomaly_volume'][day],
+                            thermal_features['critical_thermal_fraction'][day],
+                            thermal_features['thermal_stability'][day]
+                        ])
+                        
+                        # Add temporal thermal features (if available for this day)
+                        if day < len(thermal_features.get('thermal_rate_mean', [])):
+                            daily_features.extend([
+                                thermal_features['thermal_rate_mean'][day],
+                                thermal_features['thermal_rate_std'][day]
+                            ])
+                        else:
+                            daily_features.extend([0.0, 0.0])  # Default values
+                            
+                        # Add thermal acceleration (if available for this day)
+                        if day < len(thermal_features.get('thermal_acceleration', [])):
+                            daily_features.append(thermal_features['thermal_acceleration'][day])
+                        else:
+                            daily_features.append(0.0)  # Default value
+                    else:
+                        # Default thermal features if day is out of range
+                        daily_features.extend([0.0] * 12)  # 12 thermal features
+                except Exception as e:
+                    logger.warning(f"Error adding thermal features for day {day}: {e}")
+                    daily_features.extend([0.0] * 12)  # Default thermal features
+            
             sequence_data.append(daily_features)
         
         return torch.FloatTensor(sequence_data).unsqueeze(0)  # Add batch dimension

@@ -48,6 +48,14 @@ import logging
 from typing import Dict, List, Tuple, Optional, Union, Callable, Any
 from dataclasses import dataclass, field
 from enum import Enum
+
+# Import database integration for geological data access
+try:
+    from .database_integration import DatabaseIntegration, GeologicalDataQuery
+    DATABASE_INTEGRATION_AVAILABLE = True
+except ImportError:
+    DATABASE_INTEGRATION_AVAILABLE = False
+    logging.warning("Database integration not available. Data queries will be limited.")
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import matplotlib.pyplot as plt
@@ -633,12 +641,74 @@ class PhysicsInformedConvectionNN(nn.Module):
         radiative_diffusion = k_rad * rad_factor * (dT_dr.pow(2) + dT_dtheta.pow(2) + dT_dphi.pow(2))
         
         # 8. TIME DERIVATIVE: ρCp(∂T/∂t)
-        # Use backward finite difference for temporal derivative
-        if dt > 0:
-            # Assuming previous temperature is stored or can be estimated
-            dT_dt = torch.zeros_like(T)  # Placeholder - would need temporal coupling
+        # Advanced temporal derivative calculation with adaptive time stepping
+        if dt > 0 and hasattr(self, 'previous_temperature') and self.previous_temperature is not None:
+            # Multi-order finite difference schemes with stability analysis
+            if hasattr(self, 'temperature_history') and len(self.temperature_history) >= 3:
+                # Third-order backward finite difference for improved accuracy
+                T_curr = T
+                T_prev1 = self.temperature_history[-1]
+                T_prev2 = self.temperature_history[-2]
+                T_prev3 = self.temperature_history[-3]
+                
+                # Adaptive time step analysis for stability
+                dt_adaptive = max(dt, 1e-6)  # Prevent division by zero
+                
+                # Third-order backward difference: (11T_n - 18T_{n-1} + 9T_{n-2} - 2T_{n-3}) / (6Δt)
+                dT_dt = (11.0 * T_curr - 18.0 * T_prev1 + 9.0 * T_prev2 - 2.0 * T_prev3) / (6.0 * dt_adaptive)
+                
+            elif len(self.temperature_history) >= 2:
+                # Second-order backward finite difference
+                T_curr = T
+                T_prev1 = self.temperature_history[-1] 
+                T_prev2 = self.temperature_history[-2]
+                dt_adaptive = max(dt, 1e-6)
+                
+                # Second-order: (3T_n - 4T_{n-1} + T_{n-2}) / (2Δt)
+                dT_dt = (3.0 * T_curr - 4.0 * T_prev1 + T_prev2) / (2.0 * dt_adaptive)
+                
+            else:
+                # First-order backward finite difference (fallback)
+                dt_adaptive = max(dt, 1e-6)
+                dT_dt = (T - self.previous_temperature) / dt_adaptive
+                
+            # Apply thermal diffusion stability constraints
+            # CFL condition: α * dt / dx² < 0.5 for stability
+            thermal_diffusivity = 1e-6  # Typical rock thermal diffusivity (m²/s)
+            grid_spacing = 1000.0  # Assume 1km grid spacing
+            cfl_limit = 0.5 * grid_spacing**2 / thermal_diffusivity
+            
+            if dt > cfl_limit:
+                # Apply damping for numerical stability
+                stability_factor = cfl_limit / dt
+                dT_dt = dT_dt * stability_factor
+                
         else:
+            # Initialize temperature history storage
+            if not hasattr(self, 'temperature_history'):
+                self.temperature_history = []
+            if not hasattr(self, 'previous_temperature'):
+                self.previous_temperature = T.clone().detach()
+            
+            # For initial conditions or missing temporal data
+            # Use steady-state approximation or geological gradient
             dT_dt = torch.zeros_like(T)
+            
+            # Optional: Apply geothermal gradient for initial heating rate estimation
+            if hasattr(self, 'apply_geothermal_gradient') and self.apply_geothermal_gradient:
+                # Typical geothermal gradient: ~25°C/km = 25e-3 K/m
+                geothermal_rate = 25e-3 / (365.25 * 24 * 3600)  # K/s per meter depth
+                depth_gradient = torch.linspace(0, 1, T.shape[-1] if T.ndim > 0 else 1)
+                dT_dt = geothermal_rate * depth_gradient.expand_as(T)
+        
+        # Update temperature history for next iteration
+        if hasattr(self, 'temperature_history'):
+            self.temperature_history.append(T.clone().detach())
+            # Keep only last 5 time steps for memory efficiency
+            if len(self.temperature_history) > 5:
+                self.temperature_history.pop(0)
+        
+        self.previous_temperature = T.clone().detach()
         
         temporal_term = rho * Cp * dT_dt
         
@@ -1282,6 +1352,16 @@ class DeepEarthMLSystem:
         # Model performance metrics
         self.metrics = {}
         
+        # Database integration for geological data access
+        self.db_integration = None
+        if DATABASE_INTEGRATION_AVAILABLE:
+            try:
+                self.db_integration = DatabaseIntegration()
+                logging.info("Database integration initialized successfully")
+            except Exception as e:
+                logging.warning(f"Failed to initialize database integration: {e}")
+                self.db_integration = None
+        
         # Initialize system components
         self._initialize_models()
         
@@ -1840,6 +1920,122 @@ class DeepEarthMLSystem:
             json.dump(self.metrics, f, indent=2)
         
         logger.info(f"Models saved to {save_directory}")
+    
+    def get_geological_data(self, query_params: Dict) -> Dict:
+        """
+        Retrieve geological data from database integration
+        
+        Args:
+            query_params: Dictionary containing query parameters such as:
+                - location: (lat, lon) tuple
+                - depth_range: (min_depth, max_depth) tuple in km
+                - data_types: list of data types to retrieve
+                - time_range: (start_time, end_time) for temporal data
+        
+        Returns:
+            Dictionary containing requested geological data
+        """
+        if not self.db_integration:
+            logging.warning("Database integration not available")
+            return {}
+        
+        try:
+            # Extract query parameters
+            location = query_params.get('location', (0.0, 0.0))
+            depth_range = query_params.get('depth_range', (0, 100))
+            data_types = query_params.get('data_types', ['temperature', 'velocity', 'pressure'])
+            time_range = query_params.get('time_range', None)
+            
+            geological_data = {}
+            
+            # Query temperature data for thermal models
+            if 'temperature' in data_types:
+                temp_query = GeologicalDataQuery(
+                    location=location,
+                    depth_range=depth_range,
+                    data_type='temperature',
+                    time_range=time_range
+                )
+                geological_data['temperature'] = self.db_integration.execute_geological_query(temp_query)
+            
+            # Query velocity field data
+            if 'velocity' in data_types:
+                vel_query = GeologicalDataQuery(
+                    location=location,
+                    depth_range=depth_range,
+                    data_type='velocity',
+                    time_range=time_range
+                )
+                geological_data['velocity'] = self.db_integration.execute_geological_query(vel_query)
+            
+            # Query pressure data
+            if 'pressure' in data_types:
+                press_query = GeologicalDataQuery(
+                    location=location,
+                    depth_range=depth_range,
+                    data_type='pressure',
+                    time_range=time_range
+                )
+                geological_data['pressure'] = self.db_integration.execute_geological_query(press_query)
+            
+            # Query seismic data if requested
+            if 'seismic' in data_types:
+                seismic_query = GeologicalDataQuery(
+                    location=location,
+                    depth_range=depth_range,
+                    data_type='seismic',
+                    time_range=time_range
+                )
+                geological_data['seismic'] = self.db_integration.execute_geological_query(seismic_query)
+            
+            logging.info(f"Successfully retrieved geological data for {len(data_types)} data types")
+            return geological_data
+            
+        except Exception as e:
+            logging.error(f"Error retrieving geological data: {e}")
+            return {}
+    
+    def update_thermal_model_with_data(self, geological_data: Dict) -> None:
+        """
+        Update thermal models with real geological data from database
+        
+        Args:
+            geological_data: Dictionary containing temperature, velocity, and other data
+        """
+        try:
+            if 'temperature' in geological_data and geological_data['temperature']:
+                temp_data = geological_data['temperature']
+                
+                # Update temperature history for temporal derivatives
+                if hasattr(self, 'temperature_history'):
+                    # Convert database temperature data to torch tensors
+                    if isinstance(temp_data, (list, np.ndarray)):
+                        temp_tensor = torch.tensor(temp_data, dtype=torch.float32)
+                        self.temperature_history.append(temp_tensor)
+                        
+                        # Maintain history size
+                        if len(self.temperature_history) > 5:
+                            self.temperature_history.pop(0)
+                            
+                        logging.info(f"Updated temperature history with {len(temp_data)} data points")
+            
+            if 'velocity' in geological_data and geological_data['velocity']:
+                vel_data = geological_data['velocity']
+                
+                # Update velocity fields for convection models
+                if hasattr(self.neural_operators, 'pinn'):
+                    pinn_model = self.neural_operators['pinn']
+                    if hasattr(pinn_model, 'update_velocity_field'):
+                        vel_tensor = torch.tensor(vel_data, dtype=torch.float32)
+                        pinn_model.update_velocity_field(vel_tensor)
+                        logging.info("Updated PINN velocity field with database data")
+            
+            if 'pressure' in geological_data and geological_data['pressure']:
+                press_data = geological_data['pressure']
+                logging.info(f"Retrieved pressure data with {len(press_data)} points")
+                
+        except Exception as e:
+            logging.error(f"Error updating thermal model with database data: {e}")
 
 def main():
     """Main function for testing Deep Earth ML system"""

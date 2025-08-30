@@ -297,18 +297,174 @@ class EarthSystemDynamics:
         # Surface temperature (coupled to atmosphere)
         litho_state[:, :, 0] = 273.15 + 15 * np.cos(np.deg2rad(self.lat_grid))
         
-        # Tectonic stress (simplified)
-        # Higher stress near plate boundaries (approximation)
+        # Tectonic stress calculation using comprehensive plate boundary database
+        # Major plate boundaries with different tectonic settings and stress regimes
         plate_boundary_zones = [
-            ((-125, -110), (32, 42)),  # San Andreas
-            ((135, 145), (35, 45)),    # Japan
-            ((20, 30), (35, 45))       # Mediterranean
+            # Transform boundaries (strike-slip stress regime)
+            {
+                'coords': ((-125, -110), (32, 42)),
+                'name': 'San Andreas Transform',
+                'type': 'transform',
+                'stress_magnitude': 5e7,  # Pa
+                'principal_stress_orientation': 45,  # degrees from north
+                'stress_regime': 'strike_slip'
+            },
+            {
+                'coords': ((-75, -65), (-55, -45)),
+                'name': 'Falkland Transform',
+                'type': 'transform', 
+                'stress_magnitude': 3e7,
+                'principal_stress_orientation': 90,
+                'stress_regime': 'strike_slip'
+            },
+            
+            # Convergent boundaries (compressive stress regime)
+            {
+                'coords': ((135, 145), (35, 45)),
+                'name': 'Japan Subduction Zone',
+                'type': 'convergent',
+                'stress_magnitude': 8e7,
+                'principal_stress_orientation': 135,  # NW-SE compression
+                'stress_regime': 'thrust'
+            },
+            {
+                'coords': ((-85, -65), (-20, 10)),
+                'name': 'Andean Subduction Zone',
+                'type': 'convergent',
+                'stress_magnitude': 9e7,
+                'principal_stress_orientation': 90,  # E-W compression
+                'stress_regime': 'thrust'
+            },
+            {
+                'coords': ((90, 110), (20, 35)),
+                'name': 'Himalayan Collision Zone',
+                'type': 'convergent',
+                'stress_magnitude': 1.2e8,
+                'principal_stress_orientation': 0,  # N-S compression
+                'stress_regime': 'thrust'
+            },
+            
+            # Divergent boundaries (extensional stress regime)
+            {
+                'coords': ((-35, -10), (-60, -40)),
+                'name': 'Mid-Atlantic Ridge South',
+                'type': 'divergent',
+                'stress_magnitude': 2e7,
+                'principal_stress_orientation': 90,  # E-W extension
+                'stress_regime': 'normal'
+            },
+            {
+                'coords': ((35, 45), (35, 45)),
+                'name': 'East African Rift',
+                'type': 'divergent',
+                'stress_magnitude': 3e7,
+                'principal_stress_orientation': 90,  # E-W extension
+                'stress_regime': 'normal'
+            },
+            
+            # Complex zones (mixed stress regimes)
+            {
+                'coords': ((20, 30), (35, 45)),
+                'name': 'Mediterranean Collision Zone',
+                'type': 'complex',
+                'stress_magnitude': 6e7,
+                'principal_stress_orientation': 45,
+                'stress_regime': 'transpressive'
+            },
+            {
+                'coords': ((165, 180), (-45, -35)),
+                'name': 'Alpine Fault New Zealand',
+                'type': 'transform',
+                'stress_magnitude': 4e7,
+                'principal_stress_orientation': 30,
+                'stress_regime': 'transpressive'
+            }
         ]
         
-        for (lon_range, lat_range) in plate_boundary_zones:
+        # Initialize background stress field (lithostatic + regional tectonic stress)
+        # Background compressive stress increases with depth (approximated at surface)
+        background_stress = 1e6  # Pa, base stress level
+        litho_state[:, :, 1] = background_stress  # sigma_xx
+        litho_state[:, :, 2] = background_stress  # sigma_yy  
+        litho_state[:, :, 3] = 0  # sigma_xy (shear stress)
+        
+        # Apply stress fields for each tectonic zone
+        for zone in plate_boundary_zones:
+            (lon_range, lat_range) = zone['coords']
+            
+            # Create mask for this tectonic zone
             mask = ((self.lon_grid >= lon_range[0]) & (self.lon_grid <= lon_range[1]) &
                    (self.lat_grid >= lat_range[0]) & (self.lat_grid <= lat_range[1]))
-            litho_state[mask, 1:4] = np.random.normal(0, 1e6, (np.sum(mask), 3))  # Stress components
+            
+            if not np.any(mask):
+                continue
+                
+            # Calculate stress tensor components based on tectonic setting
+            stress_mag = zone['stress_magnitude']
+            orientation = np.deg2rad(zone['principal_stress_orientation'])
+            
+            # Distance-based stress decay from plate boundary center
+            center_lon = (lon_range[0] + lon_range[1]) / 2
+            center_lat = (lat_range[0] + lat_range[1]) / 2
+            
+            # Great circle distance from boundary center using Haversine formula
+            # Convert coordinates to radians
+            lat1_rad = np.deg2rad(self.lat_grid)
+            lon1_rad = np.deg2rad(self.lon_grid)
+            lat2_rad = np.deg2rad(center_lat)
+            lon2_rad = np.deg2rad(center_lon)
+            
+            # Haversine formula for great circle distance
+            dlat = lat1_rad - lat2_rad
+            dlon = lon1_rad - lon2_rad
+            
+            a = (np.sin(dlat/2)**2 + 
+                 np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon/2)**2)
+            c = 2 * np.arcsin(np.sqrt(np.clip(a, 0, 1)))  # Clamp to avoid numerical issues
+            
+            # Distance in degrees (for consistency with decay calculation)
+            # Earth radius = 6371 km, so 1 degree ≈ 111 km
+            distance = c * 180 / np.pi
+            
+            # Exponential decay with distance (characteristic length ~500 km)
+            decay_factor = np.exp(-distance / 5.0)  # 5 degrees ≈ 500 km
+            
+            if zone['stress_regime'] == 'strike_slip':
+                # Strike-slip: maximum shear stress at 45° to principal stress
+                sigma_xx = stress_mag * 0.3 * np.cos(2 * orientation) * decay_factor
+                sigma_yy = -stress_mag * 0.3 * np.cos(2 * orientation) * decay_factor
+                sigma_xy = stress_mag * 0.7 * np.sin(2 * orientation) * decay_factor
+                
+            elif zone['stress_regime'] == 'thrust':
+                # Thrust faulting: maximum compression horizontal
+                sigma_xx = stress_mag * (0.8 * np.cos(orientation)**2 + 0.2) * decay_factor
+                sigma_yy = stress_mag * (0.8 * np.sin(orientation)**2 + 0.2) * decay_factor
+                sigma_xy = stress_mag * 0.6 * np.sin(2 * orientation) * decay_factor
+                
+            elif zone['stress_regime'] == 'normal':
+                # Normal faulting: minimum compression horizontal
+                sigma_xx = -stress_mag * 0.4 * np.cos(orientation)**2 * decay_factor
+                sigma_yy = -stress_mag * 0.4 * np.sin(orientation)**2 * decay_factor
+                sigma_xy = stress_mag * 0.3 * np.sin(2 * orientation) * decay_factor
+                
+            elif zone['stress_regime'] == 'transpressive':
+                # Transpressive: combination of compression and shear
+                sigma_xx = stress_mag * (0.5 * np.cos(orientation)**2 + 0.2) * decay_factor
+                sigma_yy = stress_mag * (0.5 * np.sin(orientation)**2 + 0.2) * decay_factor
+                sigma_xy = stress_mag * 0.8 * np.sin(2 * orientation) * decay_factor
+                
+            else:  # complex zones
+                # Mixed stress regime with higher variability
+                base_stress = stress_mag * 0.5 * decay_factor
+                sigma_xx = base_stress * (1 + 0.3 * np.cos(2 * orientation))
+                sigma_yy = base_stress * (1 - 0.3 * np.cos(2 * orientation))
+                sigma_xy = base_stress * 0.6 * np.sin(2 * orientation)
+            
+            # Apply stress perturbations with some randomness
+            stress_noise = 0.1  # 10% noise level
+            litho_state[mask, 1] += sigma_xx[mask] * (1 + stress_noise * np.random.normal(0, 1, np.sum(mask)))
+            litho_state[mask, 2] += sigma_yy[mask] * (1 + stress_noise * np.random.normal(0, 1, np.sum(mask)))  
+            litho_state[mask, 3] += sigma_xy[mask] * (1 + stress_noise * np.random.normal(0, 1, np.sum(mask)))
         
         # Heat flow
         litho_state[:, :, 5] = 0.06 + 0.04 * np.random.random((self.nlat, self.nlon))  # W/m²
@@ -531,73 +687,744 @@ class EarthSystemDynamics:
         return tendency
     
     def _lithosphere_tendency(self, components: Dict[EarthSystemComponent, np.ndarray], dt: float) -> np.ndarray:
-        """Compute lithosphere tendencies"""
+        """Compute comprehensive lithosphere tendencies with multi-physics coupling"""
         litho_state = components[EarthSystemComponent.LITHOSPHERE]
         tendency = np.zeros_like(litho_state)
         
-        # Temperature diffusion
+        # Get coupling components
+        atm_state = components[EarthSystemComponent.ATMOSPHERE]
+        hydro_state = components[EarthSystemComponent.HYDROSPHERE]
+        
+        # === THERMAL EVOLUTION ===
         if SCIPY_AVAILABLE:
-            # Simple diffusion
-            diffusivity = 1e-6  # m²/s
-            tendency[:, :, 0] = diffusivity * (
-                gaussian_filter(litho_state[:, :, 0], sigma=1) - litho_state[:, :, 0]
+            # Surface temperature boundary condition from atmosphere
+            surface_temp = atm_state[:, :, -1, 0]  # Surface air temperature
+            ocean_temp = hydro_state[:, :, 0]      # Sea surface temperature
+            
+            # Use ocean temperature over water, air temperature over land
+            # (simplified land-sea mask based on temperature difference)
+            ocean_mask = np.abs(ocean_temp - surface_temp) < 5  # Within 5K suggests ocean
+            boundary_temp = np.where(ocean_mask, ocean_temp, surface_temp)
+            
+            # Temperature diffusion with realistic parameters
+            thermal_diffusivity = 1.2e-6  # m²/s for typical crustal rocks
+            depth_scale = 30e3  # 30 km characteristic depth scale
+            
+            # Multi-scale diffusion: local + regional smoothing
+            local_diffusion = gaussian_filter(litho_state[:, :, 0], sigma=0.5)
+            regional_diffusion = gaussian_filter(litho_state[:, :, 0], sigma=2.0)
+            
+            # Surface heat flux coupling
+            surface_flux = 0.1 * (boundary_temp - litho_state[:, :, 0])  # Surface coupling
+            geothermal_gradient = 0.025e-3  # 25°C/km typical gradient
+            deep_heat_source = geothermal_gradient * depth_scale / dt if dt > 0 else 0
+            
+            tendency[:, :, 0] = (
+                thermal_diffusivity * (local_diffusion - litho_state[:, :, 0]) + 
+                0.1 * thermal_diffusivity * (regional_diffusion - litho_state[:, :, 0]) +
+                surface_flux + deep_heat_source
             )
         
-        # Stress evolution (simplified viscoelastic)
-        relaxation_time = 1e8  # seconds (years)
-        tendency[:, :, 1:4] = -litho_state[:, :, 1:4] / relaxation_time
+        # === VISCOELASTIC STRESS EVOLUTION ===
+        current_temp = litho_state[:, :, 0]
+        
+        # Temperature-dependent viscosity (Arrhenius law approximation)
+        reference_temp = 1000  # K (typical upper mantle temperature)
+        activation_energy = 500e3  # J/mol (typical for olivine)
+        gas_constant = 8.314  # J/(mol⋅K)
+        
+        # Normalized viscosity (decreases exponentially with temperature)
+        viscosity_factor = np.exp(activation_energy / (gas_constant * reference_temp) - 
+                                activation_energy / (gas_constant * current_temp))
+        viscosity_factor = np.clip(viscosity_factor, 0.01, 100)  # Reasonable bounds
+        
+        # Stress relaxation times based on temperature and rock type
+        elastic_relaxation = 1e6 * viscosity_factor    # Elastic response (seconds)
+        viscous_relaxation = 1e9 * viscosity_factor    # Viscous flow (seconds)
+        
+        # Maxwell viscoelastic model: σ̇ = -σ/τ_M + η⋅ε̇
+        maxwell_time = elastic_relaxation * viscous_relaxation / (elastic_relaxation + viscous_relaxation)
+        
+        # Tectonic loading rates (background strain rates)
+        plate_convergence_rate = 5e-15  # s⁻¹ (typical plate boundary)
+        intraplate_rate = 1e-16         # s⁻¹ (stable interior)
+        
+        # Distance-based strain rate (higher near plate boundaries)
+        # Reuse plate boundary information from initialization
+        background_strain_rate = intraplate_rate
+        
+        # Comprehensive global plate boundary database with tectonic characteristics
+        major_boundaries = [
+            # Pacific Ring of Fire - Transform and Subduction Boundaries
+            {
+                'coords': ((-125, -110), (32, 42)),
+                'name': 'San Andreas Transform System',
+                'type': 'transform',
+                'strain_rate_multiplier': 8.0,
+                'boundary_width': 2.0  # degrees
+            },
+            {
+                'coords': ((140, 150), (35, 45)),
+                'name': 'Japan Trench Subduction Zone',
+                'type': 'subduction',
+                'strain_rate_multiplier': 12.0,
+                'boundary_width': 3.0
+            },
+            {
+                'coords': ((150, 165), (-45, -35)),
+                'name': 'Kermadec-Tonga Subduction Zone',
+                'type': 'subduction', 
+                'strain_rate_multiplier': 10.0,
+                'boundary_width': 2.5
+            },
+            {
+                'coords': ((120, 135), (-15, 5)),
+                'name': 'Java-Sumatra Subduction Zone',
+                'type': 'subduction',
+                'strain_rate_multiplier': 9.0,
+                'boundary_width': 2.5
+            },
+            {
+                'coords': ((-85, -65), (-20, 10)),
+                'name': 'Andean Subduction Zone',
+                'type': 'subduction',
+                'strain_rate_multiplier': 11.0,
+                'boundary_width': 4.0
+            },
+            {
+                'coords': ((-165, -145), (50, 65)),
+                'name': 'Aleutian Subduction Zone',
+                'type': 'subduction',
+                'strain_rate_multiplier': 7.0,
+                'boundary_width': 3.0
+            },
+            
+            # Mid-Ocean Ridge System - Divergent Boundaries
+            {
+                'coords': ((-35, -10), (-60, 60)),
+                'name': 'Mid-Atlantic Ridge',
+                'type': 'spreading',
+                'strain_rate_multiplier': 3.0,
+                'boundary_width': 1.5
+            },
+            {
+                'coords': ((-120, -100), (-55, 45)),
+                'name': 'East Pacific Rise',
+                'type': 'spreading',
+                'strain_rate_multiplier': 4.0,
+                'boundary_width': 2.0
+            },
+            {
+                'coords': ((60, 90), (-50, -20)),
+                'name': 'Southwest Indian Ridge',
+                'type': 'spreading',
+                'strain_rate_multiplier': 2.5,
+                'boundary_width': 1.0
+            },
+            {
+                'coords': ((90, 140), (-35, -10)),
+                'name': 'Southeast Indian Ridge',
+                'type': 'spreading',
+                'strain_rate_multiplier': 3.5,
+                'boundary_width': 1.5
+            },
+            
+            # Continental Collision and Orogenic Zones
+            {
+                'coords': ((70, 100), (25, 40)),
+                'name': 'Himalayan-Tibetan Collision Zone',
+                'type': 'collision',
+                'strain_rate_multiplier': 15.0,
+                'boundary_width': 8.0
+            },
+            {
+                'coords': ((35, 50), (35, 45)),
+                'name': 'Greater Caucasus',
+                'type': 'collision',
+                'strain_rate_multiplier': 6.0,
+                'boundary_width': 2.0
+            },
+            {
+                'coords': ((55, 75), (30, 40)),
+                'name': 'Zagros Collision Zone',
+                'type': 'collision',
+                'strain_rate_multiplier': 7.0,
+                'boundary_width': 3.0
+            },
+            {
+                'coords': ((-10, 20), (35, 50)),
+                'name': 'Alpine-Mediterranean System',
+                'type': 'collision',
+                'strain_rate_multiplier': 8.0,
+                'boundary_width': 4.0
+            },
+            
+            # Continental Rift Systems - Divergent Boundaries
+            {
+                'coords': ((30, 50), (-35, 15)),
+                'name': 'East African Rift System',
+                'type': 'continental_rift',
+                'strain_rate_multiplier': 5.0,
+                'boundary_width': 3.0
+            },
+            {
+                'coords': ((-115, -105), (30, 40)),
+                'name': 'Basin and Range Province',
+                'type': 'continental_rift',
+                'strain_rate_multiplier': 4.0,
+                'boundary_width': 5.0
+            },
+            {
+                'coords': ((10, 30), (45, 70)),
+                'name': 'North Sea Rift System',
+                'type': 'continental_rift',
+                'strain_rate_multiplier': 2.0,
+                'boundary_width': 2.0
+            },
+            
+            # Major Transform Systems
+            {
+                'coords': ((-75, -65), (-55, -45)),
+                'name': 'Falkland-Scotia Transform',
+                'type': 'transform',
+                'strain_rate_multiplier': 4.0,
+                'boundary_width': 1.5
+            },
+            {
+                'coords': ((165, 180), (-50, -40)),
+                'name': 'Alpine Fault New Zealand',
+                'type': 'transform',
+                'strain_rate_multiplier': 6.0,
+                'boundary_width': 1.0
+            },
+            {
+                'coords': ((-180, -170), (50, 60)),
+                'name': 'Queen Charlotte Transform',
+                'type': 'transform',
+                'strain_rate_multiplier': 5.0,
+                'boundary_width': 1.5
+            },
+            
+            # Back-arc and Marginal Sea Systems
+            {
+                'coords': ((120, 140), (20, 40)),
+                'name': 'Philippine Sea Plate Boundaries',
+                'type': 'complex',
+                'strain_rate_multiplier': 8.0,
+                'boundary_width': 3.0
+            },
+            {
+                'coords': ((125, 145), (25, 45)),
+                'name': 'Sea of Japan Back-arc',
+                'type': 'back_arc',
+                'strain_rate_multiplier': 4.0,
+                'boundary_width': 2.0
+            },
+            
+            # Intraplate Volcanic and Deformation Zones
+            {
+                'coords': ((-160, -150), (18, 25)),
+                'name': 'Hawaiian Hotspot Chain',
+                'type': 'hotspot',
+                'strain_rate_multiplier': 2.0,
+                'boundary_width': 1.0
+            },
+            {
+                'coords': ((0, 20), (-25, -15)),
+                'name': 'Cameroon Volcanic Line',
+                'type': 'hotspot',
+                'strain_rate_multiplier': 2.5,
+                'boundary_width': 1.5
+            }
+        ]
+        
+        for boundary in major_boundaries:
+            (lon_range, lat_range) = boundary['coords']
+            boundary_type = boundary['type']
+            strain_multiplier = boundary['strain_rate_multiplier']
+            boundary_width = boundary['boundary_width']
+            
+            # Create boundary mask with buffer zone
+            boundary_mask = ((self.lon_grid >= lon_range[0]) & (self.lon_grid <= lon_range[1]) &
+                           (self.lat_grid >= lat_range[0]) & (self.lat_grid <= lat_range[1]))
+            
+            # Elevated strain rates near boundaries
+            center_lon = (lon_range[0] + lon_range[1]) / 2
+            center_lat = (lat_range[0] + lat_range[1]) / 2
+            
+            # Distance-based decay using Haversine formula
+            lat1_rad = np.deg2rad(self.lat_grid)
+            lon1_rad = np.deg2rad(self.lon_grid)
+            lat2_rad = np.deg2rad(center_lat)
+            lon2_rad = np.deg2rad(center_lon)
+            
+            dlat = lat1_rad - lat2_rad
+            dlon = lon1_rad - lon2_rad
+            a = (np.sin(dlat/2)**2 + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon/2)**2)
+            distance = 2 * np.arcsin(np.sqrt(np.clip(a, 0, 1))) * 180 / np.pi
+            
+            # Boundary-type specific decay characteristics
+            if boundary_type in ['collision', 'continental_rift']:
+                # Wide deformation zones
+                decay_scale = boundary_width * 2.0  # Broad influence
+                base_strain_rate = plate_convergence_rate * strain_multiplier
+            elif boundary_type in ['subduction', 'back_arc']:
+                # Moderate width zones
+                decay_scale = boundary_width * 1.5
+                base_strain_rate = plate_convergence_rate * strain_multiplier
+            elif boundary_type in ['transform']:
+                # Narrow, focused zones
+                decay_scale = boundary_width * 0.8
+                base_strain_rate = plate_convergence_rate * strain_multiplier * 1.2  # Higher intensity
+            elif boundary_type in ['spreading']:
+                # Ridge-axis focused
+                decay_scale = boundary_width * 1.0
+                base_strain_rate = plate_convergence_rate * strain_multiplier * 0.6  # Lower magnitude
+            elif boundary_type in ['hotspot']:
+                # Localized volcanic zones
+                decay_scale = boundary_width * 0.5
+                base_strain_rate = intraplate_rate * strain_multiplier
+            else:  # complex, back_arc
+                decay_scale = boundary_width * 1.2
+                base_strain_rate = plate_convergence_rate * strain_multiplier * 0.8
+            
+            # Apply distance-based strain rate enhancement
+            proximity_factor = np.exp(-distance / decay_scale)
+            background_strain_rate += base_strain_rate * proximity_factor
+        
+        # Comprehensive tectonic loading tensor calculation
+        # Account for different stress regimes and tensor components
+        shear_modulus = 30e9  # Pa (typical lithosphere shear modulus)
+        bulk_modulus = 50e9   # Pa (typical bulk modulus)
+        
+        # Determine tectonic stress regime based on strain rate magnitude
+        high_strain_threshold = 1e-14  # 1/s (active plate boundaries)
+        moderate_strain_threshold = 1e-16  # 1/s (intraplate regions)
+        
+        # Initialize stress rate tensor components
+        sigma_xx_rate = np.zeros_like(background_strain_rate)
+        sigma_yy_rate = np.zeros_like(background_strain_rate)
+        sigma_zz_rate = np.zeros_like(background_strain_rate)
+        sigma_xy_rate = np.zeros_like(background_strain_rate)
+        
+        # High strain rate regions (extensional/compressional boundaries)
+        high_strain_mask = background_strain_rate > high_strain_threshold
+        sigma_xx_rate[high_strain_mask] = 2 * shear_modulus * background_strain_rate[high_strain_mask]
+        sigma_yy_rate[high_strain_mask] = 2 * shear_modulus * background_strain_rate[high_strain_mask] * 0.7
+        sigma_zz_rate[high_strain_mask] = bulk_modulus * background_strain_rate[high_strain_mask] * 0.5
+        sigma_xy_rate[high_strain_mask] = shear_modulus * background_strain_rate[high_strain_mask] * 0.3
+        
+        # Moderate strain rate regions (transform boundaries)
+        moderate_strain_mask = (background_strain_rate > moderate_strain_threshold) & (~high_strain_mask)
+        sigma_xx_rate[moderate_strain_mask] = shear_modulus * background_strain_rate[moderate_strain_mask]
+        sigma_yy_rate[moderate_strain_mask] = shear_modulus * background_strain_rate[moderate_strain_mask] * 0.8
+        sigma_zz_rate[moderate_strain_mask] = bulk_modulus * background_strain_rate[moderate_strain_mask] * 0.3
+        sigma_xy_rate[moderate_strain_mask] = shear_modulus * background_strain_rate[moderate_strain_mask] * 0.6
+        
+        # Low strain rate regions (intraplate)
+        low_strain_mask = background_strain_rate <= moderate_strain_threshold
+        sigma_xx_rate[low_strain_mask] = shear_modulus * background_strain_rate[low_strain_mask] * 0.5
+        sigma_yy_rate[low_strain_mask] = shear_modulus * background_strain_rate[low_strain_mask] * 0.5
+        sigma_zz_rate[low_strain_mask] = bulk_modulus * background_strain_rate[low_strain_mask] * 0.2
+        sigma_xy_rate[low_strain_mask] = shear_modulus * background_strain_rate[low_strain_mask] * 0.1
+        
+        # Combined tectonic stress rate (using principal horizontal stress)
+        tectonic_stress_rate = np.sqrt(sigma_xx_rate**2 + sigma_yy_rate**2 + 2*sigma_xy_rate**2)
+        
+        # Stress evolution: Maxwell viscoelastic + tectonic loading
+        tendency[:, :, 1] = (-litho_state[:, :, 1] / maxwell_time +     # σxx relaxation
+                           tectonic_stress_rate * (1 + 0.1 * np.random.randn(*litho_state[:, :, 1].shape)))
+        tendency[:, :, 2] = (-litho_state[:, :, 2] / maxwell_time +     # σyy relaxation  
+                           tectonic_stress_rate * (1 + 0.1 * np.random.randn(*litho_state[:, :, 2].shape)))
+        tendency[:, :, 3] = (-litho_state[:, :, 3] / maxwell_time +     # σxy relaxation
+                           0.5 * tectonic_stress_rate * (0.1 * np.random.randn(*litho_state[:, :, 3].shape)))
+        
+        # === VERTICAL DISPLACEMENT EVOLUTION ===
+        # Elastic response to stress changes and thermal expansion
+        bulk_modulus = 50e9     # Pa (typical crustal value)
+        thermal_expansion = 3e-5  # /K
+        
+        # Comprehensive vertical displacement calculation
+        
+        # 1. Elastic stress-induced displacement with full tensor consideration
+        sigma_xx = litho_state[:, :, 1]
+        sigma_yy = litho_state[:, :, 2]
+        sigma_zz = sigma_xx + sigma_yy  # Approximate vertical stress from horizontal components
+        
+        # Poisson effect and volumetric strain
+        poisson_ratio = 0.25
+        young_modulus = 2 * shear_modulus * (1 + poisson_ratio)
+        
+        # Vertical strain from horizontal stresses (Poisson effect)
+        epsilon_zz_poisson = -poisson_ratio * (sigma_xx + sigma_yy) / young_modulus
+        
+        # Direct vertical compression
+        epsilon_zz_direct = sigma_zz / young_modulus
+        
+        # Total elastic displacement rate
+        lithosphere_thickness = 100e3  # 100 km typical lithosphere thickness
+        elastic_displacement_rate = (epsilon_zz_poisson + epsilon_zz_direct) * lithosphere_thickness
+        
+        # 2. Enhanced thermal expansion with depth-dependent effects
+        temp_change_rate = tendency[:, :, 0]
+        
+        # Depth-integrated thermal expansion (accounting for thermal gradient)
+        surface_expansion = thermal_expansion * temp_change_rate * lithosphere_thickness
+        
+        # Thermal gradient effects (temperature decreases with depth)
+        gradient_factor = 0.7  # Accounts for non-uniform temperature distribution
+        thermal_displacement_rate = surface_expansion * gradient_factor
+        
+        # 3. Advanced isostatic adjustment with multiple timescales
+        current_elevation = litho_state[:, :, 4]
+        
+        # Flexural isostasy (fast response, local loading)
+        flexural_timescale = 1e3 * 365.25 * 24 * 3600  # 1,000 years
+        flexural_rigidity = 1e23  # N⋅m (typical lithospheric flexural rigidity)
+        local_load = np.abs(sigma_zz) * 1e-6  # Convert to MPa equivalent
+        flexural_adjustment = -local_load / flexural_timescale * (1 - np.exp(-current_elevation**2 / 1e10))
+        
+        # Regional isostatic compensation (intermediate response)
+        regional_timescale = 5e3 * 365.25 * 24 * 3600  # 5,000 years
+        mantle_density = 3300  # kg/m³
+        crustal_density = 2700  # kg/m³
+        density_contrast = mantle_density - crustal_density
+        
+        # Airy isostatic equilibrium
+        isostatic_equilibrium = -current_elevation * crustal_density / density_contrast
+        regional_adjustment = (isostatic_equilibrium - current_elevation) / regional_timescale
+        
+        # Viscous mantle flow (slow response, large-scale)
+        viscous_timescale = 2e4 * 365.25 * 24 * 3600  # 20,000 years
+        mantle_viscosity = 1e21  # Pa⋅s (upper mantle viscosity)
+        
+        # Large-scale topographic relaxation
+        topographic_wavelength = 500e3  # 500 km characteristic wavelength
+        viscous_decay = np.exp(-np.abs(current_elevation) / topographic_wavelength)
+        viscous_adjustment = -current_elevation / viscous_timescale * viscous_decay
+        
+        # 4. Tectonic vertical motion
+        # Uplift/subsidence from horizontal tectonics
+        horizontal_strain_rate = np.sqrt(sigma_xx_rate**2 + sigma_yy_rate**2) / shear_modulus
+        
+        # Transpression/transtension effects
+        convergent_uplift_rate = horizontal_strain_rate * lithosphere_thickness * 0.1  # 10% coupling
+        
+        # Fault-related vertical motion
+        fault_proximity_decay = 50e3  # 50 km decay distance
+        fault_vertical_coupling = 0.05  # 5% horizontal-to-vertical coupling
+        tectonic_vertical_rate = convergent_uplift_rate * fault_vertical_coupling
+        
+        # Combined vertical displacement rate
+        total_vertical_rate = (elastic_displacement_rate + 
+                             thermal_displacement_rate + 
+                             flexural_adjustment + 
+                             regional_adjustment + 
+                             viscous_adjustment + 
+                             tectonic_vertical_rate)
+        
+        tendency[:, :, 4] = total_vertical_rate
+        
+        # === HEAT FLOW EVOLUTION ===
+        # Heat flow responds to temperature gradients and crustal processes
+        surface_gradient = tendency[:, :, 0]  # Proxy for temperature gradient
+        radiogenic_heat = 2e-6  # W/m² typical crustal heat production
+        
+        # Heat flow follows temperature changes with lag
+        heat_flow_time_constant = 1e6 * 365.25 * 24 * 3600  # 1 million years
+        
+        tendency[:, :, 5] = (0.1 * surface_gradient +  # Response to thermal changes
+                           radiogenic_heat / (litho_state[:, :, 5] + 0.01) - # Radiogenic production  
+                           (litho_state[:, :, 5] - 0.06) / heat_flow_time_constant)  # Return to background
         
         return tendency
     
     def _biosphere_tendency(self, components: Dict[EarthSystemComponent, np.ndarray], dt: float) -> np.ndarray:
-        """Compute biosphere tendencies with coupling"""
+        """Comprehensive biosphere tendencies with biogeochemical coupling"""
         bio_state = components[EarthSystemComponent.BIOSPHERE]
         tendency = np.zeros_like(bio_state)
         
-        # Growth/decay based on temperature and CO2
-        temperature = 288.15  # Default temperature
+        # Extract environmental drivers
+        temperature = 288.15  # Default temperature (K)
+        precipitation = 0.0   # Default precipitation (m/s)
+        solar_radiation = 200.0  # Default solar radiation (W/m²)
+        soil_moisture = 0.3   # Default soil moisture (fraction)
+        
         if EarthSystemComponent.ATMOSPHERE in components:
-            temperature = components[EarthSystemComponent.ATMOSPHERE][:, :, -1, 0]
+            atm_state = components[EarthSystemComponent.ATMOSPHERE]
+            temperature = atm_state[:, :, -1, 0]  # Surface temperature
+            if atm_state.shape[-1] > 5:  # Check if precipitation exists
+                precipitation = np.maximum(0, atm_state[:, :, -1, 5])  # Precipitation rate
         
-        co2_concentration = 400e-6  # Default CO2
+        if EarthSystemComponent.LAND in components:
+            land_state = components[EarthSystemComponent.LAND]
+            if land_state.shape[-1] > 2:  # Check if soil moisture exists
+                soil_moisture = np.clip(land_state[:, :, 2], 0.1, 0.8)  # Soil moisture
+            if land_state.shape[-1] > 3:  # Check if solar radiation proxy
+                solar_radiation = np.maximum(50, land_state[:, :, 3] * 300)  # Convert to W/m²
+        
+        # Advanced CO2 concentration calculation
+        base_co2 = 400e-6  # Base atmospheric CO2
+        co2_concentration = np.full_like(temperature, base_co2)
+        
         if EarthSystemComponent.ANTHROPOSPHERE in components:
-            co2_emissions = components[EarthSystemComponent.ANTHROPOSPHERE][:, :, 1]
-            co2_concentration = 400e-6 + np.mean(co2_emissions) * 1e6
+            anthro_state = components[EarthSystemComponent.ANTHROPOSPHERE]
+            co2_emissions = anthro_state[:, :, 1] if anthro_state.shape[-1] > 1 else 0
+            # Convert emissions to concentration perturbation
+            co2_concentration = base_co2 + co2_emissions * 1e-9  # Simplified conversion
         
-        # Temperature response (optimal around 20°C)
-        temp_factor = np.exp(-((temperature - 293.15) / 20)**2)
+        # === 1. VEGETATION DYNAMICS ===
+        # Multi-factor vegetation growth model
         
-        # CO2 fertilization effect
-        co2_factor = 1 + 0.3 * np.log(co2_concentration / 280e-6)
+        # Temperature response with species-specific optima
+        temp_celsius = temperature - 273.15
         
-        # Growth rate
-        growth_rate = 1e-8 * temp_factor * co2_factor  # 1/s
-        tendency[:, :, 0] = growth_rate * bio_state[:, :, 0] * (1 - bio_state[:, :, 0] / 1000)  # Logistic growth
+        # C3 plants (temperate): optimal 15-25°C
+        c3_temp_factor = np.exp(-0.5 * ((temp_celsius - 20) / 15)**2)
         
-        # Carbon flux
-        tendency[:, :, 1] = -0.1 * tendency[:, :, 0]  # Carbon uptake proportional to growth
+        # C4 plants (tropical): optimal 25-35°C  
+        c4_temp_factor = np.exp(-0.5 * ((temp_celsius - 30) / 12)**2)
+        
+        # Combine based on vegetation type (assume mixed)
+        temp_factor = 0.6 * c3_temp_factor + 0.4 * c4_temp_factor
+        
+        # Water stress factor (Michaelis-Menten response)
+        water_factor = (soil_moisture * precipitation * 1e6) / (0.2 + soil_moisture * precipitation * 1e6)
+        water_factor = np.clip(water_factor, 0.1, 1.0)
+        
+        # Light response (saturating function)
+        light_factor = solar_radiation / (100 + solar_radiation)
+        
+        # CO2 fertilization with diminishing returns
+        co2_ref = 280e-6  # Pre-industrial CO2
+        co2_factor = 1 + 0.3 * np.log(co2_concentration / co2_ref) * (1 - np.exp(-0.5 * co2_concentration / co2_ref))
+        
+        # Nutrient limitation (nitrogen cycle coupling)
+        n_availability = np.clip(bio_state[:, :, 1] / 1000 + 0.1, 0.1, 1.0)  # Use carbon as N proxy
+        nutrient_factor = n_availability / (0.3 + n_availability)
+        
+        # Combined growth rate with environmental coupling
+        max_growth_rate = 2e-8  # Maximum growth rate (1/s)
+        environmental_factor = temp_factor * water_factor * light_factor * co2_factor * nutrient_factor
+        growth_rate = max_growth_rate * environmental_factor
+        
+        # Logistic growth with carrying capacity modulation
+        carrying_capacity = 1500 * temp_factor * water_factor  # Dynamic carrying capacity
+        biomass_density = bio_state[:, :, 0]
+        tendency[:, :, 0] = growth_rate * biomass_density * (1 - biomass_density / carrying_capacity)
+        
+        # Natural mortality and disturbance
+        mortality_rate = 5e-10 + 1e-9 * np.exp(-(temperature - 273.15) / 10)  # Temperature-dependent mortality
+        disturbance_rate = 1e-10 * (1 + np.random.exponential(1, temperature.shape))  # Random disturbances
+        tendency[:, :, 0] -= (mortality_rate + disturbance_rate) * biomass_density
+        
+        # === 2. CARBON CYCLE ===
+        # Photosynthesis (carbon fixation)
+        photosynthesis_efficiency = 0.02  # 2% of growth translates to carbon fixation
+        carbon_fixation = tendency[:, :, 0] * photosynthesis_efficiency
+        
+        # Respiration (temperature-dependent)
+        q10_respiration = 2.0  # Q10 factor for respiration
+        base_respiration_rate = 1e-9  # Base respiration rate
+        respiration_factor = q10_respiration ** ((temp_celsius - 15) / 10)
+        respiration = base_respiration_rate * respiration_factor * bio_state[:, :, 1]
+        
+        # Decomposition and soil organic matter
+        decomposition_rate = 5e-10 * np.exp(temp_celsius / 20) * soil_moisture
+        decomposition = decomposition_rate * bio_state[:, :, 1]
+        
+        # Net carbon balance
+        tendency[:, :, 1] = carbon_fixation - respiration - decomposition
+        
+        # === 3. NITROGEN CYCLE (if additional state variables exist) ===
+        if bio_state.shape[-1] > 2:
+            # Nitrogen fixation by legumes and microbes
+            n_fixation_rate = 1e-11 * temp_factor * soil_moisture
+            n_fixation = n_fixation_rate * (1000 - bio_state[:, :, 2])  # Asymptotic approach
+            
+            # Nitrogen mineralization from organic matter
+            n_mineralization = 0.1 * decomposition
+            
+            # Nitrogen uptake by vegetation
+            n_uptake = 0.05 * carbon_fixation  # Coupled to carbon fixation
+            
+            # Denitrification (anaerobic conditions)
+            denitrification_rate = 2e-11 * (1 - soil_moisture) * np.exp(temp_celsius / 15)
+            denitrification = denitrification_rate * bio_state[:, :, 2]
+            
+            # Net nitrogen balance
+            tendency[:, :, 2] = n_fixation + n_mineralization - n_uptake - denitrification
+        
+        # === 4. ECOSYSTEM SERVICES (if additional variables exist) ===
+        if bio_state.shape[-1] > 3:
+            # Water regulation (transpiration)
+            transpiration_rate = 1e-8 * biomass_density * temp_factor * (1 - soil_moisture)
+            tendency[:, :, 3] = transpiration_rate
+            
+        # === 5. PHENOLOGICAL RESPONSES ===
+        # Seasonal vegetation dynamics (simplified)
+        day_of_year = (dt / (24 * 3600)) % 365
+        seasonal_factor = 0.8 + 0.2 * np.cos(2 * np.pi * day_of_year / 365)
+        tendency[:, :, 0] *= seasonal_factor
         
         return tendency
     
     def _cryosphere_tendency(self, components: Dict[EarthSystemComponent, np.ndarray], dt: float) -> np.ndarray:
-        """Compute cryosphere tendencies with coupling"""
+        """Advanced cryosphere tendencies with comprehensive ice dynamics"""
         cryo_state = components[EarthSystemComponent.CRYOSPHERE]
         tendency = np.zeros_like(cryo_state)
         
-        # Ice melting/freezing based on temperature
-        freezing_point = 273.15
+        # Environmental drivers
+        air_temp = 273.15  # Default air temperature (K)
+        surface_pressure = 101325  # Default surface pressure (Pa)
+        wind_speed = 5.0   # Default wind speed (m/s)
+        shortwave_radiation = 150.0  # Default solar radiation (W/m²)
+        longwave_radiation = 300.0   # Default longwave radiation (W/m²)
+        precipitation = 0.0  # Default precipitation (m/s)
+        
         if EarthSystemComponent.ATMOSPHERE in components:
-            air_temp = components[EarthSystemComponent.ATMOSPHERE][:, :, -1, 0]
+            atm_state = components[EarthSystemComponent.ATMOSPHERE]
+            air_temp = atm_state[:, :, -1, 0]  # Surface air temperature
+            if atm_state.shape[-1] > 1:
+                surface_pressure = atm_state[:, :, -1, 1]
+            if atm_state.shape[-1] > 2:
+                wind_speed = np.sqrt(atm_state[:, :, -1, 2]**2 + atm_state[:, :, -1, 3]**2)
+            if atm_state.shape[-1] > 5:
+                precipitation = np.maximum(0, atm_state[:, :, -1, 5])
+        
+        # Extract current cryosphere state
+        ice_thickness = cryo_state[:, :, 0]  # Ice thickness (m)
+        snow_depth = cryo_state[:, :, 1] if cryo_state.shape[-1] > 1 else np.zeros_like(ice_thickness)
+        
+        # === 1. SNOW DYNAMICS ===
+        freezing_point = 273.15
+        
+        # Snowfall (when T < 0°C and precipitation > 0)
+        snow_fraction = 1.0 / (1 + np.exp(2 * (air_temp - freezing_point)))  # Sigmoid transition
+        snowfall_rate = precipitation * snow_fraction  # m/s
+        
+        # Snow density evolution
+        fresh_snow_density = 100  # kg/m³ (fresh snow)
+        mature_snow_density = 400  # kg/m³ (mature snow)
+        density_evolution_rate = 1e-7  # Densification rate
+        
+        # Snow metamorphism and densification
+        snow_density = fresh_snow_density + (mature_snow_density - fresh_snow_density) * \
+                      (1 - np.exp(-density_evolution_rate * dt))
+        
+        # Snow melt (degree-day model with energy balance)
+        if snow_depth.max() > 0:
+            # Energy balance components
+            net_radiation = shortwave_radiation * (1 - 0.8) + longwave_radiation  # Albedo = 0.8 for snow
+            sensible_heat = 10 * wind_speed * (air_temp - freezing_point)  # Simplified sensible heat
+            latent_heat = 5 * wind_speed * np.maximum(0, air_temp - freezing_point)  # Latent heat
             
-            # Ice thickness change
-            melt_rate = 1e-7 * np.maximum(0, air_temp - freezing_point)  # m/s
-            freeze_rate = 1e-7 * np.maximum(0, freezing_point - air_temp)  # m/s
+            # Total energy available for melting
+            melt_energy = np.maximum(0, net_radiation + sensible_heat - latent_heat)  # W/m²
             
-            tendency[:, :, 0] = freeze_rate - melt_rate
+            # Convert energy to melt rate (latent heat of fusion = 334,000 J/kg)
+            latent_heat_fusion = 334000  # J/kg
+            melt_rate = melt_energy / (latent_heat_fusion * snow_density) * dt  # m/s equivalent
             
-            # Snow depth change
-            snow_melt = 1e-6 * np.maximum(0, air_temp - freezing_point)
-            tendency[:, :, 1] = -snow_melt
+            # Apply temperature constraint
+            temp_melt_factor = np.maximum(0, air_temp - freezing_point) / 10  # Temperature excess effect
+            melt_rate *= temp_melt_factor
+            
+            # Update snow depth
+            snow_change = snowfall_rate - melt_rate
+            tendency[:, :, 1] = snow_change if cryo_state.shape[-1] > 1 else 0
+        else:
+            tendency[:, :, 1] = snowfall_rate if cryo_state.shape[-1] > 1 else 0
+        
+        # === 2. ICE DYNAMICS ===
+        
+        # Sea ice formation and melting
+        seawater_freezing_point = freezing_point - 1.8  # Sea water freezing point
+        
+        # Ice formation (when air temp < freezing and no existing ice)
+        ice_formation_rate = np.where(
+            (air_temp < seawater_freezing_point) & (ice_thickness < 0.01),
+            1e-6 * (seawater_freezing_point - air_temp),  # Formation rate proportional to cooling
+            0.0
+        )
+        
+        # Ice melting (comprehensive energy balance)
+        if ice_thickness.max() > 0:
+            # Surface energy balance
+            ice_albedo = np.where(snow_depth > 0.01, 0.8, 0.5)  # Snow-covered vs bare ice
+            absorbed_radiation = shortwave_radiation * (1 - ice_albedo)
+            
+            # Conductive heat flux through ice
+            ice_thermal_conductivity = 2.0  # W/(m·K)
+            ocean_temp = freezing_point + 2.0  # Assume ocean 2°C above freezing
+            conductive_flux = ice_thermal_conductivity * (ocean_temp - air_temp) / \
+                            np.maximum(ice_thickness, 0.01)  # Avoid division by zero
+            
+            # Total energy for melting
+            total_melt_energy = absorbed_radiation + conductive_flux + sensible_heat
+            
+            # Convert to ice melt rate
+            ice_density = 917  # kg/m³ (ice density)
+            ice_melt_rate = np.maximum(0, total_melt_energy / (latent_heat_fusion * ice_density)) * dt
+            
+            # Apply temperature-dependent scaling
+            temp_scale = np.maximum(0, (air_temp - seawater_freezing_point) / 5.0)
+            ice_melt_rate *= (1 + temp_scale)
+        else:
+            ice_melt_rate = 0.0
+        
+        # Ice dynamics (growth from bottom, melting from top)
+        bottom_growth_rate = np.where(
+            (air_temp < seawater_freezing_point) & (ice_thickness > 0.01),
+            2e-7 * (seawater_freezing_point - air_temp) / np.maximum(ice_thickness, 0.1),
+            0.0
+        )
+        
+        # Net ice thickness change
+        net_ice_change = ice_formation_rate + bottom_growth_rate - ice_melt_rate
+        tendency[:, :, 0] = net_ice_change
+        
+        # === 3. GLACIAL DYNAMICS (if additional variables exist) ===
+        if cryo_state.shape[-1] > 2:
+            # Glacier mass balance
+            elevation_effect = np.maximum(0, (cryo_state[:, :, 2] - 1000) / 1000)  # Elevation dependency
+            
+            # Accumulation (snowfall at high elevation)
+            accumulation_rate = snowfall_rate * (1 + 2 * elevation_effect)
+            
+            # Ablation (melting + sublimation)
+            sublimation_rate = 1e-8 * wind_speed * np.maximum(0, air_temp - 263.15)  # Sublimation below -10°C
+            ablation_rate = melt_rate + sublimation_rate
+            
+            # Net glacier change
+            tendency[:, :, 2] = accumulation_rate - ablation_rate
+        
+        # === 4. PERMAFROST DYNAMICS (if additional variables exist) ===
+        if cryo_state.shape[-1] > 3:
+            # Active layer thickness based on temperature
+            thawing_index = np.maximum(0, air_temp - freezing_point) * dt / (365.25 * 24 * 3600)
+            active_layer_change = 1e-3 * np.sqrt(thawing_index)  # Stefan solution approximation
+            
+            # Permafrost stability
+            mean_annual_temp = air_temp  # Simplified - would need annual averaging
+            permafrost_threshold = freezing_point - 2.0  # -2°C threshold
+            
+            permafrost_change = np.where(
+                mean_annual_temp > permafrost_threshold,
+                -1e-8,  # Permafrost degradation
+                1e-9    # Permafrost formation
+            )
+            
+            tendency[:, :, 3] = active_layer_change + permafrost_change
+        
+        # === 5. ICE-ATMOSPHERE FEEDBACKS ===
+        # Surface albedo feedback (affects radiation budget)
+        total_ice_snow = ice_thickness + snow_depth
+        surface_albedo = np.where(total_ice_snow > 0.01, 0.7, 0.3)
+        
+        # Modify energy balance based on albedo feedback
+        albedo_feedback_factor = (surface_albedo - 0.3) / 0.4  # Normalized feedback
+        tendency[:, :, 0] *= (1 - 0.2 * albedo_feedback_factor)  # Reduce melt with high albedo
         
         return tendency
     
@@ -674,149 +1501,712 @@ class EarthSystemDynamics:
         return new_uncertainty
 
 class DataAssimilationSystem:
-    """Data assimilation for Digital Twin Earth"""
+    """Advanced data assimilation for Digital Twin Earth with comprehensive filtering"""
     
     def __init__(self, method: DataAssimilationMethod = DataAssimilationMethod.ENSEMBLE_KALMAN):
         self.method = method
         self.logger = logging.getLogger(__name__)
         self.observations = []
-        self.ensemble_size = 50
+        self.ensemble_size = 100  # Increased for better statistics
+        self.inflation_factor = 1.02  # Covariance inflation
+        self.localization_radius = 500e3  # 500 km localization
         
-        # Observation operators
+        # Advanced observation operators with error modeling
         self.obs_operators = {
             'temperature': self._temperature_operator,
             'pressure': self._pressure_operator,
             'wind_speed': self._wind_speed_operator,
             'humidity': self._humidity_operator,
             'sea_surface_temperature': self._sst_operator,
+            'geopotential_height': self._geopotential_operator,
+            'precipitation': self._precipitation_operator,
+            'soil_moisture': self._soil_moisture_operator,
+            'snow_depth': self._snow_depth_operator,
+            'ocean_temperature': self._ocean_temp_operator,
+            'ocean_salinity': self._salinity_operator,
+            'sea_ice_concentration': self._sea_ice_operator,
+            'atmospheric_co2': self._co2_operator,
+            'aerosol_optical_depth': self._aerosol_operator,
+            'land_surface_temperature': self._lst_operator,
+        }
+        
+        # Quality control parameters
+        self.qc_params = {
+            'temperature': {'min': 180.0, 'max': 330.0, 'std_threshold': 5.0},
+            'pressure': {'min': 30000.0, 'max': 110000.0, 'std_threshold': 1000.0},
+            'wind_speed': {'min': 0.0, 'max': 150.0, 'std_threshold': 10.0},
+            'humidity': {'min': 0.0, 'max': 100.0, 'std_threshold': 20.0},
+        }
+        
+        # Background error covariances
+        self.background_errors = {
+            'temperature': 2.0,      # K
+            'pressure': 500.0,       # Pa
+            'wind_speed': 3.0,       # m/s
+            'humidity': 10.0,        # %
+            'precipitation': 0.5,    # mm/hr
         }
     
     def add_observation(self, observation: ObservationData):
-        """Add observation for assimilation"""
-        self.observations.append(observation)
-        self.logger.debug(f"Added observation: {observation.variable_type} at {observation.location}")
+        """Add observation with comprehensive quality control"""
+        # Quality control check
+        if self._quality_control(observation):
+            # Apply observation error inflation if needed
+            observation.uncertainty = self._adjust_observation_error(observation)
+            self.observations.append(observation)
+            self.logger.debug(f"Added QC-passed observation: {observation.variable_type} at {observation.location}")
+        else:
+            self.logger.warning(f"Observation failed QC: {observation.variable_type} at {observation.location}")
+    
+    def _quality_control(self, obs: ObservationData) -> bool:
+        """Comprehensive quality control for observations"""
+        var_type = obs.variable_type
+        if var_type not in self.qc_params:
+            return True  # No QC parameters defined, assume good
+        
+        params = self.qc_params[var_type]
+        value = obs.value
+        
+        # Range check
+        if value < params['min'] or value > params['max']:
+            return False
+        
+        # Gross error check (if we have background)
+        if hasattr(obs, 'background_value'):
+            if abs(value - obs.background_value) > params['std_threshold'] * obs.uncertainty:
+                return False
+        
+        return True
+    
+    def _adjust_observation_error(self, obs: ObservationData) -> float:
+        """Adjust observation error based on representativeness"""
+        base_error = obs.uncertainty
+        
+        # Representativeness error for different observation types
+        repr_errors = {
+            'temperature': 0.5,      # K
+            'pressure': 100.0,       # Pa
+            'wind_speed': 1.0,       # m/s
+            'humidity': 5.0,         # %
+        }
+        
+        repr_error = repr_errors.get(obs.variable_type, 0.0)
+        return np.sqrt(base_error**2 + repr_error**2)
     
     def assimilate_data(self, earth_state: EarthSystemState, 
                        observations: List[ObservationData]) -> EarthSystemState:
-        """Assimilate observations into Earth system state"""
+        """Assimilate observations into Earth system state with advanced methods"""
         if not observations:
             return earth_state
         
-        if self.method == DataAssimilationMethod.ENSEMBLE_KALMAN:
-            return self._ensemble_kalman_filter(earth_state, observations)
-        elif self.method == DataAssimilationMethod.VARIATIONAL:
-            return self._variational_assimilation(earth_state, observations)
-        else:
-            self.logger.warning(f"Assimilation method {self.method} not implemented, returning original state")
+        # Filter observations by quality and temporal relevance
+        valid_obs = self._filter_observations(observations)
+        if not valid_obs:
+            self.logger.warning("No valid observations after filtering")
             return earth_state
+        
+        if self.method == DataAssimilationMethod.ENSEMBLE_KALMAN:
+            return self._ensemble_kalman_filter(earth_state, valid_obs)
+        elif self.method == DataAssimilationMethod.VARIATIONAL:
+            return self._variational_assimilation(earth_state, valid_obs)
+        elif self.method == DataAssimilationMethod.HYBRID:
+            return self._hybrid_assimilation(earth_state, valid_obs)
+        else:
+            self.logger.warning(f"Assimilation method {self.method} not implemented")
+            return earth_state
+    
+    def _filter_observations(self, observations: List[ObservationData]) -> List[ObservationData]:
+        """Filter observations by quality and relevance"""
+        valid_obs = []
+        current_time = time.time()
+        
+        for obs in observations:
+            # Temporal filter (observations within last hour)
+            if hasattr(obs, 'timestamp') and (current_time - obs.timestamp) > 3600:
+                continue
+                
+            # Spatial filter (remove duplicates within small radius)
+            is_duplicate = False
+            for valid_obs_item in valid_obs:
+                if (obs.variable_type == valid_obs_item.variable_type and
+                    self._haversine_distance(obs.location, valid_obs_item.location) < 10e3):  # 10 km
+                    is_duplicate = True
+                    break
+            
+            if not is_duplicate:
+                valid_obs.append(obs)
+        
+        return valid_obs
+    
+    def _haversine_distance(self, loc1: tuple, loc2: tuple) -> float:
+        """Calculate great circle distance between two points"""
+        lat1, lon1 = np.radians(loc1)
+        lat2, lon2 = np.radians(loc2)
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        
+        a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+        c = 2 * np.arcsin(np.sqrt(a))
+        return 6371000 * c  # Earth radius in meters
     
     def _ensemble_kalman_filter(self, earth_state: EarthSystemState, 
                                observations: List[ObservationData]) -> EarthSystemState:
-        """Ensemble Kalman Filter implementation"""
+        """Advanced Ensemble Kalman Filter with localization and inflation"""
         if not ML_AVAILABLE:
-            return earth_state
+            self.logger.warning("ML not available, using simplified assimilation")
+            return self._simple_assimilation(earth_state, observations)
         
-        # Create ensemble of states
+        # Generate ensemble of perturbed states
         ensemble_states = self._generate_ensemble(earth_state)
         
-        # For each observation
         for obs in observations:
-            if obs.variable_type not in self.obs_operators:
-                continue
+            # Forward operator application
+            H_x = self._apply_observation_operator(ensemble_states, obs)
             
-            # Apply observation operator to ensemble
-            obs_operator = self.obs_operators[obs.variable_type]
-            ensemble_observations = []
+            # Innovation calculation
+            innovations = obs.value - H_x
             
-            for state in ensemble_states:
-                model_obs = obs_operator(state, obs.location)
-                ensemble_observations.append(model_obs)
+            # Observation error covariance
+            R = obs.uncertainty**2
             
-            ensemble_observations = np.array(ensemble_observations)
+            # Background error covariance (ensemble-based)
+            H_x_mean = np.mean(H_x)
+            H_B_HT = np.var(H_x) * self.inflation_factor
             
-            # Ensemble mean and covariance
-            obs_mean = np.mean(ensemble_observations)
-            obs_var = np.var(ensemble_observations) + obs.uncertainty**2
+            # Kalman gain with localization
+            localization_weights = self._compute_localization_weights(obs, ensemble_states)
+            K = (H_B_HT * localization_weights) / (H_B_HT + R)
             
-            if obs_var == 0:
-                continue
-            
-            # Kalman gain (simplified)
-            kalman_gain = np.var(ensemble_observations) / obs_var
-            
-            # Update ensemble
+            # State update for each ensemble member
             for i, state in enumerate(ensemble_states):
-                innovation = obs.value - ensemble_observations[i]
-                correction = kalman_gain * innovation
+                # Perturbed observations for ensemble consistency
+                perturbed_obs = obs.value + np.random.normal(0, obs.uncertainty)
+                innovation_i = perturbed_obs - H_x[i]
                 
-                # Apply correction to state (simplified)
-                if obs.variable_type == 'temperature':
-                    state.components[EarthSystemComponent.ATMOSPHERE][:, :, :, 0] += correction * 0.1
-                elif obs.variable_type == 'pressure':
-                    state.components[EarthSystemComponent.ATMOSPHERE][:, :, :, 4] += correction * 0.1
+                # Update state
+                self._update_state_with_innovation(state, obs, K[i] * innovation_i)
         
         # Return ensemble mean as updated state
-        return self._ensemble_mean(ensemble_states)
-    
-    def _variational_assimilation(self, earth_state: EarthSystemState, 
-                                observations: List[ObservationData]) -> EarthSystemState:
-        """4D-Var data assimilation (simplified)"""
-        # This would implement a full variational assimilation system
-        # For now, return original state with logging
-        self.logger.info("Variational assimilation not fully implemented")
-        return earth_state
+        return self._compute_ensemble_mean(ensemble_states)
     
     def _generate_ensemble(self, earth_state: EarthSystemState) -> List[EarthSystemState]:
-        """Generate ensemble of states with perturbations"""
+        """Generate ensemble of perturbed states"""
         ensemble = []
         
         for i in range(self.ensemble_size):
             # Create perturbed state
             perturbed_state = copy.deepcopy(earth_state)
             
-            for component, data in perturbed_state.components.items():
-                # Add random perturbations
-                perturbation = np.random.normal(0, 0.05, data.shape)  # 5% perturbation
-                perturbed_state.components[component] = data + data * perturbation
+            # Add random perturbations based on background error
+            for component in ['atmosphere', 'ocean', 'land']:
+                if hasattr(perturbed_state, component):
+                    component_data = getattr(perturbed_state, component)
+                    if hasattr(component_data, 'temperature'):
+                        noise = np.random.normal(0, self.background_errors['temperature'], 
+                                               component_data.temperature.shape)
+                        component_data.temperature += noise
+                    
+                    if hasattr(component_data, 'pressure'):
+                        noise = np.random.normal(0, self.background_errors['pressure'], 
+                                               component_data.pressure.shape)
+                        component_data.pressure += noise
             
             ensemble.append(perturbed_state)
         
         return ensemble
     
-    def _ensemble_mean(self, ensemble_states: List[EarthSystemState]) -> EarthSystemState:
+    def _apply_observation_operator(self, ensemble_states: List[EarthSystemState], 
+                                  obs: ObservationData) -> np.ndarray:
+        """Apply observation operator to ensemble states"""
+        H_x = np.zeros(len(ensemble_states))
+        
+        operator = self.obs_operators.get(obs.variable_type)
+        if operator is None:
+            self.logger.warning(f"No operator for {obs.variable_type}")
+            return H_x
+        
+        for i, state in enumerate(ensemble_states):
+            H_x[i] = operator(state, obs.location)
+        
+        return H_x
+    
+    def _compute_localization_weights(self, obs: ObservationData, 
+                                    ensemble_states: List[EarthSystemState]) -> np.ndarray:
+        """Compute localization weights using Gaspari-Cohn function"""
+        weights = np.ones(len(ensemble_states))
+        
+        # Define localization radius based on observation type
+        localization_radii = {
+            'temperature': 500e3,  # 500 km for temperature
+            'pressure': 1000e3,    # 1000 km for pressure
+            'velocity': 200e3,     # 200 km for velocity
+            'displacement': 100e3,  # 100 km for displacement
+            'seismic': 150e3,      # 150 km for seismic data
+            'gravity': 2000e3,     # 2000 km for gravity
+            'magnetic': 1500e3,    # 1500 km for magnetic
+            'default': 300e3       # Default 300 km
+        }
+        
+        localization_radius = localization_radii.get(obs.variable_type, localization_radii['default'])
+        
+        # Compute distances from observation location to state grid points
+        obs_lat, obs_lon = obs.location[0], obs.location[1]
+        
+        for i, state in enumerate(ensemble_states):
+            if hasattr(state, 'grid_coordinates'):
+                # Use actual grid coordinates if available
+                state_lats = state.grid_coordinates.get('latitude', [obs_lat])
+                state_lons = state.grid_coordinates.get('longitude', [obs_lon])
+            else:
+                # Use representative coordinates based on state properties
+                state_lats = [obs_lat + np.random.normal(0, 0.1)]  # Small perturbation
+                state_lons = [obs_lon + np.random.normal(0, 0.1)]
+            
+            # Compute minimum distance to any grid point in this ensemble member
+            min_distance = float('inf')
+            for state_lat, state_lon in zip(state_lats, state_lons):
+                # Haversine distance calculation
+                R = 6371e3  # Earth radius in meters
+                lat1_rad = np.radians(obs_lat)
+                lat2_rad = np.radians(state_lat)
+                delta_lat = np.radians(state_lat - obs_lat)
+                delta_lon = np.radians(state_lon - obs_lon)
+                
+                a = (np.sin(delta_lat/2)**2 + 
+                     np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(delta_lon/2)**2)
+                c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+                distance = R * c
+                
+                min_distance = min(min_distance, distance)
+            
+            # Apply Gaspari-Cohn localization function
+            normalized_distance = min_distance / localization_radius
+            
+            if normalized_distance >= 2.0:
+                # No influence beyond 2 localization radii
+                weights[i] = 0.0
+            elif normalized_distance >= 1.0:
+                # Smooth decay between 1 and 2 radii
+                z = normalized_distance
+                weights[i] = (1/12) * z**5 - (1/2) * z**4 + (5/8) * z**3 + (5/3) * z**2 - 5*z + 4 - (2/3) / z
+            else:
+                # Full weight with smooth transition within 1 radius
+                z = normalized_distance
+                weights[i] = 1 - (5/3) * z**2 + (5/8) * z**3 + (1/2) * z**4 - (1/4) * z**5
+        
+        # Ensure weights are positive and normalized
+        weights = np.maximum(weights, 0.0)
+        if np.sum(weights) > 0:
+            weights /= np.sum(weights)
+        else:
+            weights = np.ones(len(ensemble_states)) / len(ensemble_states)
+        
+        return weights
+    
+    def _update_state_with_innovation(self, state: EarthSystemState, 
+                                    obs: ObservationData, innovation: float):
+        """Update state components with innovation"""
+        # Comprehensive state variable mapping and update system
+        
+        # Define update scaling factors based on variable type and uncertainty
+        update_scalings = {
+            'temperature': 0.15,
+            'pressure': 0.12,
+            'velocity': 0.08,
+            'displacement': 0.25,
+            'seismic': 0.10,
+            'gravity': 0.05,
+            'magnetic': 0.06,
+            'density': 0.03,
+            'stress': 0.20,
+            'strain': 0.18,
+            'flow': 0.14
+        }
+        
+        # Get appropriate scaling factor
+        update_scaling = update_scalings.get(obs.variable_type, 0.1)
+        
+        # Apply observation error-based adaptive scaling
+        if hasattr(obs, 'error_variance') and obs.error_variance > 0:
+            # Reduce update for high-uncertainty observations
+            error_scaling = 1.0 / (1.0 + obs.error_variance / np.mean(list(update_scalings.values())))
+            update_scaling *= error_scaling
+        
+        # Map innovation to specific state variables based on observation type
+        if obs.variable_type == 'temperature':
+            self._update_temperature_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'pressure':
+            self._update_pressure_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'velocity':
+            self._update_velocity_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'displacement':
+            self._update_displacement_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'seismic':
+            self._update_seismic_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'gravity':
+            self._update_gravity_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'magnetic':
+            self._update_magnetic_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'stress':
+            self._update_stress_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'strain':
+            self._update_strain_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'density':
+            self._update_density_fields(state, innovation, update_scaling, obs.location)
+        
+        elif obs.variable_type == 'flow':
+            self._update_flow_fields(state, innovation, update_scaling, obs.location)
+        
+        else:
+            # Generic update for unknown variable types
+            self._generic_state_update(state, innovation, update_scaling, obs)
+
+    def _update_temperature_fields(self, state: EarthSystemState, innovation: float, 
+                                 scaling: float, location: tuple):
+        """Update temperature-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'atmosphere') and hasattr(state.atmosphere, 'temperature'):
+            state.atmosphere.temperature += scaled_innovation
+        
+        if hasattr(state, 'ocean') and hasattr(state.ocean, 'temperature'):
+            # Ocean temperature updates with depth-dependent scaling
+            depth_scaling = 0.8  # Reduced update at depth
+            state.ocean.temperature += scaled_innovation * depth_scaling
+        
+        if hasattr(state, 'land_surface') and hasattr(state.land_surface, 'temperature'):
+            state.land_surface.temperature += scaled_innovation
+    
+    def _update_pressure_fields(self, state: EarthSystemState, innovation: float, 
+                              scaling: float, location: tuple):
+        """Update pressure-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'atmosphere') and hasattr(state.atmosphere, 'pressure'):
+            state.atmosphere.pressure += scaled_innovation
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'pressure'):
+            state.solid_earth.pressure += scaled_innovation
+    
+    def _update_velocity_fields(self, state: EarthSystemState, innovation: float, 
+                              scaling: float, location: tuple):
+        """Update velocity-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'velocity'):
+            if hasattr(state.solid_earth.velocity, 'components'):
+                # Update velocity components based on observation direction
+                state.solid_earth.velocity.components[0] += scaled_innovation * 0.6  # x-component
+                state.solid_earth.velocity.components[1] += scaled_innovation * 0.3  # y-component
+                state.solid_earth.velocity.components[2] += scaled_innovation * 0.1  # z-component
+        
+        if hasattr(state, 'atmosphere') and hasattr(state.atmosphere, 'wind_velocity'):
+            state.atmosphere.wind_velocity += scaled_innovation * 0.5
+    
+    def _update_displacement_fields(self, state: EarthSystemState, innovation: float, 
+                                  scaling: float, location: tuple):
+        """Update displacement-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'displacement'):
+            if hasattr(state.solid_earth.displacement, 'components'):
+                # Apply displacement innovation to all components
+                state.solid_earth.displacement.components[0] += scaled_innovation * 0.7  # x
+                state.solid_earth.displacement.components[1] += scaled_innovation * 0.7  # y
+                state.solid_earth.displacement.components[2] += scaled_innovation * 0.6  # z (vertical)
+    
+    def _update_seismic_fields(self, state: EarthSystemState, innovation: float, 
+                             scaling: float, location: tuple):
+        """Update seismic-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth'):
+            if hasattr(state.solid_earth, 'seismic_velocity'):
+                state.solid_earth.seismic_velocity += scaled_innovation
+            
+            if hasattr(state.solid_earth, 'stress_tensor'):
+                # Update stress tensor components
+                stress_scaling = 0.3  # Conservative for stress updates
+                state.solid_earth.stress_tensor += scaled_innovation * stress_scaling
+    
+    def _update_gravity_fields(self, state: EarthSystemState, innovation: float, 
+                             scaling: float, location: tuple):
+        """Update gravity-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'gravity_field'):
+            state.solid_earth.gravity_field += scaled_innovation
+    
+    def _update_magnetic_fields(self, state: EarthSystemState, innovation: float, 
+                              scaling: float, location: tuple):
+        """Update magnetic-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'magnetic_field'):
+            state.solid_earth.magnetic_field += scaled_innovation
+    
+    def _update_stress_fields(self, state: EarthSystemState, innovation: float, 
+                            scaling: float, location: tuple):
+        """Update stress-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'stress_tensor'):
+            state.solid_earth.stress_tensor += scaled_innovation
+    
+    def _update_strain_fields(self, state: EarthSystemState, innovation: float, 
+                            scaling: float, location: tuple):
+        """Update strain-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'strain_tensor'):
+            state.solid_earth.strain_tensor += scaled_innovation
+    
+    def _update_density_fields(self, state: EarthSystemState, innovation: float, 
+                             scaling: float, location: tuple):
+        """Update density-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'density'):
+            state.solid_earth.density += scaled_innovation
+        
+        if hasattr(state, 'atmosphere') and hasattr(state.atmosphere, 'density'):
+            state.atmosphere.density += scaled_innovation * 0.5
+    
+    def _update_flow_fields(self, state: EarthSystemState, innovation: float, 
+                          scaling: float, location: tuple):
+        """Update flow-related state fields"""
+        scaled_innovation = innovation * scaling
+        
+        if hasattr(state, 'solid_earth') and hasattr(state.solid_earth, 'mantle_flow'):
+            state.solid_earth.mantle_flow += scaled_innovation
+        
+        if hasattr(state, 'ocean') and hasattr(state.ocean, 'current_velocity'):
+            state.ocean.current_velocity += scaled_innovation * 0.4
+    
+    def _generic_state_update(self, state: EarthSystemState, innovation: float, 
+                            scaling: float, obs: ObservationData):
+        """Generic update for unknown observation types"""
+        scaled_innovation = innovation * scaling * 0.5  # Conservative scaling
+        
+        # Try to find any numerical field that might be related
+        for component_name in ['atmosphere', 'solid_earth', 'ocean', 'land_surface']:
+            if hasattr(state, component_name):
+                component = getattr(state, component_name)
+                # Look for any numerical attributes to update
+                for attr_name in dir(component):
+                    if not attr_name.startswith('_'):
+                        attr = getattr(component, attr_name)
+                        if isinstance(attr, (int, float)):
+                            setattr(component, attr_name, attr + scaled_innovation * 0.1)
+                        elif isinstance(attr, np.ndarray):
+                            setattr(component, attr_name, attr + scaled_innovation * 0.1)
+    
+    def _compute_ensemble_mean(self, ensemble_states: List[EarthSystemState]) -> EarthSystemState:
         """Compute ensemble mean state"""
         if not ensemble_states:
-            return None
+            raise ValueError("Cannot compute ensemble mean: no states provided")
         
+        if len(ensemble_states) == 1:
+            return copy.deepcopy(ensemble_states[0])
+        
+        # Initialize mean state as deep copy of first member
         mean_state = copy.deepcopy(ensemble_states[0])
+        n_members = len(ensemble_states)
         
-        # Average all components
-        for component in mean_state.components.keys():
-            component_sum = np.zeros_like(mean_state.components[component])
-            
-            for state in ensemble_states:
-                component_sum += state.components[component]
-            
-            mean_state.components[component] = component_sum / len(ensemble_states)
+        # Compute means for each Earth system component
+        self._compute_component_mean(mean_state, ensemble_states, 'atmosphere', n_members)
+        self._compute_component_mean(mean_state, ensemble_states, 'solid_earth', n_members)
+        self._compute_component_mean(mean_state, ensemble_states, 'ocean', n_members)
+        self._compute_component_mean(mean_state, ensemble_states, 'land_surface', n_members)
+        self._compute_component_mean(mean_state, ensemble_states, 'biosphere', n_members)
+        self._compute_component_mean(mean_state, ensemble_states, 'cryosphere', n_members)
+        
+        # Compute means for any additional components
+        for attr_name in dir(mean_state):
+            if (not attr_name.startswith('_') and 
+                attr_name not in ['atmosphere', 'solid_earth', 'ocean', 'land_surface', 'biosphere', 'cryosphere'] and
+                hasattr(mean_state, attr_name)):
+                self._compute_component_mean(mean_state, ensemble_states, attr_name, n_members)
         
         return mean_state
     
-    def _temperature_operator(self, state: EarthSystemState, location: Tuple[float, float, float]) -> float:
-        """Observation operator for temperature"""
-        lat, lon, elevation = location
+    def _compute_component_mean(self, mean_state: EarthSystemState, 
+                              ensemble_states: List[EarthSystemState], 
+                              component_name: str, n_members: int):
+        """Compute mean for a specific Earth system component"""
+        if not hasattr(mean_state, component_name):
+            return
         
-        # Find nearest grid point
-        lat_idx = np.argmin(np.abs(state.spatial_grid['latitude'] - lat))
-        lon_idx = np.argmin(np.abs(state.spatial_grid['longitude'] - lon))
+        mean_component = getattr(mean_state, component_name)
+        if mean_component is None:
+            return
         
-        # Find pressure level closest to elevation (simplified)
-        elevation_pressure = 101325 * np.exp(-elevation / 8400)  # Barometric formula
-        lev_idx = np.argmin(np.abs(state.spatial_grid['pressure_levels'] - elevation_pressure))
+        # Collect all components from ensemble members
+        components = []
+        for state in ensemble_states:
+            if hasattr(state, component_name):
+                component = getattr(state, component_name)
+                if component is not None:
+                    components.append(component)
         
-        # Extract temperature
-        temperature = state.components[EarthSystemComponent.ATMOSPHERE][lat_idx, lon_idx, lev_idx, 0]
+        if not components:
+            return
         
-        return temperature
+        # Compute means for all numerical attributes in the component
+        self._average_component_attributes(mean_component, components)
+    
+    def _average_component_attributes(self, mean_component, components):
+        """Average all numerical attributes of a component across ensemble members"""
+        # Get all attribute names from the mean component
+        for attr_name in dir(mean_component):
+            if attr_name.startswith('_'):
+                continue
+                
+            if not hasattr(mean_component, attr_name):
+                continue
+            
+            mean_attr = getattr(mean_component, attr_name)
+            
+            # Handle different types of attributes
+            if isinstance(mean_attr, (int, float)):
+                # Scalar numerical values
+                values = []
+                for component in components:
+                    if hasattr(component, attr_name):
+                        val = getattr(component, attr_name)
+                        if isinstance(val, (int, float)):
+                            values.append(val)
+                
+                if values:
+                    setattr(mean_component, attr_name, np.mean(values))
+            
+            elif isinstance(mean_attr, np.ndarray):
+                # Array values
+                arrays = []
+                for component in components:
+                    if hasattr(component, attr_name):
+                        arr = getattr(component, attr_name)
+                        if isinstance(arr, np.ndarray) and arr.shape == mean_attr.shape:
+                            arrays.append(arr)
+                
+                if arrays:
+                    # Compute element-wise mean
+                    mean_array = np.mean(np.stack(arrays, axis=0), axis=0)
+                    setattr(mean_component, attr_name, mean_array)
+            
+            elif hasattr(mean_attr, '__dict__'):
+                # Nested objects - recursively average their attributes
+                nested_objects = []
+                for component in components:
+                    if hasattr(component, attr_name):
+                        nested_obj = getattr(component, attr_name)
+                        if hasattr(nested_obj, '__dict__'):
+                            nested_objects.append(nested_obj)
+                
+                if nested_objects:
+                    self._average_component_attributes(mean_attr, nested_objects)
+            
+            elif isinstance(mean_attr, dict):
+                # Dictionary values
+                self._average_dict_values(mean_attr, components, attr_name)
+            
+            elif isinstance(mean_attr, list):
+                # List values (if they contain numerical data)
+                self._average_list_values(mean_attr, components, attr_name)
+    
+    def _average_dict_values(self, mean_dict, components, attr_name):
+        """Average dictionary values across ensemble members"""
+        if not isinstance(mean_dict, dict):
+            return
+        
+        for key in mean_dict.keys():
+            values = []
+            for component in components:
+                if hasattr(component, attr_name):
+                    comp_dict = getattr(component, attr_name)
+                    if isinstance(comp_dict, dict) and key in comp_dict:
+                        val = comp_dict[key]
+                        if isinstance(val, (int, float)):
+                            values.append(val)
+                        elif isinstance(val, np.ndarray):
+                            values.append(val)
+            
+            if values:
+                if isinstance(values[0], (int, float)):
+                    mean_dict[key] = np.mean(values)
+                elif isinstance(values[0], np.ndarray):
+                    # Ensure all arrays have same shape
+                    if all(arr.shape == values[0].shape for arr in values):
+                        mean_dict[key] = np.mean(np.stack(values, axis=0), axis=0)
+    
+    def _average_list_values(self, mean_list, components, attr_name):
+        """Average list values across ensemble members (for numerical lists)"""
+        if not isinstance(mean_list, list) or not mean_list:
+            return
+        
+        # Only process lists of numerical values
+        if not all(isinstance(item, (int, float, np.ndarray)) for item in mean_list):
+            return
+        
+        # Collect corresponding lists from all components
+        lists = []
+        for component in components:
+            if hasattr(component, attr_name):
+                comp_list = getattr(component, attr_name)
+                if isinstance(comp_list, list) and len(comp_list) == len(mean_list):
+                    lists.append(comp_list)
+        
+        if not lists:
+            return
+        
+        # Average each position in the list
+        for i in range(len(mean_list)):
+            values = []
+            for comp_list in lists:
+                if i < len(comp_list):
+                    val = comp_list[i]
+                    if isinstance(val, (int, float)):
+                        values.append(val)
+                    elif isinstance(val, np.ndarray):
+                        values.append(val)
+            
+            if values:
+                if isinstance(values[0], (int, float)):
+                    mean_list[i] = np.mean(values)
+                elif isinstance(values[0], np.ndarray):
+                    if all(arr.shape == values[0].shape for arr in values):
+                        mean_list[i] = np.mean(np.stack(values, axis=0), axis=0)
+    
+    def _simple_assimilation(self, earth_state: EarthSystemState, 
+                           observations: List[ObservationData]) -> EarthSystemState:
+        """Simplified assimilation when ML is not available"""
+        updated_state = copy.deepcopy(earth_state)
+        
+        for obs in observations:
+            # Simple nudging toward observations
+            nudging_factor = 0.1
+            
+            if obs.variable_type == 'temperature' and hasattr(updated_state, 'atmosphere'):
+                if hasattr(updated_state.atmosphere, 'temperature'):
+                    # Simple spatial interpolation and nudging
+                    operator_value = self._temperature_operator(updated_state, obs.location)
+                    innovation = obs.value - operator_value
+                    
+                    # Apply nudging
+                    if hasattr(updated_state.atmosphere.temperature, 'shape'):
+                        update = innovation * nudging_factor
+                        updated_state.atmosphere.temperature += update
+        
+        return updated_state
     
     def _pressure_operator(self, state: EarthSystemState, location: Tuple[float, float, float]) -> float:
         """Observation operator for pressure"""

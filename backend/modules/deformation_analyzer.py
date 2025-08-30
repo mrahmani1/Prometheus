@@ -2276,7 +2276,7 @@ class DeformationAnalyzer:
         
         # Source interaction analysis
         interaction_matrix = self._analyze_source_interactions(
-            source_contributions, source_types, param_covariance
+            source_contributions, source_types, param_covariance, combined_params
         )
         
         # Model complexity metrics
@@ -2604,7 +2604,8 @@ class DeformationAnalyzer:
     
     def _analyze_source_interactions(self, source_contribs: Dict, 
                                    source_types: Tuple[SourceType, ...],
-                                   param_covariance: np.ndarray) -> Dict:
+                                   param_covariance: np.ndarray,
+                                   combined_params: Dict = None) -> Dict:
         """Analyze interactions between different sources"""
         interactions = {}
         
@@ -2622,8 +2623,64 @@ class DeformationAnalyzer:
                 'parameter_correlations': {}
             }
         
-        # Parameter correlation analysis would go here
-        # (requires more complex indexing of covariance matrix)
+        # Parameter correlation analysis
+        if combined_params is not None and param_covariance is not None:
+            param_idx_start = 0
+            
+            for i, source_type_i in enumerate(source_types):
+                n_params_i = len(combined_params[source_type_i])
+                param_names_i = list(combined_params[source_type_i].keys())
+                
+                # Cross-correlations with other sources
+                param_idx_other = 0
+                for j, source_type_j in enumerate(source_types):
+                    if i != j:  # Different sources
+                        n_params_j = len(combined_params[source_type_j])
+                        param_names_j = list(combined_params[source_type_j].keys())
+                        
+                        # Extract cross-covariance block
+                        cross_cov_block = param_covariance[
+                            param_idx_start:param_idx_start + n_params_i,
+                            param_idx_other:param_idx_other + n_params_j
+                        ]
+                        
+                        # Calculate correlation coefficients
+                        correlations = {}
+                        for pi, param_i in enumerate(param_names_i):
+                            for pj, param_j in enumerate(param_names_j):
+                                # Correlation coefficient: Cov(X,Y) / (σ_X * σ_Y)
+                                cov_ij = cross_cov_block[pi, pj]
+                                std_i = np.sqrt(param_covariance[param_idx_start + pi, param_idx_start + pi])
+                                std_j = np.sqrt(param_covariance[param_idx_other + pj, param_idx_other + pj])
+                                
+                                if std_i > 1e-10 and std_j > 1e-10:
+                                    correlation = cov_ij / (std_i * std_j)
+                                    correlations[f"{param_i}_{source_type_j.value}_{param_j}"] = {
+                                        'correlation': correlation,
+                                        'covariance': cov_ij,
+                                        'significance': abs(correlation) > 0.1  # Threshold for significance
+                                    }
+                        
+                        interactions[source_type_i]['parameter_correlations'][source_type_j.value] = correlations
+                    
+                    param_idx_other += n_params_j if j < i else 0  # Avoid double counting
+                
+                param_idx_start += n_params_i
+            
+            # Calculate overall interaction strength between source pairs
+            for source_type in source_types:
+                correlations = interactions[source_type]['parameter_correlations']
+                max_correlation = 0.0
+                total_significant = 0
+                
+                for other_source, param_corrs in correlations.items():
+                    for param_name, corr_info in param_corrs.items():
+                        max_correlation = max(max_correlation, abs(corr_info['correlation']))
+                        if corr_info['significance']:
+                            total_significant += 1
+                
+                interactions[source_type]['interaction_strength'] = max_correlation
+                interactions[source_type]['significant_correlations'] = total_significant
         
         return interactions
     
@@ -2675,9 +2732,50 @@ class DeformationAnalyzer:
             
             # Redefine objective function for bootstrap sample
             def bootstrap_objective(params_vector):
-                # This would need to be adapted for the bootstrap sample
-                # For now, use a simplified version
-                return objective_func(params_vector)
+                """Bootstrap-specific objective function using perturbed data"""
+                try:
+                    # Use combined forward model to predict displacement
+                    param_idx = 0
+                    total_displacement = np.zeros((len(bootstrap_coords), 3))
+                    source_contributions = {}
+                    
+                    for source_type in source_types:
+                        model = self.models[source_type]
+                        n_params = len(combined_params[source_type])
+                        
+                        # Extract parameters for this source
+                        source_params = params_vector[param_idx:param_idx + n_params]
+                        param_dict = dict(zip(combined_params[source_type].keys(), source_params))
+                        
+                        # Calculate displacement contribution using bootstrap coordinates
+                        displacement_contrib = model.forward_model(param_dict, bootstrap_coords)
+                        total_displacement += displacement_contrib
+                        
+                        source_contributions[source_type] = {
+                            'parameters': param_dict,
+                            'displacement': displacement_contrib,
+                            'magnitude': np.linalg.norm(displacement_contrib)
+                        }
+                        
+                        param_idx += n_params
+                    
+                    # Calculate misfit using perturbed displacements
+                    residuals = (perturbed_displacements - total_displacement).flatten()
+                    
+                    # Simple weighted least squares for bootstrap (faster than full covariance)
+                    weights = 1.0 / (bootstrap_uncertainties.flatten() + 1e-10)
+                    data_misfit = np.sum(weights * residuals**2)
+                    
+                    # Add basic regularization (reduced weight for speed)
+                    coupling_penalty = self._calculate_coupling_penalty(
+                        source_contributions, source_types, params_vector
+                    )
+                    
+                    return data_misfit + 0.1 * self.config.coupling_weight * coupling_penalty
+                    
+                except Exception as e:
+                    logger.warning(f"Bootstrap objective evaluation failed: {e}")
+                    return 1e10
             
             try:
                 # Quick optimization from optimal solution

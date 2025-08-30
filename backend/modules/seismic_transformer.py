@@ -28,6 +28,14 @@ try:
 except ImportError:
     SCIPY_AVAILABLE = False
 
+# Deep Earth ML Integration
+try:
+    from .deep_earth_ml import DeepEarthMLSystem
+    DEEP_EARTH_ML_AVAILABLE = True
+except ImportError:
+    DEEP_EARTH_ML_AVAILABLE = False
+    warnings.warn("Deep Earth ML not available. Thermal-seismic coupling will be limited.")
+
 
 @dataclass
 class SeismicConfig:
@@ -459,10 +467,177 @@ class SeismicProcessor:
         self.models = {}
         self.active_learner = ActiveLearningSeismic(self.config)
         
+        # Initialize Deep Earth ML system for thermal-seismic coupling
+        self.deep_earth_ml = None
+        if DEEP_EARTH_ML_AVAILABLE:
+            self._initialize_deep_earth_ml()
+        
         if TORCH_AVAILABLE:
             self._initialize_models()
         else:
             warnings.warn("PyTorch not available - using simplified processing")
+    
+    def _initialize_deep_earth_ml(self):
+        """Initialize Deep Earth ML system configured for seismic-thermal coupling"""
+        try:
+            # Configure Deep Earth ML for seismic data processing with thermal coupling
+            deep_earth_config = {
+                'use_physics_informed': True,  # Essential for thermal-seismic physics
+                'use_fourier_operator': True,  # For frequency domain seismic analysis
+                'use_deeponet': True,         # For operator learning in wave propagation
+                'use_graph_operator': True,   # For seismic network topology
+                'learning_rate': 1e-4,
+                'hidden_dim': 512,           # Higher capacity for seismic complexity
+                'fno_modes': 32,             # Higher modes for seismic frequency content
+                'fno_width': 256,            # Wide enough for multi-channel seismic data
+                'num_layers': 8              # Deep network for complex wave physics
+            }
+            
+            self.deep_earth_ml = DeepEarthMLSystem(**deep_earth_config)
+            print("Deep Earth ML system initialized for thermal-seismic coupling")
+            
+        except Exception as e:
+            warnings.warn(f"Failed to initialize Deep Earth ML system: {e}")
+            self.deep_earth_ml = None
+    
+    def get_thermal_seismic_features(self, seismic_data: np.ndarray, 
+                                   coordinates: Tuple[float, float],
+                                   depth_range: Tuple[float, float]) -> Dict[str, np.ndarray]:
+        """
+        Extract thermal-seismic coupling features using Deep Earth ML
+        
+        Args:
+            seismic_data: Raw seismic waveform data [time_samples, channels]
+            coordinates: (latitude, longitude) of seismic station
+            depth_range: (min_depth, max_depth) for thermal analysis
+            
+        Returns:
+            Dictionary containing thermal-seismic coupling features
+        """
+        if not self.deep_earth_ml:
+            warnings.warn("Deep Earth ML not available. Returning default thermal-seismic features.")
+            return self._get_default_thermal_seismic_features(seismic_data)
+        
+        try:
+            # Create thermal-seismic analysis grid
+            lat, lon = coordinates
+            min_depth, max_depth = depth_range
+            
+            # Depth levels for thermal-seismic coupling analysis
+            depths = np.linspace(min_depth, max_depth, 15)  # 15 depth levels
+            thermal_grid = np.array([[lat, lon, d] for d in depths])
+            
+            # Get thermal field at seismic station location
+            thermal_field = self.deep_earth_ml.get_thermal_field(thermal_grid)
+            
+            # Analyze thermal effects on seismic wave propagation
+            features = {}
+            
+            # 1. Thermal velocity perturbations
+            # Temperature affects seismic velocity through thermal expansion
+            reference_temp = 300.0  # Reference temperature in Kelvin
+            thermal_expansion_coeff = 3e-5  # Typical value for rocks
+            
+            # Calculate velocity perturbations due to temperature
+            temp_perturbation = thermal_field - reference_temp
+            velocity_perturbation = -thermal_expansion_coeff * temp_perturbation
+            
+            features['thermal_velocity_perturbation_mean'] = np.mean(velocity_perturbation)
+            features['thermal_velocity_perturbation_std'] = np.std(velocity_perturbation)
+            features['thermal_velocity_perturbation_max'] = np.max(np.abs(velocity_perturbation))
+            
+            # 2. Depth-dependent thermal effects
+            features['thermal_gradient_effect'] = np.gradient(thermal_field)[0]  # dT/dz effect
+            features['thermal_stratification'] = np.var(thermal_field)  # Thermal layering
+            
+            # 3. Thermal-seismic attenuation coupling
+            # Higher temperatures generally increase seismic attenuation
+            attenuation_factor = 1e-4  # Temperature coefficient for attenuation
+            thermal_attenuation = attenuation_factor * (thermal_field - reference_temp)
+            
+            features['thermal_attenuation_mean'] = np.mean(thermal_attenuation)
+            features['thermal_attenuation_integrated'] = np.trapz(thermal_attenuation, depths)
+            
+            # 4. Seismic waveform analysis with thermal context
+            if len(seismic_data.shape) >= 2:
+                # Multi-channel seismic data
+                time_samples, n_channels = seismic_data.shape
+                
+                # Apply Fourier Neural Operator for thermal-aware seismic processing
+                seismic_tensor = torch.FloatTensor(seismic_data).unsqueeze(0)  # Add batch dim
+                
+                # Get thermal-aware seismic features using FNO
+                thermal_seismic_enhanced = self.deep_earth_ml.fourier_operator(seismic_tensor)
+                thermal_seismic_features = thermal_seismic_enhanced.detach().numpy().squeeze()
+                
+                # Extract key thermal-seismic coupling metrics
+                features['thermal_seismic_coherence'] = np.corrcoef(
+                    thermal_field, 
+                    np.mean(thermal_seismic_features[:len(thermal_field)], axis=0) if thermal_seismic_features.ndim > 1 else thermal_seismic_features[:len(thermal_field)]
+                )[0, 1] if len(thermal_seismic_features) >= len(thermal_field) else 0.0
+                
+                # Thermal-modulated seismic amplitude statistics
+                features['thermal_modulated_amplitude_mean'] = np.mean(thermal_seismic_features)
+                features['thermal_modulated_amplitude_std'] = np.std(thermal_seismic_features)
+                
+            else:
+                # Single channel seismic data
+                features['thermal_seismic_coherence'] = 0.0
+                features['thermal_modulated_amplitude_mean'] = 0.0
+                features['thermal_modulated_amplitude_std'] = 0.0
+            
+            # 5. Thermal anomaly indicators in seismic context
+            baseline_thermal = np.mean(thermal_field)
+            thermal_anomaly_mask = np.abs(thermal_field - baseline_thermal) > 2 * np.std(thermal_field)
+            
+            features['thermal_anomaly_seismic_depth'] = np.mean(depths[thermal_anomaly_mask]) if np.any(thermal_anomaly_mask) else 0.0
+            features['thermal_anomaly_volume_fraction'] = np.sum(thermal_anomaly_mask) / len(thermal_anomaly_mask)
+            
+            # 6. Physics-informed thermal-seismic coupling
+            # Use Deep Earth ML physics-informed network for coupling analysis
+            if hasattr(self.deep_earth_ml, 'physics_informed_network'):
+                physics_input = np.column_stack([
+                    np.full(len(depths), lat),
+                    np.full(len(depths), lon),
+                    depths,
+                    thermal_field
+                ])
+                
+                physics_tensor = torch.FloatTensor(physics_input)
+                physics_output = self.deep_earth_ml.physics_informed_network(physics_tensor)
+                physics_coupling = physics_output.detach().numpy()
+                
+                features['physics_thermal_seismic_coupling'] = np.mean(physics_coupling)
+                features['physics_coupling_depth_variation'] = np.std(physics_coupling)
+            else:
+                features['physics_thermal_seismic_coupling'] = 0.0
+                features['physics_coupling_depth_variation'] = 0.0
+            
+            print(f"Generated thermal-seismic coupling features for coordinates {coordinates}")
+            return features
+            
+        except Exception as e:
+            warnings.warn(f"Error in thermal-seismic feature extraction: {e}")
+            return self._get_default_thermal_seismic_features(seismic_data)
+    
+    def _get_default_thermal_seismic_features(self, seismic_data: np.ndarray) -> Dict[str, np.ndarray]:
+        """Generate default thermal-seismic features when Deep Earth ML is not available"""
+        return {
+            'thermal_velocity_perturbation_mean': 0.0,
+            'thermal_velocity_perturbation_std': 0.0,
+            'thermal_velocity_perturbation_max': 0.0,
+            'thermal_gradient_effect': 0.0,
+            'thermal_stratification': 0.0,
+            'thermal_attenuation_mean': 0.0,
+            'thermal_attenuation_integrated': 0.0,
+            'thermal_seismic_coherence': 0.0,
+            'thermal_modulated_amplitude_mean': 0.0,
+            'thermal_modulated_amplitude_std': 0.0,
+            'thermal_anomaly_seismic_depth': 0.0,
+            'thermal_anomaly_volume_fraction': 0.0,
+            'physics_thermal_seismic_coupling': 0.0,
+            'physics_coupling_depth_variation': 0.0
+        }
     
     def _initialize_models(self):
         """Initialize all deep learning models"""

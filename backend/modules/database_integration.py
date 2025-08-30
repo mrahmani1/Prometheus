@@ -1122,9 +1122,54 @@ class PostgreSQLGISManager:
             # Expected value and variance
             expected_i = -1.0 / (n - 1)
             
-            # Simplified z-score calculation
-            var_i = 2.0 / (n * (n - 1))  # Simplified variance
-            z_score = (morans_i - expected_i) / np.sqrt(var_i) if var_i > 0 else 0.0
+            # Advanced z-score calculation with proper Moran's I variance
+            if n > 3:
+                # Calculate proper variance using the complete Moran's I formula
+                # Variance of Moran's I under null hypothesis
+                w_sum = np.sum(weights_matrix)
+                w_sum_squared = np.sum(weights_matrix ** 2)
+                
+                # Sum of squared row sums and column sums
+                w_row_sums = np.sum(weights_matrix, axis=1)
+                w_col_sums = np.sum(weights_matrix, axis=0)
+                s1 = 0.5 * np.sum((weights_matrix + weights_matrix.T) ** 2)
+                s2 = np.sum((w_row_sums + w_col_sums) ** 2)
+                
+                # Fourth moment of the standardized variable
+                if len(values) > 0:
+                    mean_val = np.mean(values)
+                    centered_vals = values - mean_val
+                    variance_val = np.var(values, ddof=0)
+                    if variance_val > 0:
+                        standardized_vals = centered_vals / np.sqrt(variance_val)
+                        b2 = np.sum(standardized_vals ** 4) / n
+                    else:
+                        b2 = 3.0  # Normal distribution kurtosis
+                else:
+                    b2 = 3.0
+                
+                # Calculate variance components
+                a = (n - 1) * s1
+                b = (2 * b2 - n) * s2
+                c = (n - 1) * (n - 2) * (n - 3) * w_sum ** 2
+                
+                # Complete variance formula for Moran's I
+                if c > 0:
+                    var_i = (a - b) / c - expected_i ** 2
+                    var_i = max(var_i, 1e-10)  # Ensure positive variance
+                else:
+                    var_i = 2.0 / (n * (n - 1))  # Fallback to simplified
+                
+                z_score = (morans_i - expected_i) / np.sqrt(var_i) if var_i > 0 else 0.0
+                
+                # Apply finite sample correction for small n
+                if n < 30:
+                    correction_factor = np.sqrt((n - 1) / n)
+                    z_score *= correction_factor
+            else:
+                # Fallback for very small samples
+                var_i = 2.0 / (n * (n - 1))
+                z_score = (morans_i - expected_i) / np.sqrt(var_i) if var_i > 0 else 0.0
             
             # Approximate p-value (two-tailed)
             from scipy.stats import norm
@@ -1413,8 +1458,51 @@ class PostgreSQLGISManager:
             lat_grid = np.linspace(min_lat - padding * lat_range,
                                  max_lat + padding * lat_range, grid_resolution)
             
-            # Simple Gaussian KDE implementation
-            bandwidth = 0.1  # Adjust as needed
+            # Advanced adaptive Gaussian KDE implementation with optimal bandwidth selection
+            from scipy.spatial.distance import cdist
+            from scipy.optimize import minimize_scalar
+            
+            # Adaptive bandwidth selection using multiple methods
+            if len(coordinates) > 1:
+                # Silverman's rule of thumb
+                n = len(coordinates)
+                coords_array = np.array(coordinates)
+                std_x, std_y = np.std(coords_array, axis=0)
+                silverman_bw = (4/3)**0.2 * min(std_x, std_y) * n**(-1/6)
+                
+                # Scott's rule
+                scott_bw = n**(-1/6) * np.mean([std_x, std_y])
+                
+                # Cross-validation bandwidth optimization
+                def kde_likelihood(bw):
+                    if bw <= 0:
+                        return np.inf
+                    total_likelihood = 0
+                    for i, coord in enumerate(coords_array):
+                        # Leave-one-out density estimation
+                        other_coords = np.delete(coords_array, i, axis=0)
+                        distances = cdist([coord], other_coords, metric='euclidean')[0]
+                        kernel_vals = np.exp(-0.5 * (distances / bw)**2) / (bw * np.sqrt(2 * np.pi))
+                        density = np.mean(kernel_vals) if len(kernel_vals) > 0 else 1e-10
+                        total_likelihood -= np.log(max(density, 1e-10))
+                    return total_likelihood
+                
+                # Optimize bandwidth using cross-validation
+                try:
+                    cv_result = minimize_scalar(kde_likelihood, 
+                                              bounds=(0.01, max(silverman_bw, scott_bw) * 2),
+                                              method='bounded')
+                    cv_bandwidth = cv_result.x if cv_result.success else silverman_bw
+                except:
+                    cv_bandwidth = silverman_bw
+                
+                # Ensemble bandwidth selection (weighted average)
+                bandwidth = (0.4 * silverman_bw + 0.3 * scott_bw + 0.3 * cv_bandwidth)
+                bandwidth = max(bandwidth, 0.01)  # Ensure minimum bandwidth
+            else:
+                bandwidth = 0.1  # Fallback for single point
+            
+            # Initialize high-resolution density grid with optimized computation
             density_grid = np.zeros((grid_resolution, grid_resolution))
             
             for i, lat in enumerate(lat_grid):

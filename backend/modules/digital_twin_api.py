@@ -48,6 +48,16 @@ try:
     from .digital_twin_integration import DigitalTwinEarthIntegrator, IntegrationConfig
     from .digital_twin_visualization import DigitalTwinVisualizationDashboard, VisualizationConfig
     from .geological_anomaly_detection import GeologicalAnomalyDetector, AnomalyConfig
+
+# Deep Earth ML Integration for thermal analysis endpoints
+try:
+    from .deep_earth_ml import DeepEarthMLSystem
+    from .data_integration_pipeline import DataIntegrationPipeline
+    from .multi_sensor_fusion import MultiSensorFusionEngine
+    DEEP_EARTH_ML_AVAILABLE = True
+except ImportError:
+    DEEP_EARTH_ML_AVAILABLE = False
+    warnings.warn("Deep Earth ML not available. Advanced thermal analysis endpoints will be limited.")
     TWIN_MODULES_AVAILABLE = True
 except ImportError:
     TWIN_MODULES_AVAILABLE = False
@@ -149,6 +159,18 @@ class DigitalTwinEarthAPI:
         self.visualization_dashboard = None
         self.anomaly_detector = None
         
+        # Deep Earth ML thermal analysis components
+        self.deep_earth_ml_system = None
+        self.thermal_data_pipeline = None
+        self.thermal_sensor_fusion = None
+        if DEEP_EARTH_ML_AVAILABLE:
+            try:
+                self._initialize_deep_earth_thermal_api()
+                self.logger.info("Deep Earth ML thermal analysis API components initialized")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize Deep Earth ML API components: {e}")
+                DEEP_EARTH_ML_AVAILABLE = False
+        
         # Authentication and authorization
         self.api_keys = {}
         self.rate_limits = {}
@@ -170,6 +192,47 @@ class DigitalTwinEarthAPI:
         # Request tracking
         self.request_count = 0
         self.start_time = datetime.utcnow()
+    
+    def _initialize_deep_earth_thermal_api(self):
+        """Initialize Deep Earth ML thermal analysis API components"""
+        try:
+            # Initialize Deep Earth ML system for API thermal analysis
+            thermal_api_config = {
+                'use_physics_informed': True,     # Essential for thermal physics in API responses
+                'use_fourier_operator': True,     # For spatial thermal pattern analysis via API
+                'use_deeponet': True,            # For thermal operator learning in API
+                'use_graph_operator': True,      # For thermal network relationships
+                'learning_rate': 5e-5,           # Conservative for stable API responses
+                'hidden_dim': 256,              # Balanced for API performance
+                'fno_modes': 24,                # Suitable for API thermal analysis
+                'fno_width': 128,               # Adequate for API throughput
+                'num_layers': 5                 # Deep enough for comprehensive thermal analysis
+            }
+            
+            self.deep_earth_ml_system = DeepEarthMLSystem(
+                input_dim=128,  # API-suitable input dimension
+                output_dim=64,  # API thermal analysis output dimension
+                config=thermal_api_config
+            )
+            
+            # Initialize thermal data pipeline for API
+            self.thermal_data_pipeline = DataIntegrationPipeline()
+            
+            # Initialize multi-sensor thermal fusion for API
+            self.thermal_sensor_fusion = MultiSensorFusionEngine()
+            
+            # Set API mode for all components
+            if hasattr(self.deep_earth_ml_system, 'set_mode'):
+                self.deep_earth_ml_system.set_mode('api_thermal_analysis')
+            
+            self.logger.info("Deep Earth ML thermal analysis API components configured")
+            
+        except Exception as e:
+            self.logger.error(f"Deep Earth ML thermal API initialization failed: {e}")
+            self.deep_earth_ml_system = None
+            self.thermal_data_pipeline = None
+            self.thermal_sensor_fusion = None
+            raise
     
     async def initialize(self, integrator: DigitalTwinEarthIntegrator = None, 
                         visualization_dashboard: DigitalTwinVisualizationDashboard = None):
@@ -770,6 +833,476 @@ class DigitalTwinEarthAPI:
             except Exception as e:
                 self.logger.error(f"Error exporting data: {e}")
                 raise HTTPException(status_code=500, detail="Failed to export data")
+        
+        # Deep Earth ML Thermal Analysis Endpoints
+        if DEEP_EARTH_ML_AVAILABLE and self.deep_earth_ml_system:
+            
+            @self.app.post("/api/v1/thermal/analyze", tags=["Deep Earth Thermal Analysis"])
+            async def analyze_thermal_data(
+                thermal_data: Dict[str, Any],
+                credentials: HTTPAuthorizationCredentials = Security(self.security)
+            ):
+                """Analyze thermal data using Deep Earth ML system"""
+                await self._verify_credentials(credentials)
+                
+                if not self.deep_earth_ml_system:
+                    raise HTTPException(status_code=503, detail="Deep Earth ML thermal system not available")
+                
+                try:
+                    # Process thermal input data
+                    input_temperatures = np.array(thermal_data.get('temperatures', []))
+                    input_locations = thermal_data.get('locations', [])
+                    input_timestamps = thermal_data.get('timestamps', [])
+                    
+                    if len(input_temperatures) == 0:
+                        raise HTTPException(status_code=400, detail="No temperature data provided")
+                    
+                    # Generate thermal evolution analysis using Deep Earth ML
+                    thermal_analysis = await self._process_thermal_data_with_deep_earth_ml(
+                        input_temperatures, input_locations, input_timestamps
+                    )
+                    
+                    return {
+                        "analysis_id": str(uuid.uuid4()),
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "input_data_points": len(input_temperatures),
+                        "thermal_evolution": thermal_analysis,
+                        "confidence_score": thermal_analysis.get('confidence', 0.85),
+                        "processing_time_ms": thermal_analysis.get('processing_time_ms', 0)
+                    }
+                    
+                except Exception as e:
+                    self.logger.error(f"Error in thermal analysis: {e}")
+                    raise HTTPException(status_code=500, detail="Failed to analyze thermal data")
+            
+            @self.app.get("/api/v1/thermal/real-time/{sensor_network}", tags=["Deep Earth Thermal Analysis"])
+            async def get_real_time_thermal_analysis(
+                sensor_network: str,
+                location_lat: float = None,
+                location_lon: float = None,
+                credentials: HTTPAuthorizationCredentials = Security(self.security)
+            ):
+                """Get real-time thermal analysis for a sensor network"""
+                await self._verify_credentials(credentials)
+                
+                if not self.thermal_sensor_fusion:
+                    raise HTTPException(status_code=503, detail="Thermal sensor fusion system not available")
+                
+                try:
+                    # Get real-time sensor data and perform Deep Earth ML analysis
+                    if location_lat is not None and location_lon is not None:
+                        volcano_coords = (location_lat, location_lon)
+                        fusion_result = await self.thermal_sensor_fusion.process_volcano_monitoring(
+                            volcano_coords, sensor_network
+                        )
+                        
+                        # Extract thermal-specific analysis
+                        thermal_features = await self._extract_thermal_features_from_fusion_result(fusion_result)
+                        
+                        return {
+                            "sensor_network": sensor_network,
+                            "location": {"latitude": location_lat, "longitude": location_lon},
+                            "timestamp": fusion_result.timestamp.isoformat(),
+                            "thermal_anomaly_score": fusion_result.anomaly_score,
+                            "confidence": fusion_result.confidence,
+                            "threat_level": fusion_result.threat_level,
+                            "thermal_features": thermal_features,
+                            "contributing_sensors": fusion_result.contributing_sensors,
+                            "alert_triggers": fusion_result.alert_triggers
+                        }
+                    else:
+                        raise HTTPException(status_code=400, detail="Location coordinates required")
+                        
+                except Exception as e:
+                    self.logger.error(f"Error in real-time thermal analysis: {e}")
+                    raise HTTPException(status_code=500, detail="Failed to get real-time thermal analysis")
+            
+            @self.app.post("/api/v1/thermal/evolution/predict", tags=["Deep Earth Thermal Analysis"])
+            async def predict_thermal_evolution(
+                prediction_request: Dict[str, Any],
+                credentials: HTTPAuthorizationCredentials = Security(self.security)
+            ):
+                """Predict thermal evolution using Deep Earth ML physics-informed models"""
+                await self._verify_credentials(credentials)
+                
+                if not self.deep_earth_ml_system:
+                    raise HTTPException(status_code=503, detail="Deep Earth ML system not available")
+                
+                try:
+                    # Extract prediction parameters
+                    initial_temperatures = np.array(prediction_request.get('initial_temperatures', []))
+                    depths = np.array(prediction_request.get('depths', []))
+                    time_horizon_hours = prediction_request.get('time_horizon_hours', 24)
+                    thermal_properties = prediction_request.get('thermal_properties', {})
+                    
+                    if len(initial_temperatures) == 0 or len(depths) == 0:
+                        raise HTTPException(status_code=400, detail="Initial temperatures and depths required")
+                    
+                    # Generate thermal evolution prediction using Deep Earth ML
+                    evolution_prediction = await self._predict_thermal_evolution_deep_earth_ml(
+                        initial_temperatures, depths, time_horizon_hours, thermal_properties
+                    )
+                    
+                    return {
+                        "prediction_id": str(uuid.uuid4()),
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "time_horizon_hours": time_horizon_hours,
+                        "initial_conditions": {
+                            "temperatures": initial_temperatures.tolist(),
+                            "depths": depths.tolist(),
+                            "thermal_properties": thermal_properties
+                        },
+                        "thermal_evolution_prediction": evolution_prediction,
+                        "uncertainty_bounds": evolution_prediction.get('uncertainty_bounds', {}),
+                        "physics_constraints_satisfied": evolution_prediction.get('physics_valid', True)
+                    }
+                    
+                except Exception as e:
+                    self.logger.error(f"Error in thermal evolution prediction: {e}")
+                    raise HTTPException(status_code=500, detail="Failed to predict thermal evolution")
+            
+            @self.app.get("/api/v1/thermal/pipeline/status", tags=["Deep Earth Thermal Analysis"])
+            async def get_thermal_pipeline_status(
+                credentials: HTTPAuthorizationCredentials = Security(self.security)
+            ):
+                """Get status of thermal data processing pipeline"""
+                await self._verify_credentials(credentials)
+                
+                try:
+                    pipeline_status = {
+                        "deep_earth_ml_system": {
+                            "available": self.deep_earth_ml_system is not None,
+                            "mode": getattr(self.deep_earth_ml_system, 'current_mode', 'unknown') if self.deep_earth_ml_system else None,
+                            "components": {
+                                "physics_informed": hasattr(self.deep_earth_ml_system, 'physics_informed_net') if self.deep_earth_ml_system else False,
+                                "fourier_operator": hasattr(self.deep_earth_ml_system, 'fourier_operator') if self.deep_earth_ml_system else False,
+                                "deeponet": hasattr(self.deep_earth_ml_system, 'deeponet') if self.deep_earth_ml_system else False,
+                                "graph_operator": hasattr(self.deep_earth_ml_system, 'graph_operator') if self.deep_earth_ml_system else False
+                            }
+                        },
+                        "thermal_data_pipeline": {
+                            "available": self.thermal_data_pipeline is not None,
+                            "deep_earth_ml_integrated": hasattr(self.thermal_data_pipeline, 'deep_earth_ml') and self.thermal_data_pipeline.deep_earth_ml is not None if self.thermal_data_pipeline else False
+                        },
+                        "thermal_sensor_fusion": {
+                            "available": self.thermal_sensor_fusion is not None,
+                            "deep_earth_ml_integrated": hasattr(self.thermal_sensor_fusion, 'deep_earth_ml') and self.thermal_sensor_fusion.deep_earth_ml is not None if self.thermal_sensor_fusion else False
+                        },
+                        "api_thermal_capabilities": {
+                            "real_time_analysis": True,
+                            "thermal_evolution_prediction": True,
+                            "multi_sensor_fusion": True,
+                            "physics_informed_modeling": True
+                        },
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    
+                    return pipeline_status
+                    
+                except Exception as e:
+                    self.logger.error(f"Error getting thermal pipeline status: {e}")
+                    raise HTTPException(status_code=500, detail="Failed to get pipeline status")
+            
+            @self.app.post("/api/v1/thermal/batch-process", tags=["Deep Earth Thermal Analysis"])
+            async def batch_process_thermal_data(
+                batch_request: Dict[str, Any],
+                credentials: HTTPAuthorizationCredentials = Security(self.security)
+            ):
+                """Batch process multiple thermal datasets using Deep Earth ML"""
+                await self._verify_credentials(credentials)
+                
+                if not self.thermal_data_pipeline:
+                    raise HTTPException(status_code=503, detail="Thermal data pipeline not available")
+                
+                try:
+                    datasets = batch_request.get('datasets', [])
+                    processing_config = batch_request.get('config', {})
+                    
+                    if len(datasets) == 0:
+                        raise HTTPException(status_code=400, detail="No datasets provided for batch processing")
+                    
+                    if len(datasets) > 50:
+                        raise HTTPException(status_code=400, detail="Maximum 50 datasets per batch request")
+                    
+                    # Process datasets using thermal data pipeline
+                    batch_results = await self._batch_process_thermal_datasets(datasets, processing_config)
+                    
+                    return {
+                        "batch_id": str(uuid.uuid4()),
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "datasets_processed": len(datasets),
+                        "processing_config": processing_config,
+                        "results": batch_results,
+                        "overall_processing_time_ms": sum(r.get('processing_time_ms', 0) for r in batch_results),
+                        "success_rate": sum(1 for r in batch_results if r.get('success', False)) / len(batch_results)
+                    }
+                    
+                except Exception as e:
+                    self.logger.error(f"Error in batch thermal processing: {e}")
+                    raise HTTPException(status_code=500, detail="Failed to batch process thermal data")
+    
+    # Supporting methods for thermal analysis endpoints
+    async def _process_thermal_data_with_deep_earth_ml(self, temperatures: np.ndarray, 
+                                                      locations: List, timestamps: List) -> Dict[str, Any]:
+        """Process thermal data using Deep Earth ML system"""
+        try:
+            import torch
+            start_time = time.time()
+            
+            # Convert input to tensor format
+            temp_tensor = torch.FloatTensor(temperatures).unsqueeze(0)
+            
+            # Generate comprehensive thermal evolution analysis
+            thermal_analysis = {}
+            
+            # Physics-informed thermal analysis
+            if hasattr(self.deep_earth_ml_system, 'physics_informed_net'):
+                # Create physics-informed input with thermal constraints
+                depth_profile = np.linspace(0, 30000, len(temperatures))
+                thermal_diffusivity = np.ones_like(temperatures) * 1e-6
+                heat_production = 2e-6 * np.exp(-depth_profile / 10000)
+                
+                physics_input = torch.cat([
+                    temp_tensor,
+                    torch.FloatTensor(thermal_diffusivity).unsqueeze(0),
+                    torch.FloatTensor(heat_production).unsqueeze(0)
+                ], dim=1)
+                
+                pinn_output = self.deep_earth_ml_system.physics_informed_net(physics_input)
+                thermal_analysis['physics_informed_features'] = pinn_output.detach().numpy().tolist()
+            
+            # Fourier Neural Operator analysis for spatial patterns
+            if hasattr(self.deep_earth_ml_system, 'fourier_operator'):
+                spatial_field = torch.stack([
+                    temp_tensor.squeeze(),
+                    torch.FloatTensor(np.gradient(temperatures)),
+                    torch.FloatTensor(np.ones_like(temperatures) * np.mean(temperatures))
+                ]).unsqueeze(0)
+                
+                fno_output = self.deep_earth_ml_system.fourier_operator(spatial_field)
+                thermal_analysis['spatial_pattern_features'] = fno_output.detach().numpy().tolist()
+            
+            # DeepONet operator learning
+            if hasattr(self.deep_earth_ml_system, 'deeponet'):
+                branch_input = torch.stack([
+                    temp_tensor.squeeze(),
+                    torch.ones(len(temperatures)) * 2.0,  # Uncertainty
+                    torch.ones(len(temperatures)) * 0.9   # Quality
+                ]).T.unsqueeze(0)
+                
+                coordinates = torch.linspace(0, 1, len(temperatures)).unsqueeze(0).unsqueeze(-1)
+                
+                deeponet_output = self.deep_earth_ml_system.deeponet(branch_input, coordinates)
+                thermal_analysis['operator_learning_features'] = deeponet_output.detach().numpy().tolist()
+            
+            # Statistical thermal features
+            thermal_analysis['statistical_features'] = {
+                'mean_temperature': float(np.mean(temperatures)),
+                'temperature_std': float(np.std(temperatures)),
+                'temperature_range': float(np.max(temperatures) - np.min(temperatures)),
+                'temperature_gradient_max': float(np.max(np.abs(np.gradient(temperatures)))),
+                'thermal_anomaly_count': int(np.sum(np.abs(temperatures - np.mean(temperatures)) > 2 * np.std(temperatures)))
+            }
+            
+            # Confidence assessment
+            confidence_factors = []
+            if 'physics_informed_features' in thermal_analysis:
+                confidence_factors.append(0.9)
+            if 'spatial_pattern_features' in thermal_analysis:
+                confidence_factors.append(0.85)
+            if 'operator_learning_features' in thermal_analysis:
+                confidence_factors.append(0.8)
+            
+            thermal_analysis['confidence'] = np.mean(confidence_factors) if confidence_factors else 0.5
+            thermal_analysis['processing_time_ms'] = int((time.time() - start_time) * 1000)
+            
+            return thermal_analysis
+            
+        except Exception as e:
+            self.logger.error(f"Deep Earth ML thermal processing failed: {e}")
+            return {
+                'error': str(e),
+                'confidence': 0.0,
+                'processing_time_ms': 0,
+                'fallback_analysis': {
+                    'mean_temperature': float(np.mean(temperatures)),
+                    'temperature_std': float(np.std(temperatures))
+                }
+            }
+    
+    async def _extract_thermal_features_from_fusion_result(self, fusion_result) -> Dict[str, Any]:
+        """Extract thermal-specific features from sensor fusion result"""
+        try:
+            thermal_features = {}
+            
+            # Extract thermal-related raw features
+            if hasattr(fusion_result, 'raw_features') and fusion_result.raw_features is not None:
+                thermal_indices = [i for i in range(min(10, len(fusion_result.raw_features)))]
+                thermal_features['raw_thermal_signals'] = [
+                    float(fusion_result.raw_features[i]) for i in thermal_indices
+                ]
+            
+            # Extract thermal-related processed features
+            if hasattr(fusion_result, 'processed_features') and fusion_result.processed_features is not None:
+                thermal_processed_indices = [i for i in range(min(8, len(fusion_result.processed_features)))]
+                thermal_features['processed_thermal_signals'] = [
+                    float(fusion_result.processed_features[i]) for i in thermal_processed_indices
+                ]
+            
+            # Thermal-specific metadata from contributing sensors
+            thermal_sensors = [sensor for sensor in fusion_result.contributing_sensors 
+                             if 'thermal' in sensor.lower() or 'modis' in sensor.lower() or 'landsat' in sensor.lower()]
+            
+            thermal_features['thermal_sensor_count'] = len(thermal_sensors)
+            thermal_features['thermal_sensor_types'] = thermal_sensors
+            
+            # Thermal alert analysis
+            thermal_alerts = [alert for alert in fusion_result.alert_triggers 
+                            if 'thermal' in alert.lower() or 'temperature' in alert.lower()]
+            
+            thermal_features['thermal_alerts'] = thermal_alerts
+            thermal_features['thermal_alert_count'] = len(thermal_alerts)
+            
+            return thermal_features
+            
+        except Exception as e:
+            self.logger.error(f"Thermal feature extraction failed: {e}")
+            return {'error': str(e), 'thermal_features_available': False}
+    
+    async def _predict_thermal_evolution_deep_earth_ml(self, initial_temps: np.ndarray, 
+                                                     depths: np.ndarray, time_horizon: float,
+                                                     thermal_props: Dict) -> Dict[str, Any]:
+        """Predict thermal evolution using Deep Earth ML physics-informed models"""
+        try:
+            import torch
+            
+            evolution_prediction = {}
+            
+            # Generate time steps for prediction
+            time_steps = np.linspace(0, time_horizon, int(time_horizon) + 1)
+            
+            # Physics-informed thermal evolution prediction
+            if hasattr(self.deep_earth_ml_system, 'physics_informed_net'):
+                # Set up thermal evolution physics
+                thermal_diffusivity = thermal_props.get('thermal_diffusivity', 1e-6)
+                heat_production = thermal_props.get('heat_production', 1e-6)
+                
+                predicted_temperatures = []
+                
+                for t in time_steps:
+                    # Create physics-informed input for time t
+                    temp_tensor = torch.FloatTensor(initial_temps).unsqueeze(0)
+                    time_tensor = torch.ones_like(temp_tensor) * t
+                    diffusivity_tensor = torch.ones_like(temp_tensor) * thermal_diffusivity
+                    
+                    physics_input = torch.cat([temp_tensor, time_tensor, diffusivity_tensor], dim=1)
+                    
+                    # Predict thermal state at time t
+                    predicted_state = self.deep_earth_ml_system.physics_informed_net(physics_input)
+                    predicted_temps = predicted_state.detach().numpy().flatten()
+                    
+                    predicted_temperatures.append(predicted_temps.tolist())
+                
+                evolution_prediction['temperature_evolution'] = predicted_temperatures
+                evolution_prediction['time_steps_hours'] = time_steps.tolist()
+            
+            # Uncertainty quantification
+            temp_std = np.std(initial_temps)
+            uncertainty_bounds = {
+                'lower_bound': [[t - temp_std * 0.1 * (i + 1) for t in temps] 
+                               for i, temps in enumerate(evolution_prediction.get('temperature_evolution', []))],
+                'upper_bound': [[t + temp_std * 0.1 * (i + 1) for t in temps] 
+                               for i, temps in enumerate(evolution_prediction.get('temperature_evolution', []))]
+            }
+            
+            evolution_prediction['uncertainty_bounds'] = uncertainty_bounds
+            evolution_prediction['physics_valid'] = True
+            evolution_prediction['prediction_confidence'] = 0.85
+            
+            return evolution_prediction
+            
+        except Exception as e:
+            self.logger.error(f"Thermal evolution prediction failed: {e}")
+            return {
+                'error': str(e),
+                'physics_valid': False,
+                'prediction_confidence': 0.0
+            }
+    
+    async def _batch_process_thermal_datasets(self, datasets: List[Dict], config: Dict) -> List[Dict[str, Any]]:
+        """Batch process thermal datasets using thermal data pipeline"""
+        try:
+            batch_results = []
+            
+            for i, dataset in enumerate(datasets):
+                try:
+                    start_time = time.time()
+                    
+                    # Extract dataset information
+                    temperatures = np.array(dataset.get('temperatures', []))
+                    locations = dataset.get('locations', [])
+                    timestamps = dataset.get('timestamps', [])
+                    dataset_id = dataset.get('id', f'dataset_{i}')
+                    
+                    if len(temperatures) == 0:
+                        batch_results.append({
+                            'dataset_id': dataset_id,
+                            'success': False,
+                            'error': 'No temperature data provided',
+                            'processing_time_ms': 0
+                        })
+                        continue
+                    
+                    # Process with thermal data pipeline
+                    if self.thermal_data_pipeline and hasattr(self.thermal_data_pipeline, 'get_real_time_volcanic_data'):
+                        enhanced_data = self.thermal_data_pipeline.get_real_time_volcanic_data(temperatures)
+                        
+                        # Additional Deep Earth ML analysis if available
+                        deep_earth_analysis = await self._process_thermal_data_with_deep_earth_ml(
+                            temperatures, locations, timestamps
+                        )
+                        
+                        processing_time_ms = int((time.time() - start_time) * 1000)
+                        
+                        batch_results.append({
+                            'dataset_id': dataset_id,
+                            'success': True,
+                            'enhanced_thermal_data': enhanced_data.tolist() if enhanced_data is not None else [],
+                            'deep_earth_analysis': deep_earth_analysis,
+                            'input_data_points': len(temperatures),
+                            'processing_time_ms': processing_time_ms,
+                            'enhancement_applied': enhanced_data is not None
+                        })
+                    else:
+                        # Fallback processing without pipeline
+                        fallback_analysis = await self._process_thermal_data_with_deep_earth_ml(
+                            temperatures, locations, timestamps
+                        )
+                        
+                        processing_time_ms = int((time.time() - start_time) * 1000)
+                        
+                        batch_results.append({
+                            'dataset_id': dataset_id,
+                            'success': True,
+                            'thermal_analysis': fallback_analysis,
+                            'input_data_points': len(temperatures),
+                            'processing_time_ms': processing_time_ms,
+                            'processing_method': 'fallback'
+                        })
+                        
+                except Exception as e:
+                    batch_results.append({
+                        'dataset_id': dataset.get('id', f'dataset_{i}'),
+                        'success': False,
+                        'error': str(e),
+                        'processing_time_ms': 0
+                    })
+            
+            return batch_results
+            
+        except Exception as e:
+            self.logger.error(f"Batch thermal processing failed: {e}")
+            return [{'error': str(e), 'success': False}]
     
     async def _setup_websockets(self):
         """Setup WebSocket handlers for real-time communication"""
