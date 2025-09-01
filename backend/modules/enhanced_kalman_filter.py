@@ -229,7 +229,8 @@ class EnhancedEnsembleKalmanFilter:
                 'graph_based_weights': True,
                 'use_geological_constraints': True
             }
-            await self._initialize_graph_based_localization(localization_config)
+            # Note: Graph-based localization will be initialized on first use
+            # await self._initialize_graph_based_localization(localization_config)
             
             # Initialize causal inference engine
             causal_config = {
@@ -3584,6 +3585,335 @@ class EnhancedEnsembleKalmanFilter:
         self.prediction_history = state['prediction_history']
         
         self.logger.info(f"Filter state loaded from {filepath}")
+        
+    async def validate_data_independence(self, observation_data: ObservationData, 
+                                       ensemble_predictions: Optional[np.ndarray] = None) -> Dict[str, Any]:
+        """
+        Validate data independence using advanced statistical testing framework
+        Integrates with EnKF knowledge integration system for comprehensive testing
+        """
+        
+        try:
+            if not hasattr(self, 'knowledge_integrator') or self.knowledge_integrator is None:
+                return {'error': 'Knowledge integrator not available for independence testing'}
+            
+            # Prepare data for independence testing
+            data_dict = {
+                'displacements_x': observation_data.displacements[:, 0],
+                'displacements_y': observation_data.displacements[:, 1], 
+                'displacements_z': observation_data.displacements[:, 2],
+                'uncertainties_x': observation_data.uncertainties[:, 0],
+                'uncertainties_y': observation_data.uncertainties[:, 1],
+                'uncertainties_z': observation_data.uncertainties[:, 2]
+            }
+            
+            # Add ensemble predictions if available
+            if ensemble_predictions is not None:
+                pred_mean = np.mean(ensemble_predictions, axis=0)
+                pred_std = np.std(ensemble_predictions, axis=0)
+                data_dict.update({
+                    'pred_mean_x': pred_mean[:, 0],
+                    'pred_mean_y': pred_mean[:, 1],
+                    'pred_mean_z': pred_mean[:, 2],
+                    'pred_std_x': pred_std[:, 0],
+                    'pred_std_y': pred_std[:, 1], 
+                    'pred_std_z': pred_std[:, 2]
+                })
+            
+            # Define data types for mixed data type support
+            data_types = {
+                key: 'continuous' for key in data_dict.keys()
+            }
+            
+            # Add categorical data if quality flags available
+            if hasattr(observation_data, 'quality_flags') and observation_data.quality_flags is not None:
+                data_dict['quality_flags'] = observation_data.quality_flags
+                data_types['quality_flags'] = 'categorical'
+            
+            # Perform comprehensive independence testing
+            independence_results = await self.knowledge_integrator.implement_mixed_data_type_support(
+                data_dict, data_types, 
+                independence_tests=['hsic', 'kernel_mmd', 'mutual_information', 'copula_based']
+            )
+            
+            # Perform information-theoretic analysis
+            info_theoretic_results = {}
+            data_pairs = [
+                ('displacements_x', 'displacements_y'),
+                ('displacements_y', 'displacements_z'),
+                ('displacements_x', 'displacements_z')
+            ]
+            
+            for var1, var2 in data_pairs:
+                if var1 in data_dict and var2 in data_dict:
+                    X = data_dict[var1].reshape(-1, 1)
+                    Y = data_dict[var2].reshape(-1, 1)
+                    
+                    info_measures = await self.knowledge_integrator.implement_information_theoretic_measures(
+                        X, Y, measure_types=['mutual_information', 'transfer_entropy', 'directed_information']
+                    )
+                    
+                    info_theoretic_results[f"{var1}_vs_{var2}"] = info_measures
+            
+            # Assess overall data quality and independence
+            validation_summary = {
+                'independence_assessment': independence_results.get('overall_assessment', {}),
+                'information_theoretic_analysis': info_theoretic_results,
+                'data_quality_score': self._compute_data_quality_score(independence_results, info_theoretic_results),
+                'recommendations': self._generate_data_quality_recommendations(independence_results, info_theoretic_results),
+                'validation_timestamp': datetime.now().isoformat()
+            }
+            
+            return validation_summary
+            
+        except Exception as e:
+            self.logger.error(f"Error in data independence validation: {e}")
+            return {'error': str(e), 'validation_status': 'failed'}
+    
+    def _compute_data_quality_score(self, independence_results: Dict[str, Any], 
+                                   info_theoretic_results: Dict[str, Any]) -> float:
+        """Compute overall data quality score from independence and information-theoretic analyses"""
+        
+        try:
+            scores = []
+            
+            # Independence test score
+            if 'overall_assessment' in independence_results:
+                assessment = independence_results['overall_assessment']
+                if assessment.get('violation_category') == 'MINIMAL_DEPENDENCE':
+                    scores.append(0.9)
+                elif assessment.get('violation_category') == 'MODERATE_DEPENDENCE':
+                    scores.append(0.7)
+                elif assessment.get('violation_category') == 'WIDESPREAD_DEPENDENCE':
+                    scores.append(0.4)
+                else:
+                    scores.append(0.8)
+            
+            # Information-theoretic score
+            mi_scores = []
+            for pair_analysis in info_theoretic_results.values():
+                if 'mutual_information' in pair_analysis:
+                    mi = pair_analysis['mutual_information'].get('normalized_value', 0.5)
+                    # Lower mutual information indicates better independence
+                    mi_scores.append(1.0 - min(mi, 1.0))
+            
+            if mi_scores:
+                scores.append(np.mean(mi_scores))
+            
+            return np.mean(scores) if scores else 0.5
+            
+        except Exception as e:
+            self.logger.warning(f"Error computing data quality score: {e}")
+            return 0.5
+    
+    def _generate_data_quality_recommendations(self, independence_results: Dict[str, Any],
+                                             info_theoretic_results: Dict[str, Any]) -> List[str]:
+        """Generate recommendations for improving data quality based on validation results"""
+        
+        recommendations = []
+        
+        try:
+            # Check for independence violations
+            if 'overall_assessment' in independence_results:
+                assessment = independence_results['overall_assessment']
+                violation_category = assessment.get('violation_category', '')
+                
+                if violation_category == 'WIDESPREAD_DEPENDENCE':
+                    recommendations.extend([
+                        "Consider data preprocessing to reduce spatial or temporal correlations",
+                        "Apply localization techniques in data assimilation",
+                        "Increase observation spacing to reduce spatial dependencies"
+                    ])
+                elif violation_category == 'MODERATE_DEPENDENCE':
+                    recommendations.extend([
+                        "Monitor data correlation patterns during assimilation",
+                        "Consider covariance inflation to account for dependencies"
+                    ])
+            
+            # Check information-theoretic measures
+            high_mi_pairs = []
+            for pair_name, analysis in info_theoretic_results.items():
+                if 'mutual_information' in analysis:
+                    mi_normalized = analysis['mutual_information'].get('normalized_value', 0)
+                    if mi_normalized > 0.7:
+                        high_mi_pairs.append(pair_name)
+            
+            if high_mi_pairs:
+                recommendations.append(
+                    f"High mutual information detected in pairs: {', '.join(high_mi_pairs)}. "
+                    "Consider dimensionality reduction or variable transformation."
+                )
+            
+            # Check for directional information flow
+            for pair_name, analysis in info_theoretic_results.items():
+                if 'transfer_entropy' in analysis:
+                    te_results = analysis['transfer_entropy']
+                    if te_results.get('significant_transfer', False):
+                        recommendations.append(
+                            f"Significant directional information flow detected in {pair_name}. "
+                            "Consider temporal modeling approaches."
+                        )
+            
+            if not recommendations:
+                recommendations.append("Data quality appears satisfactory for EnKF assimilation.")
+            
+        except Exception as e:
+            self.logger.warning(f"Error generating recommendations: {e}")
+            recommendations.append("Unable to generate specific recommendations due to analysis error.")
+        
+        return recommendations
+    
+    async def monitor_ensemble_convergence(self, convergence_threshold: float = 0.01,
+                                         max_iterations: int = 100) -> Dict[str, Any]:
+        """
+        Monitor ensemble convergence using information-theoretic measures
+        Integrates with real-time monitoring system from EnKF knowledge integration
+        """
+        
+        try:
+            if not hasattr(self, 'knowledge_integrator') or self.knowledge_integrator is None:
+                return {'error': 'Knowledge integrator not available for convergence monitoring'}
+            
+            convergence_history = []
+            iteration = 0
+            converged = False
+            
+            while iteration < max_iterations and not converged:
+                # Get current ensemble state
+                if self.ensemble_unitless is not None:
+                    ensemble_params = self.ensemble_unitless.copy()
+                else:
+                    break
+                
+                # Compute ensemble statistics
+                ensemble_mean = np.mean(ensemble_params, axis=0)
+                ensemble_std = np.std(ensemble_params, axis=0)
+                
+                # Check convergence using coefficient of variation
+                cv_params = ensemble_std / (np.abs(ensemble_mean) + 1e-10)
+                max_cv = np.max(cv_params)
+                
+                # Information-theoretic convergence assessment
+                if ensemble_params.shape[0] > 10:  # Need sufficient ensemble size
+                    # Compute mutual information between parameters
+                    param_mi_matrix = np.zeros((ensemble_params.shape[1], ensemble_params.shape[1]))
+                    
+                    for i in range(ensemble_params.shape[1]):
+                        for j in range(i+1, ensemble_params.shape[1]):
+                            X = ensemble_params[:, i].reshape(-1, 1)
+                            Y = ensemble_params[:, j].reshape(-1, 1)
+                            
+                            mi_results = await self.knowledge_integrator.implement_information_theoretic_measures(
+                                X, Y, measure_types=['mutual_information']
+                            )
+                            
+                            if 'mutual_information' in mi_results:
+                                mi_value = mi_results['mutual_information'].get('normalized_value', 0)
+                                param_mi_matrix[i, j] = mi_value
+                                param_mi_matrix[j, i] = mi_value
+                
+                    max_param_mi = np.max(param_mi_matrix)
+                else:
+                    max_param_mi = 0
+                
+                # Record convergence metrics
+                convergence_metrics = {
+                    'iteration': iteration,
+                    'max_coefficient_of_variation': float(max_cv),
+                    'max_parameter_mutual_information': float(max_param_mi),
+                    'ensemble_mean': ensemble_mean.tolist(),
+                    'ensemble_std': ensemble_std.tolist(),
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                convergence_history.append(convergence_metrics)
+                
+                # Check convergence criteria
+                if max_cv < convergence_threshold:
+                    converged = True
+                    self.logger.info(f"Ensemble converged after {iteration} iterations")
+                
+                iteration += 1
+                await asyncio.sleep(0.1)  # Small delay for monitoring
+            
+            convergence_assessment = {
+                'converged': converged,
+                'final_iteration': iteration,
+                'convergence_history': convergence_history,
+                'convergence_quality': self._assess_convergence_quality(convergence_history),
+                'monitoring_timestamp': datetime.now().isoformat()
+            }
+            
+            return convergence_assessment
+            
+        except Exception as e:
+            self.logger.error(f"Error in ensemble convergence monitoring: {e}")
+            return {'error': str(e), 'monitoring_status': 'failed'}
+    
+    def _assess_convergence_quality(self, convergence_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Assess the quality of ensemble convergence"""
+        
+        try:
+            if not convergence_history:
+                return {'quality': 'unknown', 'reason': 'no_history'}
+            
+            # Extract convergence metrics
+            cv_values = [h['max_coefficient_of_variation'] for h in convergence_history]
+            mi_values = [h['max_parameter_mutual_information'] for h in convergence_history]
+            
+            # Assess convergence rate
+            if len(cv_values) > 1:
+                cv_trend = np.polyfit(range(len(cv_values)), cv_values, 1)[0]
+                convergence_rate = 'fast' if cv_trend < -0.01 else 'moderate' if cv_trend < -0.001 else 'slow'
+            else:
+                convergence_rate = 'insufficient_data'
+            
+            # Assess final convergence state
+            final_cv = cv_values[-1] if cv_values else float('inf')
+            final_mi = mi_values[-1] if mi_values else 0
+            
+            if final_cv < 0.01 and final_mi < 0.3:
+                quality = 'excellent'
+            elif final_cv < 0.05 and final_mi < 0.5:
+                quality = 'good'
+            elif final_cv < 0.1:
+                quality = 'acceptable'
+            else:
+                quality = 'poor'
+            
+            return {
+                'quality': quality,
+                'convergence_rate': convergence_rate,
+                'final_cv': final_cv,
+                'final_parameter_mi': final_mi,
+                'stability_assessment': self._assess_convergence_stability(cv_values)
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Error assessing convergence quality: {e}")
+            return {'quality': 'assessment_error', 'error': str(e)}
+    
+    def _assess_convergence_stability(self, cv_values: List[float]) -> str:
+        """Assess stability of convergence process"""
+        
+        if len(cv_values) < 5:
+            return 'insufficient_data'
+        
+        # Look at last 5 values for stability
+        recent_cv = cv_values[-5:]
+        cv_std = np.std(recent_cv)
+        cv_mean = np.mean(recent_cv)
+        
+        stability_ratio = cv_std / (cv_mean + 1e-10)
+        
+        if stability_ratio < 0.1:
+            return 'very_stable'
+        elif stability_ratio < 0.3:
+            return 'stable'
+        elif stability_ratio < 0.5:
+            return 'moderately_stable'
+        else:
+            return 'unstable'
 
 # Integration class for scenario_engine.py
 class VolcanoDeformationEnKF:
@@ -3687,7 +4017,10 @@ class VolcanoDeformationEnKF:
         return volcano_bounds.get(volcano_name.lower(), volcano_bounds['default'])
     
     async def assimilate_deformation_data(self, deformation_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Assimilate new deformation observations"""
+        """
+        Assimilate new deformation observations with comprehensive validation
+        Integrates information-theoretic measures and statistical testing framework
+        """
         
         if not self.is_initialized:
             raise ValueError("EnKF not initialized. Call initialize_for_volcano() first.")
@@ -3695,22 +4028,386 @@ class VolcanoDeformationEnKF:
         # Convert deformation data to ObservationData format
         obs_data = self._convert_to_observation_data(deformation_data)
         
+        # Pre-assimilation data validation using information-theoretic measures
+        validation_results = {}
+        if hasattr(self.enkf, 'validate_data_independence'):
+            try:
+                # Get current ensemble predictions for comparison
+                current_predictions = await self.enkf.predict_deformation(obs_data.locations)
+                ensemble_predictions = current_predictions.get('ensemble_predictions')
+                
+                # Validate data independence and quality
+                validation_results = await self.enkf.validate_data_independence(
+                    obs_data, ensemble_predictions
+                )
+                
+                # Log validation results
+                data_quality_score = validation_results.get('data_quality_score', 0.5)
+                self.logger.info(f"Data quality score: {data_quality_score:.3f}")
+                
+                # Check if data quality is sufficient for assimilation
+                if data_quality_score < 0.3:
+                    self.logger.warning("Low data quality detected - proceeding with caution")
+                
+            except Exception as e:
+                self.logger.warning(f"Data validation failed: {e}")
+                validation_results = {'error': str(e), 'validation_status': 'failed'}
+        
         # Forecast step (if time has advanced)
         if 'time_delta' in deformation_data:
             await self.enkf.forecast_step(deformation_data['time_delta'])
         
-        # Update step
-        updated_ensemble, metrics = await self.enkf.update_step(obs_data)
+        # Monitor ensemble convergence before update
+        convergence_monitoring = {}
+        if hasattr(self.enkf, 'monitor_ensemble_convergence'):
+            try:
+                convergence_monitoring = await self.enkf.monitor_ensemble_convergence(
+                    convergence_threshold=0.05, max_iterations=10
+                )
+            except Exception as e:
+                self.logger.warning(f"Convergence monitoring failed: {e}")
+                convergence_monitoring = {'error': str(e)}
+        
+        # Update step with enhanced monitoring
+        try:
+            updated_ensemble, metrics = await self.enkf.update_step(obs_data)
+            assimilation_success = True
+            
+            # Post-update information-theoretic analysis
+            post_update_analysis = {}
+            if hasattr(self.enkf, 'knowledge_integrator') and self.enkf.knowledge_integrator:
+                try:
+                    # Analyze parameter evolution using information theory
+                    if self.enkf.ensemble_unitless is not None and updated_ensemble is not None:
+                        pre_update_params = self.enkf.ensemble_unitless
+                        post_update_params = updated_ensemble
+                        
+                        # Compute information gain from assimilation
+                        post_update_analysis = await self._analyze_assimilation_information_gain(
+                            pre_update_params, post_update_params, obs_data
+                        )
+                        
+                except Exception as e:
+                    self.logger.warning(f"Post-update analysis failed: {e}")
+                    post_update_analysis = {'error': str(e)}
+            
+        except Exception as e:
+            self.logger.error(f"Assimilation update failed: {e}")
+            assimilation_success = False
+            metrics = {'error': str(e)}
+            post_update_analysis = {}
         
         # Get posterior statistics
         stats = await self.enkf.get_ensemble_statistics()
         
-        return {
+        # Comprehensive assimilation results
+        assimilation_results = {
             'updated_parameters': stats,
             'update_metrics': metrics,
-            'ensemble_size': updated_ensemble.shape[0],
-            'assimilation_success': True
+            'ensemble_size': updated_ensemble.shape[0] if updated_ensemble is not None else 0,
+            'assimilation_success': assimilation_success,
+            'data_validation': validation_results,
+            'convergence_monitoring': convergence_monitoring,
+            'post_update_analysis': post_update_analysis,
+            'assimilation_timestamp': datetime.now().isoformat()
         }
+        
+        return assimilation_results
+    
+    async def _analyze_assimilation_information_gain(self, pre_update_params: np.ndarray,
+                                                   post_update_params: np.ndarray,
+                                                   obs_data: ObservationData) -> Dict[str, Any]:
+        """
+        Analyze information gain from assimilation using information-theoretic measures
+        """
+        try:
+            if not hasattr(self.enkf, 'knowledge_integrator') or self.enkf.knowledge_integrator is None:
+                return {'error': 'Knowledge integrator not available'}
+            
+            info_gain_analysis = {}
+            
+            # 1. Compute mutual information between pre/post update parameters
+            parameter_info_gain = {}
+            for i in range(min(pre_update_params.shape[1], post_update_params.shape[1])):
+                param_name = f'parameter_{i}'
+                
+                X_pre = pre_update_params[:, i].reshape(-1, 1)
+                X_post = post_update_params[:, i].reshape(-1, 1)
+                
+                # Mutual information between pre and post update
+                mi_results = await self.enkf.knowledge_integrator.implement_information_theoretic_measures(
+                    X_pre, X_post, measure_types=['mutual_information']
+                )
+                
+                # Information gain (reduction in uncertainty)
+                entropy_pre = self._compute_differential_entropy(X_pre)
+                entropy_post = self._compute_differential_entropy(X_post)
+                information_gain = entropy_pre - entropy_post
+                
+                parameter_info_gain[param_name] = {
+                    'mutual_information': mi_results.get('mutual_information', {}),
+                    'entropy_reduction': float(information_gain),
+                    'entropy_pre_update': float(entropy_pre),
+                    'entropy_post_update': float(entropy_post)
+                }
+            
+            # 2. Analyze directional information flow from observations to parameters
+            observation_influence = {}
+            if obs_data.displacements.size > 0:
+                # Flatten observation data
+                obs_flat = obs_data.displacements.flatten().reshape(-1, 1)
+                
+                for i in range(post_update_params.shape[1]):
+                    param_post = post_update_params[:, i].reshape(-1, 1)
+                    
+                    # Ensure same length for comparison
+                    min_len = min(len(obs_flat), len(param_post))
+                    if min_len > 5:  # Need sufficient data points
+                        obs_subset = obs_flat[:min_len]
+                        param_subset = param_post[:min_len]
+                        
+                        # Transfer entropy from observations to parameters
+                        te_results = await self.enkf.knowledge_integrator.implement_information_theoretic_measures(
+                            obs_subset, param_subset, 
+                            measure_types=['transfer_entropy', 'directed_information']
+                        )
+                        
+                        observation_influence[f'parameter_{i}'] = te_results
+            
+            # 3. Compute overall assimilation efficiency metrics
+            # Total information gain across all parameters
+            total_entropy_reduction = sum([
+                gain.get('entropy_reduction', 0) 
+                for gain in parameter_info_gain.values()
+            ])
+            
+            # Effective degrees of freedom (simplified)
+            effective_dof = len([
+                gain for gain in parameter_info_gain.values() 
+                if gain.get('entropy_reduction', 0) > 0.01
+            ])
+            
+            # Assimilation efficiency score
+            max_possible_gain = len(parameter_info_gain) * 2.0  # Theoretical maximum
+            efficiency_score = min(total_entropy_reduction / max_possible_gain, 1.0) if max_possible_gain > 0 else 0
+            
+            info_gain_analysis = {
+                'parameter_information_gain': parameter_info_gain,
+                'observation_influence': observation_influence,
+                'overall_metrics': {
+                    'total_entropy_reduction': float(total_entropy_reduction),
+                    'effective_degrees_of_freedom': int(effective_dof),
+                    'assimilation_efficiency_score': float(efficiency_score),
+                    'information_conservation_ratio': self._compute_information_conservation_ratio(
+                        pre_update_params, post_update_params
+                    )
+                },
+                'analysis_timestamp': datetime.now().isoformat()
+            }
+            
+            return info_gain_analysis
+            
+        except Exception as e:
+            self.logger.error(f"Error in information gain analysis: {e}")
+            return {'error': str(e), 'analysis_status': 'failed'}
+    
+    def _compute_differential_entropy(self, X: np.ndarray) -> float:
+        """Compute differential entropy of continuous data"""
+        try:
+            # Use kernel density estimation for entropy computation
+            from sklearn.neighbors import KernelDensity
+            
+            X_flat = X.flatten()
+            if len(X_flat) < 5:
+                return 0.0
+            
+            # Optimal bandwidth using Scott's rule
+            n = len(X_flat)
+            bandwidth = 1.06 * np.std(X_flat) * n**(-1/5)
+            bandwidth = max(bandwidth, 1e-6)  # Avoid zero bandwidth
+            
+            kde = KernelDensity(bandwidth=bandwidth, kernel='gaussian')
+            kde.fit(X_flat.reshape(-1, 1))
+            
+            # Sample points for integration
+            x_min, x_max = np.min(X_flat), np.max(X_flat)
+            x_range = x_max - x_min
+            if x_range == 0:
+                return 0.0
+            
+            x_eval = np.linspace(x_min - 0.1*x_range, x_max + 0.1*x_range, 100)
+            log_density = kde.score_samples(x_eval.reshape(-1, 1))
+            
+            # Numerical integration for entropy: -∫ p(x) log p(x) dx
+            density = np.exp(log_density)
+            entropy = -np.trapz(density * log_density, x_eval)
+            
+            return float(entropy)
+            
+        except Exception as e:
+            self.logger.warning(f"Differential entropy computation failed: {e}")
+            # Fallback to simple variance-based estimate
+            return 0.5 * np.log(2 * np.pi * np.e * np.var(X))
+    
+    def _compute_information_conservation_ratio(self, pre_params: np.ndarray, 
+                                              post_params: np.ndarray) -> float:
+        """Compute ratio of information conserved during assimilation"""
+        try:
+            # Measure how much of the original parameter information is preserved
+            total_pre_entropy = sum([
+                self._compute_differential_entropy(pre_params[:, i].reshape(-1, 1))
+                for i in range(pre_params.shape[1])
+            ])
+            
+            total_post_entropy = sum([
+                self._compute_differential_entropy(post_params[:, i].reshape(-1, 1))
+                for i in range(post_params.shape[1])
+            ])
+            
+            if total_pre_entropy > 0:
+                conservation_ratio = total_post_entropy / total_pre_entropy
+                return float(min(conservation_ratio, 1.0))
+            else:
+                return 0.5  # Default if pre-entropy is zero
+                
+        except Exception as e:
+            self.logger.warning(f"Information conservation ratio computation failed: {e}")
+            return 0.5
+    
+    async def process_mixed_data_types(self, mixed_observations: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process mixed data types in volcanic deformation observations
+        Integrates with EnKF knowledge integration mixed data type support
+        """
+        try:
+            if not hasattr(self.enkf, 'knowledge_integrator') or self.enkf.knowledge_integrator is None:
+                return {'error': 'Knowledge integrator not available for mixed data processing'}
+            
+            # Organize data by type
+            continuous_data = {}
+            categorical_data = {}
+            ordinal_data = {}
+            compositional_data = {}
+            
+            data_type_mapping = {}
+            
+            # Process different observation types
+            for obs_type, obs_content in mixed_observations.items():
+                if obs_type in ['gps_displacements', 'insar_displacements', 'leveling_data']:
+                    # Continuous displacement data
+                    if isinstance(obs_content, dict) and 'values' in obs_content:
+                        continuous_data[obs_type] = np.array(obs_content['values']).flatten()
+                        data_type_mapping[obs_type] = 'continuous'
+                elif obs_type in ['data_quality', 'weather_conditions', 'instrument_status']:
+                    # Categorical data
+                    if isinstance(obs_content, (list, np.ndarray)):
+                        categorical_data[obs_type] = np.array(obs_content)
+                        data_type_mapping[obs_type] = 'categorical'
+                elif obs_type in ['data_confidence_level', 'processing_quality_rank']:
+                    # Ordinal data (ranked quality measures)
+                    if isinstance(obs_content, (list, np.ndarray)):
+                        ordinal_data[obs_type] = np.array(obs_content)
+                        data_type_mapping[obs_type] = 'ordinal'
+                elif obs_type in ['gas_composition', 'deformation_components']:
+                    # Compositional data (proportions that sum to 1)
+                    if isinstance(obs_content, dict) and 'components' in obs_content:
+                        compositional_data[obs_type] = np.array(obs_content['components'])
+                        data_type_mapping[obs_type] = 'compositional'
+            
+            # Combine all data for mixed type analysis
+            all_data = {**continuous_data, **categorical_data, **ordinal_data, **compositional_data}
+            
+            if not all_data:
+                return {'error': 'No valid data found for mixed type processing'}
+            
+            # Apply mixed data type statistical testing
+            mixed_analysis = await self.enkf.knowledge_integrator.implement_mixed_data_type_support(
+                all_data, 
+                data_type_mapping,
+                independence_tests=['distance_correlation', 'hoeffding_d', 'chi_square', 'cramers_v']
+            )
+            
+            # Process results for EnKF integration
+            processed_results = {
+                'data_summary': {
+                    'continuous_variables': len(continuous_data),
+                    'categorical_variables': len(categorical_data),
+                    'ordinal_variables': len(ordinal_data),
+                    'compositional_variables': len(compositional_data),
+                    'total_variables': len(all_data)
+                },
+                'mixed_type_analysis': mixed_analysis,
+                'integration_recommendations': self._generate_mixed_type_integration_recommendations(
+                    mixed_analysis, data_type_mapping
+                ),
+                'processed_timestamp': datetime.now().isoformat()
+            }
+            
+            return processed_results
+            
+        except Exception as e:
+            self.logger.error(f"Error processing mixed data types: {e}")
+            return {'error': str(e), 'processing_status': 'failed'}
+    
+    def _generate_mixed_type_integration_recommendations(self, analysis_results: Dict[str, Any],
+                                                        data_type_mapping: Dict[str, str]) -> List[str]:
+        """Generate recommendations for integrating mixed data types into EnKF"""
+        
+        recommendations = []
+        
+        try:
+            # Check for problematic dependencies
+            if 'overall_assessment' in analysis_results:
+                assessment = analysis_results['overall_assessment']
+                violation_category = assessment.get('violation_category', '')
+                
+                if violation_category == 'WIDESPREAD_DEPENDENCE':
+                    recommendations.extend([
+                        "Strong dependencies detected across mixed data types",
+                        "Consider data transformation or separate processing for different data types",
+                        "Apply regularization techniques in EnKF to account for cross-type correlations"
+                    ])
+                
+                # Type-specific recommendations
+                continuous_vars = [k for k, v in data_type_mapping.items() if v == 'continuous']
+                categorical_vars = [k for k, v in data_type_mapping.items() if v == 'categorical']
+                
+                if len(continuous_vars) > 0 and len(categorical_vars) > 0:
+                    recommendations.append(
+                        "Mixed continuous-categorical data detected. Consider using robust "
+                        "correlation measures for data assimilation weights."
+                    )
+                
+                # Check for compositional data special handling
+                compositional_vars = [k for k, v in data_type_mapping.items() if v == 'compositional']
+                if len(compositional_vars) > 0:
+                    recommendations.append(
+                        "Compositional data requires log-ratio transformations before EnKF processing. "
+                        "Ensure closure property is maintained in ensemble updates."
+                    )
+            
+            # Pattern-based recommendations
+            if 'pattern_analysis' in analysis_results:
+                patterns = analysis_results['pattern_analysis']
+                
+                for pattern_name, pattern_info in patterns.items():
+                    if pattern_info.get('significance_rate', 0) > 0.7:
+                        recommendations.append(
+                            f"Strong {pattern_name} pattern detected - consider specialized "
+                            f"handling for this data type combination in EnKF"
+                        )
+            
+            if not recommendations:
+                recommendations.append(
+                    "Mixed data types appear compatible for standard EnKF processing. "
+                    "Monitor assimilation performance for any type-specific issues."
+                )
+            
+        except Exception as e:
+            self.logger.warning(f"Error generating mixed type recommendations: {e}")
+            recommendations.append("Unable to generate specific recommendations due to analysis error.")
+        
+        return recommendations
     
     def _convert_to_observation_data(self, deformation_data: Dict[str, Any]) -> ObservationData:
         """Convert deformation data to ObservationData format"""
