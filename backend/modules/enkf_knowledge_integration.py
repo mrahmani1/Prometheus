@@ -649,7 +649,11 @@ class LiteratureMonitor:
         
         tasks = []
         for api_url in self.apis:
-            if 'crossref' in api_url:
+            if 'wiley' in api_url:
+                tasks.append(self._query_wiley_online())
+            elif 'geoscienceworld' in api_url:
+                tasks.append(self._query_geoscienceworld())
+            elif 'crossref' in api_url:
                 tasks.append(self._query_crossref())
             elif 'semanticscholar' in api_url:
                 tasks.append(self._query_semantic_scholar())
@@ -777,6 +781,473 @@ class LiteratureMonitor:
             self.logger.error(f"PubMed query failed: {e}")
             return []
     
+    async def _query_wiley_online(self) -> List[Dict[str, Any]]:
+        """Query Wiley Online Library for recent geoscience papers with advanced API integration"""
+        papers = []
+        
+        try:
+            # Initialize API credentials and rate limiting
+            api_config = self.config.get('wiley_api', {})
+            api_key = api_config.get('api_key')
+            institution_token = api_config.get('institution_token')
+            use_fallback = api_config.get('use_fallback', True)
+            
+            async with aiohttp.ClientSession() as session:
+                for keyword in self.keywords:
+                    # First, try authenticated API access
+                    if api_key or institution_token:
+                        papers_from_api = await self._wiley_authenticated_query(session, keyword, api_key, institution_token)
+                        papers.extend(papers_from_api)
+                    
+                    # Fallback to web scraping if authenticated access fails or is unavailable
+                    if use_fallback and (not papers or len(papers) < self.max_papers_per_query // 2):
+                        fallback_papers = await self._wiley_fallback_query(session, keyword)
+                        papers.extend(fallback_papers)
+                    
+                    # Rate limiting - be respectful to Wiley servers
+                    await asyncio.sleep(2)
+            
+            return papers[:self.max_papers_per_query]
+            
+        except Exception as e:
+            self.logger.error(f"Wiley Online query failed: {e}")
+            return []
+    
+    async def _wiley_authenticated_query(self, session: aiohttp.ClientSession, keyword: str, 
+                                       api_key: str, institution_token: str) -> List[Dict[str, Any]]:
+        """Query Wiley using authenticated API access"""
+        papers = []
+        
+        try:
+            # Wiley TDM (Text and Data Mining) API endpoint
+            url = "https://api.wiley.com/onlinelibrary/tdm/v1/articles"
+            
+            headers = {
+                'Accept': 'application/json',
+                'User-Agent': 'Prometheus-Geological-EnKF/1.0'
+            }
+            
+            # Add authentication headers
+            if api_key:
+                headers['Wiley-TDM-Client-Token'] = api_key
+            if institution_token:
+                headers['Authorization'] = f'Bearer {institution_token}'
+            
+            # Advanced search parameters for geological focus
+            search_params = {
+                'query': f'({keyword}) AND (subject:"earth sciences" OR subject:"geosciences" OR subject:"volcanology" OR subject:"seismology")',
+                'publicationDateFrom': (datetime.now() - self.update_interval).strftime('%Y-%m-%d'),
+                'publicationDateTo': datetime.now().strftime('%Y-%m-%d'),
+                'orderBy': 'relevance',
+                'pageSize': str(min(self.max_papers_per_query, 100)),
+                'format': 'json'
+            }
+            
+            async with session.get(url, params=search_params, headers=headers, timeout=30) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    for item in data.get('items', []):
+                        # Extract comprehensive paper information
+                        paper = await self._extract_wiley_paper_data(item, 'wiley_api')
+                        if paper:
+                            papers.append(paper)
+                            
+                elif response.status == 401:
+                    self.logger.warning(f"Wiley API authentication failed - invalid credentials")
+                elif response.status == 403:
+                    self.logger.warning(f"Wiley API access forbidden - check institution access")
+                elif response.status == 429:
+                    self.logger.warning(f"Wiley API rate limit exceeded - implementing backoff")
+                    await asyncio.sleep(10)  # Extended backoff for rate limiting
+                    
+        except Exception as e:
+            self.logger.warning(f"Wiley authenticated API query failed: {e}")
+        
+        return papers
+    
+    async def _wiley_fallback_query(self, session: aiohttp.ClientSession, keyword: str) -> List[Dict[str, Any]]:
+        """Fallback web scraping method for Wiley Online Library"""
+        papers = []
+        
+        try:
+            # Wiley Online Library search with geoscience focus
+            search_params = {
+                'AllField': keyword,
+                'SubjectCategory': 'earth-and-environmental-sciences',
+                'AfterYear': (datetime.now() - self.update_interval).year,
+                'pageSize': str(min(self.max_papers_per_query, 50)),
+                'startPage': '0',
+                'Ppub': f'{(datetime.now() - self.update_interval).year}-{datetime.now().year}'
+            }
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Referer': 'https://onlinelibrary.wiley.com/'
+            }
+            
+            url = "https://onlinelibrary.wiley.com/action/doSearch"
+            
+            async with session.get(url, params=search_params, headers=headers, timeout=30) as response:
+                if response.status == 200:
+                    content = await response.text()
+                    
+                    # Extract article information using enhanced regex patterns for Wiley
+                    papers = await self._parse_wiley_search_results(content, keyword)
+                    
+        except Exception as e:
+            self.logger.warning(f"Wiley fallback query failed: {e}")
+        
+        return papers
+    
+    async def _parse_wiley_search_results(self, content: str, keyword: str) -> List[Dict[str, Any]]:
+        """Parse Wiley search results HTML content"""
+        papers = []
+        
+        try:
+            import re
+            from bs4 import BeautifulSoup
+            
+            soup = BeautifulSoup(content, 'html.parser')
+            
+            # Find article entries
+            article_entries = soup.find_all('div', class_='item__body')
+            
+            for entry in article_entries[:self.max_papers_per_query]:
+                paper = {}
+                
+                # Extract title
+                title_element = entry.find('h2', class_='item__title')
+                if title_element:
+                    title_link = title_element.find('a')
+                    if title_link:
+                        paper['title'] = title_link.get_text(strip=True)
+                        paper['url'] = f"https://onlinelibrary.wiley.com{title_link.get('href', '')}"
+                
+                # Extract DOI
+                doi_element = entry.find('a', class_='visitable')
+                if doi_element and 'doi' in doi_element.get('href', ''):
+                    doi_match = re.search(r'doi/(10\.\d{4,}[^\s"<>]*)', doi_element.get('href', ''))
+                    if doi_match:
+                        paper['doi'] = doi_match.group(1)
+                
+                # Extract authors
+                authors_element = entry.find('div', class_='item__authors')
+                if authors_element:
+                    authors = []
+                    for author_link in authors_element.find_all('a'):
+                        authors.append(author_link.get_text(strip=True))
+                    paper['authors'] = authors
+                
+                # Extract journal
+                journal_element = entry.find('div', class_='item__source')
+                if journal_element:
+                    paper['journal'] = journal_element.get_text(strip=True)
+                
+                # Extract publication date
+                date_element = entry.find('div', class_='item__meta')
+                if date_element:
+                    date_text = date_element.get_text()
+                    date_match = re.search(r'(\d{1,2}\s\w+\s\d{4})', date_text)
+                    if date_match:
+                        paper['published_date'] = date_match.group(1)
+                
+                # Extract abstract preview
+                abstract_element = entry.find('div', class_='item__body')
+                if abstract_element:
+                    abstract_text = abstract_element.get_text(strip=True)
+                    # Clean and truncate abstract
+                    if len(abstract_text) > 500:
+                        abstract_text = abstract_text[:500] + "..."
+                    paper['abstract'] = abstract_text
+                
+                # Add metadata
+                paper.update({
+                    'source': 'wiley_fallback',
+                    'keywords': [keyword],
+                    'extraction_confidence': 0.8,  # Medium confidence for web scraping
+                    'geological_focus': self._assess_geological_relevance(paper.get('title', '') + ' ' + paper.get('abstract', ''))
+                })
+                
+                if paper.get('title'):
+                    papers.append(paper)
+                
+        except Exception as e:
+            self.logger.warning(f"Wiley HTML parsing failed: {e}")
+        
+        return papers
+    
+    async def _query_geoscienceworld(self) -> List[Dict[str, Any]]:
+        """Query GeoScienceWorld for specialized geoscience literature"""
+        papers = []
+        
+        try:
+            api_config = self.config.get('geoscienceworld_api', {})
+            api_key = api_config.get('api_key')
+            institution_access = api_config.get('institution_access', False)
+            
+            async with aiohttp.ClientSession() as session:
+                for keyword in self.keywords:
+                    # Try authenticated access first if available
+                    if api_key or institution_access:
+                        api_papers = await self._geoscienceworld_authenticated_query(session, keyword, api_key)
+                        papers.extend(api_papers)
+                    
+                    # Fallback to public search
+                    fallback_papers = await self._geoscienceworld_public_search(session, keyword)
+                    papers.extend(fallback_papers)
+                    
+                    # Rate limiting for GeoScienceWorld
+                    await asyncio.sleep(1.5)
+            
+            return papers[:self.max_papers_per_query]
+            
+        except Exception as e:
+            self.logger.error(f"GeoScienceWorld query failed: {e}")
+            return []
+    
+    async def _geoscienceworld_authenticated_query(self, session: aiohttp.ClientSession, 
+                                                 keyword: str, api_key: str) -> List[Dict[str, Any]]:
+        """Query GeoScienceWorld using authenticated access"""
+        papers = []
+        
+        try:
+            # GeoScienceWorld API endpoint (if available)
+            url = "https://api.geoscienceworld.org/search"
+            
+            headers = {
+                'Accept': 'application/json',
+                'User-Agent': 'Prometheus-Geological-Research/1.0'
+            }
+            
+            if api_key:
+                headers['Authorization'] = f'Bearer {api_key}'
+            
+            search_params = {
+                'q': keyword,
+                'content': 'research-article',
+                'subject': 'earth-sciences',
+                'startYear': str((datetime.now() - self.update_interval).year),
+                'endYear': str(datetime.now().year),
+                'pageSize': str(min(self.max_papers_per_query, 50)),
+                'sort': 'relevance',
+                'format': 'json'
+            }
+            
+            async with session.get(url, params=search_params, headers=headers, timeout=30) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    for item in data.get('results', []):
+                        paper = await self._extract_geoscienceworld_paper_data(item, 'geoscienceworld_api')
+                        if paper:
+                            papers.append(paper)
+                            
+        except Exception as e:
+            self.logger.warning(f"GeoScienceWorld authenticated query failed: {e}")
+        
+        return papers
+    
+    async def _geoscienceworld_public_search(self, session: aiohttp.ClientSession, 
+                                           keyword: str) -> List[Dict[str, Any]]:
+        """Public search fallback for GeoScienceWorld"""
+        papers = []
+        
+        try:
+            # GeoScienceWorld search parameters
+            search_params = {
+                'q': keyword,
+                'content': 'research-article',
+                'startYear': str((datetime.now() - self.update_interval).year),
+                'endYear': str(datetime.now().year),
+                'pageSize': str(min(self.max_papers_per_query, 25)),
+                'sort': 'relevance'
+            }
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Referer': 'https://www.geoscienceworld.org/'
+            }
+            
+            url = "https://www.geoscienceworld.org/search"
+            
+            async with session.get(url, params=search_params, headers=headers, timeout=30) as response:
+                if response.status == 200:
+                    content = await response.text()
+                    
+                    # Parse GeoScienceWorld search results
+                    papers = await self._parse_geoscienceworld_results(content, keyword)
+                    
+        except Exception as e:
+            self.logger.warning(f"GeoScienceWorld public search failed: {e}")
+        
+        return papers
+    
+    async def _parse_geoscienceworld_results(self, content: str, keyword: str) -> List[Dict[str, Any]]:
+        """Parse GeoScienceWorld search results"""
+        papers = []
+        
+        try:
+            import re
+            from bs4 import BeautifulSoup
+            
+            soup = BeautifulSoup(content, 'html.parser')
+            
+            # GeoScienceWorld specific HTML parsing
+            article_entries = soup.find_all('div', class_='search-result')
+            
+            for entry in article_entries[:self.max_papers_per_query]:
+                paper = {}
+                
+                # Extract title and URL
+                title_element = entry.find('h3', class_='title')
+                if title_element:
+                    title_link = title_element.find('a')
+                    if title_link:
+                        paper['title'] = title_link.get_text(strip=True)
+                        paper['url'] = f"https://www.geoscienceworld.org{title_link.get('href', '')}"
+                
+                # Extract DOI
+                doi_element = entry.find('span', class_='doi')
+                if doi_element:
+                    doi_text = doi_element.get_text()
+                    doi_match = re.search(r'(10\.\d{4,}[^\s"<>]*)', doi_text)
+                    if doi_match:
+                        paper['doi'] = doi_match.group(1)
+                
+                # Extract authors
+                authors_element = entry.find('div', class_='authors')
+                if authors_element:
+                    authors_text = authors_element.get_text(strip=True)
+                    authors = [author.strip() for author in authors_text.split(',')]
+                    paper['authors'] = authors
+                
+                # Extract journal
+                journal_element = entry.find('span', class_='journal')
+                if journal_element:
+                    paper['journal'] = journal_element.get_text(strip=True)
+                
+                # Extract publication info
+                pub_info = entry.find('div', class_='publication-info')
+                if pub_info:
+                    pub_text = pub_info.get_text()
+                    # Extract year
+                    year_match = re.search(r'(\d{4})', pub_text)
+                    if year_match:
+                        paper['published_year'] = year_match.group(1)
+                
+                # Extract abstract
+                abstract_element = entry.find('div', class_='abstract')
+                if abstract_element:
+                    paper['abstract'] = abstract_element.get_text(strip=True)
+                
+                # Add metadata specific to GeoScienceWorld
+                paper.update({
+                    'source': 'geoscienceworld',
+                    'keywords': [keyword],
+                    'geological_focus': 1.0,  # High geological focus for GeoScienceWorld
+                    'extraction_confidence': 0.9,  # High confidence for specialized geological database
+                    'specialization': 'earth_sciences'
+                })
+                
+                if paper.get('title'):
+                    papers.append(paper)
+                    
+        except Exception as e:
+            self.logger.warning(f"GeoScienceWorld result parsing failed: {e}")
+        
+        return papers
+    
+    async def _extract_wiley_paper_data(self, item: Dict[str, Any], source: str) -> Dict[str, Any]:
+        """Extract comprehensive data from Wiley API response"""
+        paper = {
+            'source': source,
+            'title': item.get('title', ''),
+            'doi': item.get('doi', ''),
+            'abstract': item.get('abstract', ''),
+            'url': item.get('url', ''),
+            'journal': item.get('publicationName', ''),
+            'volume': item.get('volume', ''),
+            'issue': item.get('issue', ''),
+            'pages': item.get('pageRange', ''),
+            'published_date': item.get('publicationDate', ''),
+            'article_type': item.get('contentType', ''),
+            'keywords': item.get('keywords', []),
+            'authors': [],
+            'geological_focus': 0.0,
+            'extraction_confidence': 1.0  # High confidence for API data
+        }
+        
+        # Extract authors
+        for author in item.get('authors', []):
+            author_name = f"{author.get('givenName', '')} {author.get('familyName', '')}"
+            paper['authors'].append(author_name.strip())
+        
+        # Assess geological relevance
+        text_content = f"{paper['title']} {paper['abstract']} {' '.join(paper['keywords'])}"
+        paper['geological_focus'] = self._assess_geological_relevance(text_content)
+        
+        return paper
+    
+    async def _extract_geoscienceworld_paper_data(self, item: Dict[str, Any], source: str) -> Dict[str, Any]:
+        """Extract comprehensive data from GeoScienceWorld API response"""
+        paper = {
+            'source': source,
+            'title': item.get('title', ''),
+            'doi': item.get('doi', ''),
+            'abstract': item.get('abstract', ''),
+            'url': item.get('url', ''),
+            'journal': item.get('journal', ''),
+            'volume': item.get('volume', ''),
+            'issue': item.get('issue', ''),
+            'pages': item.get('pages', ''),
+            'published_date': item.get('publicationDate', ''),
+            'keywords': item.get('keywords', []),
+            'authors': item.get('authors', []),
+            'geological_focus': 1.0,  # GeoScienceWorld is geological by default
+            'extraction_confidence': 1.0,  # High confidence for specialized API
+            'specialization': 'earth_sciences'
+        }
+        
+        return paper
+    
+    def _assess_geological_relevance(self, text: str) -> float:
+        """Assess geological relevance of paper content"""
+        geological_terms = {
+            'high_relevance': ['volcano', 'volcanic', 'magma', 'eruption', 'seismic', 'earthquake', 
+                             'deformation', 'caldera', 'tectonic', 'geophysics', 'geodetic', 'insar',
+                             'gps', 'geological', 'geochemical', 'petrology', 'mineralogy'],
+            'medium_relevance': ['earth', 'geology', 'rock', 'mineral', 'crust', 'mantle', 'lithosphere',
+                               'plate', 'fault', 'stress', 'strain', 'subsidence', 'uplift'],
+            'low_relevance': ['environmental', 'climate', 'atmospheric', 'oceanic', 'surface', 'water']
+        }
+        
+        text_lower = text.lower()
+        score = 0.0
+        total_terms = 0
+        
+        for category, terms in geological_terms.items():
+            for term in terms:
+                if term in text_lower:
+                    total_terms += 1
+                    if category == 'high_relevance':
+                        score += 1.0
+                    elif category == 'medium_relevance':
+                        score += 0.6
+                    elif category == 'low_relevance':
+                        score += 0.3
+        
+        if total_terms > 0:
+            return min(score / max(total_terms, 1), 1.0)
+        else:
+            return 0.1  # Minimal relevance if no geological terms found
+    
     async def _process_new_papers(self, papers: List[Dict[str, Any]]):
         """Process and extract knowledge from new papers"""
         for paper in papers:
@@ -798,58 +1269,63 @@ class LiteratureMonitor:
             self.logger.info(f"Processed new paper: {paper.get('title', '')[:100]}...")
     
     async def _extract_knowledge_from_paper(self, paper: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract structured knowledge from a paper"""
+        """Advanced knowledge extraction using comprehensive NLP pipeline"""
         try:
-            text = f"{paper.get('title', '')} {paper.get('abstract', '')}"
+            text = f"{paper.get('title', '')} {paper.get('abstract', '')} {paper.get('fulltext', '')}"
             
             if not text.strip():
-                return {}
+                return self._empty_knowledge_structure()
             
-            # Extract key concepts using NLP
-            extracted_knowledge = {
-                'entities': [],
-                'relationships': [],
-                'methods': [],
-                'findings': []
-            }
+            # Initialize knowledge structure
+            extracted_knowledge = self._empty_knowledge_structure()
             
-            # Simple keyword-based extraction for demonstration
-            # In practice, this would use advanced NLP models
-            volcano_terms = ['volcano', 'magma', 'eruption', 'deformation', 'caldera', 'reservoir']
-            method_terms = ['kalman filter', 'inversion', 'modeling', 'simulation', 'analysis']
+            # Run advanced geological NER
+            entities = await self._advanced_geological_ner(text)
+            extracted_knowledge['entities'] = entities
             
-            text_lower = text.lower()
+            # Extract semantic relationships
+            relationships = await self._extract_semantic_relationships(text, entities)
+            extracted_knowledge['relationships'] = relationships
             
-            for term in volcano_terms:
-                if term in text_lower:
-                    extracted_knowledge['entities'].append({
-                        'type': 'geological_entity',
-                        'name': term,
-                        'context': 'mentioned'
-                    })
+            # Extract methods and mathematical formulations
+            methods = await self._extract_methods_and_formulations(text)
+            extracted_knowledge['methods'] = methods['methods']
+            extracted_knowledge['mathematical_formulations'] = methods['formulations']
             
-            for term in method_terms:
-                if term in text_lower:
-                    extracted_knowledge['methods'].append({
-                        'type': 'computational_method',
-                        'name': term,
-                        'context': 'used'
-                    })
+            # Extract geological features
+            geological_features = await self._extract_geological_features(text, entities)
+            extracted_knowledge['geological_features'] = geological_features
             
-            # Extract potential relationships
-            if 'kalman' in text_lower and 'volcano' in text_lower:
-                extracted_knowledge['relationships'].append({
-                    'source': 'kalman_filter',
-                    'target': 'volcano_monitoring',
-                    'relationship': 'applied_to',
-                    'confidence': 0.7
-                })
+            # Extract parameters and measurements
+            parameters = await self._extract_parameters_and_measurements(text)
+            extracted_knowledge['parameters'] = parameters['parameters']
+            extracted_knowledge['datasets'] = parameters['datasets']
+            
+            # Extract findings and conclusions
+            findings = await self._extract_scientific_findings(text)
+            extracted_knowledge['findings'] = findings
+            
+            # Extract uncertainty quantification information
+            uncertainty = await self._extract_uncertainty_information(text)
+            extracted_knowledge['uncertainty_quantification'] = uncertainty
+            
+            # Spatial and temporal context extraction
+            spatial_temporal = await self._extract_spatial_temporal_context(text, paper)
+            extracted_knowledge['spatial_temporal_context'] = spatial_temporal
+            
+            # Calculate confidence scores for all extractions
+            confidence_scores = await self._calculate_extraction_confidence(extracted_knowledge, text)
+            extracted_knowledge['confidence_scores'] = confidence_scores
+            
+            # Integrate with geological domain-specific models
+            domain_integration = await self._integrate_geological_domain_models(extracted_knowledge, paper)
+            extracted_knowledge['geological_domain_integration'] = domain_integration
             
             return extracted_knowledge
             
         except Exception as e:
-            self.logger.error(f"Knowledge extraction failed: {e}")
-            return {}
+            self.logger.error(f"Advanced knowledge extraction failed: {e}")
+            return self._empty_knowledge_structure()
     
     def get_recent_papers(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Get recently processed papers"""
@@ -26111,3 +26587,1549 @@ class RealTimeAnomalyDetectionSystem:
             
         except Exception as e:
             return self._fallback_simple_detection(data)
+    
+    # Advanced NLP Pipeline Methods - Completed Implementation
+    
+    async def _extract_semantic_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract semantic relationships using advanced multi-method approach."""
+        try:
+            # Use the new comprehensive relationship extraction method
+            return await self._extract_advanced_relationships(text, entities)
+            
+        except Exception as e:
+            self.logger.error(f"Semantic relationship extraction failed: {e}")
+            return []
+    
+    async def _extract_methods_and_formulations(self, text: str) -> Dict[str, List[Dict[str, Any]]]:
+        """Extract computational methods and mathematical formulations"""
+        try:
+            methods = []
+            formulations = []
+            
+            # Method extraction patterns
+            method_patterns = {
+                'kalman_filter': r'(?:ensemble\s+)?kalman\s+filter(?:ing)?',
+                'monte_carlo': r'monte\s+carlo\s+(?:method|simulation|sampling)',
+                'finite_element': r'finite\s+element\s+(?:method|analysis|modeling)',
+                'inversion': r'(?:bayesian\s+)?inversion\s+(?:method|technique|algorithm)',
+                'machine_learning': r'(?:machine\s+learning|neural\s+network|deep\s+learning)',
+                'optimization': r'(?:genetic\s+algorithm|particle\s+swarm|gradient\s+descent)',
+                'signal_processing': r'(?:fourier\s+transform|wavelet\s+analysis|spectral\s+analysis)'
+            }
+            
+            import re
+            for method_type, pattern in method_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    methods.append({
+                        'type': method_type,
+                        'name': match.group(),
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.9,
+                        'source': 'method_patterns'
+                    })
+            
+            # Mathematical formulation extraction
+            math_patterns = {
+                'equation': r'(?:equation|eq\.?)\s*\(?(\d+)\)?',
+                'formula': r'(?:formula|form\.?)\s*\(?(\d+)\)?',
+                'model': r'(?:model|expression)\s*\(?(\d+)\)?',
+                'parameter': r'(?:parameter|variable)\s+([a-zA-Z_]\w*)',
+                'coefficient': r'(?:coefficient|factor)\s+([a-zA-Z_]\w*)'
+            }
+            
+            for form_type, pattern in math_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    formulations.append({
+                        'type': form_type,
+                        'identifier': match.group(1) if len(match.groups()) > 0 else None,
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.8,
+                        'source': 'math_patterns'
+                    })
+            
+            # Advanced formulation extraction using regex for common patterns
+            advanced_math_patterns = {
+                'differential_equation': r'd[²²]?[a-zA-Z_]\w*/d[a-zA-Z_]\w*[²²]?',
+                'integral': r'∫|\\int',
+                'matrix_operation': r'\b[A-Z]\s*\*\s*[A-Z]|\b[A-Z]^{?-?1}?',
+                'statistical_measure': r'(?:mean|variance|standard\s+deviation|correlation)',
+                'probability': r'P\s*\(|Pr\s*\(|probability'
+            }
+            
+            for form_type, pattern in advanced_math_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    formulations.append({
+                        'type': form_type,
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.85,
+                        'source': 'advanced_math_patterns'
+                    })
+            
+            return {
+                'methods': methods,
+                'formulations': formulations
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Methods and formulations extraction failed: {e}")
+            return {'methods': [], 'formulations': []}
+    
+    async def _extract_geological_features(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract geological features and structures"""
+        try:
+            features = []
+            
+            # Geological feature patterns
+            feature_patterns = {
+                'volcanic_features': r'\b(?:caldera|crater|dome|cone|vent|fumarole|hot\s+spring)\b',
+                'structural_features': r'\b(?:fault|fracture|joint|fold|anticline|syncline|graben|horst)\b',
+                'topographic_features': r'\b(?:ridge|valley|peak|summit|slope|escarpment|plateau)\b',
+                'rock_formations': r'\b(?:formation|member|group|bed|layer|unit|intrusion|batholith)\b',
+                'hydrothermal_features': r'\b(?:geothermal|hydrothermal|thermal\s+spring|geyser)\b',
+                'metamorphic_features': r'\b(?:metamorphic\s+core|contact\s+zone|aureole|schist|gneiss)\b'
+            }
+            
+            import re
+            for feature_type, pattern in feature_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    features.append({
+                        'type': feature_type,
+                        'name': match.group(),
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.9,
+                        'source': 'geological_patterns'
+                    })
+            
+            # Extract features from entities
+            for entity in entities:
+                if entity.get('label') in ['volcano_names', 'geological_units', 'rock_types']:
+                    features.append({
+                        'type': 'named_geological_feature',
+                        'name': entity['text'],
+                        'entity_type': entity['label'],
+                        'confidence': entity['confidence'],
+                        'source': 'entity_extraction'
+                    })
+            
+            # Advanced geological context extraction
+            context_patterns = {
+                'tectonic_setting': r'\b(?:convergent|divergent|transform|subduction|rift|arc)\b',
+                'magma_type': r'\b(?:basaltic|andesitic|dacitic|rhyolitic|mafic|felsic|intermediate)\b',
+                'eruption_style': r'\b(?:effusive|explosive|strombolian|vulcanian|plinian|hawaiian)\b',
+                'deformation_type': r'\b(?:inflation|deflation|subsidence|uplift|extension|compression)\b'
+            }
+            
+            for context_type, pattern in context_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    features.append({
+                        'type': context_type,
+                        'name': match.group(),
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.85,
+                        'source': 'context_patterns'
+                    })
+            
+            return features
+            
+        except Exception as e:
+            self.logger.error(f"Geological features extraction failed: {e}")
+            return []
+    
+    async def _extract_parameters_and_measurements(self, text: str) -> Dict[str, List[Dict[str, Any]]]:
+        """Extract scientific parameters and measurement datasets"""
+        try:
+            parameters = []
+            datasets = []
+            
+            # Parameter extraction patterns
+            parameter_patterns = {
+                'physical_parameters': r'\b(?:depth|volume|pressure|temperature|density|viscosity)\b',
+                'deformation_parameters': r'\b(?:displacement|strain|stress|tilt|elevation)\b',
+                'temporal_parameters': r'\b(?:time|date|duration|frequency|period|interval)\b',
+                'statistical_parameters': r'\b(?:mean|median|variance|deviation|correlation|confidence)\b',
+                'model_parameters': r'\b(?:coefficient|factor|weight|threshold|tolerance)\b'
+            }
+            
+            import re
+            for param_type, pattern in parameter_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    # Look for associated values
+                    value_pattern = r'([+-]?\d+\.?\d*)\s*(?:[a-zA-Z/°μ²³]+)?'
+                    value_search = re.search(value_pattern, text[match.end():match.end()+50])
+                    
+                    parameters.append({
+                        'type': param_type,
+                        'name': match.group(),
+                        'value': value_search.group(1) if value_search else None,
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.8,
+                        'source': 'parameter_patterns'
+                    })
+            
+            # Dataset and measurement extraction
+            dataset_patterns = {
+                'gps_data': r'\b(?:GPS|GNSS|global\s+positioning)\b.*?(?:data|measurements|observations)',
+                'insar_data': r'\b(?:InSAR|interferometry|radar)\b.*?(?:data|images|measurements)',
+                'seismic_data': r'\b(?:seismic|earthquake|tremor)\b.*?(?:data|records|catalogs)',
+                'geodetic_data': r'\b(?:geodetic|leveling|tilt)\b.*?(?:data|measurements|surveys)',
+                'thermal_data': r'\b(?:thermal|temperature|heat)\b.*?(?:data|measurements|images)',
+                'gas_data': r'\b(?:gas|SO2|CO2|emission)\b.*?(?:data|measurements|flux)'
+            }
+            
+            for dataset_type, pattern in dataset_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    datasets.append({
+                        'type': dataset_type,
+                        'description': match.group(),
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.85,
+                        'source': 'dataset_patterns'
+                    })
+            
+            # Extract specific measurement values with units
+            measurement_pattern = r'([+-]?\d+\.?\d*)\s*([a-zA-Z/°μ²³]+)'
+            measurements = re.finditer(measurement_pattern, text)
+            
+            for measurement in measurements:
+                value, unit = measurement.groups()
+                try:
+                    parameters.append({
+                        'type': 'measured_value',
+                        'name': 'measurement',
+                        'value': float(value),
+                        'unit': unit,
+                        'text': measurement.group(),
+                        'start': measurement.start(),
+                        'end': measurement.end(),
+                        'confidence': 0.9,
+                        'source': 'measurement_extraction'
+                    })
+                except ValueError:
+                    pass
+            
+            return {
+                'parameters': parameters,
+                'datasets': datasets
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Parameters and measurements extraction failed: {e}")
+            return {'parameters': [], 'datasets': []}
+    
+    async def _extract_scientific_findings(self, text: str) -> List[Dict[str, Any]]:
+        """Extract scientific findings and conclusions"""
+        try:
+            findings = []
+            
+            # Findings indicator patterns
+            finding_indicators = [
+                r'(?:we found|we observed|results show|analysis reveals|findings indicate)',
+                r'(?:concluded|determined|established|demonstrated|evidence suggests)',
+                r'(?:significant|notable|important|key finding|major result)',
+                r'(?:correlation|relationship|association|link|connection)',
+                r'(?:increase|decrease|change|variation|trend|pattern)'
+            ]
+            
+            import re
+            for i, indicator_pattern in enumerate(finding_indicators):
+                matches = re.finditer(indicator_pattern, text, re.IGNORECASE)
+                for match in matches:
+                    # Extract surrounding context (sentence)
+                    sentence_start = max(0, text.rfind('.', 0, match.start()) + 1)
+                    sentence_end = text.find('.', match.end())
+                    if sentence_end == -1:
+                        sentence_end = len(text)
+                    
+                    sentence = text[sentence_start:sentence_end].strip()
+                    
+                    findings.append({
+                        'type': f'finding_type_{i+1}',
+                        'indicator': match.group(),
+                        'full_text': sentence,
+                        'start': sentence_start,
+                        'end': sentence_end,
+                        'confidence': 0.8,
+                        'source': 'finding_indicators'
+                    })
+            
+            # Quantitative findings extraction
+            quantitative_patterns = {
+                'percentage_change': r'(?:increased|decreased|changed)\s+by\s+([+-]?\d+\.?\d*)\s*%',
+                'magnitude': r'magnitude\s+(?:of\s+)?([+-]?\d+\.?\d*)',
+                'statistical_significance': r'(?:p\s*[<>=]\s*[0-9.]+|significant\s+(?:at|with)|confidence\s+(?:level|interval))',
+                'correlation_coefficient': r'(?:r\s*=\s*[+-]?[0-9.]+|correlation\s+(?:of\s+)?[+-]?[0-9.]+)'
+            }
+            
+            for finding_type, pattern in quantitative_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    findings.append({
+                        'type': finding_type,
+                        'value': match.group(1) if len(match.groups()) > 0 else None,
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.9,
+                        'source': 'quantitative_patterns'
+                    })
+            
+            return findings
+            
+        except Exception as e:
+            self.logger.error(f"Scientific findings extraction failed: {e}")
+            return []
+    
+    async def _extract_uncertainty_information(self, text: str) -> List[Dict[str, Any]]:
+        """Extract uncertainty quantification information"""
+        try:
+            uncertainty_info = []
+            
+            # Uncertainty patterns
+            uncertainty_patterns = {
+                'confidence_intervals': r'(?:confidence\s+interval|CI)\s*(?:\[|:)\s*([+-]?\d+\.?\d*)\s*(?:,|to|-|±)\s*([+-]?\d+\.?\d*)',
+                'standard_error': r'(?:standard\s+error|SE|std\s+err)\s*(?:of\s+)?([+-]?\d+\.?\d*)',
+                'uncertainty_bounds': r'(?:uncertainty|error)\s*(?:bounds|range)\s*(?:\[|:)\s*([+-]?\d+\.?\d*)\s*(?:,|to|-|±)\s*([+-]?\d+\.?\d*)',
+                'probability': r'(?:probability|likelihood)\s*(?:of\s+)?([+-]?\d+\.?\d*)',
+                'variance': r'variance\s*(?:of\s+)?([+-]?\d+\.?\d*)',
+                'posterior_distribution': r'posterior\s+(?:distribution|mean|variance)',
+                'bayesian_inference': r'bayesian\s+(?:inference|analysis|approach|method)'
+            }
+            
+            import re
+            for uncertainty_type, pattern in uncertainty_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    uncertainty_info.append({
+                        'type': uncertainty_type,
+                        'value1': match.group(1) if len(match.groups()) > 0 else None,
+                        'value2': match.group(2) if len(match.groups()) > 1 else None,
+                        'text': match.group(),
+                        'start': match.start(),
+                        'end': match.end(),
+                        'confidence': 0.85,
+                        'source': 'uncertainty_patterns'
+                    })
+            
+            return uncertainty_info
+            
+        except Exception as e:
+            self.logger.error(f"Uncertainty extraction failed: {e}")
+            return []
+    
+    async def _extract_spatial_temporal_context(self, text: str, paper: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract spatial and temporal context information"""
+        try:
+            spatial_temporal = {
+                'spatial_context': {},
+                'temporal_context': {},
+                'coordinate_systems': [],
+                'time_periods': []
+            }
+            
+            # Spatial context extraction
+            import re
+            
+            # Coordinate patterns
+            coordinate_patterns = {
+                'latitude_longitude': r'([+-]?\d+\.?\d*)[°\s]*(?:N|S|North|South)?\s*,?\s*([+-]?\d+\.?\d*)[°\s]*(?:E|W|East|West)?',
+                'utm_coordinates': r'UTM\s+(?:zone\s+)?(\d+[NS]?)\s*:\s*([+-]?\d+\.?\d*)\s*,?\s*([+-]?\d+\.?\d*)',
+                'elevation': r'(?:elevation|altitude)\s*(?:of\s+)?([+-]?\d+\.?\d*)\s*(?:m|meters|km|kilometers|ft|feet)',
+                'depth': r'depth\s*(?:of\s+)?([+-]?\d+\.?\d*)\s*(?:m|meters|km|kilometers|ft|feet)'
+            }
+            
+            for coord_type, pattern in coordinate_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    spatial_temporal['coordinate_systems'].append({
+                        'type': coord_type,
+                        'values': list(match.groups()),
+                        'text': match.group(),
+                        'confidence': 0.9
+                    })
+            
+            # Location names
+            location_patterns = {
+                'volcano_names': r'(?:Mount|Mt\.|Volcano)\s+([A-Z][a-zA-Z\s]+)',
+                'geographic_regions': r'\b([A-Z][a-zA-Z\s]*(?:Island|Peninsula|Ridge|Valley|Basin|Range))\b',
+                'countries_cities': r'\b([A-Z][a-zA-Z\s]*(?:Japan|Italy|Chile|Indonesia|Philippines|Iceland|New Zealand))\b'
+            }
+            
+            spatial_context = {}
+            for location_type, pattern in location_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                locations = [match.group(1) for match in matches]
+                if locations:
+                    spatial_context[location_type] = locations
+            
+            spatial_temporal['spatial_context'] = spatial_context
+            
+            # Temporal context extraction
+            temporal_patterns = {
+                'specific_dates': r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\b',
+                'years': r'\b(19\d{2}|20\d{2})\b',
+                'geological_periods': r'\b(Holocene|Pleistocene|Pliocene|Miocene|Oligocene|Eocene|Paleocene)\b',
+                'relative_time': r'\b(?:during|since|after|before|between)\s+([\w\s]+?)(?:period|epoch|event|eruption)',
+                'duration': r'(?:lasted|duration|period)\s*(?:of\s+)?([+-]?\d+\.?\d*)\s*(?:days|months|years|hours|minutes)'
+            }
+            
+            temporal_context = {}
+            for time_type, pattern in temporal_patterns.items():
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                times = [match.group(1) for match in matches if len(match.groups()) > 0]
+                if times:
+                    temporal_context[time_type] = times
+            
+            spatial_temporal['temporal_context'] = temporal_context
+            
+            # Extract from paper metadata if available
+            if paper.get('publication_date'):
+                spatial_temporal['temporal_context']['publication_date'] = paper['publication_date']
+            
+            return spatial_temporal
+            
+        except Exception as e:
+            self.logger.error(f"Spatial-temporal extraction failed: {e}")
+            return {'spatial_context': {}, 'temporal_context': {}, 'coordinate_systems': [], 'time_periods': []}
+    
+    async def _calculate_extraction_confidence(self, extracted_knowledge: Dict[str, Any], text: str) -> Dict[str, float]:
+        """Calculate confidence scores for all knowledge extractions"""
+        try:
+            confidence_scores = {}
+            
+            # Calculate confidence based on multiple factors
+            for category, items in extracted_knowledge.items():
+                if isinstance(items, list) and items:
+                    # Average confidence from individual items
+                    item_confidences = []
+                    for item in items:
+                        if isinstance(item, dict) and 'confidence' in item:
+                            item_confidences.append(item['confidence'])
+                    
+                    if item_confidences:
+                        base_confidence = np.mean(item_confidences)
+                        
+                        # Boost confidence based on quantity and diversity
+                        quantity_boost = min(0.1, len(items) * 0.02)  # Max 0.1 boost
+                        
+                        # Diversity boost (different sources)
+                        sources = set()
+                        for item in items:
+                            if isinstance(item, dict) and 'source' in item:
+                                sources.add(item['source'])
+                        diversity_boost = min(0.05, len(sources) * 0.01)
+                        
+                        final_confidence = min(1.0, base_confidence + quantity_boost + diversity_boost)
+                        confidence_scores[category] = final_confidence
+                    else:
+                        confidence_scores[category] = 0.5  # Default moderate confidence
+                elif isinstance(items, dict) and items:
+                    # For dictionary items, assign moderate confidence
+                    confidence_scores[category] = 0.7
+                else:
+                    confidence_scores[category] = 0.0
+            
+            # Overall extraction confidence
+            if confidence_scores:
+                overall_confidence = np.mean(list(confidence_scores.values()))
+                confidence_scores['overall_extraction'] = overall_confidence
+            
+            return confidence_scores
+            
+        except Exception as e:
+            self.logger.error(f"Confidence calculation failed: {e}")
+            return {}
+    
+    async def _integrate_geological_domain_models(self, extracted_knowledge: Dict[str, Any], paper: Dict[str, Any]) -> Dict[str, Any]:
+        """Integrate extracted knowledge with geological domain-specific models"""
+        try:
+            domain_integration = {
+                'volcanic_system_classification': {},
+                'tectonic_context': {},
+                'magma_system_characteristics': {},
+                'deformation_mechanisms': {},
+                'hazard_assessment': {}
+            }
+            
+            # Volcanic system classification
+            entities = extracted_knowledge.get('entities', [])
+            features = extracted_knowledge.get('geological_features', [])
+            
+            volcanic_indicators = []
+            for entity in entities:
+                if entity.get('label') in ['volcano_names', 'rock_types']:
+                    volcanic_indicators.append(entity['text'].lower())
+            
+            for feature in features:
+                if feature.get('type') == 'volcanic_features':
+                    volcanic_indicators.append(feature['name'].lower())
+            
+            # Classify volcanic system type
+            if any('caldera' in ind for ind in volcanic_indicators):
+                domain_integration['volcanic_system_classification'] = {
+                    'type': 'caldera_system',
+                    'characteristics': ['large_volume', 'explosive_potential', 'complex_reservoir'],
+                    'confidence': 0.85
+                }
+            elif any('stratovolcano' in ind or 'cone' in ind for ind in volcanic_indicators):
+                domain_integration['volcanic_system_classification'] = {
+                    'type': 'stratovolcano',
+                    'characteristics': ['composite_structure', 'moderate_explosivity', 'regular_activity'],
+                    'confidence': 0.8
+                }
+            elif any('shield' in ind for ind in volcanic_indicators):
+                domain_integration['volcanic_system_classification'] = {
+                    'type': 'shield_volcano',
+                    'characteristics': ['effusive_activity', 'basaltic_composition', 'large_area'],
+                    'confidence': 0.8
+                }
+            
+            # Tectonic context integration
+            spatial_context = extracted_knowledge.get('spatial_temporal_context', {}).get('spatial_context', {})
+            if spatial_context:
+                # Simple tectonic setting inference based on location
+                locations = []
+                for location_type, location_list in spatial_context.items():
+                    locations.extend(location_list)
+                
+                location_text = ' '.join(locations).lower()
+                if any(term in location_text for term in ['japan', 'kamchatka', 'andes', 'cascade']):
+                    domain_integration['tectonic_context'] = {
+                        'setting': 'subduction_zone',
+                        'characteristics': ['convergent_margin', 'explosive_volcanism', 'arc_volcanism'],
+                        'confidence': 0.7
+                    }
+                elif any(term in location_text for term in ['iceland', 'mid-atlantic', 'rift']):
+                    domain_integration['tectonic_context'] = {
+                        'setting': 'divergent_boundary',
+                        'characteristics': ['rift_volcanism', 'basaltic_composition', 'effusive_activity'],
+                        'confidence': 0.7
+                    }
+                elif any(term in location_text for term in ['hawaii', 'hotspot', 'yellowstone']):
+                    domain_integration['tectonic_context'] = {
+                        'setting': 'hotspot',
+                        'characteristics': ['intraplate_volcanism', 'plume_related', 'shield_building'],
+                        'confidence': 0.75
+                    }
+            
+            # Magma system characteristics
+            parameters = extracted_knowledge.get('parameters', [])
+            depth_values = []
+            volume_values = []
+            
+            for param in parameters:
+                if isinstance(param, dict):
+                    param_name = param.get('name', '').lower()
+                    if 'depth' in param_name and param.get('value'):
+                        try:
+                            depth_values.append(float(param['value']))
+                        except (ValueError, TypeError):
+                            pass
+                    elif 'volume' in param_name and param.get('value'):
+                        try:
+                            volume_values.append(float(param['value']))
+                        except (ValueError, TypeError):
+                            pass
+            
+            if depth_values:
+                mean_depth = np.mean(depth_values)
+                if mean_depth < 3000:
+                    domain_integration['magma_system_characteristics']['depth_category'] = 'shallow'
+                elif mean_depth > 8000:
+                    domain_integration['magma_system_characteristics']['depth_category'] = 'deep'
+                else:
+                    domain_integration['magma_system_characteristics']['depth_category'] = 'intermediate'
+            
+            if volume_values:
+                mean_volume = np.mean(volume_values)
+                if mean_volume < 1e6:
+                    domain_integration['magma_system_characteristics']['size_category'] = 'small'
+                elif mean_volume > 1e9:
+                    domain_integration['magma_system_characteristics']['size_category'] = 'large'
+                else:
+                    domain_integration['magma_system_characteristics']['size_category'] = 'medium'
+            
+            return domain_integration
+            
+        except Exception as e:
+            self.logger.error(f"Domain integration failed: {e}")
+            return {}
+    
+    async def _advanced_geological_ner(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Advanced Named Entity Recognition specifically designed for geological literature.
+        Uses multiple approaches including SciBERT, spaCy, domain-specific patterns, and geological ontologies.
+        """
+        try:
+            entities = []
+            
+            # Initialize SciBERT tokenizer if available
+            try:
+                from transformers import AutoTokenizer, AutoModel
+                import torch
+                
+                # Use SciBERT for scientific entity recognition
+                tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased")
+                model = AutoModel.from_pretrained("allenai/scibert_scivocab_uncased")
+                
+                # Tokenize and process text in chunks
+                chunks = self._split_text_into_chunks(text, max_length=512)
+                scibert_entities = await self._extract_scibert_entities(chunks, tokenizer, model)
+                entities.extend(scibert_entities)
+                
+            except ImportError:
+                self.logger.warning("SciBERT not available, using fallback methods")
+            
+            # Use spaCy for general NER and dependency parsing
+            try:
+                import spacy
+                
+                # Try to load geological model first, fallback to general
+                try:
+                    nlp = spacy.load("en_core_web_lg")
+                except OSError:
+                    nlp = spacy.load("en_core_web_sm")
+                
+                doc = nlp(text)
+                
+                # Extract standard spaCy entities
+                for ent in doc.ents:
+                    entities.append({
+                        'text': ent.text,
+                        'label': ent.label_,
+                        'start': ent.start_char,
+                        'end': ent.end_char,
+                        'confidence': 0.8,
+                        'method': 'spacy',
+                        'description': spacy.explain(ent.label_) or ent.label_
+                    })
+                
+                # Extract geological-specific entities using dependency parsing
+                geological_entities = await self._extract_geological_entities_spacy(doc)
+                entities.extend(geological_entities)
+                
+            except ImportError:
+                self.logger.warning("spaCy not available, using pattern-based extraction only")
+            
+            # Domain-specific geological entity extraction using comprehensive patterns
+            geological_pattern_entities = await self._extract_geological_pattern_entities(text)
+            entities.extend(geological_pattern_entities)
+            
+            # Extract geological processes and phenomena
+            process_entities = await self._extract_geological_processes(text)
+            entities.extend(process_entities)
+            
+            # Extract measurements and quantitative data
+            measurement_entities = await self._extract_geological_measurements(text)
+            entities.extend(measurement_entities)
+            
+            # Extract temporal entities (geological time periods, event timing)
+            temporal_entities = await self._extract_temporal_geological_entities(text)
+            entities.extend(temporal_entities)
+            
+            # Extract spatial entities (coordinates, locations, geological formations)
+            spatial_entities = await self._extract_spatial_geological_entities(text)
+            entities.extend(spatial_entities)
+            
+            # Merge overlapping entities and resolve conflicts
+            merged_entities = await self._merge_overlapping_entities(entities)
+            
+            # Apply geological domain knowledge for entity validation and enhancement
+            enhanced_entities = await self._enhance_entities_with_domain_knowledge(merged_entities, text)
+            
+            # Calculate confidence scores based on multiple sources
+            final_entities = await self._calculate_entity_confidence(enhanced_entities, text)
+            
+            return final_entities
+            
+        except Exception as e:
+            self.logger.error(f"Advanced geological NER failed: {e}")
+            return []
+    
+    async def _split_text_into_chunks(self, text: str, max_length: int = 512, overlap: int = 50) -> List[str]:
+        """Split text into overlapping chunks for processing."""
+        words = text.split()
+        chunks = []
+        
+        for i in range(0, len(words), max_length - overlap):
+            chunk = ' '.join(words[i:i + max_length])
+            chunks.append(chunk)
+            
+            if i + max_length >= len(words):
+                break
+        
+        return chunks
+    
+    async def _extract_scibert_entities(self, chunks: List[str], tokenizer, model) -> List[Dict[str, Any]]:
+        """Extract entities using SciBERT embeddings and clustering."""
+        try:
+            import torch
+            import numpy as np
+            from sklearn.cluster import DBSCAN
+            
+            entities = []
+            
+            for chunk_idx, chunk in enumerate(chunks):
+                # Tokenize
+                inputs = tokenizer(chunk, return_tensors="pt", padding=True, truncation=True, max_length=512)
+                
+                with torch.no_grad():
+                    outputs = model(**inputs)
+                    embeddings = outputs.last_hidden_state.squeeze().numpy()
+                
+                # Use attention to identify important tokens
+                attention_weights = torch.softmax(outputs.last_hidden_state.abs().sum(dim=-1), dim=-1).squeeze().numpy()
+                
+                tokens = tokenizer.convert_ids_to_tokens(inputs['input_ids'].squeeze())
+                
+                # Find high-attention scientific terms
+                for i, (token, attention) in enumerate(zip(tokens, attention_weights)):
+                    if attention > 0.1 and len(token) > 3 and not token.startswith('['):
+                        # Check if it's a scientific term using geological vocabulary
+                        if await self._is_geological_term(token):
+                            entities.append({
+                                'text': token,
+                                'label': 'GEOLOGICAL_TERM',
+                                'start': i,  # Token position in chunk
+                                'end': i + 1,
+                                'confidence': float(attention),
+                                'method': 'scibert',
+                                'chunk_index': chunk_idx,
+                                'embedding': embeddings[i].tolist() if i < len(embeddings) else None
+                            })
+            
+            return entities
+            
+        except Exception as e:
+            self.logger.error(f"SciBERT entity extraction failed: {e}")
+            return []
+    
+    async def _is_geological_term(self, term: str) -> bool:
+        """Check if a term is geological using domain knowledge."""
+        geological_terms = {
+            'magma', 'lava', 'volcano', 'eruption', 'pyroclastic', 'tephra', 'ash',
+            'basalt', 'andesite', 'dacite', 'rhyolite', 'phonolite', 'trachyte',
+            'plutonic', 'intrusive', 'extrusive', 'dike', 'sill', 'batholith',
+            'seismic', 'earthquake', 'fault', 'fracture', 'stress', 'strain',
+            'deformation', 'uplift', 'subsidence', 'tilting', 'displacement',
+            'geothermal', 'hydrothermal', 'fumarole', 'hot_spring', 'geyser',
+            'mineral', 'crystal', 'olivine', 'pyroxene', 'plagioclase', 'quartz',
+            'stratovolcano', 'caldera', 'crater', 'dome', 'shield', 'cinder',
+            'mantle', 'crust', 'lithosphere', 'asthenosphere', 'subduction',
+            'viscosity', 'volatile', 'degassing', 'crystallization', 'differentiation'
+        }
+        
+        return term.lower() in geological_terms or any(geo_term in term.lower() for geo_term in geological_terms)
+    
+    async def _extract_geological_entities_spacy(self, doc) -> List[Dict[str, Any]]:
+        """Extract geological entities using spaCy dependency parsing and POS tagging."""
+        entities = []
+        
+        try:
+            # Extract compound nouns that might be geological terms
+            for token in doc:
+                if (token.pos_ in ['NOUN', 'PROPN'] and 
+                    token.dep_ in ['compound', 'nmod', 'amod'] and
+                    len(token.text) > 3):
+                    
+                    # Check if it's part of a geological phrase
+                    head = token.head
+                    full_term = token.text
+                    
+                    # Build compound terms
+                    if head.pos_ == 'NOUN':
+                        full_term = f"{token.text} {head.text}"
+                    
+                    if await self._is_geological_term(full_term):
+                        entities.append({
+                            'text': full_term,
+                            'label': 'GEOLOGICAL_COMPOUND',
+                            'start': token.idx,
+                            'end': token.idx + len(full_term),
+                            'confidence': 0.7,
+                            'method': 'spacy_compound',
+                            'pos': token.pos_,
+                            'dep': token.dep_
+                        })
+            
+            # Extract measurement phrases
+            for ent in doc.ents:
+                if ent.label_ in ['QUANTITY', 'CARDINAL']:
+                    # Look for geological context around measurements
+                    context = doc[max(0, ent.start-3):min(len(doc), ent.end+3)]
+                    context_text = context.text.lower()
+                    
+                    if any(term in context_text for term in ['depth', 'pressure', 'temperature', 'magnitude', 'volume']):
+                        entities.append({
+                            'text': ent.text,
+                            'label': 'GEOLOGICAL_MEASUREMENT',
+                            'start': ent.start_char,
+                            'end': ent.end_char,
+                            'confidence': 0.8,
+                            'method': 'spacy_measurement',
+                            'context': context.text
+                        })
+            
+            return entities
+            
+        except Exception as e:
+            self.logger.error(f"spaCy geological entity extraction failed: {e}")
+            return []
+    
+    async def _extract_geological_pattern_entities(self, text: str) -> List[Dict[str, Any]]:
+        """Extract geological entities using comprehensive pattern matching."""
+        entities = []
+        
+        # Comprehensive geological patterns
+        geological_patterns = {
+            'VOLCANO_NAMES': r'\b(?:[A-Z][a-z]+\s+)?(?:Volcano|volcano|Mt\.?\s+[A-Z][a-z]+|Mount\s+[A-Z][a-z]+)\b',
+            'ROCK_TYPES': r'\b(?:basalt|andesite|dacite|rhyolite|granite|gabbro|peridotite|pyroclastic|tuff|breccia|obsidian|pumice)(?:ic)?\b',
+            'MINERAL_NAMES': r'\b(?:olivine|pyroxene|plagioclase|quartz|feldspar|hornblende|biotite|muscovite|magnetite|ilmenite|apatite|zircon)\b',
+            'GEOLOGICAL_STRUCTURES': r'\b(?:caldera|crater|dome|dike|sill|batholith|laccolith|stock|pluton|intrusion|extrusion)\b',
+            'VOLCANIC_PRODUCTS': r'\b(?:lava|magma|ash|tephra|pyroclastic\s+flow|scoria|cinder|volcanic\s+bomb|lapilli)\b',
+            'GEOLOGICAL_PROCESSES': r'\b(?:eruption|intrusion|subduction|rifting|metamorphism|crystallization|differentiation|assimilation|degassing)\b',
+            'TECTONIC_FEATURES': r'\b(?:fault|fracture|joint|lineament|graben|horst|rift|thrust|normal\s+fault|strike-slip)\b',
+            'DEFORMATION_TERMS': r'\b(?:uplift|subsidence|tilting|displacement|strain|stress|deformation|inflation|deflation)\b',
+            'HYDROTHERMAL_FEATURES': r'\b(?:hot\s+spring|geyser|fumarole|hydrothermal|geothermal|alteration|mineralization)\b',
+            'SEISMIC_TERMS': r'\b(?:earthquake|seismic|magnitude|epicenter|hypocenter|P-wave|S-wave|surface\s+wave|tremor)\b',
+            'TEMPORAL_GEOLOGICAL': r'\b(?:Holocene|Pleistocene|Pliocene|Miocene|Oligocene|Eocene|Paleocene|Cretaceous|Jurassic|Triassic|Permian|Carboniferous|Devonian|Silurian|Ordovician|Cambrian|Precambrian)\b',
+            'ANALYTICAL_METHODS': r'\b(?:XRF|XRD|FTIR|Raman|ICP-MS|EPMA|SEM|TEM|petrography|geochemistry|isotope|radiometric)\b'
+        }
+        
+        for entity_type, pattern in geological_patterns.items():
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                entities.append({
+                    'text': match.group(),
+                    'label': entity_type,
+                    'start': match.start(),
+                    'end': match.end(),
+                    'confidence': 0.9,
+                    'method': 'pattern_matching',
+                    'pattern_used': pattern
+                })
+        
+        return entities
+    
+    async def _extract_geological_processes(self, text: str) -> List[Dict[str, Any]]:
+        """Extract geological processes and their characteristics."""
+        entities = []
+        
+        process_patterns = {
+            'MAGMA_PROCESSES': {
+                'pattern': r'\b(?:magma\s+(?:ascent|storage|evolution|mixing|crystallization|degassing)|fractional\s+crystallization|magma\s+chamber\s+replenishment)\b',
+                'characteristics': ['dynamic', 'thermal', 'chemical']
+            },
+            'VOLCANIC_PROCESSES': {
+                'pattern': r'\b(?:volcanic\s+(?:eruption|explosion|effusion|degassing)|explosive\s+eruption|strombolian|vulcanian|plinian|hawaiian)\b',
+                'characteristics': ['explosive', 'effusive', 'temporal']
+            },
+            'TECTONIC_PROCESSES': {
+                'pattern': r'\b(?:plate\s+(?:convergence|divergence|subduction)|continental\s+collision|seafloor\s+spreading|transform\s+faulting)\b',
+                'characteristics': ['regional', 'long-term', 'structural']
+            },
+            'DEFORMATION_PROCESSES': {
+                'pattern': r'\b(?:ground\s+deformation|crustal\s+deformation|elastic\s+deformation|viscoelastic\s+relaxation|fault\s+slip)\b',
+                'characteristics': ['measurable', 'time-dependent', 'mechanical']
+            }
+        }
+        
+        for process_type, process_info in process_patterns.items():
+            matches = re.finditer(process_info['pattern'], text, re.IGNORECASE)
+            for match in matches:
+                entities.append({
+                    'text': match.group(),
+                    'label': process_type,
+                    'start': match.start(),
+                    'end': match.end(),
+                    'confidence': 0.85,
+                    'method': 'process_extraction',
+                    'characteristics': process_info['characteristics'],
+                    'process_category': process_type.split('_')[0].lower()
+                })
+        
+        return entities
+    
+    async def _extract_geological_measurements(self, text: str) -> List[Dict[str, Any]]:
+        """Extract geological measurements, units, and quantitative data."""
+        entities = []
+        
+        measurement_patterns = {
+            'DEPTH_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:m|km|meters?|kilometers?|feet|ft)\s+(?:deep|depth|below\s+surface|bgs)\b',
+            'PRESSURE_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:MPa|GPa|Pa|bar|atm|psi)\b',
+            'TEMPERATURE_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:°C|°F|K|celsius|fahrenheit|kelvin)\b',
+            'VOLUME_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:m³|km³|liters?|L|cubic\s+(?:meters?|kilometers?))\b',
+            'MAGNITUDE_MEASUREMENTS': r'\b(?:magnitude|M)\s*(?:\d+(?:\.\d+)?)\b',
+            'CONCENTRATION_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:ppm|ppb|wt%|vol%|mol%|mg/kg|μg/g)\b',
+            'VELOCITY_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:m/s|km/s|cm/s|mm/s|km/h)\b',
+            'FREQUENCY_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:Hz|kHz|MHz|cycles?\s+per\s+second)\b'
+        }
+        
+        for measurement_type, pattern in measurement_patterns.items():
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                # Extract value and unit
+                full_match = match.group()
+                value_match = re.search(r'\d+(?:\.\d+)?', full_match)
+                unit_match = re.search(r'[a-zA-Z°/³]+', full_match)
+                
+                entities.append({
+                    'text': match.group(),
+                    'label': measurement_type,
+                    'start': match.start(),
+                    'end': match.end(),
+                    'confidence': 0.95,
+                    'method': 'measurement_extraction',
+                    'value': float(value_match.group()) if value_match else None,
+                    'unit': unit_match.group() if unit_match else None,
+                    'measurement_category': measurement_type.split('_')[0].lower()
+                })
+        
+        return entities
+    
+    async def _extract_temporal_geological_entities(self, text: str) -> List[Dict[str, Any]]:
+        """Extract temporal information relevant to geological processes."""
+        entities = []
+        
+        temporal_patterns = {
+            'GEOLOGICAL_AGES': r'\b(?:\d+(?:\.\d+)?)\s*(?:Ma|Ga|ka|years?\s+(?:ago|BP)|million\s+years?\s+ago|billion\s+years?\s+ago)\b',
+            'EVENT_TIMING': r'\b(?:during|since|after|before|following)\s+(?:the\s+)?(?:eruption|earthquake|intrusion|deformation)\b',
+            'MONITORING_PERIODS': r'\b(?:\d+)\s*(?:years?|months?|weeks?|days?)\s+(?:of\s+)?(?:monitoring|observation|data\s+collection)\b',
+            'GEOLOGICAL_PERIODS': r'\b(?:Holocene|Pleistocene|Pliocene|Miocene|Oligocene|Eocene|Paleocene|Cretaceous|Jurassic|Triassic)\b',
+            'RELATIVE_TIMING': r'\b(?:pre-|post-|syn-|inter-)(?:eruptive|seismic|volcanic|tectonic)\b',
+            'DURATION_ESTIMATES': r'\b(?:lasting|duration\s+of|over\s+a\s+period\s+of)\s+(?:\d+)\s*(?:minutes?|hours?|days?|weeks?|months?|years?)\b'
+        }
+        
+        for temporal_type, pattern in temporal_patterns.items():
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                entities.append({
+                    'text': match.group(),
+                    'label': temporal_type,
+                    'start': match.start(),
+                    'end': match.end(),
+                    'confidence': 0.8,
+                    'method': 'temporal_extraction',
+                    'temporal_category': temporal_type.split('_')[0].lower()
+                })
+        
+        return entities
+    
+    async def _extract_spatial_geological_entities(self, text: str) -> List[Dict[str, Any]]:
+        """Extract spatial information including coordinates, locations, and geological formations."""
+        entities = []
+        
+        spatial_patterns = {
+            'COORDINATES': r'\b(?:\d{1,3}(?:\.\d+)?)[°]\s*(?:N|S|E|W)\s*,?\s*(?:\d{1,3}(?:\.\d+)?)[°]\s*(?:N|S|E|W)\b',
+            'DEPTH_LOCATIONS': r'\b(?:at\s+)?(?:a\s+)?depth\s+of\s+(?:\d+(?:\.\d+)?)\s*(?:m|km|meters?|kilometers?)\b',
+            'DISTANCE_MEASUREMENTS': r'\b(?:\d+(?:\.\d+)?)\s*(?:m|km|meters?|kilometers?)\s+(?:from|away\s+from|north|south|east|west)\b',
+            'ELEVATION_DATA': r'\b(?:elevation|altitude)\s+(?:of\s+)?(?:\d+(?:\.\d+)?)\s*(?:m|km|meters?|feet|ft)\b',
+            'GEOGRAPHIC_FEATURES': r'\b(?:island|peninsula|ridge|valley|plateau|basin|range|chain)\s+(?:of\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b',
+            'GEOLOGICAL_FORMATIONS': r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Formation|Group|Member|Bed|Complex|Suite)\b',
+            'REGIONAL_LOCATIONS': r'\b(?:in|at|near|around|within)\s+(?:the\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:region|area|zone|province|arc|belt))\b'
+        }
+        
+        for spatial_type, pattern in spatial_patterns.items():
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                entities.append({
+                    'text': match.group(),
+                    'label': spatial_type,
+                    'start': match.start(),
+                    'end': match.end(),
+                    'confidence': 0.85,
+                    'method': 'spatial_extraction',
+                    'spatial_category': spatial_type.split('_')[0].lower()
+                })
+        
+        return entities
+    
+    async def _merge_overlapping_entities(self, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Merge overlapping entities and resolve conflicts."""
+        if not entities:
+            return []
+        
+        # Sort entities by start position
+        sorted_entities = sorted(entities, key=lambda x: x['start'])
+        merged = []
+        
+        current_entity = sorted_entities[0]
+        
+        for next_entity in sorted_entities[1:]:
+            # Check for overlap
+            if next_entity['start'] <= current_entity['end']:
+                # Overlapping entities - merge based on confidence and method priority
+                method_priority = {
+                    'scibert': 0.9,
+                    'spacy': 0.7,
+                    'pattern_matching': 0.6,
+                    'process_extraction': 0.8,
+                    'measurement_extraction': 0.95,
+                    'temporal_extraction': 0.8,
+                    'spatial_extraction': 0.85
+                }
+                
+                current_priority = method_priority.get(current_entity.get('method', ''), 0.5) * current_entity.get('confidence', 0.5)
+                next_priority = method_priority.get(next_entity.get('method', ''), 0.5) * next_entity.get('confidence', 0.5)
+                
+                if next_priority > current_priority:
+                    # Replace current with next
+                    current_entity = next_entity
+                else:
+                    # Keep current, but extend span if needed
+                    current_entity['end'] = max(current_entity['end'], next_entity['end'])
+                    current_entity['text'] = current_entity.get('text', '') + ' ' + next_entity.get('text', '')
+                    
+                    # Merge additional information
+                    if 'characteristics' in next_entity:
+                        current_entity.setdefault('characteristics', []).extend(next_entity['characteristics'])
+            else:
+                # No overlap - add current to results and move to next
+                merged.append(current_entity)
+                current_entity = next_entity
+        
+        # Add the last entity
+        merged.append(current_entity)
+        
+        return merged
+    
+    async def _enhance_entities_with_domain_knowledge(self, entities: List[Dict[str, Any]], text: str) -> List[Dict[str, Any]]:
+        """Enhance entities with geological domain knowledge and relationships."""
+        enhanced = []
+        
+        for entity in entities:
+            enhanced_entity = entity.copy()
+            
+            # Add geological domain context
+            entity_text = entity.get('text', '').lower()
+            
+            # Volcanic system classification
+            if any(term in entity_text for term in ['volcano', 'volcanic', 'eruption']):
+                enhanced_entity['domain_classification'] = 'volcanic_system'
+                enhanced_entity['related_processes'] = ['magma_ascent', 'degassing', 'eruption', 'deformation']
+            
+            # Tectonic classification
+            elif any(term in entity_text for term in ['fault', 'earthquake', 'tectonic', 'subduction']):
+                enhanced_entity['domain_classification'] = 'tectonic_system'
+                enhanced_entity['related_processes'] = ['faulting', 'stress_accumulation', 'seismic_release']
+            
+            # Geochemical classification
+            elif any(term in entity_text for term in ['mineral', 'geochemistry', 'composition', 'element']):
+                enhanced_entity['domain_classification'] = 'geochemical_system'
+                enhanced_entity['related_processes'] = ['crystallization', 'differentiation', 'alteration']
+            
+            # Add geological context from surrounding text
+            context_window = 100
+            start_pos = max(0, entity.get('start', 0) - context_window)
+            end_pos = min(len(text), entity.get('end', 0) + context_window)
+            context = text[start_pos:end_pos]
+            
+            enhanced_entity['geological_context'] = context
+            
+            # Identify co-occurring geological terms
+            co_occurring_terms = []
+            for other_entity in entities:
+                if (other_entity != entity and 
+                    abs(other_entity.get('start', 0) - entity.get('start', 0)) < context_window):
+                    co_occurring_terms.append(other_entity.get('text', ''))
+            
+            enhanced_entity['co_occurring_terms'] = co_occurring_terms
+            
+            enhanced.append(enhanced_entity)
+        
+        return enhanced
+    
+    async def _calculate_entity_confidence(self, entities: List[Dict[str, Any]], text: str) -> List[Dict[str, Any]]:
+        """Calculate final confidence scores for entities based on multiple factors."""
+        final_entities = []
+        
+        for entity in entities:
+            confidence_factors = []
+            
+            # Base confidence from extraction method
+            base_confidence = entity.get('confidence', 0.5)
+            confidence_factors.append(('base_method', base_confidence))
+            
+            # Confidence boost for geological domain terms
+            entity_text = entity.get('text', '').lower()
+            if await self._is_geological_term(entity_text):
+                confidence_factors.append(('domain_relevance', 0.9))
+            
+            # Confidence boost for co-occurring geological terms
+            co_occurring = entity.get('co_occurring_terms', [])
+            geological_co_occurrence = sum(1 for term in co_occurring if await self._is_geological_term(term))
+            if geological_co_occurrence > 0:
+                co_occurrence_boost = min(0.8, geological_co_occurrence * 0.1)
+                confidence_factors.append(('co_occurrence', co_occurrence_boost))
+            
+            # Confidence boost for measurement entities with valid units
+            if entity.get('label', '').endswith('_MEASUREMENTS') and entity.get('unit'):
+                confidence_factors.append(('measurement_validity', 0.95))
+            
+            # Confidence penalty for very short entities
+            if len(entity_text) < 3:
+                confidence_factors.append(('length_penalty', 0.3))
+            
+            # Calculate weighted average confidence
+            if confidence_factors:
+                weights = [0.4, 0.3, 0.2, 0.1][:len(confidence_factors)]
+                weighted_confidence = sum(w * cf[1] for w, cf in zip(weights, confidence_factors)) / sum(weights)
+            else:
+                weighted_confidence = base_confidence
+            
+            entity['final_confidence'] = min(1.0, weighted_confidence)
+            entity['confidence_factors'] = confidence_factors
+            
+            # Only include entities with sufficient confidence
+            if entity['final_confidence'] >= 0.3:
+                final_entities.append(entity)
+        
+        return final_entities
+    
+    async def _extract_advanced_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Advanced relationship extraction using multiple approaches including dependency parsing,
+        co-occurrence analysis, and domain-specific relationship patterns.
+        """
+        try:
+            relationships = []
+            
+            # Use spaCy for dependency-based relationship extraction
+            try:
+                import spacy
+                nlp = spacy.load("en_core_web_lg") if spacy.util.is_package("en_core_web_lg") else spacy.load("en_core_web_sm")
+                doc = nlp(text)
+                
+                dependency_relationships = await self._extract_dependency_relationships(doc, entities)
+                relationships.extend(dependency_relationships)
+                
+            except ImportError:
+                self.logger.warning("spaCy not available for dependency parsing")
+            
+            # Pattern-based relationship extraction
+            pattern_relationships = await self._extract_pattern_relationships(text, entities)
+            relationships.extend(pattern_relationships)
+            
+            # Co-occurrence based relationship extraction
+            cooccurrence_relationships = await self._extract_cooccurrence_relationships(text, entities)
+            relationships.extend(cooccurrence_relationships)
+            
+            # Causal relationship extraction
+            causal_relationships = await self._extract_causal_relationships(text, entities)
+            relationships.extend(causal_relationships)
+            
+            # Temporal relationship extraction
+            temporal_relationships = await self._extract_temporal_relationships(text, entities)
+            relationships.extend(temporal_relationships)
+            
+            # Spatial relationship extraction
+            spatial_relationships = await self._extract_spatial_relationships(text, entities)
+            relationships.extend(spatial_relationships)
+            
+            # Quantitative relationship extraction
+            quantitative_relationships = await self._extract_quantitative_relationships(text, entities)
+            relationships.extend(quantitative_relationships)
+            
+            # Merge and deduplicate relationships
+            final_relationships = await self._merge_and_validate_relationships(relationships)
+            
+            return final_relationships
+            
+        except Exception as e:
+            self.logger.error(f"Advanced relationship extraction failed: {e}")
+            return []
+    
+    async def _extract_dependency_relationships(self, doc, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract relationships using spaCy dependency parsing."""
+        relationships = []
+        
+        # Create entity position mapping
+        entity_positions = {}
+        for entity in entities:
+            start_pos = entity.get('start', 0)
+            end_pos = entity.get('end', 0)
+            entity_positions[(start_pos, end_pos)] = entity
+        
+        try:
+            # Extract relationships from dependency tree
+            for token in doc:
+                # Look for verb-object relationships
+                if token.pos_ == 'VERB':
+                    subjects = [child for child in token.children if child.dep_ in ['nsubj', 'nsubjpass']]
+                    objects = [child for child in token.children if child.dep_ in ['dobj', 'pobj', 'attr']]
+                    
+                    for subj in subjects:
+                        for obj in objects:
+                            subj_entity = self._find_entity_for_token(subj, entity_positions)
+                            obj_entity = self._find_entity_for_token(obj, entity_positions)
+                            
+                            if subj_entity and obj_entity:
+                                relationships.append({
+                                    'source': subj_entity['text'],
+                                    'target': obj_entity['text'],
+                                    'relationship_type': f"VERB_{token.lemma_.upper()}",
+                                    'confidence': 0.7,
+                                    'method': 'dependency_parsing',
+                                    'verb': token.text,
+                                    'sentence': token.sent.text
+                                })
+                
+                # Look for prepositional relationships
+                if token.dep_ == 'prep':
+                    prep_object = [child for child in token.children if child.dep_ == 'pobj']
+                    if prep_object:
+                        head_entity = self._find_entity_for_token(token.head, entity_positions)
+                        obj_entity = self._find_entity_for_token(prep_object[0], entity_positions)
+                        
+                        if head_entity and obj_entity:
+                            relationships.append({
+                                'source': head_entity['text'],
+                                'target': obj_entity['text'],
+                                'relationship_type': f"PREP_{token.text.upper()}",
+                                'confidence': 0.6,
+                                'method': 'prepositional_relation',
+                                'preposition': token.text,
+                                'sentence': token.sent.text
+                            })
+            
+            return relationships
+            
+        except Exception as e:
+            self.logger.error(f"Dependency relationship extraction failed: {e}")
+            return []
+    
+    def _find_entity_for_token(self, token, entity_positions: dict) -> dict:
+        """Find entity that contains the given token."""
+        token_start = token.idx
+        token_end = token.idx + len(token.text)
+        
+        for (ent_start, ent_end), entity in entity_positions.items():
+            if ent_start <= token_start and token_end <= ent_end:
+                return entity
+        return None
+    
+    async def _extract_pattern_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract relationships using domain-specific patterns."""
+        relationships = []
+        
+        # Geological relationship patterns
+        relationship_patterns = {
+            'CAUSES': [
+                r'(\w+(?:\s+\w+)*)\s+(?:causes?|results?\s+in|leads?\s+to|triggers?|induces?)\s+(\w+(?:\s+\w+)*)',
+                r'(\w+(?:\s+\w+)*)\s+(?:is\s+)?(?:caused\s+by|resulted\s+from|triggered\s+by|induced\s+by)\s+(\w+(?:\s+\w+)*)'
+            ],
+            'CONTAINS': [
+                r'(\w+(?:\s+\w+)*)\s+(?:contains?|includes?|comprises?|consists?\s+of)\s+(\w+(?:\s+\w+)*)',
+                r'(\w+(?:\s+\w+)*)\s+(?:in|within|inside)\s+(\w+(?:\s+\w+)*)'
+            ],
+            'CORRELATES': [
+                r'(\w+(?:\s+\w+)*)\s+(?:correlates?\s+with|is\s+related\s+to|corresponds?\s+to)\s+(\w+(?:\s+\w+)*)',
+                r'(?:correlation|relationship)\s+between\s+(\w+(?:\s+\w+)*)\s+and\s+(\w+(?:\s+\w+)*)'
+            ],
+            'INFLUENCES': [
+                r'(\w+(?:\s+\w+)*)\s+(?:influences?|affects?|controls?|governs?)\s+(\w+(?:\s+\w+)*)',
+                r'(\w+(?:\s+\w+)*)\s+(?:is\s+)?(?:influenced\s+by|affected\s+by|controlled\s+by)\s+(\w+(?:\s+\w+)*)'
+            ],
+            'PRODUCES': [
+                r'(\w+(?:\s+\w+)*)\s+(?:produces?|generates?|creates?|forms?)\s+(\w+(?:\s+\w+)*)',
+                r'(\w+(?:\s+\w+)*)\s+(?:is\s+)?(?:produced\s+by|generated\s+by|formed\s+by)\s+(\w+(?:\s+\w+)*)'
+            ]
+        }
+        
+        # Create entity text mapping for quick lookup
+        entity_texts = {entity['text'].lower(): entity for entity in entities}
+        
+        for relationship_type, patterns in relationship_patterns.items():
+            for pattern in patterns:
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    source_text = match.group(1).strip().lower()
+                    target_text = match.group(2).strip().lower()
+                    
+                    # Check if both are known entities
+                    if source_text in entity_texts and target_text in entity_texts:
+                        relationships.append({
+                            'source': entity_texts[source_text]['text'],
+                            'target': entity_texts[target_text]['text'],
+                            'relationship_type': relationship_type,
+                            'confidence': 0.8,
+                            'method': 'pattern_matching',
+                            'matched_text': match.group(),
+                            'pattern_used': pattern
+                        })
+        
+        return relationships
+    
+    async def _extract_cooccurrence_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract relationships based on co-occurrence within sentence windows."""
+        relationships = []
+        
+        # Split text into sentences
+        sentences = re.split(r'[.!?]+', text)
+        
+        for sentence in sentences:
+            sentence_entities = []
+            
+            # Find entities in this sentence
+            for entity in entities:
+                if entity.get('text', '').lower() in sentence.lower():
+                    sentence_entities.append(entity)
+            
+            # Create co-occurrence relationships
+            for i, entity1 in enumerate(sentence_entities):
+                for entity2 in sentence_entities[i+1:]:
+                    # Skip if entities are too similar
+                    if entity1['text'].lower() == entity2['text'].lower():
+                        continue
+                    
+                    # Calculate co-occurrence strength based on distance
+                    distance = abs(sentence.lower().find(entity1['text'].lower()) - 
+                                 sentence.lower().find(entity2['text'].lower()))
+                    max_distance = len(sentence)
+                    proximity_score = 1 - (distance / max_distance) if max_distance > 0 else 0
+                    
+                    confidence = 0.4 + (proximity_score * 0.4)  # Base 0.4, up to 0.8
+                    
+                    relationships.append({
+                        'source': entity1['text'],
+                        'target': entity2['text'],
+                        'relationship_type': 'CO_OCCURS',
+                        'confidence': confidence,
+                        'method': 'cooccurrence',
+                        'sentence': sentence.strip(),
+                        'distance': distance,
+                        'proximity_score': proximity_score
+                    })
+        
+        return relationships
+    
+    async def _extract_causal_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract causal relationships using linguistic cues."""
+        relationships = []
+        
+        causal_indicators = {
+            'STRONG_CAUSE': [
+                r'because\s+of', r'due\s+to', r'caused\s+by', r'results?\s+from', 
+                r'stems?\s+from', r'originates?\s+from', r'induced\s+by'
+            ],
+            'WEAK_CAUSE': [
+                r'associated\s+with', r'linked\s+to', r'related\s+to', 
+                r'connected\s+to', r'attributed\s+to'
+            ],
+            'CONSEQUENCE': [
+                r'leads?\s+to', r'results?\s+in', r'causes?', r'triggers?', 
+                r'produces?', r'generates?', r'creates?'
+            ]
+        }
+        
+        entity_texts = {entity['text'].lower(): entity for entity in entities}
+        
+        for strength, indicators in causal_indicators.items():
+            for indicator in indicators:
+                # Look for pattern: entity1 [indicator] entity2
+                pattern = r'(\w+(?:\s+\w+)*)\s+' + indicator + r'\s+(\w+(?:\s+\w+)*)'
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                
+                for match in matches:
+                    entity1_text = match.group(1).strip().lower()
+                    entity2_text = match.group(2).strip().lower()
+                    
+                    if entity1_text in entity_texts and entity2_text in entity_texts:
+                        confidence_map = {
+                            'STRONG_CAUSE': 0.9,
+                            'WEAK_CAUSE': 0.6,
+                            'CONSEQUENCE': 0.8
+                        }
+                        
+                        # Determine direction based on indicator type
+                        if strength in ['STRONG_CAUSE', 'WEAK_CAUSE']:
+                            # entity2 causes entity1
+                            source = entity_texts[entity2_text]['text']
+                            target = entity_texts[entity1_text]['text']
+                        else:  # CONSEQUENCE
+                            # entity1 causes entity2
+                            source = entity_texts[entity1_text]['text']
+                            target = entity_texts[entity2_text]['text']
+                        
+                        relationships.append({
+                            'source': source,
+                            'target': target,
+                            'relationship_type': 'CAUSAL',
+                            'confidence': confidence_map[strength],
+                            'method': 'causal_extraction',
+                            'causal_strength': strength,
+                            'indicator': indicator,
+                            'matched_text': match.group()
+                        })
+        
+        return relationships
+    
+    async def _extract_temporal_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract temporal relationships between entities."""
+        relationships = []
+        
+        temporal_indicators = {
+            'BEFORE': [r'before', r'prior\s+to', r'preceding', r'earlier\s+than'],
+            'AFTER': [r'after', r'following', r'subsequent\s+to', r'later\s+than'],
+            'DURING': [r'during', r'throughout', r'while', r'concurrent\s+with'],
+            'SIMULTANEOUS': [r'simultaneously', r'at\s+the\s+same\s+time', r'concurrently']
+        }
+        
+        entity_texts = {entity['text'].lower(): entity for entity in entities}
+        
+        for temporal_type, indicators in temporal_indicators.items():
+            for indicator in indicators:
+                pattern = r'(\w+(?:\s+\w+)*)\s+' + indicator + r'\s+(\w+(?:\s+\w+)*)'
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                
+                for match in matches:
+                    entity1_text = match.group(1).strip().lower()
+                    entity2_text = match.group(2).strip().lower()
+                    
+                    if entity1_text in entity_texts and entity2_text in entity_texts:
+                        relationships.append({
+                            'source': entity_texts[entity1_text]['text'],
+                            'target': entity_texts[entity2_text]['text'],
+                            'relationship_type': f'TEMPORAL_{temporal_type}',
+                            'confidence': 0.7,
+                            'method': 'temporal_extraction',
+                            'temporal_indicator': indicator,
+                            'matched_text': match.group()
+                        })
+        
+        return relationships
+    
+    async def _extract_spatial_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract spatial relationships between entities."""
+        relationships = []
+        
+        spatial_indicators = {
+            'ABOVE': [r'above', r'over', r'on\s+top\s+of', r'overlying'],
+            'BELOW': [r'below', r'under', r'beneath', r'underlying'],
+            'NEAR': [r'near', r'close\s+to', r'adjacent\s+to', r'next\s+to'],
+            'WITHIN': [r'within', r'inside', r'contained\s+in'],
+            'AROUND': [r'around', r'surrounding', r'encircling']
+        }
+        
+        entity_texts = {entity['text'].lower(): entity for entity in entities}
+        
+        for spatial_type, indicators in spatial_indicators.items():
+            for indicator in indicators:
+                pattern = r'(\w+(?:\s+\w+)*)\s+' + indicator + r'\s+(\w+(?:\s+\w+)*)'
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                
+                for match in matches:
+                    entity1_text = match.group(1).strip().lower()
+                    entity2_text = match.group(2).strip().lower()
+                    
+                    if entity1_text in entity_texts and entity2_text in entity_texts:
+                        relationships.append({
+                            'source': entity_texts[entity1_text]['text'],
+                            'target': entity_texts[entity2_text]['text'],
+                            'relationship_type': f'SPATIAL_{spatial_type}',
+                            'confidence': 0.75,
+                            'method': 'spatial_extraction',
+                            'spatial_indicator': indicator,
+                            'matched_text': match.group()
+                        })
+        
+        return relationships
+    
+    async def _extract_quantitative_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract quantitative relationships involving measurements and parameters."""
+        relationships = []
+        
+        # Find measurement entities
+        measurement_entities = [e for e in entities if 'MEASUREMENT' in e.get('label', '')]
+        other_entities = [e for e in entities if 'MEASUREMENT' not in e.get('label', '')]
+        
+        quantitative_patterns = {
+            'MEASURES': [
+                r'(\w+(?:\s+\w+)*)\s+(?:of|for)\s+(\w+(?:\s+\w+)*)\s+(?:is|was|were|are|measured|recorded|observed)\s+(\d+(?:\.\d+)?)',
+                r'(\w+(?:\s+\w+)*)\s+(?:measured|recorded|observed)\s+(\d+(?:\.\d+)?\s*\w+)'
+            ],
+            'CORRELATES_NUMERICALLY': [
+                r'(\w+(?:\s+\w+)*)\s+(?:increases?|decreases?|varies?)\s+with\s+(\w+(?:\s+\w+)*)',
+                r'(?:positive|negative|strong|weak)\s+correlation\s+between\s+(\w+(?:\s+\w+)*)\s+and\s+(\w+(?:\s+\w+)*)'
+            ]
+        }
+        
+        # Create mapping for quick lookup
+        entity_texts = {entity['text'].lower(): entity for entity in entities}
+        
+        for relationship_type, patterns in quantitative_patterns.items():
+            for pattern in patterns:
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    if len(match.groups()) >= 2:
+                        entity1_text = match.group(1).strip().lower()
+                        entity2_text = match.group(2).strip().lower()
+                        
+                        if entity1_text in entity_texts and entity2_text in entity_texts:
+                            relationships.append({
+                                'source': entity_texts[entity1_text]['text'],
+                                'target': entity_texts[entity2_text]['text'],
+                                'relationship_type': f'QUANTITATIVE_{relationship_type}',
+                                'confidence': 0.8,
+                                'method': 'quantitative_extraction',
+                                'matched_text': match.group(),
+                                'has_numerical_value': len(match.groups()) > 2
+                            })
+        
+        return relationships
+    
+    async def _merge_and_validate_relationships(self, relationships: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Merge duplicate relationships and validate them."""
+        # Remove exact duplicates
+        seen = set()
+        unique_relationships = []
+        
+        for rel in relationships:
+            key = (rel['source'], rel['target'], rel['relationship_type'])
+            if key not in seen:
+                seen.add(key)
+                unique_relationships.append(rel)
+        
+        # Merge similar relationships with different confidence scores
+        merged_relationships = {}
+        
+        for rel in unique_relationships:
+            key = (rel['source'], rel['target'])
+            
+            if key in merged_relationships:
+                existing = merged_relationships[key]
+                # Combine relationship types and use higher confidence
+                if rel['confidence'] > existing['confidence']:
+                    merged_relationships[key] = rel
+                    if existing['relationship_type'] != rel['relationship_type']:
+                        rel['alternative_types'] = existing.get('alternative_types', []) + [existing['relationship_type']]
+            else:
+                merged_relationships[key] = rel
+        
+        # Filter by minimum confidence threshold
+        final_relationships = []
+        for rel in merged_relationships.values():
+            if rel['confidence'] >= 0.4:
+                final_relationships.append(rel)
+        
+        return final_relationships
