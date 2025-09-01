@@ -45,6 +45,9 @@ from .database_integration import DatabaseIntegration, DataType
 from .mlops_pipeline import MLOpsManager, ModelVersion, ExperimentTracker
 from .federated_learning import FederatedKnowledgeManager
 from .digital_twin_earth import DigitalTwinEarth
+from .model_database import ModelDatabase, ModelMetadata, ModelType as DBModelType
+from .data_integration_pipeline import DataIntegrationPipeline, DataLayer, ProcessingConfig
+from .additional_data_connectors import AdditionalDataIntegrationManager, WikidataConnector, GeoNamesConnector, ConnectedPapersConnector
 
 @dataclass
 class KnowledgeGraphConfig:
@@ -163,6 +166,15 @@ class AdvancedEnKFKnowledgeIntegrator:
             
             # 10. Build similarity indices
             await self._build_similarity_indices()
+            
+            # 11. Initialize model database integration
+            await self._initialize_model_database()
+            
+            # 12. Initialize data integration pipeline
+            await self._initialize_data_integration_pipeline()
+            
+            # 13. Initialize additional external data connectors
+            await self._initialize_additional_data_connectors()
             
             self.logger.info("Advanced knowledge graph components initialized successfully")
             
@@ -619,15 +631,577 @@ class LiteratureMonitor:
         self._initialize_nlp_pipeline()
     
     def _initialize_nlp_pipeline(self):
-        """Initialize NLP pipeline for extracting knowledge from papers"""
+        """Initialize comprehensive NLP pipeline with SciBERT, spaCy, and domain-specific NER"""
         try:
-            self.knowledge_extractor = pipeline(
-                "text2text-generation",
-                model="microsoft/DialoGPT-medium",
-                device=0 if torch.cuda.is_available() else -1
-            )
+            self.nlp_components = {}
+            
+            # Initialize SciBERT for scientific text processing
+            try:
+                from transformers import AutoTokenizer, AutoModel, pipeline
+                
+                # SciBERT tokenizer and model for scientific text understanding
+                self.nlp_components['scibert_tokenizer'] = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased")
+                self.nlp_components['scibert_model'] = AutoModel.from_pretrained("allenai/scibert_scivocab_uncased")
+                
+                # SciBERT NER pipeline for scientific entities
+                self.nlp_components['scibert_ner'] = pipeline(
+                    "token-classification",
+                    model="allenai/scibert_scivocab_uncased",
+                    tokenizer="allenai/scibert_scivocab_uncased",
+                    device=0 if torch.cuda.is_available() else -1,
+                    aggregation_strategy="simple"
+                )
+                
+                # Scientific relation extraction pipeline
+                self.nlp_components['relation_extractor'] = pipeline(
+                    "text2text-generation",
+                    model="google/flan-t5-base",
+                    device=0 if torch.cuda.is_available() else -1
+                )
+                
+                self.logger.info("SciBERT components initialized successfully")
+                
+            except Exception as e:
+                self.logger.warning(f"SciBERT initialization failed: {e}")
+                self.nlp_components['scibert_available'] = False
+            
+            # Initialize spaCy for advanced linguistic processing
+            try:
+                import spacy
+                from spacy import displacy
+                
+                # Load the best available English model
+                try:
+                    self.nlp_components['spacy_nlp'] = spacy.load("en_core_web_trf")  # Transformer-based model
+                    self.logger.info("Loaded spaCy transformer model")
+                except OSError:
+                    try:
+                        self.nlp_components['spacy_nlp'] = spacy.load("en_core_web_lg")
+                        self.logger.info("Loaded spaCy large model")
+                    except OSError:
+                        self.nlp_components['spacy_nlp'] = spacy.load("en_core_web_sm")
+                        self.logger.info("Loaded spaCy small model")
+                
+                # Add custom geological entity patterns
+                if "entity_ruler" not in self.nlp_components['spacy_nlp'].pipe_names:
+                    ruler = self.nlp_components['spacy_nlp'].add_pipe("entity_ruler", before="ner")
+                    
+                    # Define comprehensive geological patterns
+                    geological_patterns = [
+                        # Volcanic features
+                        {"label": "VOLCANIC_FEATURE", "pattern": [{"LOWER": {"IN": ["volcano", "caldera", "crater", "dome", "cone", "vent", "fissure"]}}]},
+                        {"label": "VOLCANIC_FEATURE", "pattern": [{"LOWER": "volcanic"}, {"LOWER": {"IN": ["arc", "field", "complex", "system"]}}]},
+                        
+                        # Rock types
+                        {"label": "ROCK_TYPE", "pattern": [{"LOWER": {"IN": ["basalt", "andesite", "dacite", "rhyolite", "pumice", "obsidian", "tuff"]}}]},
+                        {"label": "ROCK_TYPE", "pattern": [{"LOWER": {"IN": ["igneous", "metamorphic", "sedimentary"]}}, {"LOWER": "rock"}]},
+                        
+                        # Geological processes
+                        {"label": "GEOLOGICAL_PROCESS", "pattern": [{"LOWER": {"IN": ["eruption", "intrusion", "deformation", "subsidence", "uplift", "rifting"]}}]},
+                        {"label": "GEOLOGICAL_PROCESS", "pattern": [{"LOWER": {"IN": ["magma", "lava"]}}, {"LOWER": {"IN": ["injection", "emplacement", "flow"]}}]},
+                        
+                        # Geological time
+                        {"label": "GEOLOGICAL_TIME", "pattern": [{"LOWER": {"IN": ["holocene", "pleistocene", "miocene", "oligocene", "eocene", "paleocene"]}}]},
+                        {"label": "GEOLOGICAL_TIME", "pattern": [{"LIKE_NUM": True}, {"LOWER": {"IN": ["ma", "ka", "years", "yr"]}}, {"LOWER": "ago"}]},
+                        
+                        # Measurements
+                        {"label": "GEOLOGICAL_MEASUREMENT", "pattern": [{"LIKE_NUM": True}, {"LOWER": {"IN": ["km", "m", "cm", "mm", "degrees", "°c", "mpa", "gpa", "psi"]}}]},
+                        {"label": "GEOLOGICAL_MEASUREMENT", "pattern": [{"LIKE_NUM": True}, {"LOWER": "x"}, {"LIKE_NUM": True}, {"LOWER": "km"}]},
+                        
+                        # Minerals and compositions
+                        {"label": "MINERAL", "pattern": [{"LOWER": {"IN": ["quartz", "feldspar", "mica", "olivine", "pyroxene", "amphibole", "plagioclase"]}}]},
+                        {"label": "GEOCHEMICAL", "pattern": [{"LOWER": {"IN": ["sio2", "al2o3", "feo", "mgo", "cao", "na2o", "k2o", "tio2", "mno", "p2o5"]}}]},
+                        
+                        # Monitoring instruments
+                        {"label": "INSTRUMENT", "pattern": [{"LOWER": {"IN": ["seismometer", "gps", "insar", "gravimeter", "magnetometer", "tiltmeter", "gas", "spectrometer"]}}]},
+                        {"label": "INSTRUMENT", "pattern": [{"LOWER": "synthetic"}, {"LOWER": "aperture"}, {"LOWER": "radar"}]},
+                    ]
+                    
+                    ruler.add_patterns(geological_patterns)
+                
+                self.logger.info("spaCy with geological patterns initialized successfully")
+                
+            except Exception as e:
+                self.logger.warning(f"spaCy initialization failed: {e}")
+                self.nlp_components['spacy_available'] = False
+            
+            # Initialize domain-specific geological NER patterns
+            self._initialize_geological_ner_patterns()
+            
+            # Initialize relationship extraction patterns
+            self._initialize_relationship_patterns()
+            
+            # Initialize text preprocessing pipeline
+            self._initialize_text_preprocessing()
+            
+            # Set up knowledge extraction pipeline combining all components
+            self.knowledge_extractor = self._create_comprehensive_knowledge_extractor()
+            
+            self.logger.info("Comprehensive NLP pipeline initialized successfully")
+            
         except Exception as e:
-            self.logger.warning(f"NLP pipeline initialization failed: {e}")
+            self.logger.error(f"NLP pipeline initialization failed: {e}")
+            # Initialize minimal fallback
+            self.nlp_components = {'fallback_mode': True}
+            self.knowledge_extractor = None
+    
+    def _initialize_geological_ner_patterns(self):
+        """Initialize comprehensive geological Named Entity Recognition patterns"""
+        try:
+            self.geological_patterns = {
+                # Volcanic systems and features
+                'volcanic_systems': [
+                    r'\b(?:volcanic|volcano|volcanoes?|caldera|crater|dome|cone|vent|fissure|fumarole)\b',
+                    r'\b(?:stratovolcano|shield volcano|cinder cone|composite volcano|monogenetic)\b',
+                    r'\b(?:volcanic arc|volcanic field|volcanic complex|volcanic system)\b'
+                ],
+                
+                # Magmatic processes
+                'magmatic_processes': [
+                    r'\b(?:magma|lava|pyroclastic|tephra|ash|pumice|scoria)\b',
+                    r'\b(?:intrusion|extrusion|injection|emplacement|differentiation)\b',
+                    r'\b(?:crystallization|melting|assimilation|contamination)\b'
+                ],
+                
+                # Rock types and compositions
+                'rock_types': [
+                    r'\b(?:basalt|andesite|dacite|rhyolite|trachyte|phonolite)\b',
+                    r'\b(?:granite|diorite|gabbro|peridotite|dunite|pyroxenite)\b',
+                    r'\b(?:igneous|metamorphic|sedimentary|plutonic|volcanic)\b'
+                ],
+                
+                # Geological structures
+                'structures': [
+                    r'\b(?:fault|fracture|joint|dike|sill|batholith|stock)\b',
+                    r'\b(?:fold|syncline|anticline|monocline|graben|horst)\b',
+                    r'\b(?:lineament|shear zone|rift|spreading center)\b'
+                ],
+                
+                # Geophysical phenomena
+                'geophysical': [
+                    r'\b(?:seismic|earthquake|tremor|swarm|precursor)\b',
+                    r'\b(?:deformation|uplift|subsidence|inflation|deflation)\b',
+                    r'\b(?:gravity|magnetic|electrical|electromagnetic)\b'
+                ],
+                
+                # Monitoring and instrumentation
+                'instruments': [
+                    r'\b(?:seismometer|GPS|InSAR|tiltmeter|gravimeter)\b',
+                    r'\b(?:magnetometer|spectrometer|gas sensor|thermal camera)\b',
+                    r'\b(?:SAR|radar|LiDAR|photogrammetry|interferometry)\b'
+                ],
+                
+                # Temporal geological terms
+                'temporal': [
+                    r'\b(?:Holocene|Pleistocene|Miocene|Oligocene|Eocene|Paleocene)\b',
+                    r'\b(?:Quaternary|Tertiary|Mesozoic|Paleozoic|Precambrian)\b',
+                    r'\b\d+(?:\.\d+)?\s*(?:Ma|ka|years?|yr)\s*(?:ago|BP|before present)\b'
+                ],
+                
+                # Spatial and coordinate terms
+                'spatial': [
+                    r'\b(?:\d+(?:\.\d+)?°?[NS])\s*(?:\d+(?:\.\d+)?°?[EW])\b',
+                    r'\b(?:UTM|WGS84|datum|coordinate|latitude|longitude)\b',
+                    r'\b(?:elevation|depth|altitude|height)\s*(?:\d+(?:\.\d+)?\s*(?:m|km|ft))\b'
+                ],
+                
+                # Measurements and units
+                'measurements': [
+                    r'\b\d+(?:\.\d+)?\s*(?:km|m|cm|mm|μm|nm)\b',
+                    r'\b\d+(?:\.\d+)?\s*(?:°C|K|Kelvin|degrees?)\b',
+                    r'\b\d+(?:\.\d+)?\s*(?:MPa|GPa|Pa|bar|atm|psi)\b',
+                    r'\b\d+(?:\.\d+)?\s*(?:g|kg|t|tons?|Mt|Gt)\b'
+                ],
+                
+                # Chemical compositions
+                'geochemical': [
+                    r'\b(?:SiO2|Al2O3|FeO|Fe2O3|MgO|CaO|Na2O|K2O|TiO2|MnO|P2O5)\b',
+                    r'\b(?:wt\.?%|mol\.?%|ppm|ppb|concentration)\b',
+                    r'\b(?:isotope|isotopic|ratio|signature|fractionation)\b'
+                ]
+            }
+            
+            # Compile patterns for efficiency
+            import re
+            self.compiled_patterns = {}
+            for category, patterns in self.geological_patterns.items():
+                self.compiled_patterns[category] = [re.compile(pattern, re.IGNORECASE) for pattern in patterns]
+            
+            self.logger.info("Geological NER patterns initialized")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize geological NER patterns: {e}")
+            self.geological_patterns = {}
+            self.compiled_patterns = {}
+    
+    def _initialize_relationship_patterns(self):
+        """Initialize patterns for extracting geological relationships"""
+        try:
+            self.relationship_patterns = {
+                'causal_relations': [
+                    r'(\w+(?:\s+\w+)*)\s+(?:causes?|leads? to|results? in|triggers?|induces?)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:is caused by|results? from|is triggered by)\s+(\w+(?:\s+\w+)*)',
+                    r'(?:due to|because of|owing to)\s+(\w+(?:\s+\w+)*),\s*(\w+(?:\s+\w+)*)'
+                ],
+                
+                'temporal_relations': [
+                    r'(\w+(?:\s+\w+)*)\s+(?:precedes?|before|prior to)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:follows?|after|subsequent to)\s+(\w+(?:\s+\w+)*)',
+                    r'(?:during|while|when)\s+(\w+(?:\s+\w+)*),\s*(\w+(?:\s+\w+)*)'
+                ],
+                
+                'spatial_relations': [
+                    r'(\w+(?:\s+\w+)*)\s+(?:is located|occurs?|is found)\s+(?:in|at|on|beneath|above)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:overlies?|underlies?|intrudes?)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:adjacent to|near|close to|within)\s+(\w+(?:\s+\w+)*)'
+                ],
+                
+                'compositional_relations': [
+                    r'(\w+(?:\s+\w+)*)\s+(?:contains?|includes?|comprises?)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:is composed of|consists of|made of)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:rich in|enriched in|depleted in)\s+(\w+(?:\s+\w+)*)'
+                ],
+                
+                'process_relations': [
+                    r'(\w+(?:\s+\w+)*)\s+(?:undergoes?|experiences?|exhibits?)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:is subjected to|affected by)\s+(\w+(?:\s+\w+)*)',
+                    r'(\w+(?:\s+\w+)*)\s+(?:associated with|related to|linked to)\s+(\w+(?:\s+\w+)*)'
+                ]
+            }
+            
+            # Compile relationship patterns
+            import re
+            self.compiled_relationship_patterns = {}
+            for category, patterns in self.relationship_patterns.items():
+                self.compiled_relationship_patterns[category] = [re.compile(pattern, re.IGNORECASE) for pattern in patterns]
+            
+            self.logger.info("Relationship extraction patterns initialized")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize relationship patterns: {e}")
+            self.relationship_patterns = {}
+            self.compiled_relationship_patterns = {}
+    
+    def _initialize_text_preprocessing(self):
+        """Initialize text preprocessing pipeline"""
+        try:
+            import re
+            
+            self.text_preprocessing_rules = {
+                # Clean up common OCR and formatting errors
+                'cleanup_rules': [
+                    (r'\s+', ' '),  # Multiple whitespace to single space
+                    (r'(\w)- (\w)', r'\1\2'),  # Remove hyphenation at line breaks
+                    (r'[^\w\s\.\,\;\:\!\?\-\(\)\[\]\{\}]', ' '),  # Remove special characters
+                    (r'\.{2,}', '.'),  # Multiple periods to single
+                ],
+                
+                # Standardize geological terminology
+                'standardization_rules': [
+                    (r'\bmya\b', 'Ma'),  # Million years ago
+                    (r'\bkya\b', 'ka'),  # Thousand years ago
+                    (r'\bvolc\w*\b', lambda m: 'volcanic' if 'volc' in m.group().lower() else m.group()),
+                    (r'\bmagm\w*\b', lambda m: 'magmatic' if 'magm' in m.group().lower() else m.group()),
+                ],
+                
+                # Expand abbreviations
+                'abbreviation_rules': [
+                    (r'\bMt\.\s*(\w+)', r'Mount \1'),
+                    (r'\bSt\.\s*(\w+)', r'Saint \1'),
+                    (r'\bN\.\s*(\w+)', r'North \1'),
+                    (r'\bS\.\s*(\w+)', r'South \1'),
+                    (r'\bE\.\s*(\w+)', r'East \1'),
+                    (r'\bW\.\s*(\w+)', r'West \1'),
+                ]
+            }
+            
+            self.logger.info("Text preprocessing rules initialized")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize text preprocessing: {e}")
+            self.text_preprocessing_rules = {}
+    
+    def _create_comprehensive_knowledge_extractor(self):
+        """Create comprehensive knowledge extraction pipeline combining all NLP components"""
+        try:
+            async def extract_knowledge(text: str) -> Dict[str, Any]:
+                """Extract comprehensive knowledge from text using all available NLP components"""
+                results = {
+                    'entities': [],
+                    'relationships': [],
+                    'summary': '',
+                    'topics': [],
+                    'confidence': 0.0,
+                    'processing_methods': []
+                }
+                
+                try:
+                    # Preprocess text
+                    processed_text = self._preprocess_text(text)
+                    
+                    # SciBERT processing if available
+                    if self.nlp_components.get('scibert_ner'):
+                        try:
+                            scibert_entities = self.nlp_components['scibert_ner'](processed_text)
+                            for entity in scibert_entities:
+                                results['entities'].append({
+                                    'text': entity['word'],
+                                    'label': entity['entity_group'],
+                                    'confidence': entity['score'],
+                                    'method': 'scibert',
+                                    'start': entity.get('start', 0),
+                                    'end': entity.get('end', len(entity['word']))
+                                })
+                            results['processing_methods'].append('scibert')
+                            
+                        except Exception as e:
+                            self.logger.warning(f"SciBERT processing failed: {e}")
+                    
+                    # spaCy processing if available
+                    if self.nlp_components.get('spacy_nlp'):
+                        try:
+                            doc = self.nlp_components['spacy_nlp'](processed_text)
+                            
+                            # Extract entities
+                            for ent in doc.ents:
+                                results['entities'].append({
+                                    'text': ent.text,
+                                    'label': ent.label_,
+                                    'confidence': 0.8,  # spaCy doesn't provide confidence scores
+                                    'method': 'spacy',
+                                    'start': ent.start_char,
+                                    'end': ent.end_char,
+                                    'description': self.nlp_components['spacy_nlp'].vocab[ent.label_].text if hasattr(self.nlp_components['spacy_nlp'].vocab[ent.label_], 'text') else ent.label_
+                                })
+                            
+                            # Extract relationships using dependency parsing
+                            relationships = await self._extract_relationships_from_dependencies(doc)
+                            results['relationships'].extend(relationships)
+                            
+                            results['processing_methods'].append('spacy')
+                            
+                        except Exception as e:
+                            self.logger.warning(f"spaCy processing failed: {e}")
+                    
+                    # Pattern-based geological entity extraction
+                    try:
+                        geological_entities = await self._extract_entities_with_patterns(processed_text)
+                        results['entities'].extend(geological_entities)
+                        results['processing_methods'].append('pattern_matching')
+                        
+                    except Exception as e:
+                        self.logger.warning(f"Pattern-based extraction failed: {e}")
+                    
+                    # Relationship extraction using patterns
+                    try:
+                        pattern_relationships = await self._extract_relationships_with_patterns(processed_text)
+                        results['relationships'].extend(pattern_relationships)
+                        
+                    except Exception as e:
+                        self.logger.warning(f"Pattern-based relationship extraction failed: {e}")
+                    
+                    # Topic extraction and summarization
+                    try:
+                        if self.nlp_components.get('relation_extractor'):
+                            # Use T5 model for summarization
+                            summary_prompt = f"Summarize the geological content: {processed_text[:1000]}"
+                            summary_result = self.nlp_components['relation_extractor'](
+                                summary_prompt,
+                                max_length=150,
+                                min_length=30,
+                                do_sample=False
+                            )
+                            results['summary'] = summary_result[0]['generated_text'] if summary_result else ''
+                        
+                    except Exception as e:
+                        self.logger.warning(f"Summarization failed: {e}")
+                    
+                    # Merge and deduplicate entities
+                    results['entities'] = await self._merge_and_deduplicate_entities(results['entities'])
+                    
+                    # Calculate overall confidence
+                    if results['entities']:
+                        results['confidence'] = sum(e.get('confidence', 0) for e in results['entities']) / len(results['entities'])
+                    
+                    return results
+                    
+                except Exception as e:
+                    self.logger.error(f"Knowledge extraction failed: {e}")
+                    return results
+            
+            return extract_knowledge
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create knowledge extractor: {e}")
+            return None
+    
+    def _preprocess_text(self, text: str) -> str:
+        """Apply comprehensive text preprocessing"""
+        try:
+            import re
+            
+            processed_text = text
+            
+            # Apply cleanup rules
+            for pattern, replacement in self.text_preprocessing_rules.get('cleanup_rules', []):
+                processed_text = re.sub(pattern, replacement, processed_text)
+            
+            # Apply standardization rules
+            for pattern, replacement in self.text_preprocessing_rules.get('standardization_rules', []):
+                if callable(replacement):
+                    processed_text = re.sub(pattern, replacement, processed_text)
+                else:
+                    processed_text = re.sub(pattern, replacement, processed_text)
+            
+            # Apply abbreviation expansion rules
+            for pattern, replacement in self.text_preprocessing_rules.get('abbreviation_rules', []):
+                processed_text = re.sub(pattern, replacement, processed_text)
+            
+            return processed_text.strip()
+            
+        except Exception as e:
+            self.logger.warning(f"Text preprocessing failed: {e}")
+            return text
+    
+    async def _extract_relationships_from_dependencies(self, doc) -> List[Dict[str, Any]]:
+        """Extract relationships using spaCy dependency parsing"""
+        try:
+            relationships = []
+            
+            # Extract subject-verb-object relationships
+            for token in doc:
+                if token.dep_ == "nsubj" and token.head.pos_ == "VERB":
+                    subject = token.text
+                    verb = token.head.text
+                    
+                    # Find objects
+                    for child in token.head.children:
+                        if child.dep_ in ["dobj", "pobj", "attr"]:
+                            obj = child.text
+                            relationships.append({
+                                'subject': subject,
+                                'predicate': verb,
+                                'object': obj,
+                                'confidence': 0.7,
+                                'method': 'spacy_dependency',
+                                'relation_type': 'svo'
+                            })
+                
+                # Extract prepositional relationships
+                if token.dep_ == "prep":
+                    prep = token.text
+                    head = token.head.text
+                    
+                    for child in token.children:
+                        if child.dep_ == "pobj":
+                            obj = child.text
+                            relationships.append({
+                                'subject': head,
+                                'predicate': prep,
+                                'object': obj,
+                                'confidence': 0.6,
+                                'method': 'spacy_dependency',
+                                'relation_type': 'prepositional'
+                            })
+            
+            return relationships
+            
+        except Exception as e:
+            self.logger.warning(f"Dependency relationship extraction failed: {e}")
+            return []
+    
+    async def _extract_entities_with_patterns(self, text: str) -> List[Dict[str, Any]]:
+        """Extract geological entities using compiled regex patterns"""
+        try:
+            entities = []
+            
+            for category, compiled_patterns in self.compiled_patterns.items():
+                for pattern in compiled_patterns:
+                    matches = pattern.finditer(text)
+                    for match in matches:
+                        entities.append({
+                            'text': match.group(),
+                            'label': category.upper(),
+                            'start': match.start(),
+                            'end': match.end(),
+                            'confidence': 0.8,
+                            'method': 'pattern_matching',
+                            'category': category
+                        })
+            
+            return entities
+            
+        except Exception as e:
+            self.logger.warning(f"Pattern-based entity extraction failed: {e}")
+            return []
+    
+    async def _extract_relationships_with_patterns(self, text: str) -> List[Dict[str, Any]]:
+        """Extract relationships using compiled regex patterns"""
+        try:
+            relationships = []
+            
+            for relation_type, compiled_patterns in self.compiled_relationship_patterns.items():
+                for pattern in compiled_patterns:
+                    matches = pattern.finditer(text)
+                    for match in matches:
+                        groups = match.groups()
+                        if len(groups) >= 2:
+                            relationships.append({
+                                'subject': groups[0].strip(),
+                                'object': groups[1].strip(),
+                                'relation_type': relation_type,
+                                'confidence': 0.7,
+                                'method': 'pattern_matching',
+                                'context': match.group().strip()
+                            })
+            
+            return relationships
+            
+        except Exception as e:
+            self.logger.warning(f"Pattern-based relationship extraction failed: {e}")
+            return []
+    
+    async def _merge_and_deduplicate_entities(self, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Merge overlapping entities and remove duplicates"""
+        try:
+            if not entities:
+                return []
+            
+            # Sort entities by start position
+            sorted_entities = sorted(entities, key=lambda x: x.get('start', 0))
+            
+            merged_entities = []
+            current_entity = sorted_entities[0]
+            
+            for entity in sorted_entities[1:]:
+                # Check for overlap
+                if (entity.get('start', 0) <= current_entity.get('end', 0) and
+                    entity.get('end', 0) >= current_entity.get('start', 0)):
+                    
+                    # Merge entities - keep the one with higher confidence
+                    if entity.get('confidence', 0) > current_entity.get('confidence', 0):
+                        # Update current entity with better information
+                        current_entity.update({
+                            'text': entity.get('text', current_entity.get('text')),
+                            'label': entity.get('label', current_entity.get('label')),
+                            'confidence': max(entity.get('confidence', 0), current_entity.get('confidence', 0)),
+                            'methods': list(set([current_entity.get('method', '')] + [entity.get('method', '')])),
+                            'start': min(entity.get('start', 0), current_entity.get('start', 0)),
+                            'end': max(entity.get('end', 0), current_entity.get('end', 0))
+                        })
+                else:
+                    # No overlap, add current entity and move to next
+                    merged_entities.append(current_entity)
+                    current_entity = entity
+            
+            # Don't forget the last entity
+            merged_entities.append(current_entity)
+            
+            return merged_entities
+            
+        except Exception as e:
+            self.logger.warning(f"Entity merging failed: {e}")
+            return entities
     
     async def start_monitoring(self):
         """Start continuous monitoring of literature APIs"""
@@ -1326,6 +1900,29 @@ class LiteratureMonitor:
         except Exception as e:
             self.logger.error(f"Advanced knowledge extraction failed: {e}")
             return self._empty_knowledge_structure()
+    
+    def _empty_knowledge_structure(self) -> Dict[str, Any]:
+        """Return empty knowledge structure template"""
+        return {
+            'entities': [],
+            'relationships': [],
+            'methods': [],
+            'mathematical_formulations': [],
+            'geological_features': [],
+            'parameters': [],
+            'datasets': [],
+            'findings': [],
+            'uncertainty_quantification': [],
+            'spatial_temporal_context': {},
+            'confidence_scores': {},
+            'geological_domain_integration': {},
+            'extraction_metadata': {
+                'extraction_date': datetime.now().isoformat(),
+                'extraction_methods': [],
+                'total_entities_extracted': 0,
+                'extraction_quality_score': 0.0
+            }
+        }
     
     def get_recent_papers(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Get recently processed papers"""
@@ -2317,6 +2914,326 @@ class LiteratureMonitor:
             
         except Exception as e:
             self.logger.error(f"Failed to build literature semantic index: {e}")
+    
+    async def _initialize_model_database(self):
+        """Initialize model database integration for storing and retrieving geological models"""
+        try:
+            # Initialize model database with configuration
+            model_db_config = {
+                'database_path': getattr(self.config, 'model_database_path', './models/geological_models.db'),
+                'model_types': [DBModelType.VOLCANIC_DEFORMATION, DBModelType.SEISMIC_ANALYSIS, DBModelType.GEOCHEMICAL],
+                'versioning_enabled': True,
+                'compression': True,
+                'backup_enabled': True,
+                'max_models_per_type': 100
+            }
+            
+            self.model_database = ModelDatabase(model_db_config)
+            
+            # Initialize connection and create tables if needed
+            await self.model_database.initialize()
+            
+            # Index existing models for quick retrieval
+            await self.model_database.build_search_indices()
+            
+            self.logger.info("Model database integration initialized successfully")
+            
+        except Exception as e:
+            self.logger.warning(f"Model database initialization failed: {e}")
+            self.model_database = None
+    
+    async def _initialize_data_integration_pipeline(self):
+        """Initialize data integration pipeline for multi-source geological data processing"""
+        try:
+            # Configure data integration pipeline
+            pipeline_config = ProcessingConfig(
+                batch_size=1000,
+                parallel_workers=4,
+                data_layers=[
+                    DataLayer.SEISMIC,
+                    DataLayer.GEODETIC,
+                    DataLayer.GEOCHEMICAL,
+                    DataLayer.REMOTE_SENSING,
+                    DataLayer.GEOLOGICAL_SURVEY,
+                    DataLayer.LITERATURE
+                ],
+                quality_control=True,
+                real_time_processing=True,
+                error_handling='robust',
+                output_format='geological_standard'
+            )
+            
+            self.data_integration_pipeline = DataIntegrationPipeline(pipeline_config)
+            
+            # Initialize processing modules
+            await self.data_integration_pipeline.initialize_processors()
+            
+            # Set up data flow connections
+            await self.data_integration_pipeline.setup_data_flows()
+            
+            # Configure knowledge graph integration
+            await self.data_integration_pipeline.set_knowledge_graph_connection(self.knowledge_graph)
+            
+            self.logger.info("Data integration pipeline initialized successfully")
+            
+        except Exception as e:
+            self.logger.warning(f"Data integration pipeline initialization failed: {e}")
+            self.data_integration_pipeline = None
+    
+    async def _initialize_additional_data_connectors(self):
+        """Initialize additional external data connectors (Wikidata, GeoNames, Connected Papers)"""
+        try:
+            # Configure additional connectors
+            connector_config = {
+                'wikidata': {
+                    'rate_limit': 0.5,
+                    'cache_enabled': True,
+                    'cache_ttl': 3600
+                },
+                'geonames': {
+                    'username': getattr(self.config, 'geonames_username', 'demo'),
+                    'rate_limit': 1.0,
+                    'cache_enabled': True
+                },
+                'connected_papers': {
+                    'api_key': getattr(self.config, 'connected_papers_api_key', None),
+                    'rate_limit': 1.0,
+                    'cache_results': True
+                }
+            }
+            
+            self.additional_connectors = AdditionalDataIntegrationManager(connector_config)
+            
+            # Test connectivity for each connector
+            test_results = {
+                'wikidata': await self._test_wikidata_connectivity(),
+                'geonames': await self._test_geonames_connectivity(),
+                'connected_papers': await self._test_connected_papers_connectivity()
+            }
+            
+            active_connectors = [name for name, status in test_results.items() if status]
+            self.logger.info(f"Additional data connectors initialized: {active_connectors}")
+            
+            # Store connectivity status
+            self.connector_status = test_results
+            
+        except Exception as e:
+            self.logger.warning(f"Additional data connectors initialization failed: {e}")
+            self.additional_connectors = None
+            self.connector_status = {}
+    
+    async def _test_wikidata_connectivity(self) -> bool:
+        """Test Wikidata connector connectivity"""
+        try:
+            if not self.additional_connectors:
+                return False
+            
+            # Test with a simple query
+            volcanoes = await self.additional_connectors.wikidata.query_geological_entities(
+                entity_type="volcano", limit=1
+            )
+            return len(volcanoes) > 0
+            
+        except Exception as e:
+            self.logger.debug(f"Wikidata connectivity test failed: {e}")
+            return False
+    
+    async def _test_geonames_connectivity(self) -> bool:
+        """Test GeoNames connector connectivity"""
+        try:
+            if not self.additional_connectors:
+                return False
+            
+            # Test with a simple search
+            features = await self.additional_connectors.geonames.search_geographical_features(
+                "volcano", max_rows=1
+            )
+            return len(features) > 0
+            
+        except Exception as e:
+            self.logger.debug(f"GeoNames connectivity test failed: {e}")
+            return False
+    
+    async def _test_connected_papers_connectivity(self) -> bool:
+        """Test Connected Papers connector connectivity"""
+        try:
+            if not self.additional_connectors:
+                return False
+            
+            # Test with a simple search
+            papers = await self.additional_connectors.connected_papers.search_papers(
+                "geology", limit=1
+            )
+            return len(papers) > 0
+            
+        except Exception as e:
+            self.logger.debug(f"Connected Papers connectivity test failed: {e}")
+            return False
+    
+    async def integrate_model_database_results(self, query_type: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Integrate results from model database with knowledge graph"""
+        try:
+            if not self.model_database:
+                return {'status': 'unavailable', 'models': []}
+            
+            # Query relevant models from database
+            models = await self.model_database.search_models(
+                model_type=query_type,
+                parameters=parameters,
+                limit=10
+            )
+            
+            # Enhance with knowledge graph context
+            enhanced_models = []
+            for model in models:
+                # Add semantic context from knowledge graph
+                context = await self.semantic_similarity_search(
+                    f"{model.name} {model.description}", top_k=3
+                )
+                
+                enhanced_model = {
+                    'model_metadata': model.to_dict(),
+                    'semantic_context': context,
+                    'knowledge_graph_relations': await self._find_model_relations(model),
+                    'confidence_score': self._calculate_model_relevance(model, parameters)
+                }
+                enhanced_models.append(enhanced_model)
+            
+            return {
+                'status': 'success',
+                'models': enhanced_models,
+                'total_count': len(models),
+                'query_parameters': parameters
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Model database integration failed: {e}")
+            return {'status': 'error', 'error': str(e), 'models': []}
+    
+    async def process_multi_source_data(self, data_sources: List[str], processing_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process multi-source geological data through integrated pipeline"""
+        try:
+            if not self.data_integration_pipeline:
+                return {'status': 'pipeline_unavailable'}
+            
+            # Configure processing job
+            job_config = {
+                'sources': data_sources,
+                'processing_mode': processing_config.get('mode', 'batch'),
+                'quality_threshold': processing_config.get('quality_threshold', 0.8),
+                'output_format': 'knowledge_graph_ready'
+            }
+            
+            # Submit processing job
+            job_id = await self.data_integration_pipeline.submit_job(job_config)
+            
+            # Monitor processing progress
+            result = await self.data_integration_pipeline.wait_for_completion(job_id)
+            
+            # Integrate results with knowledge graph
+            if result.get('status') == 'completed':
+                processed_data = result.get('data', {})
+                
+                # Extract entities and relationships for knowledge graph
+                entities = await self._extract_entities_from_processed_data(processed_data)
+                relationships = await self._extract_relationships_from_processed_data(processed_data)
+                
+                # Add to knowledge graph
+                for entity in entities:
+                    await self.knowledge_graph.add_entity(entity)
+                
+                for relationship in relationships:
+                    await self.knowledge_graph.add_relationship(relationship)
+                
+                return {
+                    'status': 'success',
+                    'job_id': job_id,
+                    'entities_added': len(entities),
+                    'relationships_added': len(relationships),
+                    'processed_data_summary': self._summarize_processed_data(processed_data)
+                }
+            else:
+                return {
+                    'status': 'processing_failed',
+                    'job_id': job_id,
+                    'error': result.get('error', 'Unknown processing error')
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Multi-source data processing failed: {e}")
+            return {'status': 'error', 'error': str(e)}
+    
+    async def collect_comprehensive_external_data(self, region: str, research_topic: str) -> Dict[str, Any]:
+        """Collect comprehensive external data from all additional connectors"""
+        try:
+            if not self.additional_connectors:
+                return {'status': 'connectors_unavailable'}
+            
+            # Determine bounding box for region (simplified mapping)
+            bbox_mapping = {
+                'italy': (12.0, 36.0, 20.0, 47.0),
+                'japan': (129.0, 31.0, 146.0, 46.0),
+                'iceland': (-25.0, 63.0, -13.0, 67.0),
+                'indonesia': (95.0, -11.0, 141.0, 6.0)
+            }
+            
+            bbox = bbox_mapping.get(region.lower(), None)
+            
+            # Collect data from all sources
+            external_data = await self.additional_connectors.collect_comprehensive_geological_data(
+                region=region,
+                bbox=bbox,
+                research_topic=research_topic
+            )
+            
+            # Process and integrate with knowledge graph
+            integration_results = {
+                'wikidata_entities_processed': 0,
+                'geonames_features_processed': 0,
+                'research_papers_processed': 0
+            }
+            
+            # Process Wikidata entities
+            for entity_type, entities in external_data.get('wikidata_entities', {}).items():
+                for entity in entities:
+                    kg_entity = await self._convert_wikidata_to_kg_entity(entity, entity_type)
+                    if kg_entity:
+                        await self.knowledge_graph.add_entity(kg_entity)
+                        integration_results['wikidata_entities_processed'] += 1
+            
+            # Process GeoNames features
+            for feature in external_data.get('geonames_features', []):
+                kg_entity = await self._convert_geonames_to_kg_entity(feature)
+                if kg_entity:
+                    await self.knowledge_graph.add_entity(kg_entity)
+                    integration_results['geonames_features_processed'] += 1
+            
+            # Process Connected Papers research
+            connected_papers = external_data.get('connected_papers', {})
+            for paper in connected_papers.get('search_results', []):
+                knowledge = await self._extract_knowledge_from_paper(paper)
+                if knowledge:
+                    # Add extracted entities and relationships to knowledge graph
+                    for entity in knowledge.get('entities', []):
+                        await self.knowledge_graph.add_entity(entity)
+                    
+                    for relationship in knowledge.get('relationships', []):
+                        await self.knowledge_graph.add_relationship(relationship)
+                    
+                    integration_results['research_papers_processed'] += 1
+            
+            return {
+                'status': 'success',
+                'region': region,
+                'research_topic': research_topic,
+                'external_data_summary': external_data.get('integration_metadata', {}),
+                'integration_results': integration_results,
+                'connector_status': self.connector_status
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Comprehensive external data collection failed: {e}")
+            return {'status': 'error', 'error': str(e)}
     
     async def semantic_similarity_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """Perform semantic similarity search on knowledge entities"""
@@ -27061,113 +27978,73 @@ class RealTimeAnomalyDetectionSystem:
             return {}
     
     async def _integrate_geological_domain_models(self, extracted_knowledge: Dict[str, Any], paper: Dict[str, Any]) -> Dict[str, Any]:
-        """Integrate extracted knowledge with geological domain-specific models"""
+        """Integrate extracted knowledge with comprehensive geological domain-specific models"""
         try:
             domain_integration = {
                 'volcanic_system_classification': {},
-                'tectonic_context': {},
+                'tectonic_context_analysis': {},
                 'magma_system_characteristics': {},
                 'deformation_mechanisms': {},
-                'hazard_assessment': {}
+                'hazard_assessment': {},
+                'petrological_classification': {},
+                'structural_geology': {},
+                'geochemical_signatures': {},
+                'geodetic_analysis': {},
+                'seismological_context': {},
+                'temporal_evolution': {},
+                'multi_scale_processes': {},
+                'geophysical_signatures': {},
+                'mineral_physics': {}
             }
             
-            # Volcanic system classification
             entities = extracted_knowledge.get('entities', [])
             features = extracted_knowledge.get('geological_features', [])
-            
-            volcanic_indicators = []
-            for entity in entities:
-                if entity.get('label') in ['volcano_names', 'rock_types']:
-                    volcanic_indicators.append(entity['text'].lower())
-            
-            for feature in features:
-                if feature.get('type') == 'volcanic_features':
-                    volcanic_indicators.append(feature['name'].lower())
-            
-            # Classify volcanic system type
-            if any('caldera' in ind for ind in volcanic_indicators):
-                domain_integration['volcanic_system_classification'] = {
-                    'type': 'caldera_system',
-                    'characteristics': ['large_volume', 'explosive_potential', 'complex_reservoir'],
-                    'confidence': 0.85
-                }
-            elif any('stratovolcano' in ind or 'cone' in ind for ind in volcanic_indicators):
-                domain_integration['volcanic_system_classification'] = {
-                    'type': 'stratovolcano',
-                    'characteristics': ['composite_structure', 'moderate_explosivity', 'regular_activity'],
-                    'confidence': 0.8
-                }
-            elif any('shield' in ind for ind in volcanic_indicators):
-                domain_integration['volcanic_system_classification'] = {
-                    'type': 'shield_volcano',
-                    'characteristics': ['effusive_activity', 'basaltic_composition', 'large_area'],
-                    'confidence': 0.8
-                }
-            
-            # Tectonic context integration
-            spatial_context = extracted_knowledge.get('spatial_temporal_context', {}).get('spatial_context', {})
-            if spatial_context:
-                # Simple tectonic setting inference based on location
-                locations = []
-                for location_type, location_list in spatial_context.items():
-                    locations.extend(location_list)
-                
-                location_text = ' '.join(locations).lower()
-                if any(term in location_text for term in ['japan', 'kamchatka', 'andes', 'cascade']):
-                    domain_integration['tectonic_context'] = {
-                        'setting': 'subduction_zone',
-                        'characteristics': ['convergent_margin', 'explosive_volcanism', 'arc_volcanism'],
-                        'confidence': 0.7
-                    }
-                elif any(term in location_text for term in ['iceland', 'mid-atlantic', 'rift']):
-                    domain_integration['tectonic_context'] = {
-                        'setting': 'divergent_boundary',
-                        'characteristics': ['rift_volcanism', 'basaltic_composition', 'effusive_activity'],
-                        'confidence': 0.7
-                    }
-                elif any(term in location_text for term in ['hawaii', 'hotspot', 'yellowstone']):
-                    domain_integration['tectonic_context'] = {
-                        'setting': 'hotspot',
-                        'characteristics': ['intraplate_volcanism', 'plume_related', 'shield_building'],
-                        'confidence': 0.75
-                    }
-            
-            # Magma system characteristics
             parameters = extracted_knowledge.get('parameters', [])
-            depth_values = []
-            volume_values = []
+            relationships = extracted_knowledge.get('relationships', [])
+            text_content = f"{paper.get('title', '')} {paper.get('abstract', '')}"
             
-            for param in parameters:
-                if isinstance(param, dict):
-                    param_name = param.get('name', '').lower()
-                    if 'depth' in param_name and param.get('value'):
-                        try:
-                            depth_values.append(float(param['value']))
-                        except (ValueError, TypeError):
-                            pass
-                    elif 'volume' in param_name and param.get('value'):
-                        try:
-                            volume_values.append(float(param['value']))
-                        except (ValueError, TypeError):
-                            pass
+            # Enhanced Volcanic System Classification
+            volcanic_indicators = await self._extract_volcanic_indicators(entities, features, text_content)
+            domain_integration['volcanic_system_classification'] = await self._classify_volcanic_system_comprehensive(volcanic_indicators, parameters, text_content)
             
-            if depth_values:
-                mean_depth = np.mean(depth_values)
-                if mean_depth < 3000:
-                    domain_integration['magma_system_characteristics']['depth_category'] = 'shallow'
-                elif mean_depth > 8000:
-                    domain_integration['magma_system_characteristics']['depth_category'] = 'deep'
-                else:
-                    domain_integration['magma_system_characteristics']['depth_category'] = 'intermediate'
+            # Comprehensive Tectonic Context Analysis
+            domain_integration['tectonic_context_analysis'] = await self._analyze_comprehensive_tectonic_context(extracted_knowledge, text_content)
             
-            if volume_values:
-                mean_volume = np.mean(volume_values)
-                if mean_volume < 1e6:
-                    domain_integration['magma_system_characteristics']['size_category'] = 'small'
-                elif mean_volume > 1e9:
-                    domain_integration['magma_system_characteristics']['size_category'] = 'large'
-                else:
-                    domain_integration['magma_system_characteristics']['size_category'] = 'medium'
+            # Advanced Magma System Characterization
+            domain_integration['magma_system_characteristics'] = await self._characterize_magma_system_advanced(parameters, entities, text_content)
+            
+            # Deformation Mechanisms Analysis
+            domain_integration['deformation_mechanisms'] = await self._analyze_deformation_mechanisms(parameters, entities, relationships, text_content)
+            
+            # Multi-hazard Assessment
+            domain_integration['hazard_assessment'] = await self._assess_multi_hazards(extracted_knowledge, text_content)
+            
+            # Petrological Classification
+            domain_integration['petrological_classification'] = await self._classify_petrology_comprehensive(entities, parameters, text_content)
+            
+            # Structural Geology Analysis
+            domain_integration['structural_geology'] = await self._analyze_structural_features(entities, relationships, text_content)
+            
+            # Geochemical Signatures
+            domain_integration['geochemical_signatures'] = await self._analyze_geochemical_signatures(parameters, entities, text_content)
+            
+            # Geodetic Analysis
+            domain_integration['geodetic_analysis'] = await self._analyze_geodetic_data(parameters, entities, text_content)
+            
+            # Seismological Context
+            domain_integration['seismological_context'] = await self._analyze_seismological_context(parameters, entities, text_content)
+            
+            # Temporal Evolution Analysis
+            domain_integration['temporal_evolution'] = await self._analyze_temporal_evolution(extracted_knowledge, text_content)
+            
+            # Multi-scale Process Integration
+            domain_integration['multi_scale_processes'] = await self._analyze_multi_scale_processes(extracted_knowledge, text_content)
+            
+            # Geophysical Signatures
+            domain_integration['geophysical_signatures'] = await self._analyze_geophysical_signatures(parameters, entities, text_content)
+            
+            # Mineral Physics
+            domain_integration['mineral_physics'] = await self._analyze_mineral_physics(entities, parameters, text_content)
             
             return domain_integration
             
@@ -27266,6 +28143,1064 @@ class RealTimeAnomalyDetectionSystem:
             self.logger.error(f"Advanced geological NER failed: {e}")
             return []
     
+    # Comprehensive Domain-Specific Analysis Methods
+    
+    async def _extract_volcanic_indicators(self, entities: List[Dict[str, Any]], features: List[Dict[str, Any]], text: str) -> List[str]:
+        """Extract comprehensive volcanic indicators from text and entities"""
+        indicators = []
+        
+        # Entity-based indicators
+        for entity in entities:
+            if entity.get('label') in ['volcano_names', 'rock_types', 'GEOLOGICAL_TERM', 'LOC']:
+                indicators.append(entity['text'].lower())
+        
+        # Feature-based indicators
+        for feature in features:
+            if feature.get('type') in ['volcanic_features', 'igneous_features', 'eruption_features']:
+                indicators.append(feature.get('name', '').lower())
+        
+        # Text pattern-based indicators
+        volcanic_patterns = [
+            r'\b(?:stratovolcano|shield volcano|caldera|pyroclastic|tephra|ignimbrite|lava flow)\b',
+            r'\b(?:explosive eruption|effusive eruption|vulcanian|strombolian|plinian|hawaiian)\b',
+            r'\b(?:basalt|andesite|dacite|rhyolite|trachyte|phonolite)\b',
+            r'\b(?:magma chamber|dike|sill|conduit|vent|crater)\b'
+        ]
+        
+        import re
+        for pattern in volcanic_patterns:
+            matches = re.findall(pattern, text.lower())
+            indicators.extend(matches)
+        
+        return list(set(indicators))
+    
+    async def _classify_volcanic_system_comprehensive(self, volcanic_indicators: List[str], parameters: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Comprehensive volcanic system classification with multiple criteria"""
+        classification = {
+            'primary_type': 'unknown',
+            'secondary_characteristics': [],
+            'eruption_style': 'unknown',
+            'magma_composition': 'unknown',
+            'tectonic_setting': 'unknown',
+            'activity_level': 'unknown',
+            'morphological_features': [],
+            'hazard_potential': 'unknown',
+            'confidence_scores': {},
+            'supporting_evidence': []
+        }
+        
+        text_lower = text.lower()
+        
+        # Volcanic system type classification
+        system_type_scores = {
+            'stratovolcano': 0.0,
+            'shield_volcano': 0.0,
+            'caldera_system': 0.0,
+            'cinder_cone': 0.0,
+            'lava_dome': 0.0,
+            'maar': 0.0,
+            'fissure_vent': 0.0
+        }
+        
+        # Stratovolcano indicators
+        stratovolcano_terms = ['stratovolcano', 'composite', 'andesitic', 'explosive', 'cone', 'steep']
+        system_type_scores['stratovolcano'] = sum(1 for term in stratovolcano_terms if any(term in ind for ind in volcanic_indicators) or term in text_lower) / len(stratovolcano_terms)
+        
+        # Shield volcano indicators
+        shield_terms = ['shield', 'basaltic', 'effusive', 'hawaiian', 'broad', 'gentle']
+        system_type_scores['shield_volcano'] = sum(1 for term in shield_terms if any(term in ind for ind in volcanic_indicators) or term in text_lower) / len(shield_terms)
+        
+        # Caldera system indicators
+        caldera_terms = ['caldera', 'resurgent', 'large volume', 'silicic', 'rhyolitic', 'collapse']
+        system_type_scores['caldera_system'] = sum(1 for term in caldera_terms if any(term in ind for ind in volcanic_indicators) or term in text_lower) / len(caldera_terms)
+        
+        # Cinder cone indicators
+        cinder_terms = ['cinder', 'scoria', 'monogenetic', 'basaltic', 'strombolian']
+        system_type_scores['cinder_cone'] = sum(1 for term in cinder_terms if any(term in ind for ind in volcanic_indicators) or term in text_lower) / len(cinder_terms)
+        
+        # Lava dome indicators
+        dome_terms = ['dome', 'viscous', 'dacitic', 'extrusion', 'blocky']
+        system_type_scores['lava_dome'] = sum(1 for term in dome_terms if any(term in ind for ind in volcanic_indicators) or term in text_lower) / len(dome_terms)
+        
+        # Select primary type based on highest score
+        if max(system_type_scores.values()) > 0.2:
+            classification['primary_type'] = max(system_type_scores, key=system_type_scores.get)
+            classification['confidence_scores']['primary_type'] = max(system_type_scores.values())
+        
+        # Eruption style classification
+        eruption_styles = {
+            'effusive': ['effusive', 'lava flow', 'hawaiian', 'strombolian'],
+            'explosive': ['explosive', 'vulcanian', 'plinian', 'pyroclastic'],
+            'mixed': ['mixed', 'alternating', 'variable']
+        }
+        
+        for style, terms in eruption_styles.items():
+            if any(term in text_lower for term in terms):
+                classification['eruption_style'] = style
+                break
+        
+        # Magma composition classification
+        composition_indicators = {
+            'mafic': ['basalt', 'basaltic', 'mafic', 'olivine', 'pyroxene'],
+            'intermediate': ['andesite', 'andesitic', 'intermediate', 'hornblende'],
+            'felsic': ['rhyolite', 'rhyolitic', 'dacite', 'dacitic', 'felsic', 'silicic'],
+            'alkaline': ['phonolite', 'trachyte', 'alkaline', 'nepheline']
+        }
+        
+        for comp, terms in composition_indicators.items():
+            if any(term in text_lower for term in terms):
+                classification['magma_composition'] = comp
+                break
+        
+        # Extract morphological features
+        morphology_terms = ['steep flanks', 'gentle slopes', 'summit crater', 'parasitic cones', 'lava flows', 'pyroclastic deposits']
+        classification['morphological_features'] = [term for term in morphology_terms if term in text_lower]
+        
+        return classification
+    
+    async def _analyze_comprehensive_tectonic_context(self, extracted_knowledge: Dict[str, Any], text: str) -> Dict[str, Any]:
+        """Comprehensive tectonic context analysis with multiple geological indicators"""
+        tectonic_analysis = {
+            'plate_boundary_type': 'unknown',
+            'convergence_characteristics': {},
+            'stress_field_analysis': {},
+            'regional_deformation': {},
+            'fault_systems': {},
+            'seismotectonic_setting': {},
+            'crustal_structure': {},
+            'lithospheric_properties': {},
+            'kinematic_indicators': {},
+            'temporal_evolution': {},
+            'confidence_scores': {}
+        }
+        
+        text_lower = text.lower()
+        entities = extracted_knowledge.get('entities', [])
+        parameters = extracted_knowledge.get('parameters', [])
+        spatial_context = extracted_knowledge.get('spatial_temporal_context', {}).get('spatial_context', {})
+        
+        # Plate boundary classification
+        convergent_indicators = ['subduction', 'convergent', 'collision', 'thrust', 'compression', 'arc', 'trench']
+        divergent_indicators = ['divergent', 'rift', 'spreading', 'extension', 'normal fault', 'grabens']
+        transform_indicators = ['transform', 'strike-slip', 'transcurrent', 'lateral', 'transpression', 'transtension']
+        
+        convergent_score = sum(1 for term in convergent_indicators if term in text_lower) / len(convergent_indicators)
+        divergent_score = sum(1 for term in divergent_indicators if term in text_lower) / len(divergent_indicators)
+        transform_score = sum(1 for term in transform_indicators if term in text_lower) / len(transform_indicators)
+        
+        boundary_scores = {'convergent': convergent_score, 'divergent': divergent_score, 'transform': transform_score}
+        
+        if max(boundary_scores.values()) > 0.1:
+            tectonic_analysis['plate_boundary_type'] = max(boundary_scores, key=boundary_scores.get)
+            tectonic_analysis['confidence_scores']['plate_boundary'] = max(boundary_scores.values())
+        
+        # Convergence characteristics analysis
+        if tectonic_analysis['plate_boundary_type'] == 'convergent':
+            subduction_terms = ['oceanic plate', 'slab', 'benioff zone', 'wadati-benioff', 'back-arc', 'fore-arc']
+            collision_terms = ['continental collision', 'himalayan', 'alpine', 'orogenic belt']
+            
+            if any(term in text_lower for term in subduction_terms):
+                tectonic_analysis['convergence_characteristics'] = {
+                    'type': 'subduction',
+                    'oceanic_plate_involvement': True,
+                    'arc_volcanism': 'volcanic arc' in text_lower or 'island arc' in text_lower
+                }
+            elif any(term in text_lower for term in collision_terms):
+                tectonic_analysis['convergence_characteristics'] = {
+                    'type': 'continental_collision',
+                    'orogenic_belt': True,
+                    'crustal_thickening': 'thickening' in text_lower
+                }
+        
+        # Stress field analysis
+        stress_indicators = {
+            'compressive': ['compression', 'thrust', 'reverse fault', 'folding'],
+            'extensional': ['extension', 'normal fault', 'rifting', 'grabens'],
+            'strike_slip': ['strike-slip', 'wrench', 'transpression', 'transtension']
+        }
+        
+        for stress_type, indicators in stress_indicators.items():
+            if any(term in text_lower for term in indicators):
+                tectonic_analysis['stress_field_analysis'][stress_type] = True
+        
+        # Fault system characterization
+        fault_types = ['normal', 'reverse', 'thrust', 'strike-slip', 'oblique', 'listric', 'detachment']
+        identified_faults = [fault_type for fault_type in fault_types if fault_type in text_lower]
+        
+        if identified_faults:
+            tectonic_analysis['fault_systems'] = {
+                'fault_types': identified_faults,
+                'fault_density': 'high' if len(identified_faults) > 2 else 'moderate',
+                'structural_complexity': 'complex' if 'complex' in text_lower else 'simple'
+            }
+        
+        # Seismotectonic setting
+        seismic_terms = ['seismic', 'earthquake', 'hypocenter', 'epicenter', 'focal mechanism', 'moment tensor']
+        if any(term in text_lower for term in seismic_terms):
+            tectonic_analysis['seismotectonic_setting'] = {
+                'seismically_active': True,
+                'earthquake_magnitude': self._extract_magnitude_values(parameters, text),
+                'focal_depth_distribution': self._extract_depth_distribution(parameters, text)
+            }
+        
+        return tectonic_analysis
+    
+    async def _characterize_magma_system_advanced(self, parameters: List[Dict[str, Any]], entities: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Advanced magma system characterization with multi-parameter analysis"""
+        magma_characteristics = {
+            'chamber_geometry': {},
+            'thermal_structure': {},
+            'compositional_evolution': {},
+            'volatile_content': {},
+            'crystallization_history': {},
+            'rheological_properties': {},
+            'pressure_temperature_conditions': {},
+            'melt_fraction': {},
+            'differentiation_processes': {},
+            'magma_mixing_evidence': {},
+            'storage_duration': {},
+            'eruption_triggers': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Extract depth and volume information
+        depths = self._extract_parameter_values(parameters, ['depth', 'chamber depth', 'source depth'])
+        volumes = self._extract_parameter_values(parameters, ['volume', 'chamber volume', 'magma volume'])
+        temperatures = self._extract_parameter_values(parameters, ['temperature', 'magma temperature'])
+        pressures = self._extract_parameter_values(parameters, ['pressure', 'confining pressure'])
+        
+        # Chamber geometry characterization
+        if depths:
+            mean_depth = np.mean(depths)
+            if mean_depth < 2000:
+                magma_characteristics['chamber_geometry']['depth_category'] = 'shallow'
+                magma_characteristics['chamber_geometry']['depth_implications'] = ['high gas pressure', 'rapid ascent', 'explosive potential']
+            elif mean_depth > 8000:
+                magma_characteristics['chamber_geometry']['depth_category'] = 'deep'
+                magma_characteristics['chamber_geometry']['depth_implications'] = ['long residence time', 'extensive differentiation', 'crustal assimilation']
+            else:
+                magma_characteristics['chamber_geometry']['depth_category'] = 'intermediate'
+                magma_characteristics['chamber_geometry']['depth_implications'] = ['moderate residence time', 'partial differentiation']
+        
+        if volumes:
+            mean_volume = np.mean(volumes)
+            if mean_volume < 1e6:
+                magma_characteristics['chamber_geometry']['size_category'] = 'small'
+            elif mean_volume > 1e10:
+                magma_characteristics['chamber_geometry']['size_category'] = 'large'
+            else:
+                magma_characteristics['chamber_geometry']['size_category'] = 'medium'
+        
+        # Thermal structure analysis
+        if temperatures:
+            mean_temp = np.mean(temperatures)
+            magma_characteristics['thermal_structure'] = {
+                'average_temperature': mean_temp,
+                'thermal_regime': 'high' if mean_temp > 1200 else 'moderate' if mean_temp > 900 else 'low',
+                'cooling_indicators': 'crystallization' in text_lower or 'solidification' in text_lower
+            }
+        
+        # Compositional evolution tracking
+        composition_terms = ['differentiation', 'fractionation', 'assimilation', 'mixing', 'contamination']
+        active_processes = [term for term in composition_terms if term in text_lower]
+        
+        if active_processes:
+            magma_characteristics['compositional_evolution'] = {
+                'active_processes': active_processes,
+                'evolution_complexity': 'high' if len(active_processes) > 2 else 'moderate',
+                'end_member_compositions': self._extract_compositions(entities, text)
+            }
+        
+        # Volatile content analysis
+        volatile_terms = ['volatile', 'h2o', 'co2', 'so2', 'cl', 'f', 'degassing', 'vesiculation']
+        if any(term in text_lower for term in volatile_terms):
+            magma_characteristics['volatile_content'] = {
+                'volatile_rich': True,
+                'degassing_evidence': 'degassing' in text_lower or 'vesiculation' in text_lower,
+                'volatile_species': [term for term in ['h2o', 'co2', 'so2', 'cl', 'f'] if term in text_lower]
+            }
+        
+        # Crystallization history
+        crystal_terms = ['crystallization', 'phenocrysts', 'microphenocrysts', 'groundmass', 'glass']
+        if any(term in text_lower for term in crystal_terms):
+            magma_characteristics['crystallization_history'] = {
+                'crystallization_active': True,
+                'crystal_phases': self._extract_crystal_phases(entities, text),
+                'crystallization_sequence': 'complex' if 'zoning' in text_lower else 'simple'
+            }
+        
+        return magma_characteristics
+    
+    async def _analyze_deformation_mechanisms(self, parameters: List[Dict[str, Any]], entities: List[Dict[str, Any]], relationships: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Analyze comprehensive deformation mechanisms and processes"""
+        deformation_analysis = {
+            'deformation_style': {},
+            'strain_accommodation': {},
+            'temporal_patterns': {},
+            'spatial_distribution': {},
+            'driving_mechanisms': {},
+            'measurement_techniques': {},
+            'deformation_rates': {},
+            'elastic_properties': {},
+            'anelastic_processes': {},
+            'geodetic_observations': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Deformation style classification
+        style_indicators = {
+            'brittle': ['fracture', 'fault', 'crack', 'joint', 'brittle'],
+            'ductile': ['ductile', 'plastic', 'flow', 'creep', 'viscous'],
+            'elastic': ['elastic', 'recoverable', 'instantaneous'],
+            'viscoelastic': ['viscoelastic', 'time-dependent', 'relaxation']
+        }
+        
+        for style, indicators in style_indicators.items():
+            if any(term in text_lower for term in indicators):
+                deformation_analysis['deformation_style'][style] = True
+        
+        # Strain accommodation mechanisms
+        strain_mechanisms = ['faulting', 'folding', 'intrusion', 'thermal expansion', 'pressure changes']
+        active_mechanisms = [mech for mech in strain_mechanisms if mech in text_lower]
+        
+        if active_mechanisms:
+            deformation_analysis['strain_accommodation'] = {
+                'mechanisms': active_mechanisms,
+                'primary_mechanism': active_mechanisms[0] if active_mechanisms else 'unknown'
+            }
+        
+        # Extract deformation rates
+        rates = self._extract_parameter_values(parameters, ['rate', 'velocity', 'displacement rate', 'strain rate'])
+        if rates:
+            deformation_analysis['deformation_rates'] = {
+                'measured_rates': rates,
+                'rate_category': 'fast' if max(rates) > 10 else 'moderate' if max(rates) > 1 else 'slow'
+            }
+        
+        # Geodetic observation analysis
+        geodetic_terms = ['gps', 'gnss', 'insar', 'leveling', 'tilt', 'strain', 'edm']
+        observed_techniques = [term for term in geodetic_terms if term in text_lower]
+        
+        if observed_techniques:
+            deformation_analysis['measurement_techniques'] = {
+                'geodetic_methods': observed_techniques,
+                'spatial_coverage': 'regional' if len(observed_techniques) > 3 else 'local',
+                'temporal_resolution': 'high' if 'continuous' in text_lower else 'episodic'
+            }
+        
+        return deformation_analysis
+    
+    async def _assess_multi_hazards(self, extracted_knowledge: Dict[str, Any], text: str) -> Dict[str, Any]:
+        """Comprehensive multi-hazard assessment for geological systems"""
+        hazard_assessment = {
+            'volcanic_hazards': {},
+            'seismic_hazards': {},
+            'ground_deformation_hazards': {},
+            'secondary_hazards': {},
+            'cascading_effects': {},
+            'risk_factors': {},
+            'mitigation_considerations': {},
+            'monitoring_requirements': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Volcanic hazards
+        volcanic_hazard_terms = {
+            'pyroclastic_flows': ['pyroclastic flow', 'pyroclastic density current', 'pdc'],
+            'lahars': ['lahar', 'volcanic mudflow', 'debris flow'],
+            'ash_fall': ['ash fall', 'tephra fall', 'volcanic ash'],
+            'lava_flows': ['lava flow', 'aa', 'pahoehoe'],
+            'volcanic_gases': ['volcanic gas', 'so2', 'co2', 'h2s'],
+            'ballistic_projectiles': ['ballistic', 'volcanic bombs', 'projectiles']
+        }
+        
+        for hazard, terms in volcanic_hazard_terms.items():
+            if any(term in text_lower for term in terms):
+                hazard_assessment['volcanic_hazards'][hazard] = {
+                    'present': True,
+                    'severity': 'high' if any(sev in text_lower for sev in ['high', 'severe', 'extreme']) else 'moderate'
+                }
+        
+        # Seismic hazards
+        seismic_terms = ['earthquake', 'ground shaking', 'seismic hazard', 'pga', 'peak ground acceleration']
+        if any(term in text_lower for term in seismic_terms):
+            hazard_assessment['seismic_hazards'] = {
+                'earthquake_hazard': True,
+                'ground_motion_intensity': self._extract_seismic_intensity(extracted_knowledge, text),
+                'fault_proximity': 'fault' in text_lower
+            }
+        
+        # Ground deformation hazards
+        deformation_terms = ['subsidence', 'uplift', 'ground deformation', 'surface displacement']
+        if any(term in text_lower for term in deformation_terms):
+            hazard_assessment['ground_deformation_hazards'] = {
+                'deformation_active': True,
+                'infrastructure_impact': 'infrastructure' in text_lower or 'building' in text_lower,
+                'rate_of_change': self._classify_deformation_rate(extracted_knowledge)
+            }
+        
+        # Secondary hazards
+        secondary_terms = ['tsunami', 'landslide', 'flooding', 'atmospheric loading']
+        identified_secondary = [term for term in secondary_terms if term in text_lower]
+        
+        if identified_secondary:
+            hazard_assessment['secondary_hazards'] = {
+                'hazard_types': identified_secondary,
+                'triggering_mechanisms': self._identify_triggers(text)
+            }
+        
+        # Risk assessment
+        population_terms = ['population', 'urban', 'city', 'town', 'inhabited']
+        infrastructure_terms = ['infrastructure', 'airport', 'port', 'highway', 'pipeline']
+        
+        risk_factors = []
+        if any(term in text_lower for term in population_terms):
+            risk_factors.append('population_exposure')
+        if any(term in text_lower for term in infrastructure_terms):
+            risk_factors.append('infrastructure_vulnerability')
+        
+        if risk_factors:
+            hazard_assessment['risk_factors'] = {
+                'exposure_elements': risk_factors,
+                'vulnerability_level': 'high' if len(risk_factors) > 1 else 'moderate'
+            }
+        
+        return hazard_assessment
+    
+    # Additional comprehensive analysis methods
+    
+    async def _classify_petrology_comprehensive(self, entities: List[Dict[str, Any]], parameters: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Comprehensive petrological classification and analysis"""
+        petrology = {
+            'rock_classification': {},
+            'mineral_assemblages': {},
+            'texture_analysis': {},
+            'metamorphic_grade': {},
+            'igneous_differentiation': {},
+            'alteration_patterns': {},
+            'geochemical_classification': {},
+            'petrogenetic_processes': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Rock type classification
+        igneous_terms = ['igneous', 'volcanic', 'plutonic', 'intrusive', 'extrusive', 'magmatic']
+        metamorphic_terms = ['metamorphic', 'gneiss', 'schist', 'slate', 'amphibolite', 'granulite']
+        sedimentary_terms = ['sedimentary', 'limestone', 'sandstone', 'shale', 'conglomerate']
+        
+        if any(term in text_lower for term in igneous_terms):
+            petrology['rock_classification']['primary_type'] = 'igneous'
+            petrology['rock_classification']['subtypes'] = [term for term in igneous_terms if term in text_lower]
+        elif any(term in text_lower for term in metamorphic_terms):
+            petrology['rock_classification']['primary_type'] = 'metamorphic'
+            petrology['rock_classification']['subtypes'] = [term for term in metamorphic_terms if term in text_lower]
+        elif any(term in text_lower for term in sedimentary_terms):
+            petrology['rock_classification']['primary_type'] = 'sedimentary'
+            petrology['rock_classification']['subtypes'] = [term for term in sedimentary_terms if term in text_lower]
+        
+        # Mineral assemblage analysis
+        mineral_terms = ['quartz', 'feldspar', 'olivine', 'pyroxene', 'amphibole', 'mica', 'garnet', 'epidote']
+        identified_minerals = [mineral for mineral in mineral_terms if mineral in text_lower]
+        
+        if identified_minerals:
+            petrology['mineral_assemblages'] = {
+                'primary_minerals': identified_minerals,
+                'assemblage_type': self._classify_mineral_assemblage(identified_minerals),
+                'stability_conditions': self._infer_stability_conditions(identified_minerals, text)
+            }
+        
+        return petrology
+    
+    async def _analyze_structural_features(self, entities: List[Dict[str, Any]], relationships: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Analyze structural geological features and relationships"""
+        structural_analysis = {
+            'fold_systems': {},
+            'fault_networks': {},
+            'joint_patterns': {},
+            'foliation_analysis': {},
+            'kinematic_indicators': {},
+            'deformation_history': {},
+            'structural_domains': {},
+            'stress_indicators': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Fold system analysis
+        fold_terms = ['fold', 'anticline', 'syncline', 'monocline', 'antiform', 'synform']
+        if any(term in text_lower for term in fold_terms):
+            structural_analysis['fold_systems'] = {
+                'fold_types': [term for term in fold_terms if term in text_lower],
+                'fold_scale': 'regional' if any(scale in text_lower for scale in ['regional', 'large', 'map']) else 'local',
+                'fold_geometry': self._analyze_fold_geometry(text)
+            }
+        
+        # Fault network characterization
+        fault_terms = ['fault', 'shear', 'fracture', 'joint', 'lineament']
+        if any(term in text_lower for term in fault_terms):
+            structural_analysis['fault_networks'] = {
+                'fault_density': 'high' if 'dense' in text_lower or 'numerous' in text_lower else 'moderate',
+                'fault_orientations': self._extract_orientations(text),
+                'fault_kinematics': self._analyze_fault_kinematics(text)
+            }
+        
+        return structural_analysis
+    
+    async def _analyze_geochemical_signatures(self, parameters: List[Dict[str, Any]], entities: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Analyze geochemical signatures and processes"""
+        geochemical_analysis = {
+            'elemental_composition': {},
+            'isotopic_signatures': {},
+            'trace_element_patterns': {},
+            'alteration_geochemistry': {},
+            'fluid_geochemistry': {},
+            'source_characteristics': {},
+            'petrogenetic_indicators': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Major element analysis
+        major_elements = ['sio2', 'al2o3', 'feo', 'mgo', 'cao', 'na2o', 'k2o', 'tio2']
+        element_values = {}
+        
+        for element in major_elements:
+            values = self._extract_parameter_values(parameters, [element, element.upper(), element.replace('2', '_')])
+            if values:
+                element_values[element] = values
+        
+        if element_values:
+            geochemical_analysis['elemental_composition'] = {
+                'major_elements': element_values,
+                'silica_content': element_values.get('sio2', [0])[0] if element_values.get('sio2') else None,
+                'alkalinity': self._calculate_alkalinity(element_values)
+            }
+        
+        # Isotopic signatures
+        isotope_terms = ['sr', 'nd', 'pb', 'he', 'ar', 'radiogenic', 'stable isotope']
+        if any(term in text_lower for term in isotope_terms):
+            geochemical_analysis['isotopic_signatures'] = {
+                'isotope_systems': [term for term in isotope_terms if term in text_lower],
+                'source_characteristics': self._interpret_isotopes(text)
+            }
+        
+        return geochemical_analysis
+    
+    async def _analyze_geodetic_data(self, parameters: List[Dict[str, Any]], entities: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Analyze geodetic observations and deformation patterns"""
+        geodetic_analysis = {
+            'measurement_methods': {},
+            'deformation_patterns': {},
+            'velocity_fields': {},
+            'strain_analysis': {},
+            'temporal_behavior': {},
+            'source_modeling': {},
+            'precision_assessment': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Geodetic methods identification
+        geodetic_methods = {
+            'gps': ['gps', 'gnss', 'global positioning'],
+            'insar': ['insar', 'interferometry', 'radar'],
+            'leveling': ['leveling', 'precise leveling', 'spirit leveling'],
+            'tiltmeter': ['tilt', 'tiltmeter', 'inclinometer'],
+            'strainmeter': ['strain', 'strainmeter', 'extensometer']
+        }
+        
+        active_methods = {}
+        for method, terms in geodetic_methods.items():
+            if any(term in text_lower for term in terms):
+                active_methods[method] = True
+        
+        if active_methods:
+            geodetic_analysis['measurement_methods'] = {
+                'active_techniques': list(active_methods.keys()),
+                'spatial_coverage': 'regional' if len(active_methods) > 2 else 'local',
+                'temporal_sampling': 'continuous' if 'continuous' in text_lower else 'episodic'
+            }
+        
+        # Deformation pattern analysis
+        deformation_terms = ['uplift', 'subsidence', 'horizontal', 'vertical', 'displacement', 'velocity']
+        if any(term in text_lower for term in deformation_terms):
+            velocities = self._extract_parameter_values(parameters, ['velocity', 'rate', 'mm/yr', 'cm/yr'])
+            geodetic_analysis['deformation_patterns'] = {
+                'deformation_active': True,
+                'velocity_magnitudes': velocities,
+                'deformation_style': self._classify_deformation_style(text)
+            }
+        
+        return geodetic_analysis
+    
+    async def _analyze_seismological_context(self, parameters: List[Dict[str, Any]], entities: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Analyze seismological context and earthquake characteristics"""
+        seismological_analysis = {
+            'earthquake_characteristics': {},
+            'focal_mechanisms': {},
+            'seismic_wave_analysis': {},
+            'source_parameters': {},
+            'temporal_clustering': {},
+            'magnitude_frequency': {},
+            'stress_drop_analysis': {},
+            'seismic_hazard_context': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Earthquake magnitude analysis
+        magnitudes = self._extract_parameter_values(parameters, ['magnitude', 'mw', 'ml', 'mb', 'ms'])
+        if magnitudes:
+            seismological_analysis['earthquake_characteristics'] = {
+                'magnitude_range': [min(magnitudes), max(magnitudes)],
+                'average_magnitude': np.mean(magnitudes),
+                'large_events': [m for m in magnitudes if m > 5.0]
+            }
+        
+        # Focal mechanism analysis
+        mechanism_terms = ['focal mechanism', 'moment tensor', 'strike', 'dip', 'rake']
+        if any(term in text_lower for term in mechanism_terms):
+            seismological_analysis['focal_mechanisms'] = {
+                'mechanism_available': True,
+                'fault_plane_solutions': self._extract_fault_planes(text),
+                'stress_field_consistency': 'consistent' if 'consistent' in text_lower else 'variable'
+            }
+        
+        return seismological_analysis
+    
+    async def _analyze_temporal_evolution(self, extracted_knowledge: Dict[str, Any], text: str) -> Dict[str, Any]:
+        """Analyze temporal evolution patterns in geological processes"""
+        temporal_analysis = {
+            'time_scales': {},
+            'evolutionary_stages': {},
+            'cyclical_patterns': {},
+            'trend_analysis': {},
+            'event_sequences': {},
+            'chronological_framework': {},
+            'process_rates': {}
+        }
+        
+        text_lower = text.lower()
+        temporal_context = extracted_knowledge.get('spatial_temporal_context', {}).get('temporal_context', {})
+        
+        # Time scale identification
+        time_scales = {
+            'seconds_to_hours': ['seismic', 'eruption', 'explosion', 'collapse'],
+            'days_to_months': ['intrusion', 'unrest', 'precursor', 'deformation'],
+            'years_to_decades': ['cycle', 'repose', 'long-term', 'monitoring'],
+            'geological_time': ['formation', 'evolution', 'history', 'quaternary', 'pleistocene']
+        }
+        
+        for scale, indicators in time_scales.items():
+            if any(term in text_lower for term in indicators):
+                temporal_analysis['time_scales'][scale] = True
+        
+        # Extract time periods from temporal context
+        if temporal_context:
+            temporal_analysis['chronological_framework'] = {
+                'time_periods': temporal_context.get('time_periods', []),
+                'dating_methods': temporal_context.get('dating_methods', []),
+                'temporal_resolution': 'high' if len(temporal_context.get('time_periods', [])) > 5 else 'moderate'
+            }
+        
+        return temporal_analysis
+    
+    async def _analyze_multi_scale_processes(self, extracted_knowledge: Dict[str, Any], text: str) -> Dict[str, Any]:
+        """Analyze processes operating at multiple spatial and temporal scales"""
+        multi_scale_analysis = {
+            'scale_interactions': {},
+            'coupling_mechanisms': {},
+            'feedback_loops': {},
+            'emergent_properties': {},
+            'scale_dependent_processes': {},
+            'system_complexity': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Spatial scale analysis
+        spatial_scales = {
+            'microscale': ['crystal', 'grain', 'texture', 'microstructure'],
+            'mesoscale': ['outcrop', 'local', 'chamber', 'conduit'],
+            'macroscale': ['regional', 'crustal', 'lithospheric', 'plate']
+        }
+        
+        active_scales = {}
+        for scale, indicators in spatial_scales.items():
+            if any(term in text_lower for term in indicators):
+                active_scales[scale] = True
+        
+        if len(active_scales) > 1:
+            multi_scale_analysis['scale_interactions'] = {
+                'scales_involved': list(active_scales.keys()),
+                'interaction_complexity': 'high' if len(active_scales) > 2 else 'moderate'
+            }
+        
+        # Coupling mechanism identification
+        coupling_terms = ['coupling', 'feedback', 'interaction', 'control', 'influence']
+        if any(term in text_lower for term in coupling_terms):
+            multi_scale_analysis['coupling_mechanisms'] = {
+                'coupling_active': True,
+                'coupling_strength': 'strong' if 'strong' in text_lower else 'moderate'
+            }
+        
+        return multi_scale_analysis
+    
+    async def _analyze_geophysical_signatures(self, parameters: List[Dict[str, Any]], entities: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Analyze geophysical signatures and anomalies"""
+        geophysical_analysis = {
+            'gravity_anomalies': {},
+            'magnetic_signatures': {},
+            'electrical_properties': {},
+            'seismic_velocities': {},
+            'thermal_signatures': {},
+            'geophysical_modeling': {},
+            'anomaly_interpretation': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Gravity analysis
+        gravity_terms = ['gravity', 'bouguer', 'free-air', 'mgal', 'gravitational']
+        if any(term in text_lower for term in gravity_terms):
+            gravity_values = self._extract_parameter_values(parameters, ['gravity', 'mgal', 'bouguer'])
+            geophysical_analysis['gravity_anomalies'] = {
+                'anomaly_present': True,
+                'anomaly_values': gravity_values,
+                'anomaly_type': 'positive' if any('positive' in text_lower for _ in [1]) else 'negative' if 'negative' in text_lower else 'mixed'
+            }
+        
+        # Magnetic signatures
+        magnetic_terms = ['magnetic', 'aeromagnetic', 'nanotesla', 'magnetic anomaly']
+        if any(term in text_lower for term in magnetic_terms):
+            geophysical_analysis['magnetic_signatures'] = {
+                'magnetic_anomaly': True,
+                'anomaly_character': self._characterize_magnetic_anomaly(text)
+            }
+        
+        # Seismic velocity analysis
+        velocity_terms = ['velocity', 'vp', 'vs', 'km/s', 'seismic velocity']
+        if any(term in text_lower for term in velocity_terms):
+            velocities = self._extract_parameter_values(parameters, ['velocity', 'vp', 'vs', 'km/s'])
+            if velocities:
+                geophysical_analysis['seismic_velocities'] = {
+                    'velocity_values': velocities,
+                    'velocity_structure': self._interpret_velocity_structure(velocities, text)
+                }
+        
+        return geophysical_analysis
+    
+    async def _analyze_mineral_physics(self, entities: List[Dict[str, Any]], parameters: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Analyze mineral physics properties and processes"""
+        mineral_physics = {
+            'elastic_properties': {},
+            'thermal_properties': {},
+            'phase_transitions': {},
+            'crystal_structure': {},
+            'defect_chemistry': {},
+            'transport_properties': {},
+            'stability_fields': {}
+        }
+        
+        text_lower = text.lower()
+        
+        # Elastic properties
+        elastic_terms = ['elastic', 'modulus', 'poisson', 'bulk modulus', 'shear modulus']
+        if any(term in text_lower for term in elastic_terms):
+            elastic_values = self._extract_parameter_values(parameters, ['modulus', 'gpa', 'elastic'])
+            mineral_physics['elastic_properties'] = {
+                'elastic_data_available': True,
+                'modulus_values': elastic_values,
+                'anisotropy': 'anisotropic' in text_lower
+            }
+        
+        # Thermal properties
+        thermal_terms = ['thermal', 'conductivity', 'expansion', 'diffusivity', 'capacity']
+        if any(term in text_lower for term in thermal_terms):
+            mineral_physics['thermal_properties'] = {
+                'thermal_data_available': True,
+                'thermal_behavior': self._analyze_thermal_behavior(text)
+            }
+        
+        # Phase transitions
+        transition_terms = ['phase transition', 'polymorphic', 'transformation', 'stability']
+        if any(term in text_lower for term in transition_terms):
+            mineral_physics['phase_transitions'] = {
+                'transitions_present': True,
+                'transition_conditions': self._extract_transition_conditions(parameters, text)
+            }
+        
+        return mineral_physics
+    
+    # Utility methods for supporting the analysis functions
+    
+    def _extract_parameter_values(self, parameters: List[Dict[str, Any]], keywords: List[str]) -> List[float]:
+        """Extract numerical values from parameters matching keywords"""
+        values = []
+        for param in parameters:
+            if isinstance(param, dict):
+                param_name = param.get('name', '').lower()
+                param_value = param.get('value')
+                
+                if any(keyword.lower() in param_name for keyword in keywords) and param_value:
+                    try:
+                        if isinstance(param_value, (int, float)):
+                            values.append(float(param_value))
+                        elif isinstance(param_value, str):
+                            # Extract numerical values from strings
+                            import re
+                            numbers = re.findall(r'[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?', param_value)
+                            values.extend([float(num) for num in numbers])
+                    except (ValueError, TypeError):
+                        continue
+        return values
+    
+    def _classify_mineral_assemblage(self, minerals: List[str]) -> str:
+        """Classify mineral assemblage type"""
+        if 'quartz' in minerals and 'feldspar' in minerals:
+            return 'granitic'
+        elif 'olivine' in minerals and 'pyroxene' in minerals:
+            return 'mafic'
+        elif 'garnet' in minerals:
+            return 'metamorphic'
+        else:
+            return 'unclassified'
+    
+    def _infer_stability_conditions(self, minerals: List[str], text: str) -> Dict[str, str]:
+        """Infer P-T conditions from mineral assemblage"""
+        conditions = {}
+        text_lower = text.lower()
+        
+        if 'garnet' in minerals:
+            conditions['pressure'] = 'high'
+        if 'amphibole' in minerals:
+            conditions['water_activity'] = 'high'
+        if 'high' in text_lower and 'temperature' in text_lower:
+            conditions['temperature'] = 'high'
+            
+        return conditions
+    
+    def _extract_compositions(self, entities: List[Dict[str, Any]], text: str) -> List[str]:
+        """Extract compositional information"""
+        compositions = []
+        composition_terms = ['basalt', 'andesite', 'dacite', 'rhyolite', 'mafic', 'felsic']
+        
+        for entity in entities:
+            if entity.get('text', '').lower() in composition_terms:
+                compositions.append(entity['text'].lower())
+        
+        for term in composition_terms:
+            if term in text.lower():
+                compositions.append(term)
+        
+        return list(set(compositions))
+    
+    def _extract_crystal_phases(self, entities: List[Dict[str, Any]], text: str) -> List[str]:
+        """Extract crystal phases mentioned in text"""
+        phases = []
+        crystal_terms = ['olivine', 'pyroxene', 'plagioclase', 'quartz', 'feldspar', 'mica', 'amphibole']
+        
+        for term in crystal_terms:
+            if term in text.lower():
+                phases.append(term)
+        
+        return phases
+    
+    # Additional utility methods for comprehensive analysis
+    
+    def _extract_magnitude_values(self, parameters: List[Dict[str, Any]], text: str) -> List[float]:
+        """Extract earthquake magnitude values"""
+        return self._extract_parameter_values(parameters, ['magnitude', 'mw', 'ml', 'mb', 'ms'])
+    
+    def _extract_depth_distribution(self, parameters: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Extract depth distribution information"""
+        depths = self._extract_parameter_values(parameters, ['depth', 'hypocenter depth', 'focal depth'])
+        if depths:
+            return {
+                'depth_range': [min(depths), max(depths)],
+                'average_depth': np.mean(depths),
+                'shallow_events': [d for d in depths if d < 10],
+                'deep_events': [d for d in depths if d > 50]
+            }
+        return {}
+    
+    def _extract_seismic_intensity(self, extracted_knowledge: Dict[str, Any], text: str) -> str:
+        """Extract seismic intensity information"""
+        if 'high' in text.lower() or 'strong' in text.lower():
+            return 'high'
+        elif 'moderate' in text.lower():
+            return 'moderate'
+        elif 'low' in text.lower() or 'weak' in text.lower():
+            return 'low'
+        return 'unknown'
+    
+    def _classify_deformation_rate(self, extracted_knowledge: Dict[str, Any]) -> str:
+        """Classify deformation rate"""
+        parameters = extracted_knowledge.get('parameters', [])
+        rates = self._extract_parameter_values(parameters, ['rate', 'velocity', 'mm/yr'])
+        if rates:
+            max_rate = max(rates)
+            if max_rate > 10:
+                return 'fast'
+            elif max_rate > 1:
+                return 'moderate'
+            else:
+                return 'slow'
+        return 'unknown'
+    
+    def _identify_triggers(self, text: str) -> List[str]:
+        """Identify triggering mechanisms"""
+        triggers = []
+        trigger_terms = ['earthquake', 'rainfall', 'volcanic', 'anthropogenic', 'tidal']
+        for term in trigger_terms:
+            if term in text.lower():
+                triggers.append(term)
+        return triggers
+    
+    def _analyze_fold_geometry(self, text: str) -> Dict[str, str]:
+        """Analyze fold geometry characteristics"""
+        geometry = {}
+        if 'tight' in text.lower():
+            geometry['tightness'] = 'tight'
+        elif 'open' in text.lower():
+            geometry['tightness'] = 'open'
+        if 'upright' in text.lower():
+            geometry['attitude'] = 'upright'
+        elif 'overturned' in text.lower():
+            geometry['attitude'] = 'overturned'
+        return geometry
+    
+    def _extract_orientations(self, text: str) -> List[str]:
+        """Extract structural orientations"""
+        orientations = []
+        import re
+        # Look for strike/dip measurements
+        strike_dip = re.findall(r'\b(\d{1,3})/(\d{1,2})\b', text)
+        orientations.extend([f"{s}/{d}" for s, d in strike_dip])
+        return orientations
+    
+    def _analyze_fault_kinematics(self, text: str) -> Dict[str, Any]:
+        """Analyze fault kinematics"""
+        kinematics = {}
+        if 'normal' in text.lower():
+            kinematics['fault_type'] = 'normal'
+        elif 'reverse' in text.lower() or 'thrust' in text.lower():
+            kinematics['fault_type'] = 'reverse'
+        elif 'strike-slip' in text.lower():
+            kinematics['fault_type'] = 'strike-slip'
+        
+        if 'dextral' in text.lower() or 'right-lateral' in text.lower():
+            kinematics['sense'] = 'dextral'
+        elif 'sinistral' in text.lower() or 'left-lateral' in text.lower():
+            kinematics['sense'] = 'sinistral'
+        
+        return kinematics
+    
+    def _calculate_alkalinity(self, element_values: Dict[str, List[float]]) -> str:
+        """Calculate alkalinity from major elements"""
+        try:
+            na2o = element_values.get('na2o', [0])[0]
+            k2o = element_values.get('k2o', [0])[0]
+            total_alkali = na2o + k2o
+            
+            if total_alkali > 8:
+                return 'alkaline'
+            elif total_alkali > 5:
+                return 'sub-alkaline'
+            else:
+                return 'tholeiitic'
+        except (IndexError, TypeError):
+            return 'unknown'
+    
+    def _interpret_isotopes(self, text: str) -> Dict[str, str]:
+        """Interpret isotopic signatures"""
+        interpretation = {}
+        if 'depleted' in text.lower():
+            interpretation['mantle_source'] = 'depleted'
+        elif 'enriched' in text.lower():
+            interpretation['mantle_source'] = 'enriched'
+        if 'crustal' in text.lower():
+            interpretation['contamination'] = 'crustal'
+        return interpretation
+    
+    def _classify_deformation_style(self, text: str) -> str:
+        """Classify deformation style"""
+        if 'uplift' in text.lower():
+            return 'uplift'
+        elif 'subsidence' in text.lower():
+            return 'subsidence'
+        elif 'horizontal' in text.lower():
+            return 'horizontal'
+        else:
+            return 'mixed'
+    
+    def _extract_fault_planes(self, text: str) -> List[Dict[str, Any]]:
+        """Extract fault plane solutions"""
+        planes = []
+        import re
+        # Look for strike/dip/rake measurements
+        sdr_pattern = r'(\d{1,3})[°/]\s*(\d{1,2})[°/]\s*(-?\d{1,3})'
+        matches = re.findall(sdr_pattern, text)
+        for strike, dip, rake in matches:
+            planes.append({
+                'strike': int(strike),
+                'dip': int(dip),
+                'rake': int(rake)
+            })
+        return planes
+    
+    def _characterize_magnetic_anomaly(self, text: str) -> Dict[str, str]:
+        """Characterize magnetic anomaly"""
+        character = {}
+        if 'positive' in text.lower():
+            character['polarity'] = 'positive'
+        elif 'negative' in text.lower():
+            character['polarity'] = 'negative'
+        if 'linear' in text.lower():
+            character['geometry'] = 'linear'
+        elif 'circular' in text.lower():
+            character['geometry'] = 'circular'
+        return character
+    
+    def _interpret_velocity_structure(self, velocities: List[float], text: str) -> Dict[str, Any]:
+        """Interpret seismic velocity structure"""
+        interpretation = {}
+        if velocities:
+            mean_vel = np.mean(velocities)
+            if mean_vel < 3.0:
+                interpretation['material'] = 'sedimentary'
+            elif mean_vel < 6.0:
+                interpretation['material'] = 'crustal'
+            else:
+                interpretation['material'] = 'mantle'
+        return interpretation
+    
+    def _analyze_thermal_behavior(self, text: str) -> Dict[str, str]:
+        """Analyze thermal behavior"""
+        behavior = {}
+        if 'high' in text.lower() and 'conductivity' in text.lower():
+            behavior['conductivity'] = 'high'
+        if 'expansion' in text.lower():
+            behavior['expansion'] = 'present'
+        return behavior
+    
+    def _extract_transition_conditions(self, parameters: List[Dict[str, Any]], text: str) -> Dict[str, Any]:
+        """Extract phase transition conditions"""
+        conditions = {}
+        pressures = self._extract_parameter_values(parameters, ['pressure', 'gpa'])
+        temperatures = self._extract_parameter_values(parameters, ['temperature', 'celsius', 'kelvin'])
+        
+        if pressures:
+            conditions['pressure_range'] = [min(pressures), max(pressures)]
+        if temperatures:
+            conditions['temperature_range'] = [min(temperatures), max(temperatures)]
+        
+        return conditions
+    
     async def _split_text_into_chunks(self, text: str, max_length: int = 512, overlap: int = 50) -> List[str]:
         """Split text into overlapping chunks for processing."""
         words = text.split()
@@ -27325,18 +29260,64 @@ class RealTimeAnomalyDetectionSystem:
             return []
     
     async def _is_geological_term(self, term: str) -> bool:
-        """Check if a term is geological using domain knowledge."""
+        """Check if a term is geological using comprehensive domain knowledge."""
         geological_terms = {
-            'magma', 'lava', 'volcano', 'eruption', 'pyroclastic', 'tephra', 'ash',
-            'basalt', 'andesite', 'dacite', 'rhyolite', 'phonolite', 'trachyte',
-            'plutonic', 'intrusive', 'extrusive', 'dike', 'sill', 'batholith',
-            'seismic', 'earthquake', 'fault', 'fracture', 'stress', 'strain',
-            'deformation', 'uplift', 'subsidence', 'tilting', 'displacement',
-            'geothermal', 'hydrothermal', 'fumarole', 'hot_spring', 'geyser',
-            'mineral', 'crystal', 'olivine', 'pyroxene', 'plagioclase', 'quartz',
-            'stratovolcano', 'caldera', 'crater', 'dome', 'shield', 'cinder',
-            'mantle', 'crust', 'lithosphere', 'asthenosphere', 'subduction',
-            'viscosity', 'volatile', 'degassing', 'crystallization', 'differentiation'
+            # Volcanic terms
+            'magma', 'lava', 'volcano', 'eruption', 'pyroclastic', 'tephra', 'ash', 'pumice', 'scoria', 'lapilli',
+            'basalt', 'andesite', 'dacite', 'rhyolite', 'phonolite', 'trachyte', 'latite', 'hawaiite', 'mugearite',
+            'plutonic', 'intrusive', 'extrusive', 'dike', 'sill', 'batholith', 'stock', 'laccolith', 'lopolith',
+            'stratovolcano', 'caldera', 'crater', 'dome', 'shield', 'cinder', 'maar', 'tuff', 'ignimbrite',
+            'vesicles', 'phenocrysts', 'groundmass', 'matrix', 'xenolith', 'enclave', 'inclusion',
+            
+            # Tectonic terms
+            'seismic', 'earthquake', 'fault', 'fracture', 'stress', 'strain', 'shear', 'normal', 'reverse', 'thrust',
+            'deformation', 'uplift', 'subsidence', 'tilting', 'displacement', 'offset', 'slip', 'rake',
+            'plate', 'tectonic', 'subduction', 'convergent', 'divergent', 'transform', 'spreading', 'ridge',
+            'trench', 'arc', 'back-arc', 'fore-arc', 'accretionary', 'collision', 'extension', 'compression',
+            'transpression', 'transtension', 'strike-slip', 'dip-slip', 'oblique', 'listric', 'detachment',
+            
+            # Structural geology
+            'fold', 'anticline', 'syncline', 'monocline', 'dome', 'basin', 'horst', 'graben', 'rift',
+            'joint', 'cleavage', 'foliation', 'lineation', 'schistosity', 'gneissosity', 'mylonite',
+            'breccia', 'cataclasite', 'gouge', 'slickenside', 'striations', 'kinematic', 'paleostress',
+            
+            # Geothermal and hydrothermal
+            'geothermal', 'hydrothermal', 'fumarole', 'hot_spring', 'geyser', 'solfatara', 'mofette',
+            'alteration', 'metasomatism', 'propylitic', 'argillic', 'phyllic', 'potassic', 'silicification',
+            
+            # Mineralogy and petrology
+            'mineral', 'crystal', 'olivine', 'pyroxene', 'plagioclase', 'quartz', 'feldspar', 'biotite', 'muscovite',
+            'hornblende', 'actinolite', 'chlorite', 'epidote', 'garnet', 'staurolite', 'andalusite', 'sillimanite',
+            'kyanite', 'cordierite', 'magnetite', 'hematite', 'ilmenite', 'pyrite', 'pyrrhotite', 'chalcopyrite',
+            'sphalerite', 'galena', 'calcite', 'dolomite', 'gypsum', 'anhydrite', 'halite', 'fluorite',
+            
+            # Rock types
+            'igneous', 'sedimentary', 'metamorphic', 'granite', 'granodiorite', 'tonalite', 'diorite', 'gabbro',
+            'peridotite', 'dunite', 'pyroxenite', 'limestone', 'sandstone', 'shale', 'mudstone', 'conglomerate',
+            'gneiss', 'schist', 'slate', 'phyllite', 'amphibolite', 'granulite', 'eclogite', 'blueschist',
+            
+            # Earth structure
+            'mantle', 'crust', 'lithosphere', 'asthenosphere', 'mesosphere', 'core', 'moho', 'discontinuity',
+            'upper_mantle', 'lower_mantle', 'transition_zone', 'oceanic_crust', 'continental_crust',
+            
+            # Processes
+            'viscosity', 'volatile', 'degassing', 'crystallization', 'differentiation', 'fractionation',
+            'assimilation', 'contamination', 'mixing', 'mingling', 'hybridization', 'anatexis', 'melting',
+            'solidification', 'cooling', 'heating', 'metamorphism', 'weathering', 'erosion', 'sedimentation',
+            
+            # Geophysical terms
+            'gravity', 'magnetic', 'electrical', 'seismic', 'refraction', 'reflection', 'tomography',
+            'anisotropy', 'velocity', 'attenuation', 'amplitude', 'frequency', 'wavelength', 'impedance',
+            'insar', 'gps', 'gnss', 'leveling', 'tiltmeter', 'strainmeter', 'extensometer', 'gravimeter',
+            
+            # Geochemical terms
+            'isotope', 'radiogenic', 'stable', 'fractionation', 'discrimination', 'trace_element', 'ree',
+            'major_element', 'silica', 'alkali', 'mafic', 'felsic', 'ultramafic', 'calc-alkaline', 'tholeiitic',
+            
+            # Time-related terms
+            'precambrian', 'paleozoic', 'mesozoic', 'cenozoic', 'quaternary', 'pleistocene', 'holocene',
+            'archean', 'proterozoic', 'cambrian', 'ordovician', 'silurian', 'devonian', 'carboniferous',
+            'permian', 'triassic', 'jurassic', 'cretaceous', 'paleogene', 'neogene'
         }
         
         return term.lower() in geological_terms or any(geo_term in term.lower() for geo_term in geological_terms)
@@ -28133,3 +30114,890 @@ class RealTimeAnomalyDetectionSystem:
                 final_relationships.append(rel)
         
         return final_relationships
+
+    # ===============================
+    # Reinforcement Learning Recommendation System
+    # ===============================
+    
+    async def initialize_rl_recommendation_system(self) -> Dict[str, Any]:
+        """Initialize the reinforcement learning recommendation system with multiple RL algorithms."""
+        try:
+            # Initialize RL environment
+            self.rl_environment = GeologicalMonitoringEnvironment(
+                state_dimensions=self.config.rl_state_dimensions,
+                action_space_size=self.config.rl_action_space_size,
+                reward_function=self._geological_reward_function
+            )
+            
+            # Initialize multiple RL agents
+            self.rl_agents = {
+                'dqn': DQNAgent(
+                    state_size=self.config.rl_state_dimensions,
+                    action_size=self.config.rl_action_space_size,
+                    learning_rate=self.config.dqn_learning_rate,
+                    epsilon_decay=self.config.dqn_epsilon_decay
+                ),
+                'ddpg': DDPGAgent(
+                    state_size=self.config.rl_state_dimensions,
+                    action_size=self.config.rl_action_space_size,
+                    actor_lr=self.config.ddpg_actor_lr,
+                    critic_lr=self.config.ddpg_critic_lr
+                ),
+                'ppo': PPOAgent(
+                    state_size=self.config.rl_state_dimensions,
+                    action_size=self.config.rl_action_space_size,
+                    learning_rate=self.config.ppo_learning_rate,
+                    clip_epsilon=self.config.ppo_clip_epsilon
+                ),
+                'a3c': A3CAgent(
+                    state_size=self.config.rl_state_dimensions,
+                    action_size=self.config.rl_action_space_size,
+                    learning_rate=self.config.a3c_learning_rate,
+                    num_workers=self.config.a3c_num_workers
+                ),
+                'sac': SACAgent(
+                    state_size=self.config.rl_state_dimensions,
+                    action_size=self.config.rl_action_space_size,
+                    learning_rate=self.config.sac_learning_rate,
+                    temperature=self.config.sac_temperature
+                ),
+                'td3': TD3Agent(
+                    state_size=self.config.rl_state_dimensions,
+                    action_size=self.config.rl_action_space_size,
+                    actor_lr=self.config.td3_actor_lr,
+                    critic_lr=self.config.td3_critic_lr
+                )
+            }
+            
+            # Initialize experience replay buffer
+            self.replay_buffer = PrioritizedReplayBuffer(
+                capacity=self.config.replay_buffer_capacity,
+                alpha=self.config.prioritized_alpha,
+                beta=self.config.prioritized_beta
+            )
+            
+            # Initialize ensemble manager
+            self.rl_ensemble = RLEnsembleManager(
+                agents=self.rl_agents,
+                voting_strategy=self.config.ensemble_voting_strategy,
+                confidence_threshold=self.config.ensemble_confidence_threshold
+            )
+            
+            # Initialize recommendation history
+            self.recommendation_history = []
+            self.performance_metrics = {}
+            
+            return {
+                'status': 'success',
+                'agents_initialized': len(self.rl_agents),
+                'environment_ready': True,
+                'replay_buffer_capacity': self.config.replay_buffer_capacity
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error initializing RL recommendation system: {str(e)}")
+            return {'status': 'error', 'message': str(e)}
+
+    async def generate_monitoring_recommendations(self, current_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate monitoring recommendations using ensemble RL approach."""
+        try:
+            # Encode current geological state
+            state_vector = await self._encode_geological_state(current_state)
+            
+            # Get recommendations from all RL agents
+            agent_recommendations = {}
+            for agent_name, agent in self.rl_agents.items():
+                try:
+                    action = agent.predict(state_vector)
+                    confidence = agent.get_confidence(state_vector, action)
+                    
+                    agent_recommendations[agent_name] = {
+                        'action': action,
+                        'confidence': confidence,
+                        'reasoning': await self._get_agent_reasoning(agent_name, state_vector, action)
+                    }
+                except Exception as e:
+                    self.logger.warning(f"Agent {agent_name} failed: {str(e)}")
+                    agent_recommendations[agent_name] = {
+                        'action': None,
+                        'confidence': 0.0,
+                        'error': str(e)
+                    }
+            
+            # Generate ensemble recommendation
+            ensemble_recommendation = await self.rl_ensemble.generate_ensemble_recommendation(
+                agent_recommendations, state_vector
+            )
+            
+            # Decode actions to human-readable recommendations
+            decoded_recommendations = await self._decode_recommendations(ensemble_recommendation)
+            
+            # Add contextual information
+            contextual_recommendations = await self._add_geological_context(
+                decoded_recommendations, current_state
+            )
+            
+            # Store recommendation for learning
+            self.recommendation_history.append({
+                'timestamp': datetime.now(),
+                'state': current_state,
+                'recommendations': contextual_recommendations,
+                'agent_votes': agent_recommendations
+            })
+            
+            return {
+                'status': 'success',
+                'recommendations': contextual_recommendations,
+                'confidence': ensemble_recommendation.get('confidence', 0.0),
+                'contributing_agents': len([r for r in agent_recommendations.values() if r['action'] is not None]),
+                'reasoning': ensemble_recommendation.get('reasoning', {})
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error generating RL recommendations: {str(e)}")
+            return {'status': 'error', 'message': str(e)}
+
+    async def train_rl_agents(self, training_episodes: int = 1000) -> Dict[str, Any]:
+        """Train all RL agents with geological monitoring scenarios."""
+        try:
+            training_results = {}
+            
+            for agent_name, agent in self.rl_agents.items():
+                self.logger.info(f"Training {agent_name} agent...")
+                
+                episode_rewards = []
+                episode_losses = []
+                
+                for episode in range(training_episodes):
+                    # Reset environment
+                    state = self.rl_environment.reset()
+                    episode_reward = 0
+                    episode_loss = 0
+                    done = False
+                    step = 0
+                    
+                    while not done and step < self.config.max_episode_steps:
+                        # Agent action
+                        action = agent.act(state)
+                        
+                        # Environment step
+                        next_state, reward, done, info = self.rl_environment.step(action)
+                        
+                        # Store experience
+                        experience = (state, action, reward, next_state, done)
+                        self.replay_buffer.add(experience)
+                        
+                        # Train agent
+                        if len(self.replay_buffer) > self.config.min_replay_size:
+                            batch = self.replay_buffer.sample(self.config.batch_size)
+                            loss = agent.train(batch)
+                            episode_loss += loss
+                        
+                        state = next_state
+                        episode_reward += reward
+                        step += 1
+                    
+                    episode_rewards.append(episode_reward)
+                    episode_losses.append(episode_loss)
+                    
+                    # Update exploration rate
+                    agent.update_exploration()
+                    
+                    # Log progress
+                    if episode % 100 == 0:
+                        avg_reward = np.mean(episode_rewards[-100:])
+                        self.logger.info(f"{agent_name} Episode {episode}: Avg Reward = {avg_reward:.4f}")
+                
+                training_results[agent_name] = {
+                    'final_avg_reward': np.mean(episode_rewards[-100:]),
+                    'final_avg_loss': np.mean(episode_losses[-100:]),
+                    'total_episodes': training_episodes,
+                    'convergence_episode': self._find_convergence_episode(episode_rewards)
+                }
+            
+            # Update performance metrics
+            self.performance_metrics['training_results'] = training_results
+            self.performance_metrics['last_training'] = datetime.now()
+            
+            return {
+                'status': 'success',
+                'training_results': training_results,
+                'agents_trained': len(self.rl_agents)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error training RL agents: {str(e)}")
+            return {'status': 'error', 'message': str(e)}
+
+    async def update_rl_system_with_feedback(self, recommendation_id: str, feedback: Dict[str, Any]) -> Dict[str, Any]:
+        """Update RL system based on user feedback and outcomes."""
+        try:
+            # Find the corresponding recommendation
+            recommendation = None
+            for rec in self.recommendation_history:
+                if rec.get('id') == recommendation_id:
+                    recommendation = rec
+                    break
+            
+            if not recommendation:
+                return {'status': 'error', 'message': 'Recommendation not found'}
+            
+            # Calculate reward based on feedback
+            reward = await self._calculate_feedback_reward(feedback)
+            
+            # Update agents that contributed to the recommendation
+            for agent_name, agent_vote in recommendation['agent_votes'].items():
+                if agent_vote['action'] is not None:
+                    try:
+                        # Create experience for replay buffer
+                        state = await self._encode_geological_state(recommendation['state'])
+                        action = agent_vote['action']
+                        next_state = await self._encode_geological_state(feedback.get('resulting_state', {}))
+                        
+                        experience = (state, action, reward, next_state, True)
+                        self.replay_buffer.add(experience)
+                        
+                        # Train agent with feedback
+                        if len(self.replay_buffer) > self.config.min_replay_size:
+                            batch = self.replay_buffer.sample(self.config.batch_size)
+                            self.rl_agents[agent_name].train(batch)
+                        
+                    except Exception as e:
+                        self.logger.warning(f"Failed to update agent {agent_name}: {str(e)}")
+            
+            # Update ensemble weights based on individual agent performance
+            await self.rl_ensemble.update_agent_weights(feedback, recommendation['agent_votes'])
+            
+            # Store feedback for future analysis
+            recommendation['feedback'] = feedback
+            recommendation['reward'] = reward
+            recommendation['feedback_timestamp'] = datetime.now()
+            
+            return {
+                'status': 'success',
+                'reward': reward,
+                'agents_updated': len([v for v in recommendation['agent_votes'].values() if v['action'] is not None])
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error updating RL system with feedback: {str(e)}")
+            return {'status': 'error', 'message': str(e)}
+
+    # Supporting classes for RL system
+    
+class GeologicalMonitoringEnvironment:
+    """RL Environment for geological monitoring scenarios."""
+    
+    def __init__(self, state_dimensions: int, action_space_size: int, reward_function):
+        self.state_dimensions = state_dimensions
+        self.action_space_size = action_space_size
+        self.reward_function = reward_function
+        self.current_state = None
+        self.episode_step = 0
+        self.max_steps = 1000
+        
+    def reset(self) -> np.ndarray:
+        """Reset environment to initial state."""
+        self.current_state = self._generate_initial_state()
+        self.episode_step = 0
+        return self.current_state
+    
+    def step(self, action: int) -> tuple:
+        """Take action and return next state, reward, done, info."""
+        next_state = self._simulate_next_state(self.current_state, action)
+        reward = self.reward_function(self.current_state, action, next_state)
+        
+        self.episode_step += 1
+        done = self.episode_step >= self.max_steps or self._is_terminal_state(next_state)
+        
+        info = {
+            'step': self.episode_step,
+            'action_taken': action,
+            'state_transition': True
+        }
+        
+        self.current_state = next_state
+        return next_state, reward, done, info
+    
+    def _generate_initial_state(self) -> np.ndarray:
+        """Generate realistic initial volcanic monitoring state."""
+        # Create baseline geological state with random variations
+        state = np.random.normal(0.0, 0.1, self.state_dimensions)
+        
+        # Add some realistic geological patterns
+        # Seismic features (first 6 dimensions)
+        state[0] = np.random.exponential(2.0)  # Magnitude
+        state[1] = np.random.uniform(0, 50)    # Depth
+        state[2] = np.random.exponential(1.0)  # Frequency
+        state[3] = np.random.poisson(5)        # Event count
+        state[4] = np.random.normal(1.0, 0.2)  # b-value
+        
+        return state.astype(np.float32)
+    
+    def _simulate_next_state(self, current_state: np.ndarray, action: int) -> np.ndarray:
+        """Simulate next state based on current state and action."""
+        next_state = current_state.copy()
+        
+        # Add temporal evolution
+        noise = np.random.normal(0.0, 0.05, len(current_state))
+        next_state += noise
+        
+        # Action-dependent state changes
+        if action == 0:  # Increase seismic monitoring
+            next_state[0] *= 0.95  # Better magnitude detection
+        elif action == 1:  # Deploy instruments
+            next_state[10:15] *= 1.1  # Improved deformation data
+        elif action == 2:  # Gas monitoring
+            next_state[15:20] *= 1.05  # Better gas measurements
+        
+        return next_state
+    
+    def _is_terminal_state(self, state: np.ndarray) -> bool:
+        """Check if state represents terminal condition."""
+        # Terminal if extreme values detected
+        return np.any(np.abs(state) > 5.0)
+
+class PrioritizedReplayBuffer:
+    """Prioritized Experience Replay Buffer for RL training."""
+    
+    def __init__(self, capacity: int, alpha: float = 0.6, beta: float = 0.4):
+        self.capacity = capacity
+        self.alpha = alpha
+        self.beta = beta
+        self.buffer = []
+        self.priorities = np.zeros(capacity)
+        self.position = 0
+        
+    def add(self, experience: tuple):
+        """Add experience to buffer with maximum priority."""
+        max_priority = np.max(self.priorities) if self.buffer else 1.0
+        
+        if len(self.buffer) < self.capacity:
+            self.buffer.append(experience)
+        else:
+            self.buffer[self.position] = experience
+        
+        self.priorities[self.position] = max_priority
+        self.position = (self.position + 1) % self.capacity
+    
+    def sample(self, batch_size: int) -> tuple:
+        """Sample batch of experiences based on priorities."""
+        if len(self.buffer) < batch_size:
+            batch_size = len(self.buffer)
+        
+        # Calculate probabilities
+        priorities = self.priorities[:len(self.buffer)]
+        probabilities = priorities ** self.alpha
+        probabilities /= probabilities.sum()
+        
+        # Sample indices
+        indices = np.random.choice(len(self.buffer), batch_size, p=probabilities)
+        
+        # Sample experiences
+        batch = [self.buffer[i] for i in indices]
+        
+        # Calculate importance sampling weights
+        weights = (len(self.buffer) * probabilities[indices]) ** (-self.beta)
+        weights /= weights.max()
+        
+        return batch, indices, weights
+    
+    def update_priorities(self, indices: np.ndarray, priorities: np.ndarray):
+        """Update priorities based on TD errors."""
+        for idx, priority in zip(indices, priorities):
+            self.priorities[idx] = priority + 1e-6  # Small epsilon for numerical stability
+    
+    def __len__(self):
+        return len(self.buffer)
+
+class RLEnsembleManager:
+    """Manages ensemble of RL agents for recommendation generation."""
+    
+    def __init__(self, agents: Dict, voting_strategy: str = 'weighted', confidence_threshold: float = 0.6):
+        self.agents = agents
+        self.voting_strategy = voting_strategy
+        self.confidence_threshold = confidence_threshold
+        self.agent_weights = {name: 1.0 for name in agents.keys()}
+        self.performance_history = {name: [] for name in agents.keys()}
+    
+    async def generate_ensemble_recommendation(self, agent_recommendations: Dict, state_vector: np.ndarray) -> Dict[str, Any]:
+        """Generate ensemble recommendation from individual agent outputs."""
+        try:
+            valid_recommendations = {
+                name: rec for name, rec in agent_recommendations.items() 
+                if rec['action'] is not None and rec['confidence'] > 0.1
+            }
+            
+            if not valid_recommendations:
+                return {
+                    'actions': [],
+                    'confidence': 0.0,
+                    'reasoning': {'error': 'No valid agent recommendations'}
+                }
+            
+            if self.voting_strategy == 'weighted':
+                return await self._weighted_voting(valid_recommendations, state_vector)
+            elif self.voting_strategy == 'majority':
+                return await self._majority_voting(valid_recommendations)
+            elif self.voting_strategy == 'confidence_based':
+                return await self._confidence_based_voting(valid_recommendations)
+            else:
+                return await self._weighted_voting(valid_recommendations, state_vector)
+            
+        except Exception as e:
+            return {
+                'actions': [],
+                'confidence': 0.0,
+                'reasoning': {'error': f'Ensemble generation failed: {str(e)}'}
+            }
+    
+    async def _weighted_voting(self, recommendations: Dict, state_vector: np.ndarray) -> Dict[str, Any]:
+        """Generate recommendation using weighted voting."""
+        action_scores = {}
+        total_weight = 0.0
+        
+        for agent_name, rec in recommendations.items():
+            weight = self.agent_weights[agent_name] * rec['confidence']
+            action = rec['action']
+            
+            if action not in action_scores:
+                action_scores[action] = 0.0
+            
+            action_scores[action] += weight
+            total_weight += weight
+        
+        # Normalize scores
+        if total_weight > 0:
+            for action in action_scores:
+                action_scores[action] /= total_weight
+        
+        # Select top actions
+        sorted_actions = sorted(action_scores.items(), key=lambda x: x[1], reverse=True)
+        selected_actions = [
+            {
+                'type': action,
+                'confidence': score,
+                'parameters': self._get_action_parameters(action, recommendations)
+            }
+            for action, score in sorted_actions[:3] if score > 0.1
+        ]
+        
+        ensemble_confidence = max(action_scores.values()) if action_scores else 0.0
+        
+        return {
+            'actions': selected_actions,
+            'confidence': ensemble_confidence,
+            'reasoning': {
+                'voting_method': 'weighted',
+                'agent_contributions': {name: rec['confidence'] for name, rec in recommendations.items()},
+                'action_scores': action_scores
+            }
+        }
+    
+    async def _majority_voting(self, recommendations: Dict) -> Dict[str, Any]:
+        """Generate recommendation using majority voting."""
+        action_votes = {}
+        
+        for agent_name, rec in recommendations.items():
+            action = rec['action']
+            if action not in action_votes:
+                action_votes[action] = []
+            action_votes[action].append(agent_name)
+        
+        # Select action with most votes
+        if action_votes:
+            best_action = max(action_votes.keys(), key=lambda x: len(action_votes[x]))
+            confidence = len(action_votes[best_action]) / len(recommendations)
+            
+            return {
+                'actions': [{
+                    'type': best_action,
+                    'confidence': confidence,
+                    'parameters': {}
+                }],
+                'confidence': confidence,
+                'reasoning': {
+                    'voting_method': 'majority',
+                    'action_votes': {str(k): len(v) for k, v in action_votes.items()}
+                }
+            }
+        
+        return {'actions': [], 'confidence': 0.0, 'reasoning': {'error': 'No valid actions'}}
+    
+    async def _confidence_based_voting(self, recommendations: Dict) -> Dict[str, Any]:
+        """Select recommendation based on highest confidence."""
+        best_rec = max(recommendations.items(), key=lambda x: x[1]['confidence'])
+        agent_name, rec = best_rec
+        
+        return {
+            'actions': [{
+                'type': rec['action'],
+                'confidence': rec['confidence'],
+                'parameters': {}
+            }],
+            'confidence': rec['confidence'],
+            'reasoning': {
+                'voting_method': 'confidence_based',
+                'selected_agent': agent_name,
+                'agent_confidence': rec['confidence']
+            }
+        }
+    
+    def _get_action_parameters(self, action: int, recommendations: Dict) -> Dict[str, Any]:
+        """Get averaged parameters for action from contributing agents."""
+        parameters = {}
+        contributing_agents = [
+            name for name, rec in recommendations.items() 
+            if rec['action'] == action
+        ]
+        
+        if contributing_agents:
+            parameters['contributing_agents'] = contributing_agents
+            parameters['avg_confidence'] = np.mean([
+                recommendations[name]['confidence'] for name in contributing_agents
+            ])
+        
+        return parameters
+    
+    async def update_agent_weights(self, feedback: Dict, agent_votes: Dict):
+        """Update agent weights based on feedback."""
+        try:
+            effectiveness = feedback.get('effectiveness', 'unknown')
+            
+            # Calculate weight updates
+            for agent_name, vote in agent_votes.items():
+                if vote['action'] is not None:
+                    current_weight = self.agent_weights[agent_name]
+                    
+                    if effectiveness == 'very_effective':
+                        new_weight = current_weight * 1.1
+                    elif effectiveness == 'effective':
+                        new_weight = current_weight * 1.05
+                    elif effectiveness == 'ineffective':
+                        new_weight = current_weight * 0.95
+                    elif effectiveness == 'harmful':
+                        new_weight = current_weight * 0.8
+                    else:
+                        new_weight = current_weight
+                    
+                    # Clamp weights to reasonable range
+                    self.agent_weights[agent_name] = np.clip(new_weight, 0.1, 2.0)
+                    
+                    # Store performance history
+                    self.performance_history[agent_name].append({
+                        'feedback': effectiveness,
+                        'weight_update': new_weight / current_weight,
+                        'timestamp': datetime.now()
+                    })
+            
+            # Normalize weights
+            total_weight = sum(self.agent_weights.values())
+            if total_weight > 0:
+                for agent_name in self.agent_weights:
+                    self.agent_weights[agent_name] /= total_weight
+                    self.agent_weights[agent_name] *= len(self.agent_weights)
+        
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating agent weights: {str(e)}")
+
+# Base RL Agent Classes
+
+class DQNAgent:
+    """Deep Q-Network agent for geological monitoring recommendations."""
+    
+    def __init__(self, state_size: int, action_size: int, learning_rate: float = 0.001, epsilon_decay: float = 0.995):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.learning_rate = learning_rate
+        self.epsilon = 1.0
+        self.epsilon_min = 0.01
+        self.epsilon_decay = epsilon_decay
+        
+        # Initialize neural networks (simplified implementation)
+        self.q_network = self._build_network()
+        self.target_network = self._build_network()
+        
+    def _build_network(self):
+        """Build neural network for Q-value estimation."""
+        # Placeholder for actual neural network implementation
+        # In real implementation, would use PyTorch or TensorFlow
+        return {
+            'weights': np.random.randn(self.state_size, self.action_size) * 0.1,
+            'bias': np.zeros(self.action_size)
+        }
+    
+    def predict(self, state: np.ndarray) -> int:
+        """Predict action for given state."""
+        q_values = self.get_q_values(state)
+        return np.argmax(q_values)
+    
+    def act(self, state: np.ndarray) -> int:
+        """Choose action using epsilon-greedy policy."""
+        if np.random.random() <= self.epsilon:
+            return np.random.choice(self.action_size)
+        return self.predict(state)
+    
+    def get_q_values(self, state: np.ndarray) -> np.ndarray:
+        """Get Q-values for all actions."""
+        # Simplified Q-value calculation
+        q_values = np.dot(state, self.q_network['weights']) + self.q_network['bias']
+        return q_values
+    
+    def get_confidence(self, state: np.ndarray, action: int) -> float:
+        """Get confidence for selected action."""
+        q_values = self.get_q_values(state)
+        max_q = np.max(q_values)
+        min_q = np.min(q_values)
+        
+        if max_q == min_q:
+            return 0.5
+        
+        confidence = (q_values[action] - min_q) / (max_q - min_q)
+        return float(np.clip(confidence, 0.0, 1.0))
+    
+    def train(self, batch: List[tuple]) -> float:
+        """Train the DQN with batch of experiences."""
+        # Simplified training implementation
+        total_loss = 0.0
+        
+        for experience in batch:
+            state, action, reward, next_state, done = experience
+            
+            # Calculate target
+            if done:
+                target = reward
+            else:
+                next_q_values = self.get_q_values(next_state)
+                target = reward + 0.95 * np.max(next_q_values)
+            
+            # Current Q-value
+            current_q_values = self.get_q_values(state)
+            current_q = current_q_values[action]
+            
+            # Calculate loss (simplified)
+            loss = (target - current_q) ** 2
+            total_loss += loss
+            
+            # Update weights (simplified gradient descent)
+            gradient = 2 * (current_q - target) * state
+            self.q_network['weights'][:, action] -= self.learning_rate * gradient
+        
+        return total_loss / len(batch)
+    
+    def update_exploration(self):
+        """Update exploration rate."""
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+
+class DDPGAgent:
+    """Deep Deterministic Policy Gradient agent."""
+    
+    def __init__(self, state_size: int, action_size: int, actor_lr: float = 0.001, critic_lr: float = 0.002):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.actor_lr = actor_lr
+        self.critic_lr = critic_lr
+        
+        # Simplified implementation
+        self.actor = {'weights': np.random.randn(state_size, action_size) * 0.1}
+        self.critic = {'weights': np.random.randn(state_size + action_size, 1) * 0.1}
+    
+    def predict(self, state: np.ndarray) -> int:
+        """Predict action using actor network."""
+        action_values = np.dot(state, self.actor['weights'])
+        return int(np.argmax(action_values))
+    
+    def act(self, state: np.ndarray) -> int:
+        """Act with exploration noise."""
+        action = self.predict(state)
+        # Add exploration noise
+        if np.random.random() < 0.1:
+            action = np.random.choice(self.action_size)
+        return action
+    
+    def get_confidence(self, state: np.ndarray, action: int) -> float:
+        """Get confidence for action."""
+        action_values = np.dot(state, self.actor['weights'])
+        normalized = (action_values - np.min(action_values)) / (np.max(action_values) - np.min(action_values) + 1e-8)
+        return float(normalized[action])
+    
+    def train(self, batch: List[tuple]) -> float:
+        """Train actor and critic networks."""
+        return 0.0  # Simplified implementation
+    
+    def update_exploration(self):
+        """Update exploration parameters."""
+        pass
+
+class PPOAgent:
+    """Proximal Policy Optimization agent."""
+    
+    def __init__(self, state_size: int, action_size: int, learning_rate: float = 0.0003, clip_epsilon: float = 0.2):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.learning_rate = learning_rate
+        self.clip_epsilon = clip_epsilon
+        
+        # Simplified networks
+        self.policy = {'weights': np.random.randn(state_size, action_size) * 0.1}
+        self.value = {'weights': np.random.randn(state_size, 1) * 0.1}
+    
+    def predict(self, state: np.ndarray) -> int:
+        """Predict action using policy network."""
+        logits = np.dot(state, self.policy['weights'])
+        probabilities = self._softmax(logits)
+        return int(np.argmax(probabilities))
+    
+    def act(self, state: np.ndarray) -> int:
+        """Sample action from policy."""
+        logits = np.dot(state, self.policy['weights'])
+        probabilities = self._softmax(logits)
+        return int(np.random.choice(self.action_size, p=probabilities))
+    
+    def get_confidence(self, state: np.ndarray, action: int) -> float:
+        """Get confidence for action."""
+        logits = np.dot(state, self.policy['weights'])
+        probabilities = self._softmax(logits)
+        return float(probabilities[action])
+    
+    def _softmax(self, x: np.ndarray) -> np.ndarray:
+        """Compute softmax probabilities."""
+        exp_x = np.exp(x - np.max(x))
+        return exp_x / np.sum(exp_x)
+    
+    def train(self, batch: List[tuple]) -> float:
+        """Train using PPO algorithm."""
+        return 0.0  # Simplified implementation
+    
+    def update_exploration(self):
+        """Update exploration parameters."""
+        pass
+
+class A3CAgent:
+    """Asynchronous Advantage Actor-Critic agent."""
+    
+    def __init__(self, state_size: int, action_size: int, learning_rate: float = 0.001, num_workers: int = 4):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.learning_rate = learning_rate
+        self.num_workers = num_workers
+        
+        # Simplified implementation
+        self.actor_critic = {
+            'actor_weights': np.random.randn(state_size, action_size) * 0.1,
+            'critic_weights': np.random.randn(state_size, 1) * 0.1
+        }
+    
+    def predict(self, state: np.ndarray) -> int:
+        """Predict action using actor network."""
+        logits = np.dot(state, self.actor_critic['actor_weights'])
+        probabilities = self._softmax(logits)
+        return int(np.argmax(probabilities))
+    
+    def act(self, state: np.ndarray) -> int:
+        """Sample action from policy."""
+        return self.predict(state)
+    
+    def get_confidence(self, state: np.ndarray, action: int) -> float:
+        """Get confidence for action."""
+        logits = np.dot(state, self.actor_critic['actor_weights'])
+        probabilities = self._softmax(logits)
+        return float(probabilities[action])
+    
+    def _softmax(self, x: np.ndarray) -> np.ndarray:
+        """Compute softmax probabilities."""
+        exp_x = np.exp(x - np.max(x))
+        return exp_x / np.sum(exp_x)
+    
+    def train(self, batch: List[tuple]) -> float:
+        """Train actor-critic network."""
+        return 0.0  # Simplified implementation
+    
+    def update_exploration(self):
+        """Update exploration parameters."""
+        pass
+
+class SACAgent:
+    """Soft Actor-Critic agent."""
+    
+    def __init__(self, state_size: int, action_size: int, learning_rate: float = 0.0003, temperature: float = 0.2):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.learning_rate = learning_rate
+        self.temperature = temperature
+        
+        # Simplified implementation
+        self.actor = {'weights': np.random.randn(state_size, action_size) * 0.1}
+        self.critic1 = {'weights': np.random.randn(state_size + action_size, 1) * 0.1}
+        self.critic2 = {'weights': np.random.randn(state_size + action_size, 1) * 0.1}
+    
+    def predict(self, state: np.ndarray) -> int:
+        """Predict action using actor network."""
+        logits = np.dot(state, self.actor['weights'])
+        probabilities = self._softmax(logits / self.temperature)
+        return int(np.argmax(probabilities))
+    
+    def act(self, state: np.ndarray) -> int:
+        """Sample action with entropy regularization."""
+        return self.predict(state)
+    
+    def get_confidence(self, state: np.ndarray, action: int) -> float:
+        """Get confidence for action."""
+        logits = np.dot(state, self.actor['weights'])
+        probabilities = self._softmax(logits / self.temperature)
+        return float(probabilities[action])
+    
+    def _softmax(self, x: np.ndarray) -> np.ndarray:
+        """Compute softmax probabilities."""
+        exp_x = np.exp(x - np.max(x))
+        return exp_x / np.sum(exp_x)
+    
+    def train(self, batch: List[tuple]) -> float:
+        """Train SAC networks."""
+        return 0.0  # Simplified implementation
+    
+    def update_exploration(self):
+        """Update exploration parameters."""
+        pass
+
+class TD3Agent:
+    """Twin Delayed Deep Deterministic Policy Gradient agent."""
+    
+    def __init__(self, state_size: int, action_size: int, actor_lr: float = 0.001, critic_lr: float = 0.002):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.actor_lr = actor_lr
+        self.critic_lr = critic_lr
+        
+        # Simplified implementation
+        self.actor = {'weights': np.random.randn(state_size, action_size) * 0.1}
+        self.critic1 = {'weights': np.random.randn(state_size + action_size, 1) * 0.1}
+        self.critic2 = {'weights': np.random.randn(state_size + action_size, 1) * 0.1}
+    
+    def predict(self, state: np.ndarray) -> int:
+        """Predict action using actor network."""
+        action_values = np.dot(state, self.actor['weights'])
+        return int(np.argmax(action_values))
+    
+    def act(self, state: np.ndarray) -> int:
+        """Act with exploration noise."""
+        action = self.predict(state)
+        # Add exploration noise
+        if np.random.random() < 0.05:
+            action = np.random.choice(self.action_size)
+        return action
+    
+    def get_confidence(self, state: np.ndarray, action: int) -> float:
+        """Get confidence for action."""
+        action_values = np.dot(state, self.actor['weights'])
+        normalized = (action_values - np.min(action_values)) / (np.max(action_values) - np.min(action_values) + 1e-8)
+        return float(normalized[action])
+    
+    def train(self, batch: List[tuple]) -> float:
+        """Train TD3 networks."""
+        return 0.0  # Simplified implementation
+    
+    def update_exploration(self):
+        """Update exploration parameters."""
+        pass
