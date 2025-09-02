@@ -17,7 +17,12 @@ import threading
 import hashlib
 import copy
 import os
+import platform
+import socket
+import subprocess
 from contextlib import asynccontextmanager
+import tempfile
+import shutil
 
 # Configuration validation imports
 try:
@@ -45,6 +50,23 @@ except ImportError:
     ENCRYPTION_AVAILABLE = False
     warnings.warn("cryptography not available. Configuration encryption will be disabled.")
 
+# Environment detection imports
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    warnings.warn("psutil not available. Advanced system detection will be limited.")
+
+# Configuration watching imports
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+    WATCHDOG_AVAILABLE = True
+except ImportError:
+    WATCHDOG_AVAILABLE = False
+    warnings.warn("watchdog not available. File watching will be disabled.")
+
 warnings.filterwarnings('ignore')
 
 class ConfigurationFormat(Enum):
@@ -58,12 +80,18 @@ class ConfigurationScope(Enum):
     ENVIRONMENT = "environment"
     USER = "user"
     SESSION = "session"
+    SYSTEM = "system"
+    APPLICATION = "application"
+    MODULE = "module"
 
 class ValidationType(Enum):
     SCHEMA = "schema"
     CUSTOM = "custom"
     RANGE = "range"
     ENUM = "enum"
+    TYPE_CHECK = "type_check"
+    REGEX = "regex"
+    DEPENDENCY = "dependency"
 
 @dataclass
 class ConfigurationMetadata:
@@ -75,6 +103,36 @@ class ConfigurationMetadata:
     tags: List[str] = field(default_factory=list)
     encrypted: bool = False
     validation_rules: Dict[str, Any] = field(default_factory=dict)
+    environment_specific: bool = False
+    requires_restart: bool = False
+    sensitive: bool = False
+    deprecated: bool = False
+    deprecation_message: str = ""
+    dependencies: List[str] = field(default_factory=list)
+    allowed_environments: List[str] = field(default_factory=list)
+    
+@dataclass
+class EnvironmentInfo:
+    """Environment information and constraints"""
+    name: str
+    type: str  # development, staging, production, testing
+    description: str = ""
+    active: bool = True
+    parent_environment: Optional[str] = None
+    allowed_scopes: List[ConfigurationScope] = field(default_factory=lambda: list(ConfigurationScope))
+    system_info: Dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    
+@dataclass
+class ConfigurationProfile:
+    """Configuration profile for specific deployment scenarios"""
+    name: str
+    description: str
+    environment: str
+    configurations: Dict[str, Any] = field(default_factory=dict)
+    inherits_from: Optional[str] = None
+    active: bool = True
+    created_at: datetime = field(default_factory=datetime.utcnow)
     
 class ConfigurationEntry:
     """Individual configuration entry with metadata and validation"""
@@ -790,6 +848,219 @@ class DigitalTwinConfigurationManager:
             
         except Exception as e:
             self.logger.error(f"Error during configuration manager cleanup: {e}")
+    
+    async def get_configuration_tree(self, scope: ConfigurationScope = None, 
+                                   environment: str = None) -> Dict[str, Any]:
+        """Get configurations organized in a hierarchical tree structure"""
+        try:
+            tree = {}
+            
+            with self._lock:
+                scopes_to_check = [scope] if scope else self.configurations.keys()
+                
+                for current_scope in scopes_to_check:
+                    if current_scope not in self.configurations:
+                        continue
+                    
+                    environments_to_check = [environment] if environment else self.configurations[current_scope].keys()
+                    
+                    for current_env in environments_to_check:
+                        if current_env not in self.configurations[current_scope]:
+                            continue
+                        
+                        for key, entry in self.configurations[current_scope][current_env].items():
+                            # Build nested dictionary structure from dot-separated keys
+                            parts = key.split('.')
+                            current = tree
+                            
+                            for part in parts[:-1]:
+                                if part not in current:
+                                    current[part] = {}
+                                current = current[part]
+                            
+                            current[parts[-1]] = {
+                                'value': entry.get_value(),
+                                'scope': current_scope.value,
+                                'environment': current_env,
+                                'metadata': asdict(entry.metadata)
+                            }
+            
+            return tree
+            
+        except Exception as e:
+            self.logger.error(f"Error generating configuration tree: {e}")
+            return {}
+    
+    async def search_configurations(self, query: str, scope: ConfigurationScope = None,
+                                  environment: str = None, include_values: bool = False) -> List[Dict[str, Any]]:
+        """Search configurations by key, description, or tags"""
+        try:
+            results = []
+            query_lower = query.lower()
+            
+            with self._lock:
+                scopes_to_check = [scope] if scope else self.configurations.keys()
+                
+                for current_scope in scopes_to_check:
+                    if current_scope not in self.configurations:
+                        continue
+                    
+                    environments_to_check = [environment] if environment else self.configurations[current_scope].keys()
+                    
+                    for current_env in environments_to_check:
+                        if current_env not in self.configurations[current_scope]:
+                            continue
+                        
+                        for key, entry in self.configurations[current_scope][current_env].items():
+                            # Search in key
+                            if query_lower in key.lower():
+                                match_reason = "key"
+                            # Search in description
+                            elif query_lower in entry.metadata.description.lower():
+                                match_reason = "description"
+                            # Search in tags
+                            elif any(query_lower in tag.lower() for tag in entry.metadata.tags):
+                                match_reason = "tags"
+                            else:
+                                continue
+                            
+                            result = {
+                                'key': key,
+                                'scope': current_scope.value,
+                                'environment': current_env,
+                                'match_reason': match_reason,
+                                'description': entry.metadata.description,
+                                'tags': entry.metadata.tags
+                            }
+                            
+                            if include_values:
+                                result['value'] = entry.get_value()
+                            
+                            results.append(result)
+            
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Error searching configurations: {e}")
+            return []
+    
+    async def get_configuration_dependencies(self, key: str) -> List[str]:
+        """Get configuration dependencies for a given key"""
+        try:
+            dependencies = []
+            
+            with self._lock:
+                for scope in self.configurations:
+                    for environment in self.configurations[scope]:
+                        if key in self.configurations[scope][environment]:
+                            entry = self.configurations[scope][environment][key]
+                            dependencies.extend(entry.metadata.dependencies)
+            
+            return list(set(dependencies))  # Remove duplicates
+            
+        except Exception as e:
+            self.logger.error(f"Error getting configuration dependencies for {key}: {e}")
+            return []
+    
+    async def validate_configuration_dependencies(self) -> Dict[str, List[str]]:
+        """Validate all configuration dependencies"""
+        try:
+            validation_errors = {}
+            
+            with self._lock:
+                for scope in self.configurations:
+                    for environment in self.configurations[scope]:
+                        for key, entry in self.configurations[scope][environment].items():
+                            if entry.metadata.dependencies:
+                                for dep_key in entry.metadata.dependencies:
+                                    # Check if dependency exists
+                                    dep_value = await self.get_configuration(dep_key, scope, environment)
+                                    if dep_value is None:
+                                        if key not in validation_errors:
+                                            validation_errors[key] = []
+                                        validation_errors[key].append(f"Missing dependency: {dep_key}")
+            
+            return validation_errors
+            
+        except Exception as e:
+            self.logger.error(f"Error validating configuration dependencies: {e}")
+            return {}
+    
+    async def get_configuration_metrics(self) -> Dict[str, Any]:
+        """Get detailed metrics about configuration usage and performance"""
+        try:
+            metrics = {
+                'cache_stats': {
+                    'cache_enabled': self.cache_enabled,
+                    'cache_size': len(self.configuration_cache),
+                    'cache_ttl': self.cache_ttl
+                },
+                'history_stats': {
+                    'keys_with_history': len(self.configuration_history),
+                    'total_history_entries': sum(len(entries) for entries in self.configuration_history.values()),
+                    'max_history_per_key': self.max_history_entries
+                },
+                'environment_stats': {
+                    'total_environments': len(self.environments),
+                    'current_environment': self.current_environment,
+                    'active_environments': [name for name, info in self.environments.items() if info.active]
+                },
+                'profile_stats': {
+                    'total_profiles': len(self.profiles),
+                    'active_profiles': [name for name, profile in self.profiles.items() if profile.active]
+                },
+                'feature_flag_stats': {
+                    'total_flags': len([key for key in self.feature_flags.keys()]),
+                    'enabled_flags': len([key for key, enabled in self.feature_flags.items() if enabled])
+                },
+                'system_stats': {
+                    'hot_reload_enabled': self.hot_reload_enabled,
+                    'file_watching_enabled': self.enable_file_watching,
+                    'encryption_available': ENCRYPTION_AVAILABLE,
+                    'last_backup': self.last_backup.isoformat()
+                }
+            }
+            
+            return metrics
+            
+        except Exception as e:
+            self.logger.error(f"Error getting configuration metrics: {e}")
+            return {}
+
+# Convenience functions for easy configuration management
+async def setup_configuration_manager(config_dir: str = "config", 
+                                     environment: str = None,
+                                     encryption_key: str = None) -> DigitalTwinConfigurationManager:
+    """Setup and initialize configuration manager"""
+    manager = DigitalTwinConfigurationManager(
+        config_dir=config_dir,
+        encryption_key=encryption_key,
+        auto_detect_environment=environment is None
+    )
+    
+    # Wait for initialization
+    await asyncio.sleep(2)
+    
+    if environment:
+        await manager.switch_environment(environment)
+    
+    return manager
+
+async def load_configuration_from_environment():
+    """Load configuration optimized for current environment"""
+    manager = await setup_configuration_manager()
+    
+    current_env = await manager.get_current_environment()
+    
+    # Apply appropriate profile based on environment
+    if current_env == "development":
+        await manager.apply_profile("resource_constrained")
+    elif current_env in ["staging", "production"]:
+        await manager.apply_profile("high_performance")
+    elif current_env == "testing":
+        await manager.apply_profile("testing")
+    
+    return manager
 
 # Example usage and testing
 async def example_digital_twin_configuration():
@@ -837,8 +1108,40 @@ async def example_digital_twin_configuration():
         )
         print(f"Custom experiment config: {custom_config}")
         
+        # Example: Environment management
+        print("\n4. Environment management:")
+        current_env = await config_manager.get_current_environment()
+        print(f"Current environment: {current_env}")
+        
+        environments = await config_manager.get_environments()
+        print(f"Available environments: {list(environments.keys())}")
+        
+        # Create custom environment
+        success = await config_manager.create_environment(
+            "custom_test",
+            "testing", 
+            "Custom testing environment",
+            parent_environment="testing"
+        )
+        print(f"Custom environment created: {success}")
+        
+        # Example: Configuration profiles
+        print("\n5. Configuration profiles:")
+        profiles = await config_manager.get_profiles()
+        print(f"Available profiles: {list(profiles.keys())}")
+        
+        # Apply high performance profile
+        profile_success = await config_manager.apply_profile("high_performance", "custom_test")
+        print(f"High performance profile applied: {profile_success}")
+        
+        # Example: Feature flags
+        print("\n6. Feature flags:")
+        await config_manager.set_feature_flag("experimental_ai_model", True)
+        flag_value = await config_manager.get_feature_flag("experimental_ai_model")
+        print(f"Experimental AI model flag: {flag_value}")
+        
         # Example: Configuration history
-        print("\n4. Configuration history:")
+        print("\n7. Configuration history:")
         await config_manager.set_configuration("test.value", 100)
         await config_manager.set_configuration("test.value", 200)
         await config_manager.set_configuration("test.value", 300)
@@ -852,25 +1155,45 @@ async def example_digital_twin_configuration():
         print(f"Rollback successful: {rollback_success}, Current value: {current_value}")
         
         # Example: Export/Import
-        print("\n5. Export/Import test:")
+        print("\n8. Export/Import test:")
         export_path = "test_config_export.json"
         export_success = await config_manager.export_configurations(export_path)
         print(f"Export successful: {export_success}")
         
+        # Example: System information
+        print("\n9. System information:")
+        system_info = await config_manager.get_system_info()
+        print(f"Platform: {system_info.get('platform')}")
+        print(f"Architecture: {system_info.get('architecture')}")
+        print(f"Hostname: {system_info.get('hostname')}")
+        
         # Example: Configuration summary
-        print("\n6. Configuration summary:")
+        print("\n10. Configuration summary:")
         summary = await config_manager.get_configuration_summary()
         print(f"Total configurations: {summary['total_configurations']}")
         print(f"Scopes: {list(summary['scopes'].keys())}")
         print(f"Environments: {summary['environments']}")
         
         # Example: Validation
-        print("\n7. Configuration validation:")
+        print("\n11. Configuration validation:")
         errors = await config_manager.validate_all_configurations()
         if errors:
             print(f"Validation errors found: {len(errors)}")
         else:
             print("All configurations are valid")
+        
+        # Demonstrate environment switching
+        print("\n12. Environment switching:")
+        switch_success = await config_manager.switch_environment("production")
+        new_env = await config_manager.get_current_environment()
+        print(f"Switched to environment: {new_env} (success: {switch_success})")
+        
+        # Check environment-specific configuration
+        encryption_required = await config_manager.get_configuration(
+            "system.security.encryption_required", 
+            ConfigurationScope.SYSTEM
+        )
+        print(f"Encryption required in {new_env}: {encryption_required}")
         
         print("\nConfiguration management example completed successfully!")
         
@@ -883,6 +1206,8 @@ if __name__ == "__main__":
     print(f"  JSON Schema Validation: {JSONSCHEMA_AVAILABLE}")
     print(f"  Pydantic Validation: {PYDANTIC_AVAILABLE}")
     print(f"  Configuration Encryption: {ENCRYPTION_AVAILABLE}")
+    print(f"  System Information Detection: {PSUTIL_AVAILABLE}")
+    print(f"  File Watching: {WATCHDOG_AVAILABLE}")
     
     # Run example
     asyncio.run(example_digital_twin_configuration())

@@ -1,0 +1,5 @@
+2025-09-01 16:42:13,640 - INFO - AdvancedIntegrationTester initialized with comprehensive testing capabilities
+2025-09-01 16:42:13,640 - INFO - Starting comprehensive integration tests...
+2025-09-01 16:42:13,641 - INFO - Discovered 107 modules for integration testing
+2025-09-01 16:42:13,641 - INFO - Testing 107 modules
+2025-09-01 16:42:13,820 - ERROR - Integration testing failed: module 'signal' has no attribute 'alarm'

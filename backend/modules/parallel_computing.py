@@ -1424,6 +1424,43 @@ class ParallelComputingFramework:
         self.ray_manager = RayManager()
         self.mpi_manager = MPIManager()
         
+        # Initialize concurrent execution manager
+        try:
+            from .concurrent_execution_manager import ConcurrentExecutionManager
+            self.concurrent_manager = ConcurrentExecutionManager(config)
+            self.concurrent_execution_enabled = True
+        except ImportError:
+            self.logger.warning("ConcurrentExecutionManager not available")
+            self.concurrent_manager = None
+            self.concurrent_execution_enabled = False
+
+        # Initialize comprehensive logging and monitoring
+        try:
+            from .comprehensive_logging_monitoring import (
+                ComprehensiveLoggingMonitoring, 
+                LoggingConfig, 
+                MonitoringConfig,
+                setup_geological_monitoring
+            )
+            
+            # Setup monitoring optimized for geological/parallel computing
+            self.monitoring_system = setup_geological_monitoring(
+                log_level=config.get('log_level', 'INFO'),
+                enable_prometheus=config.get('enable_prometheus', True),
+                enable_alerting=config.get('enable_alerting', True)
+            )
+            
+            # Start performance monitoring
+            self.monitoring_system.start_performance_monitoring()
+            self.monitoring_enabled = True
+            
+            self.logger.info("Comprehensive logging and monitoring system initialized")
+            
+        except ImportError:
+            self.logger.warning("Comprehensive logging and monitoring not available")
+            self.monitoring_system = None
+            self.monitoring_enabled = False
+        
         self.active_backend = None
         
     def _get_default_config(self) -> Dict[str, Any]:
@@ -1590,9 +1627,284 @@ class ParallelComputingFramework:
         
         return {"result": result, "profiling": profiling_info}
     
+    async def start_concurrent_execution(self):
+        """Start the concurrent execution manager"""
+        if self.concurrent_execution_enabled and self.concurrent_manager:
+            await self.concurrent_manager.start()
+            self.logger.info("Concurrent execution manager started")
+    
+    async def stop_concurrent_execution(self):
+        """Stop the concurrent execution manager"""
+        if self.concurrent_execution_enabled and self.concurrent_manager:
+            await self.concurrent_manager.stop()
+            self.logger.info("Concurrent execution manager stopped")
+    
+    async def submit_concurrent_task(self,
+                                   function: Callable,
+                                   args: Tuple = (),
+                                   kwargs: Dict[str, Any] = None,
+                                   priority: str = "NORMAL",
+                                   execution_mode: str = "THREAD_POOL",
+                                   cpu_cores: float = 1.0,
+                                   memory_mb: float = 512.0,
+                                   gpu_memory_mb: float = 0.0,
+                                   max_execution_time: float = None,
+                                   dependencies: Set[str] = None,
+                                   task_id: str = None) -> Optional[str]:
+        """
+        Submit a task for concurrent execution
+        
+        Args:
+            function: Function to execute
+            args: Function arguments
+            kwargs: Function keyword arguments  
+            priority: Task priority (CRITICAL, HIGH, NORMAL, LOW, BACKGROUND)
+            execution_mode: Execution mode (SEQUENTIAL, THREAD_POOL, PROCESS_POOL, ASYNC_COROUTINE, DISTRIBUTED, GPU_ACCELERATED, HYBRID)
+            cpu_cores: Required CPU cores
+            memory_mb: Required memory in MB
+            gpu_memory_mb: Required GPU memory in MB
+            max_execution_time: Maximum execution time in seconds
+            dependencies: Set of task IDs this task depends on
+            task_id: Optional custom task ID
+            
+        Returns:
+            Task ID if successful, None otherwise
+        """
+        if not self.concurrent_execution_enabled or not self.concurrent_manager:
+            self.logger.warning("Concurrent execution not available")
+            return None
+        
+        try:
+            from .concurrent_execution_manager import TaskPriority, ExecutionMode, ResourceRequirement
+            
+            # Map string priority to enum
+            priority_map = {
+                "CRITICAL": TaskPriority.CRITICAL,
+                "HIGH": TaskPriority.HIGH,
+                "NORMAL": TaskPriority.NORMAL, 
+                "LOW": TaskPriority.LOW,
+                "BACKGROUND": TaskPriority.BACKGROUND
+            }
+            
+            # Map string execution mode to enum
+            execution_mode_map = {
+                "SEQUENTIAL": ExecutionMode.SEQUENTIAL,
+                "THREAD_POOL": ExecutionMode.THREAD_POOL,
+                "PROCESS_POOL": ExecutionMode.PROCESS_POOL,
+                "ASYNC_COROUTINE": ExecutionMode.ASYNC_COROUTINE,
+                "DISTRIBUTED": ExecutionMode.DISTRIBUTED,
+                "GPU_ACCELERATED": ExecutionMode.GPU_ACCELERATED,
+                "HYBRID": ExecutionMode.HYBRID
+            }
+            
+            task_id = await self.concurrent_manager.submit_task(
+                function=function,
+                args=args,
+                kwargs=kwargs or {},
+                task_id=task_id,
+                priority=priority_map.get(priority, TaskPriority.NORMAL),
+                execution_mode=execution_mode_map.get(execution_mode, ExecutionMode.THREAD_POOL),
+                resource_requirements=ResourceRequirement(
+                    cpu_cores=cpu_cores,
+                    memory_mb=memory_mb,
+                    gpu_memory_mb=gpu_memory_mb,
+                    max_execution_time=max_execution_time
+                ),
+                dependencies=dependencies or set()
+            )
+            
+            return task_id
+            
+        except Exception as e:
+            self.logger.error(f"Failed to submit concurrent task: {e}")
+            return None
+    
+    async def get_concurrent_task_result(self, task_id: str, timeout: float = None) -> Any:
+        """Get result of a concurrent task"""
+        if not self.concurrent_execution_enabled or not self.concurrent_manager:
+            raise RuntimeError("Concurrent execution not available")
+        
+        return await self.concurrent_manager.get_task_result(task_id, timeout)
+    
+    async def get_concurrent_task_status(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get status of a concurrent task"""
+        if not self.concurrent_execution_enabled or not self.concurrent_manager:
+            return None
+        
+        return await self.concurrent_manager.get_task_status(task_id)
+    
+    async def cancel_concurrent_task(self, task_id: str) -> bool:
+        """Cancel a concurrent task"""
+        if not self.concurrent_execution_enabled or not self.concurrent_manager:
+            return False
+        
+        return await self.concurrent_manager.cancel_task(task_id)
+    
+    def get_concurrent_execution_status(self) -> Dict[str, Any]:
+        """Get concurrent execution system status"""
+        if not self.concurrent_execution_enabled or not self.concurrent_manager:
+            return {"error": "Concurrent execution not available"}
+        
+        return self.concurrent_manager.get_system_status()
+    
+    async def parallel_geological_computation_batch(self,
+                                                   computations: List[Dict[str, Any]],
+                                                   max_concurrent: int = None,
+                                                   priority: str = "NORMAL") -> Dict[str, Any]:
+        """
+        Execute a batch of geological computations in parallel with intelligent resource management
+        
+        Args:
+            computations: List of computation specifications, each containing:
+                - 'function': Callable function
+                - 'args': Function arguments tuple
+                - 'kwargs': Function keyword arguments dict
+                - 'name': Optional computation name
+                - 'execution_mode': Optional execution mode
+                - 'resource_requirements': Optional resource requirements dict
+            max_concurrent: Maximum number of concurrent executions
+            priority: Task priority level
+            
+        Returns:
+            Dictionary containing results and execution statistics
+        """
+        if not self.concurrent_execution_enabled:
+            # Fallback to existing parallel processing
+            results = {}
+            for i, comp in enumerate(computations):
+                try:
+                    result = comp['function'](*comp.get('args', ()), **comp.get('kwargs', {}))
+                    results[comp.get('name', f'computation_{i}')] = {
+                        'result': result,
+                        'success': True,
+                        'execution_mode': 'sequential_fallback'
+                    }
+                except Exception as e:
+                    results[comp.get('name', f'computation_{i}')] = {
+                        'error': str(e),
+                        'success': False,
+                        'execution_mode': 'sequential_fallback'
+                    }
+            return {'results': results, 'total_computations': len(computations)}
+        
+        # Submit all computations as concurrent tasks
+        task_ids = []
+        computation_names = []
+        
+        for i, comp in enumerate(computations):
+            # Determine execution mode based on computation characteristics
+            exec_mode = comp.get('execution_mode', 'THREAD_POOL')
+            
+            # Auto-select execution mode for geological computations
+            if 'geological' in comp.get('name', '').lower():
+                if 'gpu' in comp.get('name', '').lower() or comp.get('kwargs', {}).get('use_gpu', False):
+                    exec_mode = 'GPU_ACCELERATED'
+                elif 'stress' in comp.get('name', '').lower() or 'seismic' in comp.get('name', '').lower():
+                    exec_mode = 'PROCESS_POOL'  # CPU intensive
+                elif 'async' in comp.get('name', '').lower() or asyncio.iscoroutinefunction(comp['function']):
+                    exec_mode = 'ASYNC_COROUTINE'
+            
+            # Set resource requirements
+            resource_req = comp.get('resource_requirements', {})
+            cpu_cores = resource_req.get('cpu_cores', 1.0)
+            memory_mb = resource_req.get('memory_mb', 512.0)
+            gpu_memory_mb = resource_req.get('gpu_memory_mb', 0.0)
+            
+            # Increase resources for geological computations
+            if 'geological' in comp.get('name', '').lower():
+                cpu_cores = max(cpu_cores, 2.0)
+                memory_mb = max(memory_mb, 1024.0)
+                if exec_mode == 'GPU_ACCELERATED':
+                    gpu_memory_mb = max(gpu_memory_mb, 512.0)
+            
+            task_id = await self.submit_concurrent_task(
+                function=comp['function'],
+                args=comp.get('args', ()),
+                kwargs=comp.get('kwargs', {}),
+                priority=priority,
+                execution_mode=exec_mode,
+                cpu_cores=cpu_cores,
+                memory_mb=memory_mb,
+                gpu_memory_mb=gpu_memory_mb,
+                max_execution_time=resource_req.get('max_execution_time')
+            )
+            
+            if task_id:
+                task_ids.append(task_id)
+                computation_names.append(comp.get('name', f'computation_{i}'))
+        
+        # Monitor and collect results
+        results = {}
+        start_time = time.time()
+        
+        # Use rate limiting if max_concurrent specified
+        if max_concurrent and len(task_ids) > max_concurrent:
+            # Process in batches
+            for i in range(0, len(task_ids), max_concurrent):
+                batch_ids = task_ids[i:i + max_concurrent]
+                batch_names = computation_names[i:i + max_concurrent]
+                
+                # Wait for batch completion
+                for task_id, name in zip(batch_ids, batch_names):
+                    try:
+                        result = await self.get_concurrent_task_result(task_id, timeout=300)
+                        status = await self.get_concurrent_task_status(task_id)
+                        
+                        results[name] = {
+                            'result': result,
+                            'success': True,
+                            'execution_time': status['metrics']['execution_time'],
+                            'execution_mode': status['execution_mode'],
+                            'worker_id': status['worker_id']
+                        }
+                    except Exception as e:
+                        results[name] = {
+                            'error': str(e),
+                            'success': False,
+                            'execution_mode': 'failed'
+                        }
+        else:
+            # Process all at once
+            for task_id, name in zip(task_ids, computation_names):
+                try:
+                    result = await self.get_concurrent_task_result(task_id, timeout=600)
+                    status = await self.get_concurrent_task_status(task_id)
+                    
+                    results[name] = {
+                        'result': result,
+                        'success': True,
+                        'execution_time': status['metrics']['execution_time'],
+                        'execution_mode': status['execution_mode'],
+                        'worker_id': status['worker_id']
+                    }
+                except Exception as e:
+                    results[name] = {
+                        'error': str(e),
+                        'success': False,
+                        'execution_mode': 'failed'
+                    }
+        
+        total_time = time.time() - start_time
+        successful_computations = sum(1 for r in results.values() if r['success'])
+        
+        return {
+            'results': results,
+            'total_computations': len(computations),
+            'successful_computations': successful_computations,
+            'failed_computations': len(computations) - successful_computations,
+            'total_execution_time': total_time,
+            'average_execution_time': total_time / len(computations) if computations else 0,
+            'concurrent_execution_enabled': True
+        }
+    
     def cleanup_resources(self):
         """Cleanup all parallel computing resources"""
         try:
+            # Cleanup concurrent execution manager
+            if self.concurrent_execution_enabled and self.concurrent_manager:
+                # This would need to be called in an async context
+                self.logger.info("Concurrent execution manager cleanup required in async context")
+            
             # Cleanup CUDA
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -1621,11 +1933,19 @@ async def example_parallel_computing():
     # Initialize framework
     framework = ParallelComputingFramework({
         'auto_select_backend': True,
-        'profiling_enabled': True
+        'profiling_enabled': True,
+        'max_thread_workers': 8,
+        'max_process_workers': 4,
+        'enable_distributed': True
     })
     
-    # Example 1: Parallel stress analysis
-    print("=== Parallel Stress Analysis ===")
+    # Start concurrent execution
+    if framework.concurrent_execution_enabled:
+        await framework.start_concurrent_execution()
+        print("=== Concurrent Execution Manager Started ===")
+    
+    # Example 1: Traditional Parallel stress analysis
+    print("=== Traditional Parallel Stress Analysis ===")
     source_coords = np.random.rand(100, 3) * 10000
     target_coords = np.random.rand(200, 3) * 10000
     magnitudes = np.random.uniform(5.0, 8.0, 100)
@@ -1635,8 +1955,164 @@ async def example_parallel_computing():
     )
     print(f"Stress analysis completed: {stress_results.shape}")
     
-    # Example 2: Parallel data processing
-    print("=== Parallel Data Processing ===")
+    # Example 2: Concurrent Geological Computation Batch
+    print("=== Concurrent Geological Computation Batch ===")
+    
+    def geological_stress_analysis(coords, magnitude):
+        """Simulate geological stress analysis"""
+        import time
+        time.sleep(0.1)  # Simulate computation
+        return {"stress_value": np.sum(coords) * magnitude, "analysis_type": "stress"}
+    
+    def seismic_wave_propagation(velocity, distance):
+        """Simulate seismic wave propagation"""
+        import time
+        time.sleep(0.2)  # Simulate computation
+        return {"travel_time": distance / velocity, "analysis_type": "seismic"}
+    
+    async def async_geological_analysis(depth, temperature):
+        """Async geological analysis"""
+        await asyncio.sleep(0.05)  # Simulate async work
+        return {"thermal_gradient": temperature / depth, "analysis_type": "thermal"}
+    
+    def gpu_geological_simulation(data_size):
+        """GPU-based geological simulation"""
+        # Simulate GPU computation
+        if NUMPY_AVAILABLE:
+            result = np.random.rand(data_size, 3)
+            return {"simulation_result": result.mean(), "analysis_type": "gpu_simulation"}
+        return {"simulation_result": 0.5, "analysis_type": "gpu_simulation"}
+    
+    # Define batch of geological computations
+    geological_computations = [
+        {
+            'function': geological_stress_analysis,
+            'args': (np.random.rand(3), 6.5),
+            'name': 'geological_stress_analysis_1',
+            'execution_mode': 'PROCESS_POOL',
+            'resource_requirements': {'cpu_cores': 2.0, 'memory_mb': 512}
+        },
+        {
+            'function': geological_stress_analysis,
+            'args': (np.random.rand(3), 7.2),
+            'name': 'geological_stress_analysis_2',
+            'execution_mode': 'PROCESS_POOL',
+            'resource_requirements': {'cpu_cores': 2.0, 'memory_mb': 512}
+        },
+        {
+            'function': seismic_wave_propagation,
+            'args': (3500, 150000),
+            'name': 'seismic_wave_propagation_1',
+            'execution_mode': 'THREAD_POOL',
+            'resource_requirements': {'cpu_cores': 1.0, 'memory_mb': 256}
+        },
+        {
+            'function': seismic_wave_propagation,
+            'args': (4200, 80000),
+            'name': 'seismic_wave_propagation_2',
+            'execution_mode': 'THREAD_POOL',
+            'resource_requirements': {'cpu_cores': 1.0, 'memory_mb': 256}
+        },
+        {
+            'function': async_geological_analysis,
+            'args': (5000, 300),
+            'name': 'async_geological_thermal_analysis',
+            'execution_mode': 'ASYNC_COROUTINE',
+            'resource_requirements': {'cpu_cores': 0.5, 'memory_mb': 128}
+        },
+        {
+            'function': gpu_geological_simulation,
+            'args': (1000,),
+            'name': 'gpu_geological_simulation',
+            'execution_mode': 'GPU_ACCELERATED',
+            'resource_requirements': {'cpu_cores': 1.0, 'memory_mb': 512, 'gpu_memory_mb': 256}
+        }
+    ]
+    
+    # Execute geological computation batch
+    batch_results = await framework.parallel_geological_computation_batch(
+        geological_computations,
+        max_concurrent=4,
+        priority="HIGH"
+    )
+    
+    print(f"Geological batch completed:")
+    print(f"  Total computations: {batch_results['total_computations']}")
+    print(f"  Successful: {batch_results['successful_computations']}")
+    print(f"  Failed: {batch_results['failed_computations']}")
+    print(f"  Total time: {batch_results['total_execution_time']:.2f}s")
+    print(f"  Average time: {batch_results['average_execution_time']:.2f}s")
+    
+    # Show individual results
+    for name, result in batch_results['results'].items():
+        if result['success']:
+            print(f"  {name}: {result['execution_mode']} -> {result['result']}")
+        else:
+            print(f"  {name}: FAILED -> {result['error']}")
+    
+    # Example 3: Individual Concurrent Tasks
+    print("=== Individual Concurrent Tasks ===")
+    
+    def cpu_intensive_task(n: int, task_name: str = "unnamed") -> dict:
+        """CPU intensive computation"""
+        result = sum(i * i for i in range(n))
+        return {
+            'task_name': task_name,
+            'result': result,
+            'computed_range': n
+        }
+    
+    # Submit individual concurrent tasks
+    task_ids = []
+    
+    # High priority CPU-intensive tasks
+    for i in range(3):
+        task_id = await framework.submit_concurrent_task(
+            function=cpu_intensive_task,
+            args=(5000 + i * 1000,),
+            kwargs={'task_name': f'cpu_task_{i}'},
+            priority="HIGH",
+            execution_mode="PROCESS_POOL",
+            cpu_cores=2.0,
+            memory_mb=256
+        )
+        if task_id:
+            task_ids.append(task_id)
+    
+    # Wait for and collect results
+    print("  Collecting individual task results...")
+    for task_id in task_ids:
+        try:
+            result = await framework.get_concurrent_task_result(task_id, timeout=30)
+            status = await framework.get_concurrent_task_status(task_id)
+            print(f"    Task {task_id[:8]}: {result['task_name']} -> {result['result']} "
+                  f"(time: {status['metrics']['execution_time']:.2f}s, worker: {status['worker_id']})")
+        except Exception as e:
+            print(f"    Task {task_id[:8]}: FAILED -> {e}")
+    
+    # Example 4: System Status and Monitoring
+    print("=== System Status ===")
+    status = framework.get_concurrent_execution_status()
+    
+    if 'error' not in status:
+        print(f"  Total workers: {status['total_workers']}")
+        print(f"  Busy workers: {status['busy_workers']}")
+        print(f"  Resource usage: CPU {status['resource_usage'].get('cpu_percent', 0):.1f}%, "
+              f"Memory {status['resource_usage'].get('memory_percent', 0):.1f}%")
+        print(f"  System metrics: {status['system_metrics']['completed_tasks']} completed, "
+              f"{status['system_metrics']['failed_tasks']} failed")
+        
+        # Worker details
+        print("  Worker status:")
+        for worker_id, worker_info in status['worker_status'].items():
+            stats = worker_info['stats']
+            print(f"    {worker_id} ({worker_info['execution_mode']}): "
+                  f"{stats['tasks_completed']} completed, busy={worker_info['is_busy']}")
+    else:
+        print(f"  Status error: {status['error']}")
+    
+    # Example 5: Traditional parallel data processing
+    print("=== Traditional Parallel Data Processing ===")
     data = np.random.rand(10000, 50)
     
     def processing_func(x):
@@ -1645,17 +2121,21 @@ async def example_parallel_computing():
     processing_results = await framework.parallel_data_processing(data, processing_func)
     print(f"Data processing completed: shape {processing_results.shape if hasattr(processing_results, 'shape') else type(processing_results)}")
     
-    # Example 3: Resource profiling
+    # Example 6: Resource profiling
     print("=== Resource Profiling ===")
     def compute_intensive_task():
-        return np.linalg.svd(np.random.rand(1000, 1000))
+        return np.linalg.svd(np.random.rand(500, 500))
     
     profiled_results = framework.profile_computation(compute_intensive_task)
     print(f"Profiling results: {profiled_results['profiling']}")
     
     # Cleanup
+    if framework.concurrent_execution_enabled:
+        await framework.stop_concurrent_execution()
+        print("=== Concurrent Execution Manager Stopped ===")
+    
     framework.cleanup_resources()
-    print("Parallel computing framework example completed!")
+    print("=== Parallel Computing Framework Example Completed! ===")
 
 async def example_hyperparameter_tuning():
     """Comprehensive example of advanced hyperparameter tuning"""
@@ -1893,6 +2373,117 @@ async def example_comprehensive_framework():
     await example_hyperparameter_tuning()
     
     print("\n=== All Examples Completed Successfully! ===")
+
+    def get_monitoring_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive monitoring metrics"""
+        if not self.monitoring_enabled:
+            return {'error': 'Monitoring not enabled'}
+        
+        try:
+            return self.monitoring_system.get_system_status()
+        except Exception as e:
+            self.logger.error(f"Failed to get monitoring metrics: {e}")
+            return {'error': str(e)}
+    
+    def log_operation(self, operation_name: str, **kwargs):
+        """Log operation with monitoring"""
+        if self.monitoring_enabled:
+            self.monitoring_system.log("INFO", f"Operation: {operation_name}", **kwargs)
+        else:
+            self.logger.info(f"Operation: {operation_name}")
+    
+    def log_performance(self, operation: str, duration: float, **kwargs):
+        """Log performance metrics"""
+        if self.monitoring_enabled:
+            self.monitoring_system.log_performance(operation, duration, **kwargs)
+        else:
+            self.logger.info(f"Performance: {operation} took {duration:.3f}s")
+    
+    def log_error(self, message: str, error: Exception = None, **kwargs):
+        """Log error with monitoring"""
+        if self.monitoring_enabled:
+            self.monitoring_system.log_error(message, error, **kwargs)
+        else:
+            if error:
+                self.logger.error(f"{message}: {error}")
+            else:
+                self.logger.error(message)
+    
+    def trace_geological_computation(self, computation_type: str, model_name: str = None):
+        """Context manager for tracing geological computations"""
+        if self.monitoring_enabled:
+            return self.monitoring_system.trace_operation(
+                "geological_computation",
+                computation_type=computation_type,
+                model_name=model_name or "unknown",
+                backend=str(self.active_backend)
+            )
+        else:
+            from contextlib import nullcontext
+            return nullcontext()
+    
+    def record_geological_metric(self, metric_name: str, value: float, **labels):
+        """Record geological computation metrics"""
+        if self.monitoring_enabled:
+            full_labels = {
+                'component': 'geological_computation',
+                'backend': str(self.active_backend),
+                **labels
+            }
+            self.monitoring_system.record_metric(metric_name, value, full_labels)
+    
+    def get_health_status(self) -> Dict[str, Any]:
+        """Get system health status"""
+        if self.monitoring_enabled:
+            return self.monitoring_system.health_checker.get_health_status()
+        else:
+            return {'overall_status': 'unknown', 'monitoring_disabled': True}
+
+async def example_monitoring_integration():
+    """Example demonstrating monitoring integration"""
+    print("\n=== Monitoring Integration Example ===")
+    
+    # Initialize parallel computing with monitoring
+    config = {
+        'enable_prometheus': True,
+        'enable_alerting': True,
+        'log_level': 'INFO'
+    }
+    
+    framework = ParallelComputingFramework(config)
+    
+    # Simulate geological computation with monitoring
+    print("Running seismic analysis with comprehensive monitoring...")
+    
+    with framework.trace_geological_computation("seismic_analysis", "transformer_model"):
+        # Simulate seismic data processing
+        import time
+        import numpy as np
+        
+        start_time = time.time()
+        
+        # Simulate computation
+        data = np.random.random((1000, 1000))
+        result = np.mean(data ** 2)
+        
+        duration = time.time() - start_time
+        
+        # Record metrics
+        framework.record_geological_metric("seismic_events_processed", 42.0)
+        framework.record_geological_metric("model_accuracy", 0.95, model_type="transformer")
+        framework.log_performance("seismic_analysis", duration, data_size=data.size)
+    
+    # Get monitoring status
+    health_status = framework.get_health_status()
+    print(f"System Health: {health_status.get('overall_status', 'unknown')}")
+    
+    # Get comprehensive metrics
+    metrics = framework.get_monitoring_metrics()
+    if 'error' not in metrics:
+        print(f"Active monitoring checks: {len(metrics.get('health', {}).get('checks', {}))}")
+        print(f"Custom metrics tracked: {metrics.get('metrics', {}).get('custom_metrics_count', 0)}")
+    
+    print("Monitoring integration example completed!")
 
 if __name__ == "__main__":
     print("=== Advanced Parallel Computing Framework ===")
