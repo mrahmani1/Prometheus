@@ -1,0 +1,22 @@
+{
+  "Gaussian Copula - Strong Dependence": {
+    "error": "Unknown format code 'f' for object of type 'str'",
+    "expected": "good_fit",
+    "actual": "error"
+  },
+  "Clayton Copula - Moderate Dependence": {
+    "error": "Unknown format code 'f' for object of type 'str'",
+    "expected": "good_fit",
+    "actual": "error"
+  },
+  "Independence Test": {
+    "error": "Unknown format code 'f' for object of type 'str'",
+    "expected": "good_fit",
+    "actual": "error"
+  },
+  "Misspecified Model - Gaussian vs Clayton": {
+    "error": "Unknown format code 'f' for object of type 'str'",
+    "expected": "poor_fit",
+    "actual": "error"
+  }
+}

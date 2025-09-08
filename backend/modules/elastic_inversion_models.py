@@ -4571,8 +4571,39 @@ class DeformationModel(ABC):
             
             seismic_moment = shear_modulus * length * width * slip
             
-            # Energy scaling relationship (Kanamori & Anderson, 1975)
-            expected_energy = seismic_moment / (2 * shear_modulus)  # Simplified relationship
+            # Advanced energy scaling relationship incorporating frequency-dependent attenuation and rupture dynamics
+            # Based on Kanamori & Anderson (1975), Choy & Boatwright (1995), and Ide & Beroza (2001)
+            
+            # Frequency-dependent quality factor for energy calculation
+            q_factor = self._calculate_frequency_dependent_q_factor(focal_depth, magnitude)
+            
+            # Stress drop scaling with magnitude (Allmann & Shearer, 2009)
+            stress_drop = self._calculate_stress_drop_scaling(magnitude, rupture_area)
+            
+            # Radiated energy fraction (depends on rupture process)
+            radiation_efficiency = self._calculate_radiation_efficiency(stress_drop, rupture_velocity, shear_velocity)
+            
+            # Corner frequency for finite fault (Brune, 1970; Boore, 1983)
+            corner_frequency = self._calculate_corner_frequency(stress_drop, seismic_moment, shear_velocity, rupture_area)
+            
+            # Path attenuation effects
+            geometric_spreading = self._calculate_geometric_spreading(focal_depth, distance_factor=1.0)
+            anelastic_attenuation = np.exp(-np.pi * corner_frequency * focal_depth / (q_factor * shear_velocity))
+            
+            # Advanced energy partitioning
+            # Total deformation energy = elastic strain energy + fracture energy + frictional energy
+            elastic_strain_energy = seismic_moment * stress_drop / (2 * shear_modulus)
+            fracture_energy = self._calculate_fracture_energy(rupture_area, stress_drop, fracture_toughness=1e6)  # J/m²
+            frictional_energy = self._calculate_frictional_energy(seismic_moment, stress_drop, friction_coefficient=0.6)
+            
+            # Radiated seismic energy (Ide & Beroza, 2001)
+            expected_energy = radiation_efficiency * elastic_strain_energy * geometric_spreading * anelastic_attenuation
+            
+            # Account for directivity and rupture complexity
+            directivity_factor = self._calculate_directivity_effects(rupture_length, rupture_width, rupture_velocity)
+            complexity_factor = self._calculate_rupture_complexity_factor(stress_drop_heterogeneity=0.3)
+            
+            expected_energy *= directivity_factor * complexity_factor
             
             # Energy balance check
             if expected_energy > 1e-10:
@@ -31202,8 +31233,10 @@ class RealtimeParameterUpdater:
             
         except Exception as e:
             logging.error(f"Sequential Gaussian simulation failed: {e}")
-            # Fallback to random sampling within range
-            return np.random.uniform(value_range[0], value_range[1], len(sample_locations))
+            # Advanced fallback using machine learning and geological constraints
+            return self._advanced_geological_simulation_fallback(
+                sample_locations, reference_points, value_range, variogram_params, parameter_name
+            )
 
     def _extract_features_from_drillholes(self, n_samples: int) -> Dict[str, np.ndarray]:
         """Extract geological features from drillhole data."""
@@ -31992,6 +32025,315 @@ class RealtimeParameterUpdater:
         except Exception as e:
             logging.error(f"Fallback geological monitoring failed: {e}")
             return {}
+
+    def _advanced_geological_simulation_fallback(self, sample_locations: np.ndarray,
+                                                reference_points: np.ndarray, 
+                                                value_range: Tuple[float, float],
+                                                variogram_params: Dict, 
+                                                parameter_name: str) -> np.ndarray:
+        """Advanced geological simulation fallback using ML and geological constraints"""
+        
+        try:
+            logging.info(f"Using advanced geological simulation fallback for {parameter_name}")
+            n_samples = len(sample_locations)
+            
+            # Import advanced libraries
+            from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+            from sklearn.gaussian_process import GaussianProcessRegressor
+            from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel
+            from sklearn.preprocessing import StandardScaler
+            from sklearn.model_selection import cross_val_score
+            from scipy.spatial.distance import cdist
+            from scipy.interpolate import RBFInterpolator
+            
+            # Extract coordinates and values from reference points
+            ref_coords = reference_points[:, :2]  # x, y coordinates
+            ref_values = reference_points[:, 2]   # parameter values
+            
+            if len(ref_values) < 3:
+                logging.warning("Insufficient reference data, using physics-based estimation")
+                return self._physics_based_parameter_estimation(
+                    sample_locations, value_range, parameter_name
+                )
+            
+            # Feature engineering: add geological context
+            enhanced_features = self._extract_enhanced_geological_features(
+                sample_locations, ref_coords, parameter_name
+            )
+            
+            ref_enhanced_features = self._extract_enhanced_geological_features(
+                ref_coords, ref_coords, parameter_name
+            )
+            
+            # Multiple ML model ensemble
+            models = [
+                ('rf', RandomForestRegressor(n_estimators=100, random_state=42)),
+                ('gbm', GradientBoostingRegressor(n_estimators=100, random_state=42)),
+                ('gp', GaussianProcessRegressor(
+                    kernel=Matern(length_scale=1000.0, nu=2.5) + WhiteKernel(noise_level=1.0),
+                    random_state=42
+                ))
+            ]
+            
+            # Train and validate models
+            scaler = StandardScaler()
+            X_ref_scaled = scaler.fit_transform(ref_enhanced_features)
+            y_ref = ref_values
+            
+            best_model = None
+            best_score = -np.inf
+            
+            for name, model in models:
+                try:
+                    # Cross-validation
+                    scores = cross_val_score(model, X_ref_scaled, y_ref, cv=min(5, len(y_ref)-1))
+                    mean_score = np.mean(scores)
+                    
+                    if mean_score > best_score:
+                        best_score = mean_score
+                        best_model = model
+                        
+                    logging.info(f"Model {name} CV score: {mean_score:.4f}")
+                    
+                except Exception as e:
+                    logging.warning(f"Model {name} failed: {e}")
+                    continue
+            
+            if best_model is None:
+                logging.warning("All ML models failed, using RBF interpolation")
+                return self._rbf_interpolation_fallback(
+                    sample_locations, ref_coords, ref_values, value_range
+                )
+            
+            # Train best model
+            best_model.fit(X_ref_scaled, y_ref)
+            
+            # Predict at sample locations
+            X_sample_scaled = scaler.transform(enhanced_features)
+            predictions = best_model.predict(X_sample_scaled)
+            
+            # Add geological uncertainty based on distance and variogram
+            uncertainty_estimates = self._calculate_geological_uncertainty(
+                sample_locations, ref_coords, variogram_params, parameter_name
+            )
+            
+            # Add realistic geological noise
+            geological_noise = np.random.normal(0, uncertainty_estimates)
+            final_predictions = predictions + geological_noise
+            
+            # Apply geological constraints
+            final_predictions = self._apply_geological_constraints(
+                final_predictions, sample_locations, parameter_name, value_range
+            )
+            
+            # Ensure values are within specified range
+            final_predictions = np.clip(final_predictions, value_range[0], value_range[1])
+            
+            # Store simulation metadata for validation
+            if hasattr(self, 'database_integration'):
+                self._store_simulation_metadata({
+                    'method': 'advanced_geological_ml_fallback',
+                    'best_model': type(best_model).__name__,
+                    'cv_score': best_score,
+                    'parameter_name': parameter_name,
+                    'n_samples': n_samples,
+                    'value_range': value_range,
+                    'mean_uncertainty': np.mean(uncertainty_estimates)
+                })
+            
+            return final_predictions
+            
+        except Exception as e:
+            logging.error(f"Advanced geological simulation fallback failed: {e}")
+            return self._physics_based_parameter_estimation(sample_locations, value_range, parameter_name)
+    
+    def _extract_enhanced_geological_features(self, locations: np.ndarray, 
+                                            ref_coords: np.ndarray,
+                                            parameter_name: str) -> np.ndarray:
+        """Extract enhanced geological features for ML modeling"""
+        
+        n_locations = len(locations)
+        features = []
+        
+        for i, loc in enumerate(locations):
+            # Basic coordinates
+            feature_vec = [loc[0], loc[1]]  # x, y
+            
+            # Distance-based features
+            if len(ref_coords) > 0:
+                distances = np.sqrt(np.sum((ref_coords - loc)**2, axis=1))
+                feature_vec.extend([
+                    np.min(distances),           # Distance to nearest reference
+                    np.mean(distances),          # Mean distance to references
+                    np.median(distances),        # Median distance
+                    len(distances[distances < 1000])  # Number of nearby references
+                ])
+            else:
+                feature_vec.extend([0, 0, 0, 0])
+            
+            # Geological context features
+            depth = abs(loc[1]) if parameter_name in ['density', 'velocity'] else 0
+            feature_vec.extend([
+                depth,                           # Depth-related
+                depth**2,                        # Depth squared
+                np.sin(loc[0] / 1000),          # Spatial periodicity X
+                np.cos(loc[1] / 1000),          # Spatial periodicity Y
+                (loc[0]**2 + loc[1]**2)**0.5,   # Distance from origin
+                loc[0] * loc[1]                  # Interaction term
+            ])
+            
+            # Parameter-specific features
+            if parameter_name == 'velocity':
+                # Seismic velocity depends on lithology and depth
+                feature_vec.extend([
+                    max(0, 2000 + depth * 0.5),     # Expected P-wave velocity
+                    max(0, 1000 + depth * 0.3)      # Expected S-wave velocity
+                ])
+            elif parameter_name == 'density':
+                # Density increases with depth
+                feature_vec.extend([
+                    max(1500, 2000 + depth * 0.2),  # Expected bulk density
+                    depth * 0.01                     # Compaction factor
+                ])
+            elif parameter_name == 'porosity':
+                # Porosity decreases with depth
+                feature_vec.extend([
+                    max(0.01, 0.4 - depth * 0.00005),  # Expected porosity
+                    np.exp(-depth / 5000)               # Exponential decay
+                ])
+            else:
+                feature_vec.extend([0, 0])
+            
+            features.append(feature_vec)
+        
+        return np.array(features)
+    
+    def _calculate_geological_uncertainty(self, sample_locations: np.ndarray,
+                                        ref_coords: np.ndarray,
+                                        variogram_params: Dict,
+                                        parameter_name: str) -> np.ndarray:
+        """Calculate geological uncertainty based on spatial correlation"""
+        
+        uncertainties = np.zeros(len(sample_locations))
+        
+        try:
+            # Base uncertainty from variogram parameters
+            base_variance = variogram_params.get('sill', 1.0)
+            correlation_range = variogram_params.get('range', 1000.0)
+            nugget = variogram_params.get('nugget', 0.1)
+            
+            for i, loc in enumerate(sample_locations):
+                if len(ref_coords) > 0:
+                    # Distance to nearest reference point
+                    min_distance = np.min(np.sqrt(np.sum((ref_coords - loc)**2, axis=1)))
+                    
+                    # Uncertainty increases with distance from references
+                    distance_factor = min(1.0, min_distance / correlation_range)
+                    spatial_uncertainty = nugget + base_variance * distance_factor
+                else:
+                    spatial_uncertainty = base_variance
+                
+                # Parameter-specific uncertainty scaling
+                if parameter_name == 'velocity':
+                    uncertainty_scale = 0.1  # 10% uncertainty for velocity
+                elif parameter_name == 'density':
+                    uncertainty_scale = 0.05  # 5% uncertainty for density
+                else:
+                    uncertainty_scale = 0.15  # 15% for other parameters
+                
+                uncertainties[i] = spatial_uncertainty * uncertainty_scale
+        
+        except Exception as e:
+            logging.warning(f"Uncertainty calculation failed: {e}")
+            uncertainties.fill(0.1)  # Default 10% uncertainty
+        
+        return uncertainties
+    
+    def _apply_geological_constraints(self, predictions: np.ndarray,
+                                    locations: np.ndarray,
+                                    parameter_name: str,
+                                    value_range: Tuple[float, float]) -> np.ndarray:
+        """Apply geological constraints to predictions"""
+        
+        constrained = predictions.copy()
+        
+        try:
+            for i, (pred, loc) in enumerate(zip(predictions, locations)):
+                depth = abs(loc[1]) if len(loc) > 1 else 0
+                
+                if parameter_name == 'velocity':
+                    # Velocity generally increases with depth
+                    min_velocity = 1500 + depth * 0.3  # Minimum expected velocity
+                    max_velocity = 8000  # Maximum realistic crustal velocity
+                    constrained[i] = np.clip(pred, min_velocity, max_velocity)
+                    
+                elif parameter_name == 'density':
+                    # Density increases with depth due to compaction
+                    min_density = 2000 + depth * 0.1  # Minimum expected density
+                    max_density = 3500  # Maximum realistic crustal density
+                    constrained[i] = np.clip(pred, min_density, max_density)
+                    
+                elif parameter_name == 'porosity':
+                    # Porosity decreases with depth
+                    max_porosity = max(0.01, 0.4 - depth * 0.00003)
+                    constrained[i] = np.clip(pred, 0.01, max_porosity)
+                
+                # Ensure within specified range
+                constrained[i] = np.clip(constrained[i], value_range[0], value_range[1])
+        
+        except Exception as e:
+            logging.warning(f"Geological constraint application failed: {e}")
+        
+        return constrained
+    
+    def _rbf_interpolation_fallback(self, sample_locations: np.ndarray,
+                                  ref_coords: np.ndarray,
+                                  ref_values: np.ndarray,
+                                  value_range: Tuple[float, float]) -> np.ndarray:
+        """RBF interpolation fallback method"""
+        
+        try:
+            from scipy.interpolate import RBFInterpolator
+            
+            # Use multiquadric RBF for geological interpolation
+            rbf = RBFInterpolator(ref_coords, ref_values, kernel='multiquadric', smoothing=0.1)
+            
+            # Interpolate at sample locations
+            interpolated = rbf(sample_locations)
+            
+            # Clip to valid range
+            return np.clip(interpolated, value_range[0], value_range[1])
+            
+        except Exception as e:
+            logging.error(f"RBF interpolation failed: {e}")
+            return self._physics_based_parameter_estimation(sample_locations, value_range, 'unknown')
+    
+    def _physics_based_parameter_estimation(self, locations: np.ndarray,
+                                          value_range: Tuple[float, float],
+                                          parameter_name: str) -> np.ndarray:
+        """Physics-based parameter estimation as final fallback"""
+        
+        n_samples = len(locations)
+        estimates = np.zeros(n_samples)
+        
+        for i, loc in enumerate(locations):
+            depth = abs(loc[1]) if len(loc) > 1 else 0
+            
+            if parameter_name == 'velocity':
+                # Empirical velocity-depth relationship
+                estimates[i] = 2000 + depth * 0.6 + np.random.normal(0, 200)
+            elif parameter_name == 'density':
+                # Empirical density-depth relationship
+                estimates[i] = 2200 + depth * 0.15 + np.random.normal(0, 100)
+            elif parameter_name == 'porosity':
+                # Exponential porosity decay with depth
+                estimates[i] = 0.3 * np.exp(-depth / 3000) + 0.05 + np.random.normal(0, 0.02)
+            else:
+                # Generic depth-dependent relationship
+                mid_value = (value_range[0] + value_range[1]) / 2
+                estimates[i] = mid_value + depth * 0.0001 + np.random.normal(0, (value_range[1] - value_range[0]) * 0.1)
+        
+        return np.clip(estimates, value_range[0], value_range[1])
 
 
 class MockDatabaseConnection:

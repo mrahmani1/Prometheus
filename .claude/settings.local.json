@@ -46,7 +46,8 @@
       "Read(/C:\\Users\\Mario\\Desktop\\Prometheus\\backend\\modules/**)",
       "Read(/C:\\Users\\Mario/**)",
       "Read(/C:\\Users\\Mario/**)",
-      "Read(/C:\\Users\\Mario\\.claude/**)"
+      "Read(/C:\\Users\\Mario\\.claude/**)",
+      "Read(//c/Users/Mario/**)"
     ],
     "deny": [],
     "ask": [],
