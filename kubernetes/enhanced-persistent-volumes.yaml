@@ -1,0 +1,476 @@
+# =============================================================================
+# ENHANCED PERSISTENT VOLUMES FOR PROMETHEUS AI PLATFORM
+# High-performance storage configuration for geological databases
+# =============================================================================
+
+# Enhanced PostgreSQL Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: enhanced-postgres-pv
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-postgres
+    component: database
+    storage-tier: high-performance
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-ssd
+  hostPath:
+    path: /data/prometheus-ai/postgres
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: storage-type
+          operator: In
+          values:
+          - ssd
+          - nvme
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: enhanced-postgres-pvc
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-postgres
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: fast-ssd
+  selector:
+    matchLabels:
+      app: enhanced-postgres
+
+---
+# Enhanced InfluxDB Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: enhanced-influxdb-pv
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-influxdb
+    component: timeseries-database
+    storage-tier: high-performance
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-ssd
+  hostPath:
+    path: /data/prometheus-ai/influxdb
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: storage-type
+          operator: In
+          values:
+          - ssd
+          - nvme
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: enhanced-influxdb-pvc
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-influxdb
+    component: timeseries-database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: fast-ssd
+  selector:
+    matchLabels:
+      app: enhanced-influxdb
+
+---
+# Enhanced Neo4j Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: enhanced-neo4j-pv
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-neo4j
+    component: graph-database
+    storage-tier: high-performance
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-ssd
+  hostPath:
+    path: /data/prometheus-ai/neo4j
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: storage-type
+          operator: In
+          values:
+          - ssd
+          - nvme
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: enhanced-neo4j-pvc
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-neo4j
+    component: graph-database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: fast-ssd
+  selector:
+    matchLabels:
+      app: enhanced-neo4j
+
+---
+# Enhanced Redis Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: enhanced-redis-pv
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-redis
+    component: cache
+    storage-tier: high-performance
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-ssd
+  hostPath:
+    path: /data/prometheus-ai/redis
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: storage-type
+          operator: In
+          values:
+          - ssd
+          - nvme
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: enhanced-redis-pvc
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-redis
+    component: cache
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: fast-ssd
+  selector:
+    matchLabels:
+      app: enhanced-redis
+
+---
+# MLflow Artifacts Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mlflow-artifacts-pv
+  namespace: prometheus-ai
+  labels:
+    app: mlflow-tracking
+    component: mlops
+    storage-tier: standard
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: shared-storage
+  hostPath:
+    path: /data/prometheus-ai/mlflow-artifacts
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-artifacts-pvc
+  namespace: prometheus-ai
+  labels:
+    app: mlflow-tracking
+    component: mlops
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: shared-storage
+  selector:
+    matchLabels:
+      app: mlflow-tracking
+
+---
+# Geological Age Training Data Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: geological-age-data-pv
+  namespace: prometheus-ai
+  labels:
+    app: geological-age-service
+    component: training-data
+    storage-tier: standard
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: shared-storage
+  hostPath:
+    path: /data/prometheus-ai/geological-age
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: geological-age-data-pvc
+  namespace: prometheus-ai
+  labels:
+    app: geological-age-service
+    component: training-data
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: shared-storage
+  selector:
+    matchLabels:
+      app: geological-age-service
+
+---
+# Model Storage Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: model-storage-pv
+  namespace: prometheus-ai
+  labels:
+    app: model-manager
+    component: model-storage
+    storage-tier: standard
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: shared-storage
+  hostPath:
+    path: /data/prometheus-ai/models
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-storage-pvc
+  namespace: prometheus-ai
+  labels:
+    app: model-manager
+    component: model-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Ti
+  storageClassName: shared-storage
+  selector:
+    matchLabels:
+      app: model-manager
+
+---
+# Backup Storage Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: backup-storage-pv
+  namespace: prometheus-ai
+  labels:
+    app: backup-service
+    component: backup-storage
+    storage-tier: archive
+spec:
+  capacity:
+    storage: 5Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: archive-storage
+  hostPath:
+    path: /data/prometheus-ai/backups
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-storage-pvc
+  namespace: prometheus-ai
+  labels:
+    app: backup-service
+    component: backup-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Ti
+  storageClassName: archive-storage
+  selector:
+    matchLabels:
+      app: backup-service
+
+---
+# Logs Storage Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: logs-storage-pv
+  namespace: prometheus-ai
+  labels:
+    app: logging-service
+    component: logs-storage
+    storage-tier: standard
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: standard-storage
+  hostPath:
+    path: /data/prometheus-ai/logs
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: logs-storage-pvc
+  namespace: prometheus-ai
+  labels:
+    app: logging-service
+    component: logs-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: standard-storage
+  selector:
+    matchLabels:
+      app: logging-service
+
+---
+# Storage Classes Definition
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+  labels:
+    storage-tier: high-performance
+provisioner: kubernetes.io/no-provisioner
+parameters:
+  type: ssd
+  iops: "10000"
+  throughput: "1000"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: shared-storage
+  labels:
+    storage-tier: standard
+provisioner: kubernetes.io/no-provisioner
+parameters:
+  type: shared
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: archive-storage
+  labels:
+    storage-tier: archive
+provisioner: kubernetes.io/no-provisioner
+parameters:
+  type: archive
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-storage
+  labels:
+    storage-tier: standard
+provisioner: kubernetes.io/no-provisioner
+parameters:
+  type: standard
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+reclaimPolicy: Delete

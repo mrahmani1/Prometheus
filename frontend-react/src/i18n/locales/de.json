@@ -1,0 +1,38 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "warning": "Warnung",
+    "info": "Information",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "view": "Ansehen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "refresh": "Aktualisieren",
+    "settings": "Einstellungen",
+    "help": "Hilfe",
+    "about": "Über"
+  },
+  
+  "navigation": {
+    "dashboard": "Dashboard",
+    "seismic": "Seismische Analyse",
+    "volcanic": "Vulkanüberwachung",
+    "deformation": "Deformationsanalyse",
+    "resources": "Ressourcenbewertung",
+    "geological": "Geologische Modellierung",
+    "settings": "Einstellungen",
+    "logout": "Abmelden"
+  }
+}

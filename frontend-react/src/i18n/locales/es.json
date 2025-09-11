@@ -1,0 +1,106 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "refresh": "Actualizar",
+    "settings": "Configuración",
+    "help": "Ayuda",
+    "about": "Acerca de"
+  },
+  
+  "navigation": {
+    "dashboard": "Panel de Control",
+    "seismic": "Análisis Sísmico",
+    "volcanic": "Monitoreo Volcánico",
+    "deformation": "Análisis de Deformación",
+    "resources": "Evaluación de Recursos",
+    "geological": "Modelado Geológico",
+    "settings": "Configuración",
+    "logout": "Cerrar Sesión"
+  },
+  
+  "auth": {
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "email": "Correo Electrónico",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "rememberMe": "Recordarme",
+    "loginSuccess": "Inicio de sesión exitoso",
+    "loginError": "Error al iniciar sesión",
+    "logoutSuccess": "Cierre de sesión exitoso",
+    "sessionExpired": "Sesión expirada. Por favor, inicia sesión nuevamente.",
+    "mfaRequired": "Se requiere autenticación de dos factores",
+    "mfaCode": "Código de Autenticación"
+  },
+  
+  "seismic": {
+    "title": "Análisis Sísmico",
+    "events": "Eventos Sísmicos",
+    "magnitude": "Magnitud",
+    "depth": "Profundidad",
+    "location": "Ubicación",
+    "time": "Tiempo",
+    "eventType": "Tipo de Evento",
+    "earthquake": "Terremoto",
+    "volcanicTremor": "Tremor Volcánico",
+    "explosion": "Explosión",
+    "rockfall": "Desprendimiento",
+    "longPeriod": "Período Largo",
+    "veryLongPeriod": "Período Muy Largo",
+    "hybrid": "Híbrido"
+  },
+  
+  "volcanic": {
+    "title": "Monitoreo Volcánico",
+    "volcanoes": "Volcanes",
+    "alertLevel": "Nivel de Alerta",
+    "green": "Normal",
+    "yellow": "Asesoramiento",
+    "orange": "Vigilancia",
+    "red": "Advertencia",
+    "deformation": "Deformación",
+    "gasEmissions": "Emisiones de Gas",
+    "thermalAnomalies": "Anomalías Térmicas",
+    "seismicity": "Sismicidad",
+    "eruptionForecast": "Pronóstico de Erupción",
+    "probability": "Probabilidad",
+    "timeWindow": "Ventana de Tiempo",
+    "vei": "Índice de Explosividad Volcánica"
+  },
+  
+  "geological": {
+    "title": "Modelado Geológico",
+    "3dModel": "Modelo 3D",
+    "crossSection": "Sección Transversal",
+    "lithology": "Litología",
+    "structure": "Estructura",
+    "stratigraphy": "Estratigrafía",
+    "tectonics": "Tectónica",
+    "igneous": "Ígnea",
+    "sedimentary": "Sedimentaria",
+    "metamorphic": "Metamórfica",
+    "fault": "Falla",
+    "fold": "Pliegue",
+    "joint": "Diaclasa",
+    "fracture": "Fractura"
+  }
+}

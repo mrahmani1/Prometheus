@@ -1,0 +1,38 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "warning": "警告",
+    "info": "情報",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "view": "表示",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "search": "検索",
+    "filter": "フィルター",
+    "export": "エクスポート",
+    "import": "インポート",
+    "refresh": "更新",
+    "settings": "設定",
+    "help": "ヘルプ",
+    "about": "について"
+  },
+  
+  "navigation": {
+    "dashboard": "ダッシュボード",
+    "seismic": "地震解析",
+    "volcanic": "火山監視",
+    "deformation": "変形解析",
+    "resources": "資源評価",
+    "geological": "地質モデリング",
+    "settings": "設定",
+    "logout": "ログアウト"
+  }
+}

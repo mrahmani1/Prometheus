@@ -1,0 +1,698 @@
+# =============================================================================
+# ENHANCED DATABASE CONFIGURATION MAPS
+# Performance-optimized configuration for geological databases
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-postgres-init-scripts
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-postgres
+    component: database
+    version: v2.0.0
+data:
+  01-init-extensions.sql: |
+    -- Enable comprehensive extensions for geological analysis
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    CREATE EXTENSION IF NOT EXISTS postgis_topology;
+    CREATE EXTENSION IF NOT EXISTS postgis_raster;
+    CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
+    CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder;
+    CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS btree_gist;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+    CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    CREATE EXTENSION IF NOT EXISTS hstore;
+    CREATE EXTENSION IF NOT EXISTS ltree;
+    CREATE EXTENSION IF NOT EXISTS cube;
+    CREATE EXTENSION IF NOT EXISTS earthdistance;
+    CREATE EXTENSION IF NOT EXISTS pg_partman;
+    
+    -- Configure TimescaleDB
+    SELECT timescaledb_pre_restore();
+    
+  02-create-schemas.sql: |
+    -- Create comprehensive schemas for geological data organization
+    CREATE SCHEMA IF NOT EXISTS geological;
+    CREATE SCHEMA IF NOT EXISTS volcanic;
+    CREATE SCHEMA IF NOT EXISTS seismic;
+    CREATE SCHEMA IF NOT EXISTS resources;
+    CREATE SCHEMA IF NOT EXISTS monitoring;
+    CREATE SCHEMA IF NOT EXISTS geological_age;
+    CREATE SCHEMA IF NOT EXISTS model_management;
+    CREATE SCHEMA IF NOT EXISTS mlops;
+    CREATE SCHEMA IF NOT EXISTS external_data;
+    CREATE SCHEMA IF NOT EXISTS backup_archive;
+    CREATE SCHEMA IF NOT EXISTS performance_monitoring;
+    
+    -- Set search path for geological operations
+    ALTER DATABASE prometheus_geo SET search_path TO geological, volcanic, seismic, resources, monitoring, public;
+    
+  03-create-users.sql: |
+    -- Create specialized users for different services
+    CREATE USER prometheus_age_service WITH PASSWORD 'GeoAge2024!SecurePass#';
+    CREATE USER prometheus_ml WITH PASSWORD 'MLModels2024#';
+    CREATE USER prometheus_readonly WITH PASSWORD 'ReadOnly2024!';
+    CREATE USER prometheus_backup WITH PASSWORD 'Backup2024!Secure#';
+    
+    -- Grant appropriate permissions
+    GRANT CONNECT ON DATABASE prometheus_geo TO prometheus_age_service;
+    GRANT USAGE ON SCHEMA geological_age TO prometheus_age_service;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA geological_age TO prometheus_age_service;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA geological_age TO prometheus_age_service;
+    
+    GRANT CONNECT ON DATABASE prometheus_geo TO prometheus_ml;
+    GRANT USAGE ON SCHEMA model_management, mlops TO prometheus_ml;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA model_management, mlops TO prometheus_ml;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA model_management, mlops TO prometheus_ml;
+    
+    GRANT CONNECT ON DATABASE prometheus_geo TO prometheus_readonly;
+    GRANT USAGE ON ALL SCHEMAS IN DATABASE prometheus_geo TO prometheus_readonly;
+    GRANT SELECT ON ALL TABLES IN SCHEMA geological, volcanic, seismic, resources, monitoring TO prometheus_readonly;
+    
+    GRANT CONNECT ON DATABASE prometheus_geo TO prometheus_backup;
+    GRANT USAGE ON SCHEMA backup_archive TO prometheus_backup;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA backup_archive TO prometheus_backup;
+    
+  04-performance-optimization.sql: |
+    -- Performance optimization settings
+    ALTER SYSTEM SET shared_preload_libraries = 'timescaledb,pg_stat_statements,pg_partman_bgw';
+    ALTER SYSTEM SET max_connections = 200;
+    ALTER SYSTEM SET shared_buffers = '2GB';
+    ALTER SYSTEM SET effective_cache_size = '6GB';
+    ALTER SYSTEM SET maintenance_work_mem = '512MB';
+    ALTER SYSTEM SET checkpoint_completion_target = 0.9;
+    ALTER SYSTEM SET wal_buffers = '16MB';
+    ALTER SYSTEM SET default_statistics_target = 100;
+    ALTER SYSTEM SET random_page_cost = 1.1;
+    ALTER SYSTEM SET effective_io_concurrency = 200;
+    ALTER SYSTEM SET work_mem = '64MB';
+    ALTER SYSTEM SET max_worker_processes = 16;
+    ALTER SYSTEM SET max_parallel_workers_per_gather = 4;
+    ALTER SYSTEM SET max_parallel_workers = 8;
+    ALTER SYSTEM SET max_parallel_maintenance_workers = 4;
+    
+    -- TimescaleDB specific settings
+    ALTER SYSTEM SET timescaledb.max_background_workers = 8;
+    ALTER SYSTEM SET timescaledb.last_updated_threshold = '1min';
+    
+    -- Enable query performance monitoring
+    ALTER SYSTEM SET pg_stat_statements.track = 'all';
+    ALTER SYSTEM SET pg_stat_statements.max = 10000;
+    ALTER SYSTEM SET log_statement = 'mod';
+    ALTER SYSTEM SET log_min_duration_statement = 1000;
+    ALTER SYSTEM SET log_checkpoints = on;
+    ALTER SYSTEM SET log_connections = on;
+    ALTER SYSTEM SET log_disconnections = on;
+    ALTER SYSTEM SET log_lock_waits = on;
+    ALTER SYSTEM SET log_temp_files = 0;
+    
+    -- Reload configuration
+    SELECT pg_reload_conf();
+    
+  05-load-comprehensive-schema.sql: |
+    -- Load the comprehensive geological database schema
+    \i /docker-entrypoint-initdb.d/comprehensive_deployment_init.sql
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-performance-config
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-postgres
+    component: database
+data:
+  postgresql.conf: |
+    # =============================================================================
+    # POSTGRESQL PERFORMANCE CONFIGURATION
+    # Optimized for geological data processing and analysis
+    # =============================================================================
+    
+    # Connection Settings
+    max_connections = 200
+    superuser_reserved_connections = 3
+    
+    # Memory Settings
+    shared_buffers = 2GB
+    effective_cache_size = 6GB
+    maintenance_work_mem = 512MB
+    work_mem = 64MB
+    
+    # Checkpoint Settings
+    checkpoint_completion_target = 0.9
+    checkpoint_timeout = 15min
+    max_wal_size = 4GB
+    min_wal_size = 1GB
+    wal_buffers = 16MB
+    
+    # Query Planner Settings
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+    # Parallel Query Settings
+    max_worker_processes = 16
+    max_parallel_workers_per_gather = 4
+    max_parallel_workers = 8
+    max_parallel_maintenance_workers = 4
+    
+    # Logging Settings
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 100MB
+    log_min_duration_statement = 1000
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    log_temp_files = 0
+    log_statement = 'mod'
+    
+    # Autovacuum Settings
+    autovacuum = on
+    autovacuum_max_workers = 4
+    autovacuum_naptime = 30s
+    autovacuum_vacuum_threshold = 50
+    autovacuum_analyze_threshold = 50
+    autovacuum_vacuum_scale_factor = 0.1
+    autovacuum_analyze_scale_factor = 0.05
+    
+    # Background Writer Settings
+    bgwriter_delay = 200ms
+    bgwriter_lru_maxpages = 100
+    bgwriter_lru_multiplier = 2.0
+    
+    # Lock Management
+    deadlock_timeout = 1s
+    max_locks_per_transaction = 256
+    
+    # Shared Preload Libraries
+    shared_preload_libraries = 'timescaledb,pg_stat_statements,pg_partman_bgw'
+    
+    # TimescaleDB Settings
+    timescaledb.max_background_workers = 8
+    timescaledb.last_updated_threshold = '1min'
+    
+    # pg_stat_statements Settings
+    pg_stat_statements.track = all
+    pg_stat_statements.max = 10000
+    pg_stat_statements.track_utility = on
+    
+    # Locale Settings
+    lc_messages = 'en_US.utf8'
+    lc_monetary = 'en_US.utf8'
+    lc_numeric = 'en_US.utf8'
+    lc_time = 'en_US.utf8'
+    
+    # Default Text Search Configuration
+    default_text_search_config = 'pg_catalog.english'
+    
+    # Time Zone
+    timezone = 'UTC'
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: influxdb-performance-config
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-influxdb
+    component: timeseries-database
+data:
+  config.toml: |
+    # =============================================================================
+    # INFLUXDB PERFORMANCE CONFIGURATION
+    # Optimized for geological time-series data
+    # =============================================================================
+    
+    [meta]
+      dir = "/var/lib/influxdb2/meta"
+      retention-autocreate = true
+      logging-enabled = true
+    
+    [data]
+      dir = "/var/lib/influxdb2/data"
+      wal-dir = "/var/lib/influxdb2/wal"
+      
+      # Cache settings for geological data
+      cache-max-memory-size = "2gb"
+      cache-snapshot-memory-size = "512mb"
+      cache-snapshot-write-cold-duration = "10m"
+      
+      # Compaction settings
+      compact-full-write-cold-duration = "4h"
+      compact-throughput = "48mb"
+      compact-throughput-burst = "96mb"
+      
+      # TSM settings
+      tsm-use-madv-willneed = true
+      
+      # WAL settings
+      wal-fsync-delay = "0s"
+      
+      # Query settings
+      query-timeout = "300s"
+      max-concurrent-queries = 0
+      max-select-point = 0
+      max-select-series = 0
+      max-select-buckets = 0
+    
+    [coordinator]
+      write-timeout = "30s"
+      max-concurrent-queries = 0
+      query-timeout = "300s"
+      log-queries-after = "10s"
+      max-select-point = 0
+      max-select-series = 0
+      max-select-buckets = 0
+    
+    [retention]
+      enabled = true
+      check-interval = "30m"
+    
+    [shard-precreation]
+      enabled = true
+      check-interval = "10m"
+      advance-period = "30m"
+    
+    [monitor]
+      store-enabled = true
+      store-database = "_internal"
+      store-interval = "10s"
+    
+    [http]
+      enabled = true
+      bind-address = ":8086"
+      auth-enabled = true
+      log-enabled = true
+      write-tracing = false
+      pprof-enabled = true
+      debug-pprof-enabled = false
+      https-enabled = false
+      max-body-size = 25000000
+      max-concurrent-write-limit = 0
+      max-enqueued-write-limit = 0
+      enqueued-write-timeout = 30000000000
+      read-timeout = "300s"
+      write-timeout = "300s"
+    
+    [logging]
+      format = "auto"
+      level = "info"
+      suppress-logo = false
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-performance-config
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-redis
+    component: cache
+data:
+  redis.conf: |
+    # =============================================================================
+    # REDIS PERFORMANCE CONFIGURATION
+    # Optimized for geological data caching
+    # =============================================================================
+    
+    # Network Configuration
+    bind 0.0.0.0
+    port 6379
+    tcp-backlog 511
+    timeout 300
+    tcp-keepalive 300
+    
+    # General Configuration
+    daemonize no
+    supervised no
+    pidfile /var/run/redis_6379.pid
+    loglevel notice
+    logfile ""
+    databases 16
+    
+    # Memory Management
+    maxmemory 2gb
+    maxmemory-policy allkeys-lru
+    maxmemory-samples 5
+    
+    # Persistence Configuration
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    
+    # AOF Configuration
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+    
+    # Lua Scripting
+    lua-time-limit 5000
+    
+    # Slow Log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    
+    # Latency Monitoring
+    latency-monitor-threshold 100
+    
+    # Event Notification
+    notify-keyspace-events ""
+    
+    # Hash Configuration
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    
+    # List Configuration
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    
+    # Set Configuration
+    set-max-intset-entries 512
+    
+    # Sorted Set Configuration
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    
+    # HyperLogLog Configuration
+    hll-sparse-max-bytes 3000
+    
+    # Streams Configuration
+    stream-node-max-bytes 4096
+    stream-node-max-entries 100
+    
+    # Active Rehashing
+    activerehashing yes
+    
+    # Client Configuration
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    client-query-buffer-limit 1gb
+    
+    # Protocol Configuration
+    proto-max-bulk-len 512mb
+    
+    # Frequency Configuration
+    hz 10
+    
+    # Dynamic HZ
+    dynamic-hz yes
+    
+    # AOF Rewrite Configuration
+    aof-rewrite-incremental-fsync yes
+    
+    # RDB Save Configuration
+    rdb-save-incremental-fsync yes
+    
+    # Jemalloc Configuration
+    jemalloc-bg-thread yes
+    
+    # IO Threads Configuration
+    io-threads 4
+    io-threads-do-reads yes
+    
+    # Security Configuration (password will be set via environment variable)
+    # requirepass will be set dynamically
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts-config
+  namespace: prometheus-ai
+  labels:
+    app: backup-service
+    component: backup-scripts
+data:
+  backup-postgresql.sh: |
+    #!/bin/bash
+    # =============================================================================
+    # POSTGRESQL BACKUP SCRIPT
+    # Comprehensive backup with multi-location storage
+    # =============================================================================
+    
+    set -euo pipefail
+    
+    # Configuration
+    BACKUP_NAME="prometheus-postgres-$(date +%Y%m%d_%H%M%S)"
+    BACKUP_DIR="/backups/postgresql"
+    LOG_FILE="/logs/backup-postgresql.log"
+    
+    # Database connection parameters
+    export PGHOST="${POSTGRES_HOST}"
+    export PGPORT="${POSTGRES_PORT}"
+    export PGUSER="${POSTGRES_USER}"
+    export PGPASSWORD="${POSTGRES_PASSWORD}"
+    export PGDATABASE="${POSTGRES_DB}"
+    
+    # Create backup directory
+    mkdir -p "${BACKUP_DIR}"
+    
+    # Function to log messages
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "${LOG_FILE}"
+    }
+    
+    log "Starting PostgreSQL backup: ${BACKUP_NAME}"
+    
+    # Create full database dump
+    log "Creating database dump..."
+    pg_dump --verbose --format=custom --compress=9 \
+        --file="${BACKUP_DIR}/${BACKUP_NAME}.dump" \
+        "${PGDATABASE}" 2>&1 | tee -a "${LOG_FILE}"
+    
+    # Create schema-only dump
+    log "Creating schema-only dump..."
+    pg_dump --verbose --schema-only --format=plain \
+        --file="${BACKUP_DIR}/${BACKUP_NAME}_schema.sql" \
+        "${PGDATABASE}" 2>&1 | tee -a "${LOG_FILE}"
+    
+    # Create data-only dump for critical tables
+    log "Creating data-only dump for critical tables..."
+    pg_dump --verbose --data-only --format=custom --compress=9 \
+        --table="geological_age.*" --table="model_management.*" \
+        --file="${BACKUP_DIR}/${BACKUP_NAME}_critical_data.dump" \
+        "${PGDATABASE}" 2>&1 | tee -a "${LOG_FILE}"
+    
+    # Calculate checksums
+    log "Calculating checksums..."
+    cd "${BACKUP_DIR}"
+    sha256sum "${BACKUP_NAME}.dump" > "${BACKUP_NAME}.dump.sha256"
+    sha256sum "${BACKUP_NAME}_schema.sql" > "${BACKUP_NAME}_schema.sql.sha256"
+    sha256sum "${BACKUP_NAME}_critical_data.dump" > "${BACKUP_NAME}_critical_data.dump.sha256"
+    
+    # Compress backups
+    log "Compressing backups..."
+    tar -czf "${BACKUP_NAME}.tar.gz" "${BACKUP_NAME}".* 2>&1 | tee -a "${LOG_FILE}"
+    
+    # Upload to cloud storage (if configured)
+    if [[ -n "${BACKUP_S3_BUCKET:-}" ]]; then
+        log "Uploading to S3..."
+        aws s3 cp "${BACKUP_NAME}.tar.gz" "s3://${BACKUP_S3_BUCKET}/postgresql/" 2>&1 | tee -a "${LOG_FILE}"
+    fi
+    
+    if [[ -n "${BACKUP_AZURE_CONTAINER:-}" ]]; then
+        log "Uploading to Azure Blob Storage..."
+        az storage blob upload --file "${BACKUP_NAME}.tar.gz" \
+            --container-name "${BACKUP_AZURE_CONTAINER}" \
+            --name "postgresql/${BACKUP_NAME}.tar.gz" 2>&1 | tee -a "${LOG_FILE}"
+    fi
+    
+    if [[ -n "${BACKUP_GCS_BUCKET:-}" ]]; then
+        log "Uploading to Google Cloud Storage..."
+        gsutil cp "${BACKUP_NAME}.tar.gz" "gs://${BACKUP_GCS_BUCKET}/postgresql/" 2>&1 | tee -a "${LOG_FILE}"
+    fi
+    
+    # Cleanup old backups (keep last 7 days)
+    log "Cleaning up old backups..."
+    find "${BACKUP_DIR}" -name "prometheus-postgres-*.tar.gz" -mtime +7 -delete 2>&1 | tee -a "${LOG_FILE}"
+    
+    log "PostgreSQL backup completed successfully: ${BACKUP_NAME}"
+    
+  restore-postgresql.sh: |
+    #!/bin/bash
+    # =============================================================================
+    # POSTGRESQL RESTORE SCRIPT
+    # Restore from backup with verification
+    # =============================================================================
+    
+    set -euo pipefail
+    
+    # Configuration
+    BACKUP_FILE="${1:-}"
+    LOG_FILE="/logs/restore-postgresql.log"
+    
+    if [[ -z "${BACKUP_FILE}" ]]; then
+        echo "Usage: $0 <backup_file>"
+        exit 1
+    fi
+    
+    # Database connection parameters
+    export PGHOST="${POSTGRES_HOST}"
+    export PGPORT="${POSTGRES_PORT}"
+    export PGUSER="${POSTGRES_USER}"
+    export PGPASSWORD="${POSTGRES_PASSWORD}"
+    export PGDATABASE="${POSTGRES_DB}"
+    
+    # Function to log messages
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "${LOG_FILE}"
+    }
+    
+    log "Starting PostgreSQL restore from: ${BACKUP_FILE}"
+    
+    # Verify backup file exists
+    if [[ ! -f "${BACKUP_FILE}" ]]; then
+        log "ERROR: Backup file not found: ${BACKUP_FILE}"
+        exit 1
+    fi
+    
+    # Verify checksum if available
+    if [[ -f "${BACKUP_FILE}.sha256" ]]; then
+        log "Verifying backup checksum..."
+        if sha256sum -c "${BACKUP_FILE}.sha256"; then
+            log "Checksum verification passed"
+        else
+            log "ERROR: Checksum verification failed"
+            exit 1
+        fi
+    fi
+    
+    # Create restore point
+    log "Creating restore point..."
+    psql -c "SELECT pg_create_restore_point('pre_restore_$(date +%Y%m%d_%H%M%S)');" 2>&1 | tee -a "${LOG_FILE}"
+    
+    # Restore database
+    log "Restoring database..."
+    pg_restore --verbose --clean --if-exists --no-owner --no-privileges \
+        --dbname="${PGDATABASE}" "${BACKUP_FILE}" 2>&1 | tee -a "${LOG_FILE}"
+    
+    # Verify restore
+    log "Verifying restore..."
+    psql -c "SELECT COUNT(*) FROM geological_age.age_references;" 2>&1 | tee -a "${LOG_FILE}"
+    psql -c "SELECT COUNT(*) FROM model_management.model_registry;" 2>&1 | tee -a "${LOG_FILE}"
+    
+    log "PostgreSQL restore completed successfully"
+    
+  health-check.sh: |
+    #!/bin/bash
+    # =============================================================================
+    # DATABASE HEALTH CHECK SCRIPT
+    # Comprehensive health monitoring for all databases
+    # =============================================================================
+    
+    set -euo pipefail
+    
+    LOG_FILE="/logs/health-check.log"
+    
+    # Function to log messages
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "${LOG_FILE}"
+    }
+    
+    # Check PostgreSQL
+    check_postgresql() {
+        log "Checking PostgreSQL health..."
+        
+        if pg_isready -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}"; then
+            log "PostgreSQL is responsive"
+            
+            # Check database size
+            DB_SIZE=$(psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+                -t -c "SELECT pg_size_pretty(pg_database_size('${POSTGRES_DB}'));")
+            log "Database size: ${DB_SIZE}"
+            
+            # Check active connections
+            ACTIVE_CONN=$(psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+                -t -c "SELECT count(*) FROM pg_stat_activity WHERE state = 'active';")
+            log "Active connections: ${ACTIVE_CONN}"
+            
+            return 0
+        else
+            log "ERROR: PostgreSQL is not responsive"
+            return 1
+        fi
+    }
+    
+    # Check InfluxDB
+    check_influxdb() {
+        log "Checking InfluxDB health..."
+        
+        if curl -f -s "${INFLUXDB_URL}/health" > /dev/null; then
+            log "InfluxDB is responsive"
+            return 0
+        else
+            log "ERROR: InfluxDB is not responsive"
+            return 1
+        fi
+    }
+    
+    # Check Redis
+    check_redis() {
+        log "Checking Redis health..."
+        
+        if redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" ping | grep -q "PONG"; then
+            log "Redis is responsive"
+            
+            # Check memory usage
+            MEMORY_USAGE=$(redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" info memory | grep used_memory_human)
+            log "Redis memory usage: ${MEMORY_USAGE}"
+            
+            return 0
+        else
+            log "ERROR: Redis is not responsive"
+            return 1
+        fi
+    }
+    
+    # Check Neo4j
+    check_neo4j() {
+        log "Checking Neo4j health..."
+        
+        if curl -f -s "${NEO4J_URL}" > /dev/null; then
+            log "Neo4j is responsive"
+            return 0
+        else
+            log "ERROR: Neo4j is not responsive"
+            return 1
+        fi
+    }
+    
+    # Main health check
+    log "Starting comprehensive database health check..."
+    
+    OVERALL_STATUS=0
+    
+    check_postgresql || OVERALL_STATUS=1
+    check_influxdb || OVERALL_STATUS=1
+    check_redis || OVERALL_STATUS=1
+    check_neo4j || OVERALL_STATUS=1
+    
+    if [[ ${OVERALL_STATUS} -eq 0 ]]; then
+        log "All databases are healthy"
+    else
+        log "One or more databases have issues"
+    fi
+    
+    exit ${OVERALL_STATUS}

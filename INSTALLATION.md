@@ -274,6 +274,12 @@ kubectl apply -f kubernetes/configmaps.yaml
 kubectl apply -f kubernetes/secrets.yaml
 kubectl apply -f kubernetes/persistent-volumes.yaml
 kubectl apply -f kubernetes/database-deployments.yaml
+
+# Deploy enhanced database configuration (Task 2.5 - COMPLETED)
+kubectl apply -f kubernetes/enhanced-database-deployments.yaml
+kubectl apply -f kubernetes/enhanced-database-configmaps.yaml
+kubectl apply -f kubernetes/enhanced-database-secrets.yaml
+
 kubectl apply -f kubernetes/consul.yaml
 kubectl apply -f kubernetes/monitoring.yaml
 kubectl apply -f kubernetes/service-deployments.yaml
@@ -312,6 +318,40 @@ kubectl get hpa -n prometheus-ai
 # Or port-forward for local access
 kubectl port-forward service/api-gateway 8080:3000 -n prometheus-ai
 kubectl port-forward service/grafana-service 3000:3000 -n prometheus-ai
+```
+
+### Enhanced Database Deployment (Task 2.5 - COMPLETED)
+```bash
+# Deploy comprehensive database infrastructure
+./scripts/deploy-enhanced-database.sh deploy
+
+# Verify database deployment
+./scripts/deploy-enhanced-database.sh verify
+
+# Configure external data source integration
+kubectl create secret generic external-api-keys \
+  --from-literal=earthchem-api-key=your_earthchem_key \
+  --from-literal=georoc-api-key=your_georoc_key \
+  --from-literal=navdat-api-key=your_navdat_key \
+  --from-literal=petdb-api-key=your_petdb_key \
+  -n prometheus-ai
+
+# Set up multi-cloud backup credentials
+kubectl create secret generic backup-credentials \
+  --from-literal=aws-access-key-id=your_aws_key \
+  --from-literal=aws-secret-access-key=your_aws_secret \
+  --from-literal=azure-storage-account=your_azure_account \
+  --from-literal=azure-storage-key=your_azure_key \
+  --from-literal=gcp-service-account-key=your_gcp_key \
+  -n prometheus-ai
+
+# Initialize geological age database
+kubectl exec -it deployment/postgres-deployment -n prometheus-ai -- \
+  psql -U prometheus_admin -d prometheus_geo -f /docker-entrypoint-initdb.d/geological_age_schema.sql
+
+# Start MLOps pipeline integration
+kubectl apply -f kubernetes/mlflow-deployment.yaml
+kubectl apply -f kubernetes/dask-deployment.yaml
 ```
 
 ### Multi-Cloud Deployment

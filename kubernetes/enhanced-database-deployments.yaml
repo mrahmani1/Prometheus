@@ -1,0 +1,792 @@
+# =============================================================================
+# ENHANCED DATABASE DEPLOYMENTS FOR PROMETHEUS AI PLATFORM
+# Comprehensive geological database with TimeScaleDB, PostGIS, and MLOps integration
+# =============================================================================
+
+# PostgreSQL + PostGIS + TimeScaleDB Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enhanced-postgres-deployment
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-postgres
+    component: database
+    version: v2.0.0
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Ensure data consistency during updates
+  selector:
+    matchLabels:
+      app: enhanced-postgres
+  template:
+    metadata:
+      labels:
+        app: enhanced-postgres
+        component: database
+    spec:
+      securityContext:
+        fsGroup: 999  # postgres group
+      containers:
+      - name: postgres-timescaledb
+        image: timescale/timescaledb-ha:pg15-latest
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        # Core PostgreSQL Configuration
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: postgres-password
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: postgres-db
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        
+        # TimeScaleDB Configuration
+        - name: TIMESCALEDB_TELEMETRY
+          value: "off"
+        - name: TS_TUNE_MEMORY
+          value: "4GB"
+        - name: TS_TUNE_NUM_CPUS
+          value: "4"
+        - name: TS_TUNE_MAX_CONNS
+          value: "200"
+        
+        # Performance Tuning
+        - name: POSTGRES_SHARED_BUFFERS
+          value: "2GB"
+        - name: POSTGRES_EFFECTIVE_CACHE_SIZE
+          value: "6GB"
+        - name: POSTGRES_MAINTENANCE_WORK_MEM
+          value: "512MB"
+        - name: POSTGRES_CHECKPOINT_COMPLETION_TARGET
+          value: "0.9"
+        - name: POSTGRES_WAL_BUFFERS
+          value: "16MB"
+        - name: POSTGRES_DEFAULT_STATISTICS_TARGET
+          value: "100"
+        - name: POSTGRES_RANDOM_PAGE_COST
+          value: "1.1"
+        - name: POSTGRES_EFFECTIVE_IO_CONCURRENCY
+          value: "200"
+        
+        # Logging Configuration
+        - name: POSTGRES_LOG_STATEMENT
+          value: "mod"
+        - name: POSTGRES_LOG_MIN_DURATION_STATEMENT
+          value: "1000"
+        
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: shared-memory
+          mountPath: /dev/shm
+        
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+        
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Security Context
+        securityContext:
+          runAsUser: 999
+          runAsGroup: 999
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+      
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: enhanced-postgres-pvc
+      - name: postgres-init-scripts
+        configMap:
+          name: enhanced-postgres-init-scripts
+      - name: postgres-config
+        configMap:
+          name: postgres-performance-config
+      - name: shared-memory
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-postgres-service
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-postgres
+    component: database
+spec:
+  selector:
+    app: enhanced-postgres
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  type: ClusterIP
+  sessionAffinity: ClientIP
+
+---
+# Enhanced InfluxDB Deployment for Time-Series Data
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enhanced-influxdb-deployment
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-influxdb
+    component: timeseries-database
+    version: v2.0.0
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: enhanced-influxdb
+  template:
+    metadata:
+      labels:
+        app: enhanced-influxdb
+        component: timeseries-database
+    spec:
+      containers:
+      - name: influxdb
+        image: influxdb:2.7-alpine
+        ports:
+        - containerPort: 8086
+          name: http
+        env:
+        - name: DOCKER_INFLUXDB_INIT_MODE
+          value: "setup"
+        - name: DOCKER_INFLUXDB_INIT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: influxdb-admin-user
+        - name: DOCKER_INFLUXDB_INIT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: influxdb-admin-password
+        - name: DOCKER_INFLUXDB_INIT_ORG
+          value: "prometheus-ai"
+        - name: DOCKER_INFLUXDB_INIT_BUCKET
+          value: "geological-monitoring"
+        - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: influxdb-admin-token
+        
+        # Performance Configuration
+        - name: INFLUXD_STORAGE_CACHE_MAX_MEMORY_SIZE
+          value: "2gb"
+        - name: INFLUXD_STORAGE_CACHE_SNAPSHOT_MEMORY_SIZE
+          value: "512mb"
+        - name: INFLUXD_STORAGE_WAL_FSYNC_DELAY
+          value: "0s"
+        - name: INFLUXD_HTTP_READ_TIMEOUT
+          value: "300s"
+        - name: INFLUXD_HTTP_WRITE_TIMEOUT
+          value: "300s"
+        
+        volumeMounts:
+        - name: influxdb-storage
+          mountPath: /var/lib/influxdb2
+        - name: influxdb-config
+          mountPath: /etc/influxdb2
+        
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "1"
+          limits:
+            memory: "6Gi"
+            cpu: "3"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8086
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8086
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      
+      volumes:
+      - name: influxdb-storage
+        persistentVolumeClaim:
+          claimName: enhanced-influxdb-pvc
+      - name: influxdb-config
+        configMap:
+          name: influxdb-performance-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-influxdb-service
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-influxdb
+    component: timeseries-database
+spec:
+  selector:
+    app: enhanced-influxdb
+  ports:
+  - name: http
+    port: 8086
+    targetPort: 8086
+  type: ClusterIP
+
+---
+# Enhanced Neo4j Deployment for Knowledge Graphs
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enhanced-neo4j-deployment
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-neo4j
+    component: graph-database
+    version: v2.0.0
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: enhanced-neo4j
+  template:
+    metadata:
+      labels:
+        app: enhanced-neo4j
+        component: graph-database
+    spec:
+      containers:
+      - name: neo4j
+        image: neo4j:5.12-enterprise
+        ports:
+        - containerPort: 7474
+          name: http
+        - containerPort: 7687
+          name: bolt
+        env:
+        - name: NEO4J_AUTH
+          value: "neo4j/prometheus123"
+        - name: NEO4J_ACCEPT_LICENSE_AGREEMENT
+          value: "yes"
+        - name: NEO4J_dbms_default__database
+          value: "geological"
+        
+        # Memory Configuration
+        - name: NEO4J_dbms_memory_heap_initial__size
+          value: "2G"
+        - name: NEO4J_dbms_memory_heap_max__size
+          value: "4G"
+        - name: NEO4J_dbms_memory_pagecache_size
+          value: "2G"
+        
+        # Performance Configuration
+        - name: NEO4J_dbms_checkpoint_interval_time
+          value: "15m"
+        - name: NEO4J_dbms_checkpoint_interval_tx
+          value: "100000"
+        - name: NEO4J_dbms_transaction_timeout
+          value: "300s"
+        - name: NEO4J_dbms_lock_acquisition_timeout
+          value: "60s"
+        
+        # Security Configuration
+        - name: NEO4J_dbms_security_procedures_unrestricted
+          value: "gds.*,apoc.*"
+        - name: NEO4J_dbms_security_procedures_allowlist
+          value: "gds.*,apoc.*"
+        
+        # Plugin Configuration
+        - name: NEO4J_PLUGINS
+          value: '["graph-data-science", "apoc"]'
+        
+        volumeMounts:
+        - name: neo4j-storage
+          mountPath: /data
+        - name: neo4j-logs
+          mountPath: /logs
+        - name: neo4j-import
+          mountPath: /var/lib/neo4j/import
+        
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "1"
+          limits:
+            memory: "6Gi"
+            cpu: "3"
+        
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 7474
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+        
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 7474
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+      
+      volumes:
+      - name: neo4j-storage
+        persistentVolumeClaim:
+          claimName: enhanced-neo4j-pvc
+      - name: neo4j-logs
+        emptyDir: {}
+      - name: neo4j-import
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-neo4j-service
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-neo4j
+    component: graph-database
+spec:
+  selector:
+    app: enhanced-neo4j
+  ports:
+  - name: http
+    port: 7474
+    targetPort: 7474
+  - name: bolt
+    port: 7687
+    targetPort: 7687
+  type: ClusterIP
+
+---
+# Enhanced Redis Deployment for Caching
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enhanced-redis-deployment
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-redis
+    component: cache
+    version: v2.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enhanced-redis
+  template:
+    metadata:
+      labels:
+        app: enhanced-redis
+        component: cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - redis-server
+        - /etc/redis/redis.conf
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: redis-cache-password
+        
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+        - name: redis-storage
+          mountPath: /data
+        
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - --no-auth-warning
+            - -a
+            - $(REDIS_PASSWORD)
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - --no-auth-warning
+            - -a
+            - $(REDIS_PASSWORD)
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+      
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-performance-config
+      - name: redis-storage
+        persistentVolumeClaim:
+          claimName: enhanced-redis-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-redis-service
+  namespace: prometheus-ai
+  labels:
+    app: enhanced-redis
+    component: cache
+spec:
+  selector:
+    app: enhanced-redis
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  type: ClusterIP
+
+---
+# MLflow Tracking Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-tracking-deployment
+  namespace: prometheus-ai
+  labels:
+    app: mlflow-tracking
+    component: mlops
+    version: v2.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow-tracking
+  template:
+    metadata:
+      labels:
+        app: mlflow-tracking
+        component: mlops
+    spec:
+      containers:
+      - name: mlflow-tracking
+        image: python:3.11-slim
+        ports:
+        - containerPort: 5000
+          name: http
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install mlflow[extras] psycopg2-binary boto3 azure-storage-blob google-cloud-storage
+          mlflow server \
+            --backend-store-uri $(MLFLOW_BACKEND_STORE_URI) \
+            --default-artifact-root $(MLFLOW_DEFAULT_ARTIFACT_ROOT) \
+            --host 0.0.0.0 \
+            --port 5000 \
+            --workers 4
+        env:
+        - name: MLFLOW_BACKEND_STORE_URI
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: mlflow-tracking-uri
+        - name: MLFLOW_DEFAULT_ARTIFACT_ROOT
+          valueFrom:
+            configMapKeyRef:
+              name: enhanced-database-config
+              key: MLFLOW_DEFAULT_ARTIFACT_ROOT
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: backup-s3-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: enhanced-database-secrets
+              key: backup-s3-secret-access-key
+        
+        volumeMounts:
+        - name: mlflow-artifacts
+          mountPath: /storage/mlflow_artifacts
+        
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      
+      volumes:
+      - name: mlflow-artifacts
+        persistentVolumeClaim:
+          claimName: mlflow-artifacts-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-tracking-service
+  namespace: prometheus-ai
+  labels:
+    app: mlflow-tracking
+    component: mlops
+spec:
+  selector:
+    app: mlflow-tracking
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+  type: ClusterIP
+
+---
+# Dask Scheduler for Distributed Computing
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dask-scheduler-deployment
+  namespace: prometheus-ai
+  labels:
+    app: dask-scheduler
+    component: distributed-computing
+    version: v2.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dask-scheduler
+  template:
+    metadata:
+      labels:
+        app: dask-scheduler
+        component: distributed-computing
+    spec:
+      containers:
+      - name: dask-scheduler
+        image: daskdev/dask:latest
+        ports:
+        - containerPort: 8786
+          name: scheduler
+        - containerPort: 8787
+          name: dashboard
+        command:
+        - dask-scheduler
+        - --host
+        - "0.0.0.0"
+        - --port
+        - "8786"
+        - --dashboard-address
+        - "0.0.0.0:8787"
+        
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8787
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8787
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dask-scheduler-service
+  namespace: prometheus-ai
+  labels:
+    app: dask-scheduler
+    component: distributed-computing
+spec:
+  selector:
+    app: dask-scheduler
+  ports:
+  - name: scheduler
+    port: 8786
+    targetPort: 8786
+  - name: dashboard
+    port: 8787
+    targetPort: 8787
+  type: ClusterIP
+
+---
+# Dask Workers for Distributed Computing
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dask-worker-deployment
+  namespace: prometheus-ai
+  labels:
+    app: dask-worker
+    component: distributed-computing
+    version: v2.0.0
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: dask-worker
+  template:
+    metadata:
+      labels:
+        app: dask-worker
+        component: distributed-computing
+    spec:
+      containers:
+      - name: dask-worker
+        image: daskdev/dask:latest
+        command:
+        - dask-worker
+        - dask-scheduler-service:8786
+        - --memory-limit
+        - "8GB"
+        - --nthreads
+        - "4"
+        
+        env:
+        - name: DASK_WORKER_MEMORY_LIMIT
+          valueFrom:
+            configMapKeyRef:
+              name: enhanced-database-config
+              key: DASK_WORKER_MEMORY_GB
+        - name: DASK_WORKER_CORES
+          valueFrom:
+            configMapKeyRef:
+              name: enhanced-database-config
+              key: DASK_WORKER_CORES
+        
+        resources:
+          requests:
+            memory: "6Gi"
+            cpu: "3"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dask-worker-service
+  namespace: prometheus-ai
+  labels:
+    app: dask-worker
+    component: distributed-computing
+spec:
+  selector:
+    app: dask-worker
+  ports:
+  - name: worker
+    port: 8789
+    targetPort: 8789
+  type: ClusterIP
