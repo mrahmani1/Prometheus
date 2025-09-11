@@ -11,6 +11,13 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:accessibility": "playwright test tests/e2e/accessibility.spec.ts",
+    "test:performance": "playwright test tests/e2e/performance.spec.ts",
+    "test:visual": "playwright test --grep 'Visual Regression'",
+    "test:all": "npm run test && npm run test:e2e",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier --write .",
@@ -18,7 +25,10 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "type-check": "tsc --noEmit",
-    "analyze": "vite-bundle-analyzer"
+    "analyze": "vite-bundle-analyzer",
+    "lighthouse": "lighthouse http://localhost:5173 --output=json --output-path=./test-results/lighthouse-results/lighthouse-report.json",
+    "test:setup": "playwright install",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -59,7 +69,8 @@
     "workbox-strategies": "^7.0.0",
     "proj4": "^2.9.2",
     "geojson": "^0.5.0",
-    "@turf/turf": "^6.5.0"
+    "@turf/turf": "^6.5.0",
+    "react-grid-layout": "^1.4.4"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
@@ -98,7 +109,10 @@
     "@storybook/addon-onboarding": "^1.0.8",
     "@storybook/blocks": "^7.6.3",
     "@storybook/testing-library": "^0.2.2",
-    "storybook": "^7.6.3"
+    "storybook": "^7.6.3",
+    "@playwright/test": "^1.40.0",
+    "@axe-core/playwright": "^4.8.2",
+    "lighthouse": "^11.4.0"
   },
   "engines": {
     "node": ">=18.0.0",
