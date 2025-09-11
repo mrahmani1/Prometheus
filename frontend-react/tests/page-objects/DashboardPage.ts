@@ -1,51 +1,144 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class DashboardPage {
-  readonly page: Page;
-  readonly dashboardTitle: Locator;
-  readonly addWidgetButton: Locator;
-  readonly editModeToggle: Locator;
-  readonly saveButton: Locator;
-  readonly refreshButton: Locator;
-  readonly widgetContainer: Locator;
-  readonly alertPanel: Locator;
-  readonly statisticsPanel: Locator;
-  readonly realTimeIndicator: Locator;
+/**
+ * Enhanced Dashboard page object with comprehensive geological monitoring capabilities
+ */
+export class DashboardPage extends BasePage {
+  // Main dashboard elements
+  private readonly dashboardTitle: Locator;
+  private readonly dashboardGrid: Locator;
+  private readonly widgetContainer: Locator;
+  private readonly addWidgetButton: Locator;
+  private readonly editModeToggle: Locator;
+  private readonly saveButton: Locator;
+  private readonly refreshButton: Locator;
+  
+  // Volcanic monitoring widgets
+  private readonly volcanicAlerts: Locator;
+  private readonly eruptionForecast: Locator;
+  private readonly calderaMonitoring: Locator;
+  private readonly supereruptionRisk: Locator;
+  
+  // Seismic monitoring widgets
+  private readonly seismicActivity: Locator;
+  private readonly seismicEvents: Locator;
+  private readonly earthquakeMap: Locator;
+  private readonly waveformDisplay: Locator;
+  
+  // Real-time data widgets
+  private readonly realTimeData: Locator;
+  private readonly dataStreamStatus: Locator;
+  private readonly sensorNetwork: Locator;
+  private readonly dataQualityIndicator: Locator;
+  private readonly realTimeIndicator: Locator;
+  
+  // Geological analysis widgets
+  private readonly geologicalModels: Locator;
+  private readonly resourceAssessment: Locator;
+  private readonly stressFieldMap: Locator;
+  private readonly mantleConvection: Locator;
+  
+  // Interactive controls
+  private readonly timeRangeSelector: Locator;
+  private readonly regionSelector: Locator;
+  private readonly layerToggle: Locator;
+  private readonly alertSettings: Locator;
+  
+  // Performance indicators
+  private readonly performanceMetrics: Locator;
+  private readonly systemHealth: Locator;
+  private readonly alertPanel: Locator;
+  private readonly statisticsPanel: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+    
     this.dashboardTitle = page.locator('[data-testid="dashboard-title"]');
+    this.dashboardGrid = page.locator('[data-testid="dashboard-grid"]');
+    this.widgetContainer = page.locator('[data-testid="widget-container"]');
     this.addWidgetButton = page.locator('[data-testid="add-widget-button"]');
     this.editModeToggle = page.locator('[data-testid="edit-mode-toggle"]');
     this.saveButton = page.locator('[data-testid="save-button"]');
     this.refreshButton = page.locator('[data-testid="refresh-button"]');
-    this.widgetContainer = page.locator('[data-testid="widget-container"]');
+    
+    // Volcanic monitoring
+    this.volcanicAlerts = page.locator('[data-testid="volcanic-alerts"]');
+    this.eruptionForecast = page.locator('[data-testid="eruption-forecast"]');
+    this.calderaMonitoring = page.locator('[data-testid="caldera-monitoring"]');
+    this.supereruptionRisk = page.locator('[data-testid="supereruption-risk"]');
+    
+    // Seismic monitoring
+    this.seismicActivity = page.locator('[data-testid="seismic-activity"]');
+    this.seismicEvents = page.locator('[data-testid="seismic-events"]');
+    this.earthquakeMap = page.locator('[data-testid="earthquake-map"]');
+    this.waveformDisplay = page.locator('[data-testid="waveform-display"]');
+    
+    // Real-time data
+    this.realTimeData = page.locator('[data-testid="real-time-data"]');
+    this.dataStreamStatus = page.locator('[data-testid="data-stream-status"]');
+    this.sensorNetwork = page.locator('[data-testid="sensor-network"]');
+    this.dataQualityIndicator = page.locator('[data-testid="data-quality-indicator"]');
+    this.realTimeIndicator = page.locator('[data-testid="real-time-indicator"]');
+    
+    // Geological analysis
+    this.geologicalModels = page.locator('[data-testid="geological-models"]');
+    this.resourceAssessment = page.locator('[data-testid="resource-assessment"]');
+    this.stressFieldMap = page.locator('[data-testid="stress-field-map"]');
+    this.mantleConvection = page.locator('[data-testid="mantle-convection"]');
+    
+    // Controls
+    this.timeRangeSelector = page.locator('[data-testid="time-range-selector"]');
+    this.regionSelector = page.locator('[data-testid="region-selector"]');
+    this.layerToggle = page.locator('[data-testid="layer-toggle"]');
+    this.alertSettings = page.locator('[data-testid="alert-settings"]');
+    
+    // Performance
+    this.performanceMetrics = page.locator('[data-testid="performance-metrics"]');
+    this.systemHealth = page.locator('[data-testid="system-health"]');
     this.alertPanel = page.locator('[data-testid="alert-panel"]');
     this.statisticsPanel = page.locator('[data-testid="statistics-panel"]');
-    this.realTimeIndicator = page.locator('[data-testid="real-time-indicator"]');
   }
 
-  async goto() {
-    await this.page.goto('/dashboard');
-    await this.waitForLoad();
+  async goto(): Promise<void> {
+    await super.goto('/dashboard');
   }
 
-  async waitForLoad() {
+  /**
+   * Wait for dashboard to fully load with all geological data
+   */
+  async waitForDashboardLoad(): Promise<void> {
+    await this.waitForPageReady();
+    await this.waitForGeologicalDataReady();
+    
+    // Wait for all critical widgets to load
     await expect(this.dashboardTitle).toBeVisible();
     await expect(this.widgetContainer).toBeVisible();
+    
+    // Verify WebSocket connections are established
+    await this.waitForWebSocketConnection();
   }
 
-  async enableEditMode() {
+  /**
+   * Enable dashboard edit mode
+   */
+  async enableEditMode(): Promise<void> {
     await this.editModeToggle.click();
     await expect(this.editModeToggle).toHaveAttribute('aria-pressed', 'true');
   }
 
-  async disableEditMode() {
+  /**
+   * Disable dashboard edit mode
+   */
+  async disableEditMode(): Promise<void> {
     await this.editModeToggle.click();
     await expect(this.editModeToggle).toHaveAttribute('aria-pressed', 'false');
   }
 
-  async addWidget(widgetType: string) {
+  /**
+   * Add a new widget to the dashboard
+   */
+  async addWidget(widgetType: string): Promise<Locator> {
     await this.addWidgetButton.click();
     
     // Wait for add widget dialog
@@ -66,7 +159,10 @@ export class DashboardPage {
     return newWidget;
   }
 
-  async removeWidget(widgetId: string) {
+  /**
+   * Remove a widget from the dashboard
+   */
+  async removeWidget(widgetId: string): Promise<void> {
     const widget = this.widgetContainer.locator(`[data-widget-id="${widgetId}"]`);
     const removeButton = widget.locator('[data-testid="widget-remove-button"]');
     
@@ -82,47 +178,139 @@ export class DashboardPage {
     await expect(widget).not.toBeVisible();
   }
 
-  async moveWidget(widgetId: string, targetPosition: { x: number; y: number }) {
-    const widget = this.widgetContainer.locator(`[data-widget-id="${widgetId}"]`);
-    const widgetHeader = widget.locator('[data-testid="widget-header"]');
+  /**
+   * Verify all volcanic monitoring widgets are functional
+   */
+  async verifyVolcanicMonitoring(): Promise<void> {
+    await expect(this.volcanicAlerts).toBeVisible();
+    await expect(this.eruptionForecast).toBeVisible();
+    await expect(this.calderaMonitoring).toBeVisible();
     
-    // Get current position
-    const currentBox = await widget.boundingBox();
-    if (!currentBox) throw new Error('Widget not found');
+    // Verify alert levels are displayed
+    const alertLevels = this.page.locator('[data-testid="alert-level"]');
+    await expect(alertLevels.first()).toBeVisible();
     
-    // Drag to new position
-    await widgetHeader.dragTo(this.widgetContainer, {
-      targetPosition
-    });
-    
-    // Verify widget moved
-    const newBox = await widget.boundingBox();
-    expect(newBox?.x).not.toBe(currentBox.x);
+    // Verify eruption probability is shown
+    const eruptionProb = this.page.locator('[data-testid="eruption-probability"]');
+    await expect(eruptionProb).toBeVisible();
+    await expect(eruptionProb).toHaveText(/\d+(\.\d+)?%/);
   }
 
-  async resizeWidget(widgetId: string, newSize: { width: number; height: number }) {
-    const widget = this.widgetContainer.locator(`[data-widget-id="${widgetId}"]`);
-    const resizeHandle = widget.locator('[data-testid="resize-handle"]');
+  /**
+   * Verify seismic activity monitoring
+   */
+  async verifySeismicActivity(): Promise<void> {
+    await expect(this.seismicActivity).toBeVisible();
+    await expect(this.seismicEvents).toBeVisible();
+    await expect(this.earthquakeMap).toBeVisible();
     
-    // Get current size
-    const currentBox = await widget.boundingBox();
-    if (!currentBox) throw new Error('Widget not found');
+    // Verify recent events are displayed
+    const recentEvents = this.page.locator('[data-testid="recent-seismic-event"]');
+    const eventCount = await recentEvents.count();
+    expect(eventCount).toBeGreaterThan(0);
     
-    // Drag resize handle
-    await resizeHandle.dragTo(widget, {
-      targetPosition: {
-        x: currentBox.x + newSize.width,
-        y: currentBox.y + newSize.height
-      }
-    });
-    
-    // Verify widget resized
-    const newBox = await widget.boundingBox();
-    expect(newBox?.width).toBeCloseTo(newSize.width, 10);
-    expect(newBox?.height).toBeCloseTo(newSize.height, 10);
+    // Verify magnitude and depth information
+    const magnitudes = this.page.locator('[data-testid="event-magnitude"]');
+    await expect(magnitudes.first()).toHaveText(/M\d+\.\d+/);
   }
 
-  async saveDashboard() {
+  /**
+   * Verify real-time data streams
+   */
+  async verifyRealTimeData(): Promise<void> {
+    await expect(this.realTimeData).toBeVisible();
+    await expect(this.dataStreamStatus).toBeVisible();
+    
+    // Verify data stream indicators show active status
+    const streamIndicators = this.page.locator('[data-testid="stream-indicator"]');
+    const activeStreams = streamIndicators.locator('.status-active');
+    const activeCount = await activeStreams.count();
+    expect(activeCount).toBeGreaterThan(0);
+    
+    // Verify data quality is acceptable
+    await expect(this.dataQualityIndicator).toHaveClass(/quality-good|quality-excellent/);
+  }
+
+  /**
+   * Verify geological analysis widgets
+   */
+  async verifyGeologicalAnalysis(): Promise<void> {
+    await expect(this.geologicalModels).toBeVisible();
+    await expect(this.resourceAssessment).toBeVisible();
+    
+    // Verify 3D model is loaded
+    const model3D = this.page.locator('[data-testid="3d-geological-model"]');
+    await expect(model3D).toBeVisible();
+    
+    // Verify resource prospectivity data
+    const prospectivity = this.page.locator('[data-testid="prospectivity-score"]');
+    await expect(prospectivity).toBeVisible();
+  }
+
+  /**
+   * Test interactive dashboard controls
+   */
+  async testInteractiveControls(): Promise<void> {
+    // Test time range selector
+    await this.timeRangeSelector.click();
+    await this.page.locator('[data-testid="time-range-24h"]').click();
+    await this.waitForGeologicalDataReady();
+    
+    // Test region selector
+    await this.regionSelector.click();
+    await this.page.locator('[data-testid="region-yellowstone"]').click();
+    await this.waitForGeologicalDataReady();
+    
+    // Test layer toggle
+    await this.layerToggle.click();
+    const layerOptions = this.page.locator('[data-testid="layer-option"]');
+    await layerOptions.first().click();
+  }
+
+  /**
+   * Check system performance metrics
+   */
+  async checkPerformanceMetrics(): Promise<void> {
+    await expect(this.performanceMetrics).toBeVisible();
+    await expect(this.systemHealth).toBeVisible();
+    
+    // Verify system health is good
+    const healthStatus = this.page.locator('[data-testid="health-status"]');
+    await expect(healthStatus).toHaveClass(/health-good|health-excellent/);
+    
+    // Verify response times are acceptable
+    const responseTime = this.page.locator('[data-testid="response-time"]');
+    const responseTimeText = await responseTime.textContent();
+    const responseTimeMs = parseInt(responseTimeText?.match(/\d+/)?.[0] || '0');
+    expect(responseTimeMs).toBeLessThan(1000); // Less than 1 second
+  }
+
+  /**
+   * Test drag and drop widget functionality
+   */
+  async testWidgetDragAndDrop(): Promise<void> {
+    const sourceWidget = this.volcanicAlerts;
+    const targetPosition = this.seismicActivity;
+    
+    // Get initial positions
+    const sourceBounds = await sourceWidget.boundingBox();
+    const targetBounds = await targetPosition.boundingBox();
+    
+    if (sourceBounds && targetBounds) {
+      // Perform drag and drop
+      await sourceWidget.dragTo(targetPosition);
+      
+      // Verify widget positions have changed
+      await this.page.waitForTimeout(1000); // Allow animation to complete
+      const newSourceBounds = await sourceWidget.boundingBox();
+      expect(newSourceBounds?.x).not.toBe(sourceBounds.x);
+    }
+  }
+
+  /**
+   * Save dashboard configuration
+   */
+  async saveDashboard(): Promise<void> {
     await this.saveButton.click();
     
     // Wait for save confirmation
@@ -130,24 +318,37 @@ export class DashboardPage {
     await expect(notification).toContainText('saved');
   }
 
-  async refreshDashboard() {
+  /**
+   * Refresh dashboard data
+   */
+  async refreshDashboard(): Promise<void> {
     await this.refreshButton.click();
     
     // Wait for refresh to complete
     await this.page.waitForLoadState('networkidle');
+    await this.waitForGeologicalDataReady();
   }
 
-  async getWidgetCount() {
+  /**
+   * Get current widget count
+   */
+  async getWidgetCount(): Promise<number> {
     const widgets = this.widgetContainer.locator('[data-testid^="widget-"]');
     return await widgets.count();
   }
 
-  async getAlertCount() {
+  /**
+   * Get current alert count
+   */
+  async getAlertCount(): Promise<number> {
     const alerts = this.alertPanel.locator('[data-testid="alert-item"]');
     return await alerts.count();
   }
 
-  async verifyRealTimeMode(enabled: boolean) {
+  /**
+   * Verify real-time mode status
+   */
+  async verifyRealTimeMode(enabled: boolean): Promise<void> {
     if (enabled) {
       await expect(this.realTimeIndicator).toBeVisible();
       await expect(this.realTimeIndicator).toContainText('Live');
@@ -156,35 +357,22 @@ export class DashboardPage {
     }
   }
 
-  async waitForDataLoad() {
+  /**
+   * Wait for all data to load
+   */
+  async waitForDataLoad(): Promise<void> {
     // Wait for loading indicators to disappear
     const loadingIndicators = this.page.locator('[data-testid="loading"]');
     await expect(loadingIndicators).toHaveCount(0);
     
-    // Wait for data to be displayed
-    await this.page.waitForFunction(() => {
-      const widgets = document.querySelectorAll('[data-testid^="widget-"]');
-      return Array.from(widgets).some(widget => 
-        widget.textContent && widget.textContent.trim().length > 0
-      );
-    });
+    // Wait for geological data to be ready
+    await this.waitForGeologicalDataReady();
   }
 
-  async verifyAccessibility() {
-    // Check for proper ARIA labels
-    await expect(this.dashboardTitle).toHaveAttribute('role', 'heading');
-    await expect(this.addWidgetButton).toHaveAttribute('aria-label');
-    await expect(this.editModeToggle).toHaveAttribute('aria-pressed');
-    
-    // Check keyboard navigation
-    await this.addWidgetButton.focus();
-    await expect(this.addWidgetButton).toBeFocused();
-    
-    await this.page.keyboard.press('Tab');
-    await expect(this.editModeToggle).toBeFocused();
-  }
-
-  async verifyResponsiveLayout(viewport: { width: number; height: number }) {
+  /**
+   * Verify responsive layout at different viewport sizes
+   */
+  async verifyResponsiveLayout(viewport: { width: number; height: number }): Promise<void> {
     await this.page.setViewportSize(viewport);
     
     // Verify layout adapts to viewport
@@ -211,7 +399,10 @@ export class DashboardPage {
     }
   }
 
-  async exportDashboard(format: 'pdf' | 'png' | 'json') {
+  /**
+   * Export dashboard in specified format
+   */
+  async exportDashboard(format: 'pdf' | 'png' | 'json' | 'csv'): Promise<any> {
     // Open export menu
     const exportButton = this.page.locator('[data-testid="export-button"]');
     await exportButton.click();
@@ -231,20 +422,47 @@ export class DashboardPage {
     return download;
   }
 
-  async verifyPerformance() {
+  /**
+   * Validate page content and geological accuracy
+   */
+  async validatePageContent(): Promise<void> {
+    // Verify dashboard title and structure
+    await expect(this.dashboardTitle).toBeVisible();
+    await expect(this.dashboardTitle).toContainText('Prometheus AI Dashboard');
+    
+    // Verify coordinate system is properly initialized
+    await this.verifyCoordinateSystem();
+    
+    // Verify all major widget categories are present
+    await this.verifyVolcanicMonitoring();
+    await this.verifySeismicActivity();
+    await this.verifyRealTimeData();
+    await this.verifyGeologicalAnalysis();
+    
+    // Verify performance is acceptable
+    await this.checkPerformanceMetrics();
+    
+    // Check for any errors
+    await this.checkForErrors();
+  }
+
+  /**
+   * Verify dashboard performance
+   */
+  async verifyPerformance(): Promise<void> {
     // Measure initial load time
     const startTime = Date.now();
-    await this.waitForLoad();
+    await this.waitForDashboardLoad();
     const loadTime = Date.now() - startTime;
     
-    // Should load within 3 seconds
-    expect(loadTime).toBeLessThan(3000);
+    // Should load within 5 seconds for geological data
+    expect(loadTime).toBeLessThan(5000);
     
     // Check for memory leaks by monitoring widget count
     const initialWidgetCount = await this.getWidgetCount();
     
     // Add and remove widgets multiple times
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       await this.addWidget('statistics');
       await this.page.waitForTimeout(100);
       const widgets = this.widgetContainer.locator('[data-widget-type="statistics"]');

@@ -81,17 +81,24 @@ Creates optimized production build in `dist/`
 
 ### Testing
 ```bash
-# Run tests once
-npm test
+# Unit tests
+npm test                    # Run tests once
+npm run test:watch         # Run tests in watch mode
+npm run test:ui            # Run tests with UI
+npm run test:coverage      # Run tests with coverage
 
-# Run tests in watch mode
-npm run test:watch
+# End-to-end tests (Playwright)
+npm run test:e2e           # Run all E2E tests
+npm run test:e2e:ui        # Run E2E tests with UI mode
+npm run test:e2e:headed    # Run E2E tests in headed mode
+npm run test:accessibility # Run accessibility tests
+npm run test:performance   # Run performance tests
+npm run test:visual        # Run visual regression tests
+npm run test:all           # Run all tests (unit + E2E)
 
-# Run tests with UI
-npm run test:ui
-
-# Run tests with coverage
-npm run test:coverage
+# Test setup and reporting
+npm run test:setup         # Install Playwright browsers
+npm run test:report        # Show test reports
 ```
 
 ### Code Quality
@@ -217,6 +224,20 @@ docker run -p 3000:3000 prometheus-ai-frontend
 
 ## 🧪 Testing Strategy
 
+### End-to-End Testing (🔄 **IN PROGRESS**)
+- **Playwright Testing Suite**: Multi-browser testing with TypeScript configuration
+- **Page Object Model**: Structured test organization with geological domain awareness
+- **Comprehensive Test Categories**:
+  - User workflows (researcher, operator, industry roles)
+  - Real-time data streaming and WebSocket validation
+  - Geological calculation accuracy with scientific validation
+  - Visual regression testing for UI consistency
+  - Mobile and tablet responsiveness
+  - Accessibility compliance (WCAG 2.1 AA)
+  - Performance benchmarking and optimization
+- **Test Data & Mocks**: Realistic geological datasets and API/WebSocket mocking
+- **CI/CD Integration**: GitHub Actions, GitLab CI, Jenkins, Azure DevOps support
+
 ### Unit Tests
 - Component testing with React Testing Library
 - Hook testing with custom utilities
@@ -231,8 +252,8 @@ docker run -p 3000:3000 prometheus-ai-frontend
 
 ### Visual Testing
 - Storybook for component documentation
-- Visual regression testing
-- Responsive design testing
+- Visual regression testing with Playwright
+- Responsive design testing across devices
 - Theme testing (light/dark/high-contrast)
 
 ## 📈 Performance

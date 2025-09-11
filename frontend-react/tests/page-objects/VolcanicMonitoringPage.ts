@@ -1,52 +1,152 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class VolcanicMonitoringPage {
-  readonly page: Page;
-  readonly pageTitle: Locator;
-  readonly volcanoList: Locator;
-  readonly alertLevelFilter: Locator;
-  readonly mapView: Locator;
-  readonly detailView: Locator;
-  readonly realTimeToggle: Locator;
-  readonly refreshButton: Locator;
-  readonly exportButton: Locator;
-  readonly statisticsPanel: Locator;
-  readonly alertsPanel: Locator;
+/**
+ * Enhanced Volcanic Monitoring page object with comprehensive real-time monitoring capabilities
+ */
+export class VolcanicMonitoringPage extends BasePage {
+  // Main monitoring elements
+  private readonly pageTitle: Locator;
+  private readonly volcanoList: Locator;
+  private readonly volcanoSelector: Locator;
+  private readonly alertLevel: Locator;
+  private readonly alertHistory: Locator;
+  private readonly alertLevelFilter: Locator;
+  
+  // Views and navigation
+  private readonly mapView: Locator;
+  private readonly detailView: Locator;
+  private readonly realTimeToggle: Locator;
+  private readonly refreshButton: Locator;
+  private readonly exportButton: Locator;
+  
+  // Real-time data streams
+  private readonly seismicData: Locator;
+  private readonly deformationData: Locator;
+  private readonly gasEmissions: Locator;
+  private readonly thermalData: Locator;
+  private readonly acousticData: Locator;
+  
+  // Advanced monitoring features
+  private readonly eruptionForecast: Locator;
+  private readonly calderaAnalysis: Locator;
+  private readonly supereruptionRisk: Locator;
+  private readonly magmaChamberModel: Locator;
+  
+  // Interactive controls
+  private readonly timeRangeControl: Locator;
+  private readonly dataSourceToggle: Locator;
+  private readonly alertThresholds: Locator;
+  private readonly notificationSettings: Locator;
+  
+  // Visualization components
+  private readonly seismicWaveforms: Locator;
+  private readonly deformationMap: Locator;
+  private readonly gasCompositionChart: Locator;
+  private readonly thermalImagery: Locator;
+  private readonly volcanoMap: Locator;
+  
+  // Analysis tools
+  private readonly eventDetection: Locator;
+  private readonly trendAnalysis: Locator;
+  private readonly correlationAnalysis: Locator;
+  private readonly riskAssessment: Locator;
+  
+  // Panels
+  private readonly statisticsPanel: Locator;
+  private readonly alertsPanel: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+    
     this.pageTitle = page.locator('[data-testid="volcanic-monitoring-title"]');
     this.volcanoList = page.locator('[data-testid="volcano-list"]');
+    this.volcanoSelector = page.locator('[data-testid="volcano-selector"]');
+    this.alertLevel = page.locator('[data-testid="alert-level"]');
+    this.alertHistory = page.locator('[data-testid="alert-history"]');
     this.alertLevelFilter = page.locator('[data-testid="alert-level-filter"]');
+    
+    // Views
     this.mapView = page.locator('[data-testid="map-view"]');
     this.detailView = page.locator('[data-testid="detail-view"]');
     this.realTimeToggle = page.locator('[data-testid="real-time-toggle"]');
     this.refreshButton = page.locator('[data-testid="refresh-button"]');
     this.exportButton = page.locator('[data-testid="export-button"]');
+    
+    // Real-time data
+    this.seismicData = page.locator('[data-testid="seismic-data"]');
+    this.deformationData = page.locator('[data-testid="deformation-data"]');
+    this.gasEmissions = page.locator('[data-testid="gas-emissions"]');
+    this.thermalData = page.locator('[data-testid="thermal-data"]');
+    this.acousticData = page.locator('[data-testid="acoustic-data"]');
+    
+    // Advanced features
+    this.eruptionForecast = page.locator('[data-testid="eruption-forecast"]');
+    this.calderaAnalysis = page.locator('[data-testid="caldera-analysis"]');
+    this.supereruptionRisk = page.locator('[data-testid="supereruption-risk"]');
+    this.magmaChamberModel = page.locator('[data-testid="magma-chamber-model"]');
+    
+    // Controls
+    this.timeRangeControl = page.locator('[data-testid="time-range-control"]');
+    this.dataSourceToggle = page.locator('[data-testid="data-source-toggle"]');
+    this.alertThresholds = page.locator('[data-testid="alert-thresholds"]');
+    this.notificationSettings = page.locator('[data-testid="notification-settings"]');
+    
+    // Visualizations
+    this.seismicWaveforms = page.locator('[data-testid="seismic-waveforms"]');
+    this.deformationMap = page.locator('[data-testid="deformation-map"]');
+    this.gasCompositionChart = page.locator('[data-testid="gas-composition-chart"]');
+    this.thermalImagery = page.locator('[data-testid="thermal-imagery"]');
+    this.volcanoMap = page.locator('[data-testid="volcano-map"]');
+    
+    // Analysis tools
+    this.eventDetection = page.locator('[data-testid="event-detection"]');
+    this.trendAnalysis = page.locator('[data-testid="trend-analysis"]');
+    this.correlationAnalysis = page.locator('[data-testid="correlation-analysis"]');
+    this.riskAssessment = page.locator('[data-testid="risk-assessment"]');
+    
+    // Panels
     this.statisticsPanel = page.locator('[data-testid="statistics-panel"]');
     this.alertsPanel = page.locator('[data-testid="alerts-panel"]');
   }
 
-  async goto() {
-    await this.page.goto('/volcanic-monitoring');
-    await this.waitForLoad();
+  async goto(): Promise<void> {
+    await super.goto('/volcanic-monitoring');
   }
 
-  async waitForLoad() {
+  /**
+   * Wait for monitoring page to load with real-time data
+   */
+  async waitForMonitoringLoad(): Promise<void> {
+    await this.waitForPageReady();
+    await this.waitForGeologicalDataReady();
+    
+    // Wait for real-time data streams to connect
+    await this.waitForWebSocketConnection();
+    
+    // Verify main components are loaded
     await expect(this.pageTitle).toBeVisible();
     await expect(this.volcanoList).toBeVisible();
     await this.waitForDataLoad();
   }
 
-  async waitForDataLoad() {
+  /**
+   * Wait for volcano data to load
+   */
+  async waitForDataLoad(): Promise<void> {
     // Wait for volcano data to load
     await this.page.waitForFunction(() => {
       const volcanoCards = document.querySelectorAll('[data-testid="volcano-card"]');
       return volcanoCards.length > 0;
     }, { timeout: 10000 });
+    
+    await this.waitForGeologicalDataReady();
   }
 
-  async selectVolcano(volcanoId: string) {
+  /**
+   * Select a specific volcano for monitoring
+   */
+  async selectVolcano(volcanoId: string): Promise<void> {
     const volcanoCard = this.volcanoList.locator(`[data-volcano-id="${volcanoId}"]`);
     await volcanoCard.click();
     
@@ -55,9 +155,15 @@ export class VolcanicMonitoringPage {
     
     // Wait for detail view to update
     await expect(this.detailView).toContainText(volcanoId);
+    
+    // Wait for volcano-specific data to load
+    await this.waitForGeologicalDataReady();
   }
 
-  async filterByAlertLevel(alertLevel: 'green' | 'yellow' | 'orange' | 'red') {
+  /**
+   * Filter volcanoes by alert level
+   */
+  async filterByAlertLevel(alertLevel: 'green' | 'yellow' | 'orange' | 'red'): Promise<void> {
     await this.alertLevelFilter.click();
     
     const option = this.page.locator(`[data-testid="alert-level-${alertLevel}"]`);
@@ -75,7 +181,10 @@ export class VolcanicMonitoringPage {
     }
   }
 
-  async switchToMapView() {
+  /**
+   * Switch to map view
+   */
+  async switchToMapView(): Promise<void> {
     const mapViewButton = this.page.locator('[data-testid="map-view-button"]');
     await mapViewButton.click();
     
@@ -88,14 +197,20 @@ export class VolcanicMonitoringPage {
     });
   }
 
-  async switchToDetailView() {
+  /**
+   * Switch to detail view
+   */
+  async switchToDetailView(): Promise<void> {
     const detailViewButton = this.page.locator('[data-testid="detail-view-button"]');
     await detailViewButton.click();
     
     await expect(this.detailView).toBeVisible();
   }
 
-  async enableRealTimeMode() {
+  /**
+   * Enable real-time monitoring mode
+   */
+  async enableRealTimeMode(): Promise<void> {
     await this.realTimeToggle.check();
     await expect(this.realTimeToggle).toBeChecked();
     
@@ -104,7 +219,10 @@ export class VolcanicMonitoringPage {
     await expect(realTimeIndicator).toBeVisible();
   }
 
-  async disableRealTimeMode() {
+  /**
+   * Disable real-time monitoring mode
+   */
+  async disableRealTimeMode(): Promise<void> {
     await this.realTimeToggle.uncheck();
     await expect(this.realTimeToggle).not.toBeChecked();
     
@@ -113,21 +231,29 @@ export class VolcanicMonitoringPage {
     await expect(realTimeIndicator).not.toBeVisible();
   }
 
-  async refreshData() {
+  /**
+   * Refresh monitoring data
+   */
+  async refreshData(): Promise<void> {
     await this.refreshButton.click();
     
     // Wait for refresh to complete
     const loadingIndicator = this.page.locator('[data-testid="loading-indicator"]');
     await expect(loadingIndicator).toBeVisible();
     await expect(loadingIndicator).not.toBeVisible();
+    
+    await this.waitForGeologicalDataReady();
   }
 
+  /**
+   * Verify volcano data accuracy
+   */
   async verifyVolcanoData(volcanoId: string, expectedData: {
     alertLevel?: string;
     eruptionProbability?: number;
     deformationRate?: number;
     thermalAnomalies?: number;
-  }) {
+  }): Promise<void> {
     const volcanoCard = this.volcanoList.locator(`[data-volcano-id="${volcanoId}"]`);
     
     if (expectedData.alertLevel) {
@@ -151,12 +277,121 @@ export class VolcanicMonitoringPage {
     }
   }
 
+  /**
+   * Verify seismic data display and real-time updates
+   */
+  async verifySeismicData(): Promise<void> {
+    await expect(this.seismicData).toBeVisible();
+    await expect(this.seismicWaveforms).toBeVisible();
+    
+    // Verify recent seismic events
+    const recentEvents = this.page.locator('[data-testid="recent-seismic-event"]');
+    const eventCount = await recentEvents.count();
+    expect(eventCount).toBeGreaterThan(0);
+    
+    // Verify magnitude and time information
+    const firstEvent = recentEvents.first();
+    await expect(firstEvent.locator('[data-testid="event-magnitude"]')).toHaveText(/M\d+\.\d+/);
+    await expect(firstEvent.locator('[data-testid="event-time"]')).toBeVisible();
+    
+    // Test waveform interaction
+    const waveformCanvas = this.seismicWaveforms.locator('canvas');
+    await expect(waveformCanvas).toBeVisible();
+    
+    // Click on waveform to test interactivity
+    await waveformCanvas.click();
+    const waveformDetails = this.page.locator('[data-testid="waveform-details"]');
+    await expect(waveformDetails).toBeVisible();
+  }
+
+  /**
+   * Verify deformation data and InSAR processing
+   */
+  async verifyDeformationData(): Promise<void> {
+    await expect(this.deformationData).toBeVisible();
+    await expect(this.deformationMap).toBeVisible();
+    
+    // Verify deformation measurements
+    const deformationValues = this.page.locator('[data-testid="deformation-value"]');
+    const valueCount = await deformationValues.count();
+    expect(valueCount).toBeGreaterThan(0);
+    
+    // Verify units are displayed (mm/year or cm/year)
+    const firstValue = deformationValues.first();
+    const valueText = await firstValue.textContent();
+    expect(valueText).toMatch(/\d+(\.\d+)?\s*(mm|cm)\/year/);
+    
+    // Test deformation map interaction
+    const mapContainer = this.deformationMap;
+    await mapContainer.click();
+    
+    // Verify map controls are available
+    const mapControls = this.page.locator('[data-testid="map-controls"]');
+    await expect(mapControls).toBeVisible();
+  }
+
+  /**
+   * Verify gas emission monitoring
+   */
+  async verifyGasEmissions(): Promise<void> {
+    await expect(this.gasEmissions).toBeVisible();
+    await expect(this.gasCompositionChart).toBeVisible();
+    
+    // Verify gas composition data
+    const gasTypes = this.page.locator('[data-testid="gas-type"]');
+    const gasTypeCount = await gasTypes.count();
+    expect(gasTypeCount).toBeGreaterThan(0);
+    
+    // Verify common volcanic gases are monitored
+    const so2Data = this.page.locator('[data-testid="so2-concentration"]');
+    const co2Data = this.page.locator('[data-testid="co2-concentration"]');
+    const h2sData = this.page.locator('[data-testid="h2s-concentration"]');
+    
+    await expect(so2Data).toBeVisible();
+    await expect(co2Data).toBeVisible();
+    await expect(h2sData).toBeVisible();
+    
+    // Verify concentration units (ppm, ppb, etc.)
+    const so2Text = await so2Data.textContent();
+    expect(so2Text).toMatch(/\d+(\.\d+)?\s*(ppm|ppb|mg\/m³)/);
+  }
+
+  /**
+   * Verify thermal data and satellite imagery
+   */
+  async verifyThermalData(): Promise<void> {
+    await expect(this.thermalData).toBeVisible();
+    await expect(this.thermalImagery).toBeVisible();
+    
+    // Verify thermal anomaly detection
+    const thermalAnomalies = this.page.locator('[data-testid="thermal-anomaly"]');
+    const anomalyCount = await thermalAnomalies.count();
+    
+    if (anomalyCount > 0) {
+      const firstAnomaly = thermalAnomalies.first();
+      
+      // Verify temperature values
+      const temperature = firstAnomaly.locator('[data-testid="anomaly-temperature"]');
+      await expect(temperature).toBeVisible();
+      
+      const tempText = await temperature.textContent();
+      expect(tempText).toMatch(/\d+(\.\d+)?°[CF]/);
+    }
+    
+    // Test thermal imagery interaction
+    const thermalImage = this.thermalImagery.locator('img, canvas');
+    await expect(thermalImage).toBeVisible();
+  }
+
+  /**
+   * Verify statistics panel
+   */
   async verifyStatistics(expectedStats: {
     totalVolcanoes?: number;
     activeAlerts?: number;
     criticalAlerts?: number;
     averageRisk?: number;
-  }) {
+  }): Promise<void> {
     if (expectedStats.totalVolcanoes !== undefined) {
       const totalText = this.statisticsPanel.locator('[data-testid="total-volcanoes"]');
       await expect(totalText).toContainText(`${expectedStats.totalVolcanoes}`);
@@ -178,7 +413,10 @@ export class VolcanicMonitoringPage {
     }
   }
 
-  async verifyAlerts() {
+  /**
+   * Verify alerts panel
+   */
+  async verifyAlerts(): Promise<void> {
     const alertItems = this.alertsPanel.locator('[data-testid="alert-item"]');
     const alertCount = await alertItems.count();
     
@@ -200,7 +438,10 @@ export class VolcanicMonitoringPage {
     }
   }
 
-  async exportData(format: 'csv' | 'json' | 'pdf') {
+  /**
+   * Export monitoring data
+   */
+  async exportData(format: 'csv' | 'json' | 'pdf'): Promise<any> {
     await this.exportButton.click();
     
     // Select format
@@ -218,7 +459,10 @@ export class VolcanicMonitoringPage {
     return download;
   }
 
-  async verifyMapInteraction() {
+  /**
+   * Verify map interaction functionality
+   */
+  async verifyMapInteraction(): Promise<void> {
     await this.switchToMapView();
     
     // Verify map controls are present
@@ -249,45 +493,36 @@ export class VolcanicMonitoringPage {
     }
   }
 
-  async verifyAccessibility() {
-    // Check ARIA labels and roles
-    await expect(this.pageTitle).toHaveAttribute('role', 'heading');
-    await expect(this.volcanoList).toHaveAttribute('role', 'list');
+  /**
+   * Validate page content and monitoring accuracy
+   */
+  async validatePageContent(): Promise<void> {
+    // Wait for monitoring page to load
+    await this.waitForMonitoringLoad();
     
-    // Check keyboard navigation
-    const volcanoCards = this.volcanoList.locator('[data-testid="volcano-card"]');
-    const cardCount = await volcanoCards.count();
+    // Verify coordinate system is properly initialized
+    await this.verifyCoordinateSystem();
     
-    if (cardCount > 0) {
-      const firstCard = volcanoCards.first();
-      await firstCard.focus();
-      await expect(firstCard).toBeFocused();
-      
-      // Test keyboard selection
-      await this.page.keyboard.press('Enter');
-      await expect(firstCard).toHaveClass(/selected/);
-    }
+    // Test all monitoring components
+    await this.verifySeismicData();
+    await this.verifyDeformationData();
+    await this.verifyGasEmissions();
+    await this.verifyThermalData();
     
-    // Check color contrast for alert levels
-    const alertChips = this.page.locator('[data-testid="alert-level-chip"]');
-    const chipCount = await alertChips.count();
+    // Verify panels
+    await this.verifyAlerts();
     
-    for (let i = 0; i < chipCount; i++) {
-      const chip = alertChips.nth(i);
-      const backgroundColor = await chip.evaluate(el => 
-        window.getComputedStyle(el).backgroundColor
-      );
-      const color = await chip.evaluate(el => 
-        window.getComputedStyle(el).color
-      );
-      
-      // Verify colors are defined (not transparent)
-      expect(backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
-      expect(color).not.toBe('rgba(0, 0, 0, 0)');
-    }
+    // Test map interaction
+    await this.verifyMapInteraction();
+    
+    // Check for any errors
+    await this.checkForErrors();
   }
 
-  async verifyResponsiveDesign() {
+  /**
+   * Verify responsive design across different screen sizes
+   */
+  async verifyResponsiveDesign(): Promise<void> {
     // Test mobile layout
     await this.page.setViewportSize({ width: 375, height: 667 });
     
