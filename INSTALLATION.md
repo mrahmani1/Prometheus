@@ -90,6 +90,12 @@ pip install -r requirements-dev.txt
 
 # Install GPU support (optional)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# Install multi-cloud ML dependencies for Model Manager
+pip install azure-ai-ml azure-storage-blob azure-identity
+pip install google-cloud-aiplatform google-cloud-storage
+pip install boto3 sagemaker
+pip install mlflow
 ```
 
 #### 3. Database Setup
@@ -768,10 +774,12 @@ sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
 - **Frontend**: Basic HTML/JavaScript components in `frontend/` directory
 - **Databases**: Multi-database integration layer implemented in `backend/core/database_integration.py`
 - **Security**: Authentication framework in `backend/core/security_integration.py`
+- **Data Integration Pipeline**: Advanced data integration pipeline (`backend/modules/data_integration_pipeline.py`) currently in active development
 
 ### Active Development Focus
 The current development is actively refining:
 - **Module Integration**: Unified module loader and dependency management system (In Progress)
+- **Advanced Data Integration Pipeline (Task 2.3)**: Multi-source geological data processing with real-time volcanic data enhancement and automated feature engineering (Active Development)
 - **Microservices Development**: Active transition to distributed services architecture
 - **Container Configuration**: Docker and Kubernetes deployment preparation
 - **Performance Optimization**: Enhancing response times and resource utilization
