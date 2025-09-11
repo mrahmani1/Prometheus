@@ -1,0 +1,152 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: prometheus-ai
+data:
+  01-init-extensions.sql: |
+    -- Enable PostGIS extension for geospatial data
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    CREATE EXTENSION IF NOT EXISTS postgis_topology;
+    CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
+    CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder;
+    
+    -- Enable UUID extension
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    
+    -- Enable btree_gist for advanced indexing
+    CREATE EXTENSION IF NOT EXISTS btree_gist;
+    
+  02-create-schemas.sql: |
+    -- Create schemas for different data types
+    CREATE SCHEMA IF NOT EXISTS geological;
+    CREATE SCHEMA IF NOT EXISTS volcanic;
+    CREATE SCHEMA IF NOT EXISTS seismic;
+    CREATE SCHEMA IF NOT EXISTS resources;
+    CREATE SCHEMA IF NOT EXISTS monitoring;
+    
+  03-create-tables.sql: |
+    -- Volcanoes table
+    CREATE TABLE IF NOT EXISTS volcanic.volcanoes (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        name VARCHAR(255) NOT NULL,
+        location GEOMETRY(POINT, 4326) NOT NULL,
+        elevation FLOAT,
+        volcano_type VARCHAR(100),
+        last_eruption DATE,
+        hazard_level INTEGER CHECK (hazard_level BETWEEN 1 AND 5),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Geological units table
+    CREATE TABLE IF NOT EXISTS geological.units (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        name VARCHAR(255) NOT NULL,
+        age_min FLOAT,
+        age_max FLOAT,
+        lithology VARCHAR(100),
+        geometry GEOMETRY(MULTIPOLYGON, 4326),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Seismic events table
+    CREATE TABLE IF NOT EXISTS seismic.events (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        event_time TIMESTAMP WITH TIME ZONE NOT NULL,
+        location GEOMETRY(POINT, 4326) NOT NULL,
+        depth FLOAT NOT NULL,
+        magnitude FLOAT,
+        event_type VARCHAR(50),
+        confidence FLOAT CHECK (confidence BETWEEN 0 AND 1),
+        volcano_id UUID REFERENCES volcanic.volcanoes(id),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Resource prospects table
+    CREATE TABLE IF NOT EXISTS resources.prospects (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        name VARCHAR(255) NOT NULL,
+        resource_type VARCHAR(100) NOT NULL,
+        location GEOMETRY(POINT, 4326) NOT NULL,
+        area GEOMETRY(POLYGON, 4326),
+        prospectivity_score FLOAT CHECK (prospectivity_score BETWEEN 0 AND 1),
+        confidence_lower FLOAT,
+        confidence_upper FLOAT,
+        geological_setting JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Monitoring stations table
+    CREATE TABLE IF NOT EXISTS monitoring.stations (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        station_code VARCHAR(20) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        location GEOMETRY(POINT, 4326) NOT NULL,
+        elevation FLOAT,
+        station_type VARCHAR(50) NOT NULL,
+        network VARCHAR(20),
+        is_active BOOLEAN DEFAULT TRUE,
+        installation_date DATE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+  04-create-indexes.sql: |
+    -- Spatial indexes
+    CREATE INDEX IF NOT EXISTS idx_volcanoes_location ON volcanic.volcanoes USING GIST (location);
+    CREATE INDEX IF NOT EXISTS idx_geological_units_geometry ON geological.units USING GIST (geometry);
+    CREATE INDEX IF NOT EXISTS idx_seismic_events_location ON seismic.events USING GIST (location);
+    CREATE INDEX IF NOT EXISTS idx_prospects_location ON resources.prospects USING GIST (location);
+    CREATE INDEX IF NOT EXISTS idx_prospects_area ON resources.prospects USING GIST (area);
+    CREATE INDEX IF NOT EXISTS idx_stations_location ON monitoring.stations USING GIST (location);
+    
+    -- Time-based indexes
+    CREATE INDEX IF NOT EXISTS idx_seismic_events_time ON seismic.events (event_time);
+    CREATE INDEX IF NOT EXISTS idx_volcanoes_last_eruption ON volcanic.volcanoes (last_eruption);
+    
+    -- Composite indexes
+    CREATE INDEX IF NOT EXISTS idx_seismic_events_volcano_time ON seismic.events (volcano_id, event_time);
+    CREATE INDEX IF NOT EXISTS idx_prospects_type_score ON resources.prospects (resource_type, prospectivity_score);
+    
+  05-create-functions.sql: |
+    -- Function to calculate distance between points
+    CREATE OR REPLACE FUNCTION calculate_distance(
+        lat1 FLOAT, lon1 FLOAT, lat2 FLOAT, lon2 FLOAT
+    ) RETURNS FLOAT AS $$
+    BEGIN
+        RETURN ST_Distance(
+            ST_GeogFromText('POINT(' || lon1 || ' ' || lat1 || ')'),
+            ST_GeogFromText('POINT(' || lon2 || ' ' || lat2 || ')')
+        );
+    END;
+    $$ LANGUAGE plpgsql;
+    
+    -- Function to find nearby volcanoes
+    CREATE OR REPLACE FUNCTION find_nearby_volcanoes(
+        input_lat FLOAT, input_lon FLOAT, radius_km FLOAT DEFAULT 100
+    ) RETURNS TABLE (
+        volcano_id UUID,
+        volcano_name VARCHAR(255),
+        distance_km FLOAT
+    ) AS $$
+    BEGIN
+        RETURN QUERY
+        SELECT 
+            v.id,
+            v.name,
+            ST_Distance(
+                ST_GeogFromText('POINT(' || input_lon || ' ' || input_lat || ')'),
+                ST_GeogFromText(ST_AsText(v.location))
+            ) / 1000 AS distance_km
+        FROM volcanic.volcanoes v
+        WHERE ST_DWithin(
+            ST_GeogFromText('POINT(' || input_lon || ' ' || input_lat || ')'),
+            ST_GeogFromText(ST_AsText(v.location)),
+            radius_km * 1000
+        )
+        ORDER BY distance_km;
+    END;
+    $$ LANGUAGE plpgsql;

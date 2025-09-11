@@ -1,0 +1,165 @@
+# Consul Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consul-deployment
+  namespace: prometheus-ai
+  labels:
+    app: consul
+    component: server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: consul
+      component: server
+  template:
+    metadata:
+      labels:
+        app: consul
+        component: server
+    spec:
+      containers:
+      - name: consul
+        image: consul:1.16.1
+        ports:
+        - containerPort: 8500
+          name: http
+        - containerPort: 8300
+          name: server
+        - containerPort: 8301
+          name: serf-lan
+        - containerPort: 8302
+          name: serf-wan
+        - containerPort: 8600
+          name: dns
+        env:
+        - name: CONSUL_BIND_INTERFACE
+          value: "eth0"
+        - name: CONSUL_CLIENT_INTERFACE
+          value: "eth0"
+        - name: CONSUL_LOCAL_CONFIG
+          value: |
+            {
+              "datacenter": "prometheus-ai",
+              "data_dir": "/consul/data",
+              "log_level": "INFO",
+              "server": true,
+              "bootstrap_expect": 3,
+              "ui_config": {
+                "enabled": true
+              },
+              "connect": {
+                "enabled": true
+              },
+              "ports": {
+                "grpc": 8502
+              }
+            }
+        command:
+        - consul
+        - agent
+        - -config-dir=/consul/config
+        - -retry-join=consul-service
+        volumeMounts:
+        - name: consul-data
+          mountPath: /consul/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /v1/status/leader
+            port: 8500
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /v1/status/leader
+            port: 8500
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: consul-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul-service
+  namespace: prometheus-ai
+  labels:
+    app: consul
+spec:
+  selector:
+    app: consul
+  ports:
+  - name: http
+    port: 8500
+    targetPort: 8500
+  - name: server
+    port: 8300
+    targetPort: 8300
+  - name: serf-lan
+    port: 8301
+    targetPort: 8301
+  - name: serf-wan
+    port: 8302
+    targetPort: 8302
+  - name: dns
+    port: 8600
+    targetPort: 8600
+  - name: grpc
+    port: 8502
+    targetPort: 8502
+  type: ClusterIP
+  clusterIP: None
+---
+# Consul Connect Proxy Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: consul-connect-config
+  namespace: prometheus-ai
+data:
+  proxy-defaults.hcl: |
+    Kind = "proxy-defaults"
+    Name = "global"
+    Config {
+      protocol = "http"
+    }
+    MeshGateway {
+      Mode = "local"
+    }
+  service-defaults-api-gateway.hcl: |
+    Kind = "service-defaults"
+    Name = "api-gateway"
+    Protocol = "http"
+    Connect {
+      SidecarService {}
+    }
+  service-defaults-helios-core.hcl: |
+    Kind = "service-defaults"
+    Name = "helios-core"
+    Protocol = "http"
+    Connect {
+      SidecarService {}
+    }
+  service-defaults-data-ingestion.hcl: |
+    Kind = "service-defaults"
+    Name = "data-ingestion"
+    Protocol = "http"
+    Connect {
+      SidecarService {}
+    }
+  service-defaults-volcano-watchtower.hcl: |
+    Kind = "service-defaults"
+    Name = "volcano-watchtower"
+    Protocol = "http"
+    Connect {
+      SidecarService {}
+    }

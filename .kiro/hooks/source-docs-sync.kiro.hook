@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "name": "Source Documentation Sync",
+  "description": "Monitors all Python source files, configuration files, and project structure changes to automatically update documentation in README and docs folder",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.py",
+      "backend/**/*.py",
+      "frontend/**/*.py",
+      "services/**/*.py",
+      "*.md",
+      "pyproject.toml",
+      "requirements.txt",
+      "docker-compose.yml",
+      "Dockerfile",
+      "*.yaml",
+      "*.yml",
+      "*.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Source files have been modified in the Prometheus AI platform. Please review the changes and update the documentation accordingly. Focus on:\n\n1. Update README.md with any new features, API changes, or architectural modifications\n2. If there's a /docs folder, update relevant documentation files there\n3. Ensure code examples in documentation reflect current implementation\n4. Update any installation or setup instructions if dependencies changed\n5. Document new modules, classes, or significant functions added\n6. Update API documentation for any endpoint changes\n7. Reflect changes in the overall system architecture or data flow\n\nPay special attention to:\n- Python services in backend/ and any services/ directory\n- Configuration changes in pyproject.toml, requirements.txt\n- Docker and Kubernetes configuration updates\n- New test files that indicate new functionality\n- Frontend changes that affect user-facing documentation\n\nKeep documentation clear, accurate, and aligned with the current codebase state."
+  }
+}

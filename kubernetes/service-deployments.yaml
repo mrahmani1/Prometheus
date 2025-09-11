@@ -1,0 +1,509 @@
+# API Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-deployment
+  namespace: prometheus-ai
+  labels:
+    app: api-gateway
+    tier: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        tier: gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: prometheus-ai/api-gateway:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: api-gateway-port
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: jwt-secret
+        - name: CONSUL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-host
+        - name: CONSUL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-port
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: redis-host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: redis-port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: redis-password
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-service
+  namespace: prometheus-ai
+  labels:
+    app: api-gateway
+spec:
+  selector:
+    app: api-gateway
+  ports:
+  - port: 3000
+    targetPort: 3000
+    name: http
+  type: ClusterIP
+---
+# Helios Core Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helios-core-deployment
+  namespace: prometheus-ai
+  labels:
+    app: helios-core
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: helios-core
+  template:
+    metadata:
+      labels:
+        app: helios-core
+        tier: backend
+    spec:
+      containers:
+      - name: helios-core
+        image: prometheus-ai/helios-core:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: environment
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: helios-core-port
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: log-level
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: postgres-host
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: postgres-port
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-db
+        - name: INFLUXDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-host
+        - name: INFLUXDB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-port
+        - name: INFLUXDB_ORG
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: influxdb-org
+        - name: INFLUXDB_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: influxdb-bucket
+        - name: NEO4J_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: neo4j-host
+        - name: NEO4J_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: neo4j-port
+        - name: NEO4J_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: neo4j-user
+        - name: NEO4J_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: neo4j-password
+        - name: CONSUL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-host
+        - name: CONSUL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-port
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: helios-core-service
+  namespace: prometheus-ai
+  labels:
+    app: helios-core
+spec:
+  selector:
+    app: helios-core
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  type: ClusterIP---
+
+# Data Ingestion Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-ingestion-deployment
+  namespace: prometheus-ai
+  labels:
+    app: data-ingestion
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: data-ingestion
+  template:
+    metadata:
+      labels:
+        app: data-ingestion
+        tier: backend
+    spec:
+      containers:
+      - name: data-ingestion
+        image: prometheus-ai/data-ingestion:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: environment
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: data-ingestion-port
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: log-level
+        - name: KAFKA_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: kafka-host
+        - name: KAFKA_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: kafka-port
+        - name: INFLUXDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-host
+        - name: INFLUXDB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-port
+        - name: INFLUXDB_ORG
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: influxdb-org
+        - name: INFLUXDB_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: influxdb-bucket
+        - name: CONSUL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-host
+        - name: CONSUL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-port
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-ingestion-service
+  namespace: prometheus-ai
+  labels:
+    app: data-ingestion
+spec:
+  selector:
+    app: data-ingestion
+  ports:
+  - port: 8001
+    targetPort: 8001
+    name: http
+  type: ClusterIP
+---
+# Volcano Watchtower Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: volcano-watchtower-deployment
+  namespace: prometheus-ai
+  labels:
+    app: volcano-watchtower
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: volcano-watchtower
+  template:
+    metadata:
+      labels:
+        app: volcano-watchtower
+        tier: backend
+    spec:
+      containers:
+      - name: volcano-watchtower
+        image: prometheus-ai/volcano-watchtower:latest
+        ports:
+        - containerPort: 8002
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: environment
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: volcano-watchtower-port
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: log-level
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: postgres-host
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: postgres-port
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-db
+        - name: INFLUXDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-host
+        - name: INFLUXDB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-port
+        - name: INFLUXDB_ORG
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: influxdb-org
+        - name: INFLUXDB_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: influxdb-bucket
+        - name: KAFKA_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: kafka-host
+        - name: KAFKA_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: kafka-port
+        - name: CONSUL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-host
+        - name: CONSUL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: service-config
+              key: consul-port
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8002
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: volcano-watchtower-service
+  namespace: prometheus-ai
+  labels:
+    app: volcano-watchtower
+spec:
+  selector:
+    app: volcano-watchtower
+  ports:
+  - port: 8002
+    targetPort: 8002
+    name: http
+  type: ClusterIP

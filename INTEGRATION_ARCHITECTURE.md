@@ -713,42 +713,134 @@ async def test_volcanic_simulation():
         assert result["ml_predictions"]["confidence"] > 0.5
 ```
 
-### 3. Continuous Integration/Deployment
+### 3. Advanced CI/CD Pipeline with Multi-Cloud Support
 ```yaml
-# GitHub Actions workflow
-name: CI/CD Pipeline
+# Enhanced GitHub Actions workflow
+name: Prometheus AI Platform CI/CD
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, feature/*]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  release:
+    types: [published]
 
 jobs:
+  # Multi-stage testing with comprehensive coverage
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12]
+        node-version: [18, 20]
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+      redis:
+        image: redis:7-alpine
+      kafka:
+        image: confluentinc/cp-kafka:latest
+    
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
-    - name: Run Python tests
+    - name: Security and Quality Scanning
       run: |
-        pip install -r requirements.txt
-        pytest tests/ --cov=app --cov-report=xml
+        # SonarQube analysis
+        sonar-scanner -Dsonar.projectKey=prometheus-ai
+        # Snyk security scanning
+        snyk test --severity-threshold=high
+        # OWASP ZAP security testing
+        zap-baseline.py -t http://localhost:8080
     
-    - name: Run JavaScript tests
+    - name: Comprehensive Testing Suite
       run: |
-        npm install
-        npm test
+        # Backend tests with coverage
+        cd backend
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+        
+        # Frontend tests with coverage
+        cd ../frontend
+        npm ci && npm test -- --coverage --watchAll=false
+        
+        # Integration tests
+        cd ../tests/integration
+        pytest test_api_integration.py -v
+        
+        # Performance tests
+        k6 run performance/load_test.js
     
-    - name: Build Docker images
+    - name: Multi-Platform Container Build
       run: |
-        docker build -t prometheus/backend:${{ github.sha }} ./backend
-        docker build -t prometheus/frontend:${{ github.sha }} ./frontend
+        # Build for multiple architectures
+        docker buildx build --platform linux/amd64,linux/arm64 \
+          -t ghcr.io/prometheus-ai/backend:${{ github.sha }} ./backend --push
+        docker buildx build --platform linux/amd64,linux/arm64 \
+          -t ghcr.io/prometheus-ai/frontend:${{ github.sha }} ./frontend --push
+        
+        # Sign containers with Cosign
+        cosign sign --yes ghcr.io/prometheus-ai/backend:${{ github.sha }}
+        cosign sign --yes ghcr.io/prometheus-ai/frontend:${{ github.sha }}
     
-    - name: Deploy to staging
-      if: github.ref == 'refs/heads/develop'
+    - name: Infrastructure as Code
       run: |
-        kubectl set image deployment/backend backend=prometheus/backend:${{ github.sha }}
-        kubectl set image deployment/frontend frontend=prometheus/frontend:${{ github.sha }}
+        # Terraform validation and planning
+        cd infrastructure
+        terraform init && terraform validate
+        terraform plan -out=tfplan
+        
+        # Apply infrastructure changes
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          terraform apply -auto-approve tfplan
+        fi
+    
+    - name: Multi-Cloud Deployment
+      run: |
+        # Deploy to Google Cloud (GKE)
+        gcloud container clusters get-credentials prometheus-ai-gke --region us-central1
+        helm upgrade --install prometheus-ai-gcp ./helm/prometheus-ai \
+          --set image.tag=${{ github.sha }} \
+          --set cloud.provider=gcp \
+          --wait --timeout=15m
+        
+        # Deploy to Azure (AKS)
+        az aks get-credentials --resource-group prometheus-ai-rg --name prometheus-ai-aks
+        helm upgrade --install prometheus-ai-azure ./helm/prometheus-ai \
+          --set image.tag=${{ github.sha }} \
+          --set cloud.provider=azure \
+          --wait --timeout=15m
+        
+        # Deploy to AWS (EKS)
+        aws eks update-kubeconfig --region us-west-2 --name prometheus-ai-eks
+        helm upgrade --install prometheus-ai-aws ./helm/prometheus-ai \
+          --set image.tag=${{ github.sha }} \
+          --set cloud.provider=aws \
+          --wait --timeout=15m
+    
+    - name: Post-Deployment Validation
+      run: |
+        # Smoke tests across all environments
+        ./scripts/smoke-tests.sh gcp
+        ./scripts/smoke-tests.sh azure
+        ./scripts/smoke-tests.sh aws
+        
+        # Performance validation
+        ./scripts/performance-validation.sh
+        
+        # Security validation
+        ./scripts/security-validation.sh
+    
+    - name: Monitoring and Alerting Setup
+      run: |
+        # Configure monitoring across clouds
+        kubectl apply -f monitoring/multi-cloud/ --context=gcp
+        kubectl apply -f monitoring/multi-cloud/ --context=azure
+        kubectl apply -f monitoring/multi-cloud/ --context=aws
+        
+        # Set up cross-cloud alerting
+        ./scripts/setup-cross-cloud-alerts.sh
 ```
 
 ---

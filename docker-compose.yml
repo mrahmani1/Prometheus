@@ -1,0 +1,203 @@
+version: '3.8'
+
+services:
+  # Infrastructure Services
+  consul:
+    image: consul:1.16
+    container_name: prometheus-consul
+    ports:
+      - "8500:8500"
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0 -data-dir=/consul/data
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - prometheus-network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: prometheus-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - prometheus-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: prometheus-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - prometheus-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: prometheus-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    networks:
+      - prometheus-network
+
+  # Database Services
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: prometheus-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: prometheus
+      POSTGRES_USER: prometheus
+      POSTGRES_PASSWORD: prometheus123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - prometheus-network
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: prometheus-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: prometheus
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: prometheus123
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - prometheus-network
+
+  neo4j:
+    image: neo4j:5.12
+    container_name: prometheus-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/prometheus123
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - prometheus-network
+
+  # Microservices
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: prometheus-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: prometheus-secret-key-dev
+      NODE_ENV: development
+    depends_on:
+      - consul
+      - redis
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/node_modules
+    networks:
+      - prometheus-network
+
+  helios-core:
+    build:
+      context: ./services/helios-core
+      dockerfile: Dockerfile
+    container_name: prometheus-helios-core
+    ports:
+      - "8001:8001"
+    environment:
+      PORT: 8001
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: development
+    depends_on:
+      - consul
+      - redis
+    volumes:
+      - ./services/helios-core:/app
+      - ./backend:/app/backend
+    networks:
+      - prometheus-network
+
+  data-ingestion:
+    build:
+      context: ./services/data-ingestion
+      dockerfile: Dockerfile
+    container_name: prometheus-data-ingestion
+    ports:
+      - "8002:8002"
+    environment:
+      PORT: 8002
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      REDIS_URL: redis://redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ENVIRONMENT: development
+    depends_on:
+      - consul
+      - redis
+      - kafka
+    volumes:
+      - ./services/data-ingestion:/app
+      - ./backend:/app/backend
+    networks:
+      - prometheus-network
+
+  volcano-watchtower:
+    build:
+      context: ./services/volcano-watchtower
+      dockerfile: Dockerfile
+    container_name: prometheus-volcano-watchtower
+    ports:
+      - "8003:8003"
+    environment:
+      PORT: 8003
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: development
+    depends_on:
+      - consul
+      - redis
+    volumes:
+      - ./services/volcano-watchtower:/app
+      - ./backend:/app/backend
+    networks:
+      - prometheus-network
+
+volumes:
+  consul_data:
+  redis_data:
+  kafka_data:
+  zookeeper_data:
+  postgres_data:
+  influxdb_data:
+  neo4j_data:
+
+networks:
+  prometheus-network:
+    driver: bridge

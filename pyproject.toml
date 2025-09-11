@@ -1,6 +1,167 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prometheus-ai-platform"
+version = "1.0.0"
+description = "Advanced AI-powered platform for integrated geodynamic, volcanic, and resource simulation"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Prometheus AI Team", email = "team@prometheus-ai.org"}
+]
+maintainers = [
+    {name = "Prometheus AI Team", email = "team@prometheus-ai.org"}
+]
+keywords = [
+    "geophysics", "volcanology", "machine-learning", "earth-science", 
+    "seismic-analysis", "insar", "geological-modeling", "physics-informed-neural-networks"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: GIS"
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "numpy>=1.24.0",
+    "scipy>=1.11.0",
+    "pandas>=2.1.0",
+    "scikit-learn>=1.3.0",
+    "torch>=2.1.0",
+    "torchvision>=0.16.0",
+    "torchaudio>=2.1.0",
+    "pytorch-lightning>=2.1.0",
+    "transformers>=4.35.0",
+    "xarray>=2023.10.0",
+    "geopandas>=0.14.0",
+    "shapely>=2.0.0",
+    "pyproj>=3.6.0",
+    "rasterio>=1.3.0",
+    "cartopy>=0.22.0",
+    "matplotlib>=3.8.0",
+    "plotly>=5.17.0",
+    "dash>=2.14.0",
+    "streamlit>=1.28.0",
+    "psycopg2-binary>=2.9.0",
+    "influxdb-client>=1.38.0",
+    "neo4j>=5.13.0",
+    "redis>=5.0.0",
+    "kafka-python>=2.0.0",
+    "consul>=1.1.0",
+    "pyjwt>=2.8.0",
+    "cryptography>=41.0.0",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.0",
+    "websockets>=12.0",
+    "celery>=5.3.0",
+    "dask[complete]>=2023.10.0",
+    "ray[default]>=2.8.0",
+    "optuna>=3.4.0",
+    "bayesian-optimization>=1.4.0",
+    "networkx>=3.2.0",
+    "dgl>=1.1.0",
+    "obspy>=1.4.0",
+    "pyrocko>=2023.10.0",
+    "mintpy>=1.5.0",
+    "isce3>=0.8.0",
+    "pycuda>=2023.1",
+    "cupy-cuda11x>=12.3.0",
+    "numba>=0.58.0",
+    "joblib>=1.3.0",
+    "tqdm>=4.66.0",
+    "rich>=13.6.0",
+    "typer>=0.9.0",
+    "click>=8.1.0",
+    "pyyaml>=6.0.0",
+    "toml>=0.10.0",
+    "python-dotenv>=1.0.0",
+    "structlog>=23.2.0",
+    "prometheus-client>=0.19.0",
+    "opentelemetry-api>=1.21.0",
+    "opentelemetry-sdk>=1.21.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.10.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.6.0",
+    "pre-commit>=3.5.0",
+    "bandit>=1.7.0",
+    "safety>=2.3.0",
+    "sphinx>=7.2.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.26.0",
+    "notebook>=7.0.0"
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.24.0",
+    "mkdocs-jupyter>=0.24.0"
+]
+gpu = [
+    "cupy-cuda11x>=12.3.0",
+    "pycuda>=2023.1",
+    "cudf>=23.10.0",
+    "cuml>=23.10.0",
+    "cugraph>=23.10.0"
+]
+cloud = [
+    "azure-storage-blob>=12.19.0",
+    "azure-identity>=1.15.0",
+    "boto3>=1.29.0",
+    "google-cloud-storage>=2.10.0"
+]
+monitoring = [
+    "prometheus-client>=0.19.0",
+    "grafana-api>=1.0.3",
+    "elasticsearch>=8.11.0",
+    "kibana-api>=0.1.0"
+]
+
+[project.urls]
+Homepage = "https://prometheus-ai.org"
+Documentation = "https://docs.prometheus-ai.org"
+Repository = "https://github.com/your-org/prometheus-ai-platform"
+"Bug Tracker" = "https://github.com/your-org/prometheus-ai-platform/issues"
+Changelog = "https://github.com/your-org/prometheus-ai-platform/blob/main/CHANGELOG.md"
+
+[project.scripts]
+prometheus-ai = "prometheus_ai.cli:main"
+helios-core = "prometheus_ai.services.helios:main"
+volcano-watchtower = "prometheus_ai.services.watchtower:main"
+data-ingestion = "prometheus_ai.services.ingestion:main"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["prometheus_ai*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+"prometheus_ai" = ["*.yaml", "*.json", "*.sql", "*.html", "*.js", "*.css"]
+
 [tool.black]
 line-length = 100
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py311', 'py312']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -16,6 +177,7 @@ exclude = '''
   | dist
   | node_modules
   | backups
+  | __pycache__
 )/
 '''
 
@@ -27,3 +189,99 @@ include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
+known_first_party = ["prometheus_ai"]
+known_third_party = [
+    "fastapi", "uvicorn", "pydantic", "numpy", "scipy", "pandas", 
+    "sklearn", "torch", "transformers", "xarray", "geopandas"
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["backend/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "gpu: marks tests that require GPU",
+    "network: marks tests that require network access"
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning"
+]
+
+[tool.coverage.run]
+source = ["backend"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/build/*",
+    "*/dist/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:"
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "obspy.*",
+    "pyrocko.*",
+    "mintpy.*",
+    "isce3.*",
+    "dgl.*",
+    "cupy.*",
+    "pycuda.*"
+]
+ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "build", "dist"]
+skips = ["B101", "B601"]
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503", "E501"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    ".tox",
+    "*.egg-info"
+]
+per-file-ignores = [
+    "__init__.py:F401"
+]
