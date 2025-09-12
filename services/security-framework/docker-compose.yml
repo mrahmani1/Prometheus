@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  security-framework:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - HSM_LIBRARY_PATH=/usr/lib/softhsm/libsofthsm2.so
+      - HSM_TOKEN_LABEL=prometheus
+      - HSM_USER_PIN=1234
+      - LOCAL_BACKUP_DIR=/var/backups/prometheus
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_BACKUP_BUCKET=${AWS_BACKUP_BUCKET:-prometheus-backups}
+      - AZURE_STORAGE_ACCOUNT_URL=${AZURE_STORAGE_ACCOUNT_URL}
+      - AZURE_STORAGE_ACCOUNT_KEY=${AZURE_STORAGE_ACCOUNT_KEY}
+      - AZURE_BACKUP_CONTAINER=${AZURE_BACKUP_CONTAINER:-prometheus-backups}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - GCP_BACKUP_BUCKET=${GCP_BACKUP_BUCKET:-prometheus-backups}
+    volumes:
+      - backup_data:/var/backups/prometheus
+      - ./credentials:/app/credentials:ro
+    depends_on:
+      - redis
+    networks:
+      - prometheus-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - prometheus-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-prometheus123}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: SoftHSM for testing HSM functionality
+  softhsm:
+    image: opendnssec/softhsm2:latest
+    volumes:
+      - hsm_data:/var/lib/softhsm/tokens
+    networks:
+      - prometheus-network
+    restart: unless-stopped
+    environment:
+      - SOFTHSM2_CONF=/etc/softhsm2.conf
+    command: >
+      sh -c "
+        softhsm2-util --init-token --slot 0 --label prometheus --pin 1234 --so-pin 5678 &&
+        tail -f /dev/null
+      "
+
+volumes:
+  redis_data:
+    driver: local
+  backup_data:
+    driver: local
+  hsm_data:
+    driver: local
+
+networks:
+  prometheus-network:
+    driver: bridge

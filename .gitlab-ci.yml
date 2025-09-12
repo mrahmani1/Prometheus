@@ -1,0 +1,196 @@
+stages:
+  - validate
+  - test
+  - security
+  - build
+  - deploy-staging
+  - deploy-production
+  - rollback
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  REGISTRY: $CI_REGISTRY
+  IMAGE_NAME: $CI_PROJECT_PATH
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  GIT_DEPTH: "0"
+
+.docker-template: &docker-template
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
+.kubectl-template: &kubectl-template
+  image: google/cloud-sdk:alpine
+  before_script:
+    - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcp-key.json
+    - gcloud auth activate-service-account --key-file gcp-key.json
+    - gcloud config set project $GCP_PROJECT_ID
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl && mv kubectl /usr/local/bin/
+
+code-quality:
+  stage: validate
+  image: sonarqube/sonar-scanner-cli:latest
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner
+      -Dsonar.projectKey=$SONAR_PROJECT_KEY
+      -Dsonar.sources=.
+      -Dsonar.host.url=$SONAR_HOST_URL
+      -Dsonar.login=$SONAR_TOKEN
+      -Dsonar.qualitygate.wait=true
+  only:
+    - merge_requests
+    - main
+    - develop
+
+python-tests:
+  stage: test
+  image: python:3.11
+  parallel:
+    matrix:
+      - SERVICE: [helios-core, data-ingestion, volcano-watchtower]
+  before_script:
+    - cd services/$SERVICE
+    - pip install -r requirements.txt
+    - pip install pytest pytest-cov
+  script:
+    - pytest tests/ --cov=. --cov-report=xml --cov-report=html --junitxml=report.xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      junit: services/*/report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: services/*/coverage.xml
+    paths:
+      - services/*/htmlcov/
+    expire_in: 1 week
+
+nodejs-tests:
+  stage: test
+  image: node:18
+  before_script:
+    - cd services/api-gateway
+    - npm ci
+  script:
+    - npm test -- --coverage --watchAll=false --ci
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      junit: services/api-gateway/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: services/api-gateway/coverage/cobertura-coverage.xml
+
+security-scan:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --format sarif --output trivy-results.sarif .
+    - trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+  artifacts:
+    reports:
+      sast: trivy-results.sarif
+    expire_in: 1 week
+  allow_failure: true
+
+snyk-scan:
+  stage: security
+  image: snyk/snyk:node
+  script:
+    - snyk auth $SNYK_TOKEN
+    - snyk test --severity-threshold=high --all-projects
+    - snyk monitor --all-projects
+  allow_failure: true
+
+build-images:
+  stage: build
+  <<: *docker-template
+  parallel:
+    matrix:
+      - SERVICE: [helios-core, data-ingestion, volcano-watchtower, api-gateway]
+  script:
+    - cd services/$SERVICE
+    - docker build -t $REGISTRY/$IMAGE_NAME/$SERVICE:$CI_COMMIT_SHA .
+    - docker build -t $REGISTRY/$IMAGE_NAME/$SERVICE:latest .
+    - docker push $REGISTRY/$IMAGE_NAME/$SERVICE:$CI_COMMIT_SHA
+    - docker push $REGISTRY/$IMAGE_NAME/$SERVICE:latest
+    - |
+      # Container security scan
+      trivy image --format sarif --output trivy-container-$SERVICE.sarif \
+        $REGISTRY/$IMAGE_NAME/$SERVICE:$CI_COMMIT_SHA
+  artifacts:
+    reports:
+      sast: trivy-container-*.sarif
+  only:
+    - main
+    - develop
+    - merge_requests
+
+deploy-staging:
+  stage: deploy-staging
+  <<: *kubectl-template
+  script:
+    - gcloud container clusters get-credentials prometheus-staging --zone us-central1-a
+    - |
+      helm upgrade --install prometheus-staging ./helm/prometheus-ai-platform \
+        --namespace prometheus-staging \
+        --create-namespace \
+        --set image.tag=$CI_COMMIT_SHA \
+        --set environment=staging \
+        --wait --timeout=10m
+    - kubectl wait --for=condition=ready pod -l app=prometheus-ai-platform --namespace prometheus-staging --timeout=300s
+    - ./scripts/smoke-tests.sh staging
+  environment:
+    name: staging
+    url: https://staging.prometheus-ai.example.com
+  only:
+    - develop
+
+deploy-production-blue-green:
+  stage: deploy-production
+  <<: *kubectl-template
+  script:
+    - ./scripts/multi-cloud-setup.sh
+    - ./scripts/blue-green-deploy.sh production $CI_COMMIT_SHA
+    - ./scripts/deployment-validation.sh production
+    - ./scripts/health-checks.sh production
+  environment:
+    name: production
+    url: https://prometheus-ai.example.com
+  when: manual
+  only:
+    - main
+
+deploy-production-canary:
+  stage: deploy-production
+  <<: *kubectl-template
+  script:
+    - ./scripts/multi-cloud-setup.sh
+    - ./scripts/canary-deploy.sh production $CI_COMMIT_SHA
+    - ./scripts/deployment-validation.sh production
+    - ./scripts/health-checks.sh production
+  environment:
+    name: production
+    url: https://prometheus-ai.example.com
+  when: manual
+  only:
+    - main
+
+rollback-production:
+  stage: rollback
+  <<: *kubectl-template
+  script:
+    - ./scripts/rollback-deployment.sh production
+  environment:
+    name: production
+  when: manual
+  only:
+    - main

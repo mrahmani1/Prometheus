@@ -1,0 +1,460 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run performance tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of performance test to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - api-load
+        - database
+        - network
+        - concurrent-users
+        - lighthouse
+        - regression
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      duration:
+        description: 'Test duration (for load tests)'
+        required: false
+        default: '5m'
+        type: string
+
+env:
+  NODE_VERSION: '18'
+  K6_VERSION: '0.46.0'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      api-url: ${{ steps.set-env.outputs.api-url }}
+      test-type: ${{ steps.set-env.outputs.test-type }}
+    steps:
+      - name: Set environment variables
+        id: set-env
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "api-url=https://api.prometheus-ai.com" >> $GITHUB_OUTPUT
+          else
+            echo "api-url=https://staging.prometheus-ai.com" >> $GITHUB_OUTPUT
+          fi
+          
+          TEST_TYPE="${{ github.event.inputs.test_type }}"
+          if [ -z "$TEST_TYPE" ]; then
+            TEST_TYPE="all"
+          fi
+          echo "test-type=$TEST_TYPE" >> $GITHUB_OUTPUT
+
+  api-load-tests:
+    needs: setup
+    if: needs.setup.outputs.test-type == 'all' || needs.setup.outputs.test-type == 'api-load'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        scenario: [baseline_load, volcanic_stress, emergency_spike]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tests/performance/package-lock.json
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install dependencies
+        working-directory: tests/performance
+        run: npm ci
+
+      - name: Run API load tests
+        working-directory: tests/performance
+        env:
+          API_BASE_URL: ${{ needs.setup.outputs.api-url }}
+          API_TOKEN: ${{ secrets.PERFORMANCE_TEST_TOKEN }}
+          K6_SCENARIO: ${{ matrix.scenario }}
+        run: |
+          mkdir -p test-results/k6
+          k6 run \
+            --out json=test-results/k6/api-load-${{ matrix.scenario }}.json \
+            --summary-export test-results/k6/api-load-${{ matrix.scenario }}-summary.json \
+            k6/api-load-tests.js
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-load-results-${{ matrix.scenario }}
+          path: tests/performance/test-results/k6/
+          retention-days: 30
+
+  database-performance-tests:
+    needs: setup
+    if: needs.setup.outputs.test-type == 'all' || needs.setup.outputs.test-type == 'database'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tests/performance/package-lock.json
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install dependencies
+        working-directory: tests/performance
+        run: npm ci
+
+      - name: Run database performance tests
+        working-directory: tests/performance
+        env:
+          API_BASE_URL: ${{ needs.setup.outputs.api-url }}
+          API_TOKEN: ${{ secrets.PERFORMANCE_TEST_TOKEN }}
+        run: |
+          mkdir -p test-results/k6
+          k6 run \
+            --out json=test-results/k6/database-performance.json \
+            --summary-export test-results/k6/database-performance-summary.json \
+            k6/database-performance.js
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-performance-results
+          path: tests/performance/test-results/k6/
+          retention-days: 30
+
+  network-throttling-tests:
+    needs: setup
+    if: needs.setup.outputs.test-type == 'all' || needs.setup.outputs.test-type == 'network'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        network: [slow_3g, fast_3g, satellite]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tests/performance/package-lock.json
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install dependencies
+        working-directory: tests/performance
+        run: npm ci
+
+      - name: Run network throttling tests
+        working-directory: tests/performance
+        env:
+          API_BASE_URL: ${{ needs.setup.outputs.api-url }}
+          API_TOKEN: ${{ secrets.PERFORMANCE_TEST_TOKEN }}
+          NETWORK_PROFILE: ${{ matrix.network }}
+        run: |
+          mkdir -p test-results/k6
+          k6 run \
+            --out json=test-results/k6/network-${{ matrix.network }}.json \
+            --summary-export test-results/k6/network-${{ matrix.network }}-summary.json \
+            k6/network-throttling-tests.js
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: network-throttling-results-${{ matrix.network }}
+          path: tests/performance/test-results/k6/
+          retention-days: 30
+
+  concurrent-users-tests:
+    needs: setup
+    if: needs.setup.outputs.test-type == 'all' || needs.setup.outputs.test-type == 'concurrent-users'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tests/performance/package-lock.json
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install dependencies
+        working-directory: tests/performance
+        run: npm ci
+
+      - name: Run concurrent users tests
+        working-directory: tests/performance
+        env:
+          API_BASE_URL: ${{ needs.setup.outputs.api-url }}
+          API_TOKEN: ${{ secrets.PERFORMANCE_TEST_TOKEN }}
+        run: |
+          mkdir -p test-results/k6
+          k6 run \
+            --out json=test-results/k6/concurrent-users.json \
+            --summary-export test-results/k6/concurrent-users-summary.json \
+            k6/concurrent-users-test.js
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: concurrent-users-results
+          path: tests/performance/test-results/k6/
+          retention-days: 30
+
+  lighthouse-tests:
+    needs: setup
+    if: needs.setup.outputs.test-type == 'all' || needs.setup.outputs.test-type == 'lighthouse'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tests/performance/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tests/performance
+        run: npm ci
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli lighthouse
+
+      - name: Wait for application to be ready
+        run: |
+          timeout 300 bash -c 'until curl -f ${{ needs.setup.outputs.api-url }}/api/v1/health; do sleep 5; done'
+
+      - name: Run Lighthouse CI
+        working-directory: tests/performance
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
+        run: |
+          mkdir -p test-results/lighthouse
+          # Update lighthouse config with correct URL
+          sed -i 's|http://localhost:3000|${{ needs.setup.outputs.api-url }}|g' lighthouse/lighthouse-ci.json
+          lhci autorun --config lighthouse/lighthouse-ci.json
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results
+          path: tests/performance/test-results/lighthouse/
+          retention-days: 30
+
+  performance-regression:
+    needs: [setup, api-load-tests, database-performance-tests]
+    if: always() && (needs.setup.outputs.test-type == 'all' || needs.setup.outputs.test-type == 'regression')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tests/performance/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tests/performance
+        run: npm ci
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: tests/performance/test-results/
+
+      - name: Run regression analysis
+        working-directory: tests/performance
+        run: |
+          mkdir -p test-results/regression
+          node regression/performance-regression-detector.js \
+            --input-dir test-results \
+            --output test-results/regression/regression-report.json
+
+      - name: Check for performance regressions
+        working-directory: tests/performance
+        run: |
+          if [ -f test-results/regression/regression-report.json ]; then
+            REGRESSIONS=$(jq '.summary.totalRegressions' test-results/regression/regression-report.json)
+            CRITICAL=$(jq '.summary.criticalRegressions' test-results/regression/regression-report.json)
+            
+            echo "Performance regressions detected: $REGRESSIONS"
+            echo "Critical regressions: $CRITICAL"
+            
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "::error::Critical performance regressions detected!"
+              exit 1
+            elif [ "$REGRESSIONS" -gt 5 ]; then
+              echo "::warning::Multiple performance regressions detected ($REGRESSIONS)"
+            fi
+          fi
+
+      - name: Upload regression analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-analysis
+          path: tests/performance/test-results/regression/
+          retention-days: 90
+
+  generate-report:
+    needs: [api-load-tests, database-performance-tests, network-throttling-tests, concurrent-users-tests, lighthouse-tests, performance-regression]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tests/performance/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tests/performance
+        run: npm ci
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: tests/performance/test-results/
+
+      - name: Generate comprehensive report
+        working-directory: tests/performance
+        run: |
+          node run-performance-tests.js --generate-report-only --input-dir test-results
+
+      - name: Upload comprehensive report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: |
+            tests/performance/test-results/performance-report.html
+            tests/performance/test-results/performance-report.json
+          retention-days: 90
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'tests/performance/test-results/performance-report.json';
+            
+            if (fs.existsSync(path)) {
+              const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+              
+              const comment = `## 📊 Performance Test Results
+              
+              **Summary:**
+              - Total Tests: ${report.summary.totalTests}
+              - Successful: ${report.summary.successfulTests} ✅
+              - Failed: ${report.summary.failedTests} ${report.summary.failedTests > 0 ? '❌' : '✅'}
+              - Duration: ${(report.summary.totalDuration / 1000 / 60).toFixed(1)} minutes
+              
+              ${report.recommendations.length > 0 ? `**⚠️ Recommendations:** ${report.recommendations.length} performance recommendations generated` : '**✅ No performance issues detected**'}
+              
+              [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  notify-slack:
+    needs: [generate-report, performance-regression]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack on performance issues
+        if: needs.performance-regression.result == 'failure'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: |
+            🚨 Critical performance regressions detected in Prometheus AI Platform!
+            
+            Branch: ${{ github.ref }}
+            Commit: ${{ github.sha }}
+            
+            Please review the performance test results immediately.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack on success
+        if: needs.performance-regression.result == 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: |
+            ✅ Performance tests passed for Prometheus AI Platform
+            
+            Branch: ${{ github.ref }}
+            All performance metrics within acceptable ranges.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

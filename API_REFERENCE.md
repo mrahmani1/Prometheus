@@ -7,10 +7,20 @@
 
 ### Service Endpoints (✅ **IMPLEMENTED**)
 ```
-API Gateway:           http://localhost:3000
-Helios Core Service:   http://localhost:8001
-Data Ingestion:        http://localhost:8002  
-Volcano Watchtower:    http://localhost:8003
+API Gateway:           http://localhost:3000    # Node.js Express with service discovery
+Helios Core Service:   http://localhost:8001    # Python FastAPI with PINN engine
+Data Ingestion:        http://localhost:8002    # Python FastAPI with multi-source processing
+Volcano Watchtower:    http://localhost:8003    # Python FastAPI with real-time monitoring
+```
+
+### Infrastructure Services (✅ **IMPLEMENTED**)
+```
+Consul (Service Discovery): http://localhost:8500
+PostgreSQL + PostGIS:       localhost:5432
+InfluxDB (Time-series):     http://localhost:8086
+Neo4j (Graph Database):     http://localhost:7474
+Redis (Cache):              localhost:6379
+Kafka (Message Streaming):  localhost:9092
 ```
 
 ### Production URLs
@@ -2267,6 +2277,499 @@ const analysis = await client.seismic.analyzeWaveform({
   }
 }
 ```
+
+---
+
+## 🧪 Geological Validation Testing API (✅ **COMPLETED**)
+
+### Overview
+The Geological Validation Testing API provides comprehensive validation of geological algorithms and models using real geological data from peer-reviewed studies and authoritative sources.
+
+### Base URL
+```
+Testing Framework: python tests/geological_validation/run_validation_tests.py
+```
+
+### Validation Suites
+
+#### Run All Validation Tests
+```bash
+python tests/geological_validation/run_validation_tests.py --suite all
+```
+
+**Response:**
+```json
+{
+  "validation_id": "val_20250111_143022",
+  "status": "completed",
+  "overall_result": "PASS",
+  "execution_time": "45.2s",
+  "suites": {
+    "seismic": {"status": "PASS", "accuracy": 0.92, "tests": 15},
+    "volcanic": {"status": "PASS", "accuracy": 0.87, "tests": 12},
+    "geochemical": {"status": "PASS", "accuracy": 0.95, "tests": 18},
+    "visualization": {"status": "PASS", "accuracy": 0.94, "tests": 10},
+    "data_integrity": {"status": "PASS", "reliability": 0.98, "tests": 8},
+    "physics": {"status": "PASS", "conservation_compliance": 0.99, "tests": 20}
+  }
+}
+```
+
+#### Seismic Analysis Validation
+```bash
+python tests/geological_validation/run_validation_tests.py --suite seismic
+```
+
+**Validates:**
+- Phase picking accuracy using Loma Prieta Earthquake (1989) data
+- Magnitude estimation with global earthquake catalogs
+- Earthquake location determination accuracy
+- Event detection and classification
+- Moment tensor inversion validation
+
+**Accuracy Standards:**
+- Phase picking: >90% accuracy
+- Magnitude error: <0.3 RMS units
+- Location accuracy: <5km for regional events
+
+#### Volcanic Prediction Validation
+```bash
+python tests/geological_validation/run_validation_tests.py --suite volcanic
+```
+
+**Validates:**
+- Eruption forecasting using Mount St. Helens 1980 eruption data
+- VEI (Volcanic Explosivity Index) prediction accuracy
+- Precursor pattern recognition and analysis
+- Caldera system classification
+- Supereruption risk assessment
+
+**Accuracy Standards:**
+- Eruption prediction: >75% accuracy
+- VEI prediction: <1 unit error
+- Precursor detection: >80% sensitivity
+
+#### Geochemical Analysis Validation
+```bash
+python tests/geological_validation/run_validation_tests.py --suite geochemical
+```
+
+**Validates:**
+- Major/trace element analysis with certified reference materials
+- Rock classification using geochemical compositions
+- Thermobarometry calculations validation
+- Isotope ratio analysis and interpretation
+- Analytical precision and accuracy testing
+
+**Uses Real Data:**
+- Yellowstone geochemical samples
+- USGS certified reference materials
+- Laboratory-verified analytical results
+
+#### 3D Visualization Validation
+```bash
+python tests/geological_validation/run_validation_tests.py --suite visualization
+```
+
+**Validates:**
+- Spatial coordinate accuracy against San Andreas Fault 3D model
+- Geological unit boundary accuracy
+- 3D volume calculation validation
+- Rendering fidelity and visual accuracy
+- Cross-sectional accuracy testing
+
+#### Data Integrity Validation
+```bash
+python tests/geological_validation/run_validation_tests.py --suite data_integrity
+```
+
+**Validates:**
+- Production-scale performance (>1000 records/second)
+- Data completeness and quality assessment
+- Cross-dataset consistency validation
+- Real-time processing capabilities (<100ms response)
+- Fault tolerance and recovery testing
+
+#### Physics-Informed Validation
+```bash
+python tests/geological_validation/run_validation_tests.py --suite physics
+```
+
+**Validates:**
+- Physics-informed neural network accuracy
+- Conservation law compliance testing
+- Numerical stability and convergence
+- Geological constraint enforcement
+- Thermodynamic consistency validation
+
+### Continuous Validation Framework
+```bash
+python tests/geological_validation/run_validation_tests.py --continuous
+```
+
+**Features:**
+- Automated validation scheduling
+- Research publication monitoring
+- Impact assessment of new discoveries
+- Performance degradation alerts
+- Trend analysis and reporting
+
+### HTML Report Generation
+```bash
+python tests/geological_validation/run_validation_tests.py --suite all --html-report validation_report.html
+```
+
+**Report Includes:**
+- Executive summary with pass/fail status
+- Detailed test results by validation suite
+- Performance trends and analysis
+- Recommendations for improvements
+- Statistical significance testing results
+
+### Configuration
+Edit `tests/geological_validation/config.json` to customize validation parameters:
+
+```json
+{
+  "validation_thresholds": {
+    "seismic": {
+      "phase_pick_accuracy": 0.90,
+      "magnitude_error_rms": 0.3,
+      "location_accuracy_km": 5.0
+    },
+    "volcanic": {
+      "eruption_prediction_accuracy": 0.75,
+      "vei_prediction_error": 1.0,
+      "precursor_sensitivity": 0.80
+    },
+    "geochemical": {
+      "analytical_accuracy": 0.95,
+      "precision_threshold": 0.02
+    },
+    "visualization": {
+      "spatial_accuracy": 0.95,
+      "volume_calculation_error": 0.05
+    },
+    "data_integrity": {
+      "throughput_records_per_second": 1000,
+      "response_time_ms": 100,
+      "completeness_threshold": 0.98
+    },
+    "physics": {
+      "conservation_compliance": 0.99,
+      "numerical_stability": 0.95
+    }
+  }
+}
+```
+
+### Benchmark Datasets
+The validation framework uses real geological datasets:
+
+1. **Loma Prieta Earthquake (1989)** - Seismic analysis validation
+2. **Mount St. Helens 1980 Eruption** - Volcanic prediction validation  
+3. **Yellowstone Geochemical Samples** - Geochemical analysis validation
+4. **San Andreas Fault 3D Model** - Visualization validation
+5. **ISC-GEM Global Earthquake Catalog** - Large-scale data validation
+
+### Error Codes
+- `VAL_001` - Validation suite not found
+- `VAL_002` - Benchmark dataset unavailable
+- `VAL_003` - Accuracy threshold not met
+- `VAL_004` - Performance requirement failed
+- `VAL_005` - Data integrity check failed
+
+---
+
+## 🔒 Security Testing API (✅ **COMPLETED**)
+
+### Security Testing Framework Endpoints
+
+The security testing framework provides comprehensive security validation endpoints for testing authentication, input validation, SSL/TLS configuration, network security, and privacy compliance.
+
+#### POST `/api/v1/security/test/comprehensive`
+Run comprehensive security testing suite with OWASP ZAP integration.
+
+**Request:**
+```json
+{
+  "target_url": "https://localhost:3000",
+  "test_categories": ["auth", "input_validation", "ssl_tls", "network_security", "privacy_compliance"],
+  "zap_config": {
+    "proxy_url": "http://127.0.0.1:8080",
+    "api_key": "your-zap-api-key"
+  },
+  "reporting": {
+    "generate_html": true,
+    "include_screenshots": true,
+    "detailed_findings": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "test_id": "sec_test_20240115_103000",
+  "status": "completed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "target_url": "https://localhost:3000",
+  "summary": {
+    "overall_score": 92,
+    "risk_level": "low",
+    "critical_issues": 0,
+    "high_issues": 1,
+    "medium_issues": 3,
+    "low_issues": 5
+  },
+  "tests": {
+    "auth_testing": {
+      "status": "completed",
+      "score": 95,
+      "brute_force_protection": true,
+      "jwt_validation": true,
+      "session_management": true
+    },
+    "input_validation": {
+      "status": "completed",
+      "score": 90,
+      "xss_protection": true,
+      "sql_injection_protection": true,
+      "file_upload_security": true
+    },
+    "ssl_tls": {
+      "status": "completed",
+      "score": 98,
+      "certificate_valid": true,
+      "strong_ciphers": true,
+      "hsts_enabled": true
+    },
+    "network_security": {
+      "status": "completed",
+      "score": 85,
+      "open_ports": 3,
+      "services_found": 2,
+      "firewall_effective": true
+    },
+    "privacy_compliance": {
+      "status": "completed",
+      "score": 92,
+      "cookie_compliance": true,
+      "gdpr_endpoints": 4,
+      "privacy_policy_found": true
+    }
+  },
+  "reports": {
+    "json_report": "/api/v1/security/reports/sec_test_20240115_103000.json",
+    "html_dashboard": "/api/v1/security/reports/sec_test_20240115_103000.html"
+  }
+}
+```
+
+#### GET `/api/v1/security/test/{test_id}`
+Retrieve security test results by test ID.
+
+**Response:**
+```json
+{
+  "test_id": "sec_test_20240115_103000",
+  "status": "completed",
+  "created_at": "2024-01-15T10:30:00Z",
+  "completed_at": "2024-01-15T10:45:00Z",
+  "duration_seconds": 900,
+  "results": {
+    "summary": { "overall_score": 92, "risk_level": "low" },
+    "detailed_findings": [
+      {
+        "category": "ssl_tls",
+        "finding": "Weak cipher suite detected",
+        "severity": "medium",
+        "cvss_score": 5.3,
+        "remediation": "Disable weak cipher suites in server configuration"
+      }
+    ]
+  }
+}
+```
+
+#### POST `/api/v1/security/test/auth`
+Run authentication and authorization security tests.
+
+**Request:**
+```json
+{
+  "target_url": "https://localhost:3000",
+  "test_credentials": {
+    "username": "testuser",
+    "password": "testpassword"
+  },
+  "test_scenarios": ["brute_force", "jwt_validation", "session_management", "rbac"]
+}
+```
+
+#### POST `/api/v1/security/test/input-validation`
+Run input validation and sanitization tests.
+
+**Request:**
+```json
+{
+  "target_url": "https://localhost:3000",
+  "test_payloads": {
+    "xss": ["<script>alert(1)</script>", "javascript:alert(1)"],
+    "sql_injection": ["'; DROP TABLE users; --", "' OR '1'='1"],
+    "file_upload": ["malicious.php", "../../etc/passwd"]
+  }
+}
+```
+
+#### POST `/api/v1/security/test/privacy-compliance`
+Run GDPR and privacy compliance tests.
+
+**Request:**
+```json
+{
+  "target_url": "https://localhost:3000",
+  "compliance_standards": ["gdpr", "ccpa"],
+  "test_categories": ["cookie_compliance", "data_subject_rights", "consent_mechanisms", "data_collection_audit"]
+}
+```
+
+#### GET `/api/v1/security/reports/{report_id}`
+Download security test reports in various formats.
+
+**Query Parameters:**
+- `format`: `json`, `html`, `pdf`, `csv`
+- `include_screenshots`: `true`, `false`
+- `detailed_findings`: `true`, `false`
+
+### Privacy and GDPR Compliance Endpoints
+
+#### GET `/api/v1/privacy/policy`
+Retrieve privacy policy information.
+
+**Response:**
+```json
+{
+  "policy_url": "/privacy-policy",
+  "last_updated": "2024-01-01T00:00:00Z",
+  "version": "1.2",
+  "compliance_standards": ["gdpr", "ccpa"],
+  "contact_email": "privacy@prometheus-ai.com"
+}
+```
+
+#### GET `/api/v1/privacy/data-subject-rights`
+List available data subject rights and endpoints.
+
+**Response:**
+```json
+{
+  "rights": [
+    {
+      "right": "access",
+      "endpoint": "/api/v1/privacy/access",
+      "description": "Right to access personal data"
+    },
+    {
+      "right": "rectification",
+      "endpoint": "/api/v1/privacy/rectification",
+      "description": "Right to rectify inaccurate personal data"
+    },
+    {
+      "right": "erasure",
+      "endpoint": "/api/v1/privacy/erasure",
+      "description": "Right to erasure (deletion) of personal data"
+    },
+    {
+      "right": "portability",
+      "endpoint": "/api/v1/privacy/portability",
+      "description": "Right to data portability"
+    },
+    {
+      "right": "object",
+      "endpoint": "/api/v1/privacy/object",
+      "description": "Right to object to processing"
+    }
+  ]
+}
+```
+
+#### POST `/api/v1/privacy/consent`
+Manage user consent for data processing.
+
+**Request:**
+```json
+{
+  "user_id": "user123",
+  "consent_type": "data_processing",
+  "consent_given": true,
+  "consent_timestamp": "2024-01-15T10:30:00Z",
+  "consent_method": "explicit"
+}
+```
+
+### Security Monitoring Endpoints
+
+#### GET `/api/v1/security/metrics`
+Retrieve security metrics and monitoring data.
+
+**Response:**
+```json
+{
+  "security_score": 92,
+  "last_scan": "2024-01-15T10:30:00Z",
+  "vulnerabilities": {
+    "critical": 0,
+    "high": 1,
+    "medium": 3,
+    "low": 5
+  },
+  "compliance_status": {
+    "gdpr": "compliant",
+    "iso27001": "compliant",
+    "soc2": "in_progress"
+  },
+  "recent_incidents": 0,
+  "security_events": 15
+}
+```
+
+#### GET `/api/v1/security/alerts`
+Retrieve security alerts and notifications.
+
+**Response:**
+```json
+{
+  "alerts": [
+    {
+      "id": "alert_001",
+      "severity": "medium",
+      "type": "vulnerability_detected",
+      "message": "Weak cipher suite detected in SSL configuration",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "status": "open",
+      "remediation": "Update SSL configuration to disable weak ciphers"
+    }
+  ],
+  "total_alerts": 1,
+  "unresolved_alerts": 1
+}
+```
+
+### Error Codes
+
+Security testing specific error codes:
+
+- `SEC_001` - Security test configuration invalid
+- `SEC_002` - OWASP ZAP connection failed
+- `SEC_003` - Authentication test failed
+- `SEC_004` - SSL/TLS test failed
+- `SEC_005` - Network security scan failed
+- `SEC_006` - Privacy compliance test failed
+- `SEC_007` - Security report generation failed
+- `SEC_008` - Insufficient permissions for security testing
+- `SEC_009` - Security test timeout
+- `SEC_010` - Invalid security test parameters
 
 ---
 

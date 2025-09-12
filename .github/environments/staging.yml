@@ -1,0 +1,12 @@
+# GitHub Environment Configuration for Staging
+name: staging
+url: https://staging.prometheus-ai.com
+protection_rules:
+  required_reviewers: 0
+  wait_timer: 0
+deployment_branch_policy:
+  protected_branches: false
+  custom_branch_policies: true
+  custom_branches:
+    - develop
+    - feature/*

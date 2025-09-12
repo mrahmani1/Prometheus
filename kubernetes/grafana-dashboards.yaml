@@ -1,0 +1,900 @@
+# Comprehensive Grafana Dashboards for Geological Monitoring
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: prometheus-ai
+  labels:
+    grafana_dashboard: "1"
+data:
+  volcanic-monitoring-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Volcanic Monitoring Dashboard",
+        "tags": ["volcanic", "monitoring", "real-time"],
+        "style": "dark",
+        "timezone": "UTC",
+        "refresh": "5s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Active Volcanoes Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count by (volcano_name) (volcanic_activity_level > 0)",
+                "legendFormat": "{{volcano_name}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "orange", "value": 3},
+                    {"color": "red", "value": 5}
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Eruption Probability Forecast",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "eruption_probability",
+                "legendFormat": "{{volcano_name}} - {{forecast_hours}}h"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisLabel": "Probability",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "vis": false
+                  },
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "never",
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "max": 1,
+                "min": 0,
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Magma Chamber Pressure",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "magma_chamber_pressure_mpa",
+                "legendFormat": "{{volcano_name}} - Chamber {{chamber_id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "pressurempa"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Thermal Anomalies",
+            "type": "geomap",
+            "targets": [
+              {
+                "expr": "thermal_anomaly_temperature_celsius",
+                "legendFormat": "{{volcano_name}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "continuous-GrYlRd"
+                },
+                "custom": {
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "vis": false
+                  }
+                },
+                "unit": "celsius"
+              }
+            },
+            "options": {
+              "view": {
+                "id": "coords",
+                "lat": 0,
+                "lon": 0,
+                "zoom": 2
+              },
+              "controls": {
+                "mouseWheelZoom": true,
+                "showZoom": true,
+                "showAttribution": true
+              },
+              "layers": [
+                {
+                  "type": "markers",
+                  "config": {
+                    "size": {
+                      "field": "thermal_anomaly_temperature_celsius",
+                      "min": 2,
+                      "max": 15
+                    },
+                    "color": {
+                      "field": "thermal_anomaly_temperature_celsius"
+                    },
+                    "fillOpacity": 0.8
+                  }
+                }
+              ]
+            },
+            "gridPos": {"h": 12, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Gas Emissions",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "volcanic_gas_emission_tons_per_day",
+                "legendFormat": "{{volcano_name}} - {{gas_type}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "tpd"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Deformation Rates",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "ground_deformation_rate_mm_per_year",
+                "legendFormat": "{{volcano_name}} - {{direction}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "mmyear"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
+          },
+          {
+            "id": 7,
+            "title": "Alert History",
+            "type": "logs",
+            "targets": [
+              {
+                "expr": "{job=\"alertmanager\"} |= \"volcanic\"",
+                "refId": "A"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+          }
+        ]
+      }
+    }
+
+  seismic-monitoring-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Seismic Monitoring Dashboard",
+        "tags": ["seismic", "earthquake", "monitoring"],
+        "style": "dark",
+        "timezone": "UTC",
+        "refresh": "10s",
+        "time": {
+          "from": "now-6h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Recent Earthquakes",
+            "type": "geomap",
+            "targets": [
+              {
+                "expr": "seismic_magnitude",
+                "legendFormat": "M{{magnitude}} - {{location}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "continuous-RdYlBu"
+                },
+                "unit": "short"
+              }
+            },
+            "options": {
+              "view": {
+                "id": "coords",
+                "lat": 0,
+                "lon": 0,
+                "zoom": 2
+              },
+              "layers": [
+                {
+                  "type": "markers",
+                  "config": {
+                    "size": {
+                      "field": "seismic_magnitude",
+                      "min": 3,
+                      "max": 20
+                    },
+                    "color": {
+                      "field": "seismic_magnitude"
+                    }
+                  }
+                }
+              ]
+            },
+            "gridPos": {"h": 12, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Magnitude Distribution",
+            "type": "histogram",
+            "targets": [
+              {
+                "expr": "seismic_magnitude",
+                "legendFormat": "Magnitude"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "bucketSize": 0.5,
+                  "bucketOffset": 0
+                }
+              }
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Seismic Event Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(seismic_events_total[1h])",
+                "legendFormat": "Events/hour - {{region}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "hertz"
+              }
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 6}
+          },
+          {
+            "id": 4,
+            "title": "Depth vs Magnitude",
+            "type": "scatterplot",
+            "targets": [
+              {
+                "expr": "seismic_magnitude",
+                "legendFormat": "{{event_id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "continuous-GrYlRd"
+                },
+                "custom": {
+                  "axisLabel": "Magnitude",
+                  "axisPlacement": "auto"
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+          },
+          {
+            "id": 5,
+            "title": "Station Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "seismic_station_status",
+                "legendFormat": "{{station_id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "0": {"text": "Offline"},
+                      "1": {"text": "Online"}
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+          }
+        ]
+      }
+    }
+
+  system-performance-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "System Performance Dashboard",
+        "tags": ["performance", "infrastructure", "monitoring"],
+        "style": "dark",
+        "timezone": "UTC",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Health Overview",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up",
+                "legendFormat": "{{job}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "0": {"text": "Down"},
+                      "1": {"text": "Up"}
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            },
+            "gridPos": {"h": 6, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Request Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total[5m])",
+                "legendFormat": "{{job}} - {{method}} {{status}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+          },
+          {
+            "id": 3,
+            "title": "Response Time (95th percentile)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{job}} - 95th percentile"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6}
+          },
+          {
+            "id": 4,
+            "title": "Error Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m])",
+                "legendFormat": "{{job}} error rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "percentunit",
+                "max": 1,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14}
+          },
+          {
+            "id": 5,
+            "title": "CPU Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "percent",
+                "max": 100,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14}
+          },
+          {
+            "id": 6,
+            "title": "Memory Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "percent",
+                "max": 100,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22}
+          },
+          {
+            "id": 7,
+            "title": "Network I/O",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(node_network_receive_bytes_total[5m])",
+                "legendFormat": "{{instance}} - RX"
+              },
+              {
+                "expr": "rate(node_network_transmit_bytes_total[5m])",
+                "legendFormat": "{{instance}} - TX"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "Bps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22}
+          }
+        ]
+      }
+    }
+
+  ai-model-performance-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "AI Model Performance Dashboard",
+        "tags": ["ai", "ml", "models", "performance"],
+        "style": "dark",
+        "timezone": "UTC",
+        "refresh": "1m",
+        "time": {
+          "from": "now-2h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Model Inference Latency",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(model_inference_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{model_name}} - 95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(model_inference_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{model_name}} - median"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Model Accuracy",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "model_accuracy_score",
+                "legendFormat": "{{model_name}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "percentunit",
+                "max": 1,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "GPU Utilization",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "gpu_utilization_percent",
+                "legendFormat": "GPU {{gpu_id}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "percent",
+                "max": 100,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Model Drift Score",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "model_drift_score",
+                "legendFormat": "{{model_name}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Prediction Volume",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(model_predictions_total[5m])",
+                "legendFormat": "{{model_name}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Model Resource Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "model_memory_usage_bytes",
+                "legendFormat": "{{model_name}} - Memory"
+              },
+              {
+                "expr": "model_cpu_usage_percent",
+                "legendFormat": "{{model_name}} - CPU"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          }
+        ]
+      }
+    }
+
+  business-metrics-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Business Metrics Dashboard",
+        "tags": ["business", "kpi", "sla"],
+        "style": "dark",
+        "timezone": "UTC",
+        "refresh": "5m",
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "System Availability (SLA: 99.5%)",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "avg_over_time(system_availability_percentage[24h])",
+                "legendFormat": "24h Average"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 99},
+                    {"color": "green", "value": 99.5}
+                  ]
+                },
+                "unit": "percent",
+                "max": 100,
+                "min": 95
+              }
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Scientific Accuracy",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "scientific_accuracy_percentage",
+                "legendFormat": "{{analysis_type}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 90},
+                    {"color": "green", "value": 95}
+                  ]
+                },
+                "unit": "percent",
+                "max": 100,
+                "min": 90
+              }
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "User Satisfaction",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "avg_over_time(user_satisfaction_score[24h])",
+                "legendFormat": "24h Average"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 3},
+                    {"color": "green", "value": 4}
+                  ]
+                },
+                "unit": "short",
+                "max": 5,
+                "min": 1
+              }
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Cost Efficiency",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "cloud_cost_efficiency_score",
+                "legendFormat": "Efficiency Score"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.6},
+                    {"color": "green", "value": 0.8}
+                  ]
+                },
+                "unit": "percentunit",
+                "max": 1,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "Daily Active Users",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "daily_active_users",
+                "legendFormat": "DAU"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+          },
+          {
+            "id": 6,
+            "title": "Analysis Completion Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(geological_analysis_completed_total[1h])",
+                "legendFormat": "{{analysis_type}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "unit": "hertz"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6}
+          }
+        ]
+      }
+    }

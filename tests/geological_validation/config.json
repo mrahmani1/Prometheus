@@ -1,0 +1,96 @@
+{
+  "validation_config": {
+    "data_directory": "tests/geological_validation/data",
+    "results_directory": "tests/geological_validation/results",
+    "reports_directory": "tests/geological_validation/reports",
+    "log_level": "INFO",
+    "timeout_minutes": 30,
+    "max_concurrent_tests": 3
+  },
+  "benchmark_datasets": {
+    "loma_prieta_1989": {
+      "enabled": true,
+      "priority": "high",
+      "validation_types": ["seismic", "physics"]
+    },
+    "msh_1980_eruption": {
+      "enabled": true,
+      "priority": "high",
+      "validation_types": ["volcanic"]
+    },
+    "yellowstone_geochem_usgs": {
+      "enabled": true,
+      "priority": "medium",
+      "validation_types": ["geochemical", "visualization"]
+    },
+    "san_andreas_3d_usgs": {
+      "enabled": true,
+      "priority": "medium",
+      "validation_types": ["visualization", "data_integrity"]
+    },
+    "isc_gem_catalog": {
+      "enabled": true,
+      "priority": "high",
+      "validation_types": ["seismic", "data_integrity"]
+    }
+  },
+  "validation_thresholds": {
+    "seismic": {
+      "phase_pick_accuracy": 0.90,
+      "magnitude_error_rms": 0.3,
+      "location_error_km": 10.0,
+      "detection_rate": 0.95
+    },
+    "volcanic": {
+      "eruption_prediction_accuracy": 0.75,
+      "vei_prediction_rmse": 1.0,
+      "precursor_detection_rate": 0.80
+    },
+    "geochemical": {
+      "analytical_accuracy": 0.95,
+      "classification_accuracy": 0.85,
+      "isotope_accuracy": 0.90
+    },
+    "visualization": {
+      "spatial_accuracy": 0.95,
+      "geological_accuracy": 0.90,
+      "rendering_fidelity": 0.90
+    },
+    "data_integrity": {
+      "completeness_score": 0.98,
+      "consistency_score": 0.95,
+      "throughput_min": 1000,
+      "reliability_score": 0.99
+    },
+    "physics": {
+      "conservation_law_compliance": 0.99,
+      "numerical_stability": 0.95,
+      "physics_constraint_satisfaction": 0.98
+    }
+  },
+  "continuous_validation": {
+    "enabled": false,
+    "schedules": {
+      "daily_validations": ["seismic_phase_picking", "volcanic_forecasting", "data_integrity"],
+      "weekly_validations": ["geochemical_analysis", "3d_visualization", "cross_dataset_consistency"],
+      "monthly_validations": ["fault_tolerance", "comprehensive_validation"]
+    },
+    "research_integration": {
+      "enabled": true,
+      "check_interval_hours": 24,
+      "sources": ["arxiv", "usgs", "nature_geoscience"]
+    }
+  },
+  "reporting": {
+    "auto_generate_reports": true,
+    "report_formats": ["json", "html"],
+    "include_visualizations": true,
+    "notification_enabled": false
+  },
+  "performance_monitoring": {
+    "track_trends": true,
+    "degradation_threshold": 0.05,
+    "alert_on_failures": true,
+    "store_metrics": true
+  }
+}

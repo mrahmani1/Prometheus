@@ -1,0 +1,17 @@
+apiVersion: v2
+name: prometheus-ai-platform
+description: A Helm chart for Prometheus AI Platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - ai
+  - machine-learning
+  - geophysics
+  - monitoring
+home: https://github.com/your-org/prometheus-ai-platform
+sources:
+  - https://github.com/your-org/prometheus-ai-platform
+maintainers:
+  - name: Prometheus AI Team
+    email: team@prometheus-ai.com

@@ -75,7 +75,7 @@ spec:
     targetPort: 9090
   type: ClusterIP
 ---
-# Prometheus Configuration
+# Enhanced Prometheus Configuration with Geological Metrics
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -84,23 +84,67 @@ metadata:
 data:
   prometheus.yml: |
     global:
-      scrape_interval: 15s
-      evaluation_interval: 15s
+      scrape_interval: 10s
+      evaluation_interval: 10s
+      external_labels:
+        cluster: 'prometheus-ai-production'
+        region: 'multi-cloud'
+        platform: 'geological-monitoring'
     
     rule_files:
       - "alert_rules.yml"
+      - "geological_alert_rules.yml"
+      - "performance_alert_rules.yml"
+      - "business_metric_rules.yml"
     
     alerting:
       alertmanagers:
         - static_configs:
             - targets:
-              - alertmanager:9093
+              - alertmanager-service:9093
+    
+    remote_write:
+      # Google Cloud Monitoring
+      - url: "https://monitoring.googleapis.com/v1/projects/${GOOGLE_CLOUD_PROJECT}/location/global/prometheus/api/v1/write"
+        queue_config:
+          capacity: 10000
+          max_samples_per_send: 5000
+          batch_send_deadline: 5s
+        metadata_config:
+          send: true
+        headers:
+          "Authorization": "Bearer ${GOOGLE_CLOUD_TOKEN}"
+      
+      # Azure Monitor (via remote write adapter)
+      - url: "${AZURE_MONITOR_REMOTE_WRITE_URL}"
+        queue_config:
+          capacity: 10000
+          max_samples_per_send: 5000
+        headers:
+          "Authorization": "Bearer ${AZURE_TOKEN}"
+      
+      # AWS CloudWatch (via remote write adapter)
+      - url: "${AWS_CLOUDWATCH_REMOTE_WRITE_URL}"
+        queue_config:
+          capacity: 10000
+          max_samples_per_send: 5000
+        headers:
+          "Authorization": "AWS4-HMAC-SHA256 ${AWS_SIGNATURE}"
     
     scrape_configs:
       - job_name: 'prometheus'
         static_configs:
           - targets: ['localhost:9090']
+        scrape_interval: 5s
       
+      # OpenTelemetry Collector
+      - job_name: 'otel-collector'
+        static_configs:
+          - targets: ['otel-collector-service:8889']
+        scrape_interval: 10s
+        metrics_path: /metrics
+      
+      # Core Services with Enhanced Metrics
       - job_name: 'api-gateway'
         kubernetes_sd_configs:
           - role: endpoints
@@ -114,7 +158,12 @@ data:
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             action: keep
             regex: http
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: instance
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
         metrics_path: /metrics
+        scrape_interval: 5s
       
       - job_name: 'helios-core'
         kubernetes_sd_configs:
@@ -129,7 +178,12 @@ data:
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             action: keep
             regex: http
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: instance
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
         metrics_path: /metrics
+        scrape_interval: 5s
       
       - job_name: 'data-ingestion'
         kubernetes_sd_configs:
@@ -144,7 +198,10 @@ data:
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             action: keep
             regex: http
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: instance
         metrics_path: /metrics
+        scrape_interval: 10s
       
       - job_name: 'volcano-watchtower'
         kubernetes_sd_configs:
@@ -159,7 +216,61 @@ data:
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             action: keep
             regex: http
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: instance
         metrics_path: /metrics
+        scrape_interval: 5s  # High frequency for real-time monitoring
+      
+      # Database Monitoring
+      - job_name: 'postgres-exporter'
+        static_configs:
+          - targets: ['postgres-exporter:9187']
+        scrape_interval: 15s
+      
+      - job_name: 'influxdb-exporter'
+        static_configs:
+          - targets: ['influxdb-exporter:9122']
+        scrape_interval: 15s
+      
+      - job_name: 'redis-exporter'
+        static_configs:
+          - targets: ['redis-exporter:9121']
+        scrape_interval: 15s
+      
+      - job_name: 'neo4j-exporter'
+        static_configs:
+          - targets: ['neo4j-exporter:2004']
+        scrape_interval: 15s
+      
+      # Kubernetes Infrastructure
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+      
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
       
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:
@@ -180,46 +291,404 @@ data:
             regex: ([^:]+)(?::\d+)?;(\d+)
             replacement: $1:$2
             target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+      
+      # Geological Data Quality Monitoring
+      - job_name: 'geological-data-quality'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - prometheus-ai
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_geological_scrape]
+            action: keep
+            regex: true
+        metrics_path: /geological-metrics
+        scrape_interval: 30s
+      
+      # External Data Source Monitoring
+      - job_name: 'external-apis'
+        static_configs:
+          - targets: 
+            - 'blackbox-exporter:9115'
+        params:
+          module: [http_2xx]
+          target:
+            - 'https://earthquake.usgs.gov/fdsnws/event/1/query'
+            - 'https://firms.modaps.eosdis.nasa.gov/api/area/csv'
+            - 'https://api.copernicus.eu/data/browse'
+        relabel_configs:
+          - source_labels: [__param_target]
+            target_label: __address__
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: blackbox-exporter:9115
+        scrape_interval: 60s
   
   alert_rules.yml: |
     groups:
-    - name: prometheus-ai-alerts
+    - name: prometheus-ai-infrastructure
       rules:
       - alert: HighCPUUsage
         expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
         for: 5m
         labels:
           severity: warning
+          team: infrastructure
         annotations:
-          summary: "High CPU usage detected"
-          description: "CPU usage is above 80% for more than 5 minutes"
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% for more than 5 minutes"
+          runbook_url: "https://docs.prometheus-ai.com/runbooks/high-cpu"
       
       - alert: HighMemoryUsage
         expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
         for: 5m
         labels:
           severity: warning
+          team: infrastructure
         annotations:
-          summary: "High memory usage detected"
-          description: "Memory usage is above 85% for more than 5 minutes"
+          summary: "High memory usage detected on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% for more than 5 minutes"
+          runbook_url: "https://docs.prometheus-ai.com/runbooks/high-memory"
       
       - alert: ServiceDown
         expr: up == 0
         for: 1m
         labels:
           severity: critical
+          team: platform
         annotations:
-          summary: "Service is down"
-          description: "Service {{ $labels.job }} is down"
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} is down"
+          runbook_url: "https://docs.prometheus-ai.com/runbooks/service-down"
       
       - alert: HighErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
         for: 2m
         labels:
           severity: warning
+          team: platform
         annotations:
-          summary: "High error rate detected"
-          description: "Error rate is above 10% for service {{ $labels.job }}"---
+          summary: "High error rate detected for {{ $labels.job }}"
+          description: "Error rate is {{ $value }} (>10%) for service {{ $labels.job }}"
+          runbook_url: "https://docs.prometheus-ai.com/runbooks/high-error-rate"
+      
+      - alert: DiskSpaceHigh
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Disk space usage high on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}% on {{ $labels.mountpoint }}"
+      
+      - alert: PodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently"
+
+  geological_alert_rules.yml: |
+    groups:
+    - name: volcanic-monitoring
+      rules:
+      - alert: VolcanicActivityDetected
+        expr: volcanic_activity_level > 3
+        for: 30s
+        labels:
+          severity: critical
+          alert_type: volcanic
+          team: volcanology
+        annotations:
+          summary: "Volcanic activity detected at {{ $labels.volcano_name }}"
+          description: "Activity level {{ $value }} detected at volcano {{ $labels.volcano_name }}"
+          location: "{{ $labels.latitude }}, {{ $labels.longitude }}"
+          runbook_url: "https://docs.prometheus-ai.com/runbooks/volcanic-activity"
+      
+      - alert: EruptionProbabilityHigh
+        expr: eruption_probability > 0.7
+        for: 1m
+        labels:
+          severity: critical
+          alert_type: volcanic
+          team: volcanology
+        annotations:
+          summary: "High eruption probability for {{ $labels.volcano_name }}"
+          description: "Eruption probability is {{ $value }} (>70%) for {{ $labels.volcano_name }}"
+          forecast_window: "{{ $labels.forecast_hours }}h"
+      
+      - alert: MagmaChamberPressureHigh
+        expr: magma_chamber_pressure_mpa > 50
+        for: 2m
+        labels:
+          severity: warning
+          alert_type: volcanic
+          team: volcanology
+        annotations:
+          summary: "High magma chamber pressure at {{ $labels.volcano_name }}"
+          description: "Pressure is {{ $value }} MPa (>50 MPa) in chamber {{ $labels.chamber_id }}"
+      
+      - alert: ThermalAnomalyDetected
+        expr: thermal_anomaly_temperature_celsius > 100
+        for: 1m
+        labels:
+          severity: warning
+          alert_type: volcanic
+          team: volcanology
+        annotations:
+          summary: "Thermal anomaly detected at {{ $labels.volcano_name }}"
+          description: "Temperature anomaly of {{ $value }}°C detected"
+          satellite_source: "{{ $labels.satellite }}"
+      
+      - alert: GasEmissionSpike
+        expr: rate(volcanic_gas_emission_tons_per_day[5m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          alert_type: volcanic
+          team: volcanology
+        annotations:
+          summary: "Gas emission spike at {{ $labels.volcano_name }}"
+          description: "{{ $labels.gas_type }} emission rate: {{ $value }} tons/day"
+
+    - name: seismic-monitoring
+      rules:
+      - alert: MajorEarthquake
+        expr: seismic_magnitude > 5.0
+        for: 0s
+        labels:
+          severity: critical
+          alert_type: seismic
+          team: seismology
+        annotations:
+          summary: "Major earthquake detected (M{{ $value }})"
+          description: "Magnitude {{ $value }} earthquake at {{ $labels.latitude }}, {{ $labels.longitude }}"
+          depth: "{{ $labels.depth_km }} km"
+          event_id: "{{ $labels.event_id }}"
+      
+      - alert: SeismicSwarm
+        expr: rate(seismic_events_total[1h]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: seismic
+          team: seismology
+        annotations:
+          summary: "Seismic swarm detected in {{ $labels.region }}"
+          description: "{{ $value }} events per hour in {{ $labels.region }}"
+      
+      - alert: UnusualSeismicPattern
+        expr: seismic_pattern_anomaly_score > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          alert_type: seismic
+          team: seismology
+        annotations:
+          summary: "Unusual seismic pattern detected"
+          description: "Anomaly score {{ $value }} in region {{ $labels.region }}"
+      
+      - alert: SeismicStationOffline
+        expr: seismic_station_status == 0
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: infrastructure
+          team: seismology
+        annotations:
+          summary: "Seismic station {{ $labels.station_id }} offline"
+          description: "Station {{ $labels.station_id }} has been offline for 5+ minutes"
+
+    - name: geological-data-quality
+      rules:
+      - alert: DataQualityDegraded
+        expr: geological_data_quality_score < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: data_quality
+          team: data-engineering
+        annotations:
+          summary: "Data quality degraded for {{ $labels.data_source }}"
+          description: "Quality score {{ $value }} (<0.7) for {{ $labels.data_source }}"
+      
+      - alert: DataIngestionFailure
+        expr: rate(data_ingestion_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          alert_type: data_quality
+          team: data-engineering
+        annotations:
+          summary: "Data ingestion failure for {{ $labels.source }}"
+          description: "Error rate {{ $value }} for source {{ $labels.source }}"
+      
+      - alert: MissingCriticalData
+        expr: time() - geological_data_last_update_timestamp > 3600
+        for: 0s
+        labels:
+          severity: critical
+          alert_type: data_quality
+          team: data-engineering
+        annotations:
+          summary: "Missing critical geological data"
+          description: "No data received from {{ $labels.data_source }} for over 1 hour"
+      
+      - alert: DataLatencyHigh
+        expr: geological_data_processing_latency_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: performance
+          team: data-engineering
+        annotations:
+          summary: "High data processing latency"
+          description: "Processing latency {{ $value }}s (>5min) for {{ $labels.pipeline }}"
+
+  performance_alert_rules.yml: |
+    groups:
+    - name: ai-model-performance
+      rules:
+      - alert: ModelInferenceLatencyHigh
+        expr: histogram_quantile(0.95, rate(model_inference_duration_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: warning
+          alert_type: performance
+          team: ai-engineering
+        annotations:
+          summary: "High model inference latency for {{ $labels.model_name }}"
+          description: "95th percentile latency {{ $value }}s (>10s) for model {{ $labels.model_name }}"
+      
+      - alert: ModelAccuracyDegraded
+        expr: model_accuracy_score < 0.85
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: model_quality
+          team: ai-engineering
+        annotations:
+          summary: "Model accuracy degraded for {{ $labels.model_name }}"
+          description: "Accuracy {{ $value }} (<0.85) for model {{ $labels.model_name }}"
+      
+      - alert: GPUUtilizationLow
+        expr: avg_over_time(gpu_utilization_percent[10m]) < 30
+        for: 10m
+        labels:
+          severity: info
+          alert_type: resource_optimization
+          team: infrastructure
+        annotations:
+          summary: "Low GPU utilization on {{ $labels.instance }}"
+          description: "GPU utilization {{ $value }}% (<30%) - consider scaling down"
+      
+      - alert: ModelDriftDetected
+        expr: model_drift_score > 0.3
+        for: 1m
+        labels:
+          severity: warning
+          alert_type: model_quality
+          team: ai-engineering
+        annotations:
+          summary: "Model drift detected for {{ $labels.model_name }}"
+          description: "Drift score {{ $value }} (>0.3) indicates model degradation"
+
+    - name: database-performance
+      rules:
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: performance
+          team: database
+        annotations:
+          summary: "High database connections for {{ $labels.datname }}"
+          description: "{{ $value }}% of max connections in use"
+      
+      - alert: SlowQueries
+        expr: rate(pg_stat_statements_mean_time_ms[5m]) > 1000
+        for: 3m
+        labels:
+          severity: warning
+          alert_type: performance
+          team: database
+        annotations:
+          summary: "Slow queries detected in {{ $labels.datname }}"
+          description: "Average query time {{ $value }}ms (>1000ms)"
+      
+      - alert: InfluxDBWriteLatencyHigh
+        expr: influxdb_write_latency_seconds > 5
+        for: 2m
+        labels:
+          severity: warning
+          alert_type: performance
+          team: database
+        annotations:
+          summary: "High InfluxDB write latency"
+          description: "Write latency {{ $value }}s (>5s) for database {{ $labels.database }}"
+
+  business_metric_rules.yml: |
+    groups:
+    - name: business-metrics
+      rules:
+      - alert: UserSatisfactionLow
+        expr: avg_over_time(user_satisfaction_score[1h]) < 3.5
+        for: 10m
+        labels:
+          severity: warning
+          alert_type: business
+          team: product
+        annotations:
+          summary: "User satisfaction score low"
+          description: "Average satisfaction {{ $value }} (<3.5) over last hour"
+      
+      - alert: ScientificAccuracyDegraded
+        expr: scientific_accuracy_percentage < 95
+        for: 5m
+        labels:
+          severity: critical
+          alert_type: business
+          team: science
+        annotations:
+          summary: "Scientific accuracy below threshold"
+          description: "Accuracy {{ $value }}% (<95%) for {{ $labels.analysis_type }}"
+      
+      - alert: SystemAvailabilityLow
+        expr: avg_over_time(system_availability_percentage[5m]) < 99.5
+        for: 1m
+        labels:
+          severity: critical
+          alert_type: business
+          team: sre
+        annotations:
+          summary: "System availability below SLA"
+          description: "Availability {{ $value }}% (<99.5%) - SLA breach"
+      
+      - alert: CostOptimizationOpportunity
+        expr: cloud_cost_efficiency_score < 0.7
+        for: 30m
+        labels:
+          severity: info
+          alert_type: cost_optimization
+          team: finops
+        annotations:
+          summary: "Cost optimization opportunity detected"
+          description: "Efficiency score {{ $value }} (<0.7) - review resource allocation"---
 # Gra
 fana Deployment
 apiVersion: apps/v1

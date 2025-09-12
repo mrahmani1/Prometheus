@@ -1,0 +1,475 @@
+# Configuration Files for Advanced Monitoring Services
+
+---
+# Cost Optimizer Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-optimizer-config
+  namespace: prometheus-ai
+data:
+  config.yaml: |
+    cost_optimization:
+      enabled: true
+      analysis_interval: 300 # 5 minutes
+      optimization_strategies:
+        - name: "resource_rightsizing"
+          enabled: true
+          cpu_threshold: 80
+          memory_threshold: 80
+          recommendation_confidence: 0.8
+        - name: "auto_scaling"
+          enabled: true
+          scale_up_threshold: 85
+          scale_down_threshold: 30
+          cooldown_period: 300
+        - name: "spot_instance_optimization"
+          enabled: true
+          cost_savings_threshold: 20
+          availability_requirement: 99.0
+      
+      cloud_providers:
+        google_cloud:
+          enabled: true
+          billing_account_id: "${GOOGLE_BILLING_ACCOUNT_ID}"
+          cost_threshold_percentage: 80
+          budget_alerts: true
+        azure:
+          enabled: true
+          subscription_id: "${AZURE_SUBSCRIPTION_ID}"
+          cost_threshold_percentage: 80
+          budget_alerts: true
+        aws:
+          enabled: true
+          account_id: "${AWS_ACCOUNT_ID}"
+          cost_threshold_percentage: 80
+          budget_alerts: true
+      
+      recommendations:
+        max_recommendations: 10
+        priority_levels: ["critical", "high", "medium", "low"]
+        auto_apply_safe_recommendations: false
+        notification_channels: ["slack", "email"]
+      
+      metrics:
+        cost_efficiency_score: true
+        resource_utilization: true
+        waste_detection: true
+        savings_potential: true
+
+  prometheus_rules.yaml: |
+    groups:
+    - name: cost-optimization
+      rules:
+      - record: cost_efficiency_score
+        expr: |
+          (
+            sum(rate(container_cpu_usage_seconds_total[5m])) / 
+            sum(kube_pod_container_resource_requests{resource="cpu"})
+          ) * 0.5 + 
+          (
+            sum(container_memory_working_set_bytes) / 
+            sum(kube_pod_container_resource_requests{resource="memory"})
+          ) * 0.5
+      
+      - record: resource_waste_percentage
+        expr: |
+          100 - (
+            (
+              sum(rate(container_cpu_usage_seconds_total[5m])) / 
+              sum(kube_pod_container_resource_requests{resource="cpu"})
+            ) * 100
+          )
+      
+      - record: potential_cost_savings
+        expr: |
+          sum(
+            kube_pod_container_resource_requests{resource="cpu"} - 
+            rate(container_cpu_usage_seconds_total[5m])
+          ) * 0.05 # Assuming $0.05 per CPU hour
+
+---
+# Performance Analyzer Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-analyzer-config
+  namespace: prometheus-ai
+data:
+  config.yaml: |
+    performance_analysis:
+      enabled: true
+      analysis_interval: 60 # 1 minute
+      
+      metrics_collection:
+        system_metrics: true
+        application_metrics: true
+        geological_metrics: true
+        business_metrics: true
+      
+      analysis_types:
+        - name: "response_time_analysis"
+          enabled: true
+          percentiles: [50, 90, 95, 99]
+          threshold_ms: 2000
+          trend_analysis: true
+        - name: "throughput_analysis"
+          enabled: true
+          threshold_rps: 1000
+          capacity_planning: true
+        - name: "error_rate_analysis"
+          enabled: true
+          threshold_percentage: 1.0
+          error_categorization: true
+        - name: "resource_utilization_analysis"
+          enabled: true
+          cpu_threshold: 80
+          memory_threshold: 80
+          disk_threshold: 85
+      
+      predictive_analytics:
+        enabled: true
+        forecasting_horizon: 3600 # 1 hour
+        models:
+          - name: "linear_regression"
+            enabled: true
+            confidence_threshold: 0.8
+          - name: "arima"
+            enabled: true
+            seasonal_periods: [60, 300, 3600] # 1min, 5min, 1hour
+          - name: "prophet"
+            enabled: false # Requires additional dependencies
+      
+      auto_scaling:
+        enabled: true
+        scale_up_threshold: 85
+        scale_down_threshold: 30
+        cooldown_period: 300
+        max_replicas: 10
+        min_replicas: 1
+      
+      alerting:
+        performance_degradation: true
+        capacity_warnings: true
+        anomaly_detection: true
+        threshold_breaches: true
+
+  geological_performance_rules.yaml: |
+    groups:
+    - name: geological-performance
+      rules:
+      - record: geological_processing_latency_p95
+        expr: |
+          histogram_quantile(0.95, 
+            rate(geological_processing_duration_seconds_bucket[5m])
+          )
+      
+      - record: volcanic_monitoring_accuracy
+        expr: |
+          sum(rate(volcanic_predictions_correct_total[1h])) / 
+          sum(rate(volcanic_predictions_total[1h]))
+      
+      - record: seismic_detection_latency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(seismic_event_detection_duration_seconds_bucket[5m])
+          )
+      
+      - record: data_quality_score
+        expr: |
+          (
+            sum(rate(geological_data_valid_total[5m])) / 
+            sum(rate(geological_data_processed_total[5m]))
+          ) * 100
+
+---
+# Anomaly Detector Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anomaly-detector-config
+  namespace: prometheus-ai
+data:
+  config.yaml: |
+    anomaly_detection:
+      enabled: true
+      detection_interval: 30 # 30 seconds
+      
+      algorithms:
+        - name: "isolation_forest"
+          enabled: true
+          contamination: 0.1
+          n_estimators: 100
+        - name: "local_outlier_factor"
+          enabled: true
+          n_neighbors: 20
+          contamination: 0.1
+        - name: "one_class_svm"
+          enabled: true
+          nu: 0.1
+          gamma: "scale"
+        - name: "statistical_threshold"
+          enabled: true
+          std_threshold: 3
+          window_size: 300 # 5 minutes
+      
+      geological_anomalies:
+        volcanic_activity:
+          enabled: true
+          metrics:
+            - "volcanic_activity_level"
+            - "magma_chamber_pressure_mpa"
+            - "thermal_anomaly_temperature_celsius"
+          threshold_confidence: 0.8
+          alert_severity: "critical"
+        
+        seismic_events:
+          enabled: true
+          metrics:
+            - "seismic_magnitude"
+            - "seismic_event_rate"
+            - "seismic_pattern_anomaly_score"
+          threshold_confidence: 0.7
+          alert_severity: "warning"
+        
+        data_quality:
+          enabled: true
+          metrics:
+            - "geological_data_quality_score"
+            - "data_ingestion_rate"
+            - "processing_latency"
+          threshold_confidence: 0.6
+          alert_severity: "warning"
+      
+      system_anomalies:
+        performance:
+          enabled: true
+          metrics:
+            - "response_time_p95"
+            - "error_rate"
+            - "throughput"
+          threshold_confidence: 0.8
+          alert_severity: "warning"
+        
+        infrastructure:
+          enabled: true
+          metrics:
+            - "cpu_utilization"
+            - "memory_utilization"
+            - "disk_utilization"
+          threshold_confidence: 0.7
+          alert_severity: "warning"
+      
+      model_training:
+        auto_retrain: true
+        retrain_interval: 86400 # 24 hours
+        training_data_window: 604800 # 7 days
+        validation_split: 0.2
+        model_persistence: true
+      
+      alerting:
+        immediate_alerts: true
+        batch_alerts: false
+        alert_aggregation_window: 300 # 5 minutes
+        notification_channels: ["prometheus", "elasticsearch"]
+
+---
+# SLA Monitor Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sla-monitor-config
+  namespace: prometheus-ai
+data:
+  config.yaml: |
+    sla_monitoring:
+      enabled: true
+      monitoring_interval: 60 # 1 minute
+      
+      sla_definitions:
+        availability:
+          target: 99.5 # 99.5%
+          measurement_window: 2592000 # 30 days
+          downtime_threshold: 129600 # 36 hours per month
+          calculation_method: "uptime_percentage"
+        
+        response_time:
+          target: 2000 # 2 seconds
+          percentile: 95
+          measurement_window: 86400 # 24 hours
+          calculation_method: "percentile_based"
+        
+        error_rate:
+          target: 1.0 # 1%
+          measurement_window: 3600 # 1 hour
+          calculation_method: "error_percentage"
+        
+        throughput:
+          target: 1000 # 1000 requests per second
+          measurement_window: 3600 # 1 hour
+          calculation_method: "average_rps"
+        
+        scientific_accuracy:
+          target: 95.0 # 95%
+          measurement_window: 86400 # 24 hours
+          calculation_method: "accuracy_percentage"
+      
+      breach_detection:
+        enabled: true
+        consecutive_breaches_threshold: 3
+        breach_severity_levels:
+          - name: "minor"
+            threshold_percentage: 90
+            notification_delay: 300 # 5 minutes
+          - name: "major"
+            threshold_percentage: 80
+            notification_delay: 60 # 1 minute
+          - name: "critical"
+            threshold_percentage: 70
+            notification_delay: 0 # immediate
+      
+      reporting:
+        enabled: true
+        report_generation_interval: 3600 # 1 hour
+        daily_reports: true
+        weekly_reports: true
+        monthly_reports: true
+        report_formats: ["json", "html", "pdf"]
+        report_storage: "/var/lib/sla-reports"
+      
+      notifications:
+        breach_notifications: true
+        trend_notifications: true
+        report_notifications: true
+        channels: ["email", "slack", "webhook"]
+
+---
+# Business Metrics Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: business-metrics-config
+  namespace: prometheus-ai
+data:
+  config.yaml: |
+    business_metrics:
+      enabled: true
+      collection_interval: 300 # 5 minutes
+      
+      user_analytics:
+        enabled: true
+        metrics:
+          - name: "daily_active_users"
+            calculation: "unique_users_per_day"
+            retention_days: 90
+          - name: "session_duration"
+            calculation: "average_session_time"
+            percentiles: [50, 90, 95]
+          - name: "feature_usage"
+            calculation: "feature_interaction_count"
+            top_features: 20
+          - name: "user_satisfaction"
+            calculation: "survey_score_average"
+            scale: [1, 5]
+      
+      scientific_metrics:
+        enabled: true
+        metrics:
+          - name: "analysis_completion_rate"
+            calculation: "completed_analyses / total_analyses"
+            time_window: 3600 # 1 hour
+          - name: "prediction_accuracy"
+            calculation: "correct_predictions / total_predictions"
+            by_model: true
+          - name: "data_processing_volume"
+            calculation: "total_data_processed_gb"
+            time_window: 86400 # 24 hours
+          - name: "research_output"
+            calculation: "publications_generated"
+            time_window: 2592000 # 30 days
+      
+      financial_metrics:
+        enabled: true
+        metrics:
+          - name: "infrastructure_cost"
+            calculation: "total_cloud_spend"
+            by_service: true
+            currency: "USD"
+          - name: "cost_per_analysis"
+            calculation: "total_cost / total_analyses"
+            time_window: 86400 # 24 hours
+          - name: "roi_calculation"
+            calculation: "value_generated / cost_invested"
+            time_window: 2592000 # 30 days
+          - name: "budget_utilization"
+            calculation: "spent_amount / allocated_budget"
+            alert_threshold: 80 # 80%
+      
+      operational_metrics:
+        enabled: true
+        metrics:
+          - name: "incident_count"
+            calculation: "total_incidents"
+            severity_breakdown: true
+            time_window: 86400 # 24 hours
+          - name: "mean_time_to_resolution"
+            calculation: "average_resolution_time"
+            by_severity: true
+          - name: "deployment_frequency"
+            calculation: "deployments_per_day"
+            success_rate: true
+          - name: "change_failure_rate"
+            calculation: "failed_changes / total_changes"
+            time_window: 604800 # 7 days
+      
+      kpi_targets:
+        user_satisfaction: 4.0 # out of 5
+        system_availability: 99.5 # percentage
+        scientific_accuracy: 95.0 # percentage
+        cost_efficiency: 80.0 # percentage
+        incident_resolution_time: 240 # 4 hours in minutes
+      
+      dashboards:
+        executive_dashboard: true
+        operational_dashboard: true
+        financial_dashboard: true
+        scientific_dashboard: true
+        real_time_updates: true
+        historical_trends: true
+
+  business_rules.yaml: |
+    groups:
+    - name: business-kpis
+      rules:
+      - record: user_satisfaction_score
+        expr: |
+          avg_over_time(user_feedback_rating[24h])
+      
+      - record: scientific_accuracy_percentage
+        expr: |
+          (
+            sum(rate(scientific_predictions_correct_total[1h])) / 
+            sum(rate(scientific_predictions_total[1h]))
+          ) * 100
+      
+      - record: system_availability_percentage
+        expr: |
+          (
+            sum(up) / count(up)
+          ) * 100
+      
+      - record: cost_per_user_per_day
+        expr: |
+          sum(daily_infrastructure_cost_usd) / 
+          sum(daily_active_users)
+      
+      - record: analysis_throughput_per_hour
+        expr: |
+          sum(rate(geological_analyses_completed_total[1h]))
+      
+      - record: data_quality_index
+        expr: |
+          (
+            sum(rate(high_quality_data_points_total[5m])) / 
+            sum(rate(total_data_points_total[5m]))
+          ) * 100

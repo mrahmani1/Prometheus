@@ -1,0 +1,188 @@
+# Google Cloud Build Triggers Configuration for Prometheus AI Platform
+
+# Main CI/CD Pipeline Trigger
+- name: prometheus-ai-platform-ci-cd
+  description: "Main CI/CD pipeline for Prometheus AI Platform"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^(main|develop|feature/.*)$"
+  filename: cloudbuild.yaml
+  substitutions:
+    _ENVIRONMENT: "staging"
+    _DEPLOY_STAGING: "true"
+    _RUN_TESTS: "true"
+    _SECURITY_SCAN: "true"
+
+# Production Deployment Trigger
+- name: prometheus-ai-platform-production
+  description: "Production deployment for Prometheus AI Platform"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^main$"
+  filename: cloudbuild-production.yaml
+  substitutions:
+    _ENVIRONMENT: "production"
+    _DEPLOYMENT_STRATEGY: "blue-green"
+    _APPROVAL_REQUIRED: "true"
+    _SECURITY_SCAN: "true"
+    _PERFORMANCE_TEST: "true"
+
+# Pull Request Validation Trigger
+- name: prometheus-ai-platform-pr-validation
+  description: "Pull request validation and testing"
+  github:
+    owner: prometheus-ai
+    name: platform
+    pullRequest:
+      branch: "^(main|develop)$"
+      commentControl: COMMENTS_ENABLED
+  filename: cloudbuild-pr.yaml
+  substitutions:
+    _RUN_TESTS: "true"
+    _CODE_QUALITY_CHECK: "true"
+    _SECURITY_SCAN: "true"
+    _BUILD_IMAGES: "false"
+
+# Nightly Build and Test Trigger
+- name: prometheus-ai-platform-nightly
+  description: "Nightly build and comprehensive testing"
+  schedule:
+    cron: "0 2 * * *"  # Daily at 2 AM UTC
+    timeZone: "UTC"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^develop$"
+  filename: cloudbuild-nightly.yaml
+  substitutions:
+    _COMPREHENSIVE_TESTS: "true"
+    _PERFORMANCE_TESTS: "true"
+    _SECURITY_TESTS: "true"
+    _INTEGRATION_TESTS: "true"
+
+# Hotfix Deployment Trigger
+- name: prometheus-ai-platform-hotfix
+  description: "Emergency hotfix deployment"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^hotfix/.*$"
+  filename: cloudbuild-hotfix.yaml
+  substitutions:
+    _ENVIRONMENT: "production"
+    _DEPLOYMENT_STRATEGY: "rolling"
+    _SKIP_TESTS: "false"
+    _EMERGENCY_DEPLOYMENT: "true"
+
+# Infrastructure Update Trigger
+- name: prometheus-ai-platform-infrastructure
+  description: "Infrastructure updates using Terraform"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^(main|develop)$"
+    includedFiles:
+      - "terraform/**"
+      - "kubernetes/**"
+      - "helm/**"
+  filename: cloudbuild-infrastructure.yaml
+  substitutions:
+    _TERRAFORM_ACTION: "plan"
+    _AUTO_APPROVE: "false"
+
+# Security Scan Trigger
+- name: prometheus-ai-platform-security-scan
+  description: "Comprehensive security scanning"
+  schedule:
+    cron: "0 6 * * 1"  # Weekly on Monday at 6 AM UTC
+    timeZone: "UTC"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^main$"
+  filename: cloudbuild-security.yaml
+  substitutions:
+    _DEEP_SECURITY_SCAN: "true"
+    _VULNERABILITY_SCAN: "true"
+    _COMPLIANCE_CHECK: "true"
+    _PENETRATION_TEST: "false"
+
+# Performance Benchmark Trigger
+- name: prometheus-ai-platform-performance
+  description: "Performance benchmarking and optimization"
+  schedule:
+    cron: "0 4 * * 0"  # Weekly on Sunday at 4 AM UTC
+    timeZone: "UTC"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^main$"
+  filename: cloudbuild-performance.yaml
+  substitutions:
+    _LOAD_TEST: "true"
+    _STRESS_TEST: "true"
+    _BENCHMARK_TEST: "true"
+    _OPTIMIZATION_ANALYSIS: "true"
+
+# Dependency Update Trigger
+- name: prometheus-ai-platform-dependency-update
+  description: "Automated dependency updates and security patches"
+  schedule:
+    cron: "0 8 * * 2"  # Weekly on Tuesday at 8 AM UTC
+    timeZone: "UTC"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^develop$"
+  filename: cloudbuild-dependencies.yaml
+  substitutions:
+    _UPDATE_DEPENDENCIES: "true"
+    _SECURITY_PATCHES: "true"
+    _CREATE_PR: "true"
+    _AUTO_MERGE: "false"
+
+# Backup and Disaster Recovery Test Trigger
+- name: prometheus-ai-platform-dr-test
+  description: "Disaster recovery testing and backup validation"
+  schedule:
+    cron: "0 10 1 * *"  # Monthly on the 1st at 10 AM UTC
+    timeZone: "UTC"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^main$"
+  filename: cloudbuild-dr-test.yaml
+  substitutions:
+    _BACKUP_TEST: "true"
+    _RESTORE_TEST: "true"
+    _FAILOVER_TEST: "true"
+    _RTO_RPO_TEST: "true"
+
+# Multi-Cloud Deployment Trigger
+- name: prometheus-ai-platform-multi-cloud
+  description: "Multi-cloud deployment orchestration"
+  github:
+    owner: prometheus-ai
+    name: platform
+    push:
+      branch: "^main$"
+    includedFiles:
+      - "terraform/multi-cloud/**"
+      - "scripts/multi-cloud-setup.sh"
+  filename: cloudbuild-multi-cloud.yaml
+  substitutions:
+    _DEPLOY_GCP: "true"
+    _DEPLOY_AZURE: "true"
+    _DEPLOY_AWS: "true"
+    _CROSS_CLOUD_VALIDATION: "true"

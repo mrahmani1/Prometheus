@@ -43,10 +43,34 @@ cp .env.example .env
 nano .env
 ```
 
-### 3. Start Development Environment
+### 3. CI/CD Setup (Optional - For Production Deployment)
+For production deployment with automated CI/CD pipeline, configure GitHub secrets:
+
 ```bash
-# Start all services with Docker Compose
+# Generate required secrets for multi-cloud deployment
+# See .github/SECRETS.md for detailed instructions
+
+# Quick setup commands:
+# GCP Service Account
+gcloud iam service-accounts create prometheus-ci-cd
+gcloud iam service-accounts keys create key.json --iam-account=prometheus-ci-cd@YOUR_PROJECT_ID.iam.gserviceaccount.com
+base64 -i key.json  # Add to GitHub secrets as GCP_SA_KEY
+
+# Azure Service Principal
+az ad sp create-for-rbac --name "prometheus-ci-cd" --role contributor
+
+# AWS IAM User
+aws iam create-user --user-name prometheus-ci-cd
+aws iam create-access-key --user-name prometheus-ci-cd
+```
+
+### 4. Start Development Environment
+```bash
+# Start all microservices with Docker Compose
 docker-compose up -d
+
+# Or use the deployment script
+./scripts/deploy.sh development
 
 # Wait for services to be ready (2-3 minutes)
 docker-compose logs -f
@@ -55,18 +79,71 @@ docker-compose logs -f
 docker-compose ps
 ```
 
-### 4. Access the Platform
-- **Main Dashboard**: http://localhost:8080
-- **API Documentation**: http://localhost:8080/api/docs
+### 5. Access the Platform
+- **API Gateway**: http://localhost:3000
+- **Helios Core API**: http://localhost:8001/docs
+- **Data Ingestion API**: http://localhost:8002/docs
+- **Volcano Watchtower API**: http://localhost:8003/docs
+- **Modern React Frontend**: http://localhost:5173 (development)
 - **InfluxDB UI**: http://localhost:8086
 - **Neo4j Browser**: http://localhost:7474
 - **Consul UI**: http://localhost:8500
+- **Grafana Monitoring**: http://localhost:3001
 
 ---
 
 ## 🔧 Detailed Installation
 
-### Python Backend Setup
+### Microservices Development Setup
+
+#### 1. API Gateway (Node.js)
+```bash
+cd services/api-gateway
+npm install
+npm run dev  # Starts on port 3000
+```
+
+#### 2. Helios Core Service (Python)
+```bash
+cd services/helios-core
+python -m venv venv
+
+# Activate virtual environment
+# Linux/macOS:
+source venv/bin/activate
+# Windows:
+venv\Scripts\activate
+
+pip install -r requirements.txt
+python main.py  # Starts on port 8001
+```
+
+#### 3. Data Ingestion Service (Python)
+```bash
+cd services/data-ingestion
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+python main.py  # Starts on port 8002
+```
+
+#### 4. Volcano Watchtower Service (Python)
+```bash
+cd services/volcano-watchtower
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+python main.py  # Starts on port 8003
+```
+
+#### 5. Modern React Frontend
+```bash
+cd frontend-react
+npm install
+npm run dev  # Starts on port 5173
+```
+
+### Legacy Python Backend Setup (Deprecated - Use Microservices)
 
 #### 1. Create Virtual Environment
 ```bash

@@ -1,0 +1,93 @@
+# Default values for prometheus-ai-platform
+replicaCount: 3
+
+image:
+  repository: ghcr.io/your-org/prometheus-ai-platform
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: prometheus-ai.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: prometheus-ai-tls
+      hosts:
+        - prometheus-ai.com
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Environment-specific configurations
+environment: production
+
+# Deployment strategy
+deployment:
+  type: stable
+  color: blue
+  canaryWeight: 0
+
+# Database configurations
+databases:
+  postgres:
+    host: postgres-service
+    port: 5432
+    database: prometheus
+  influxdb:
+    host: influxdb-service
+    port: 8086
+  neo4j:
+    host: neo4j-service
+    port: 7687
+  redis:
+    host: redis-service
+    port: 6379

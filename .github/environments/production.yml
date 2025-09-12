@@ -1,0 +1,9 @@
+# GitHub Environment Configuration for Production
+name: production
+url: https://prometheus-ai.com
+protection_rules:
+  required_reviewers: 2
+  wait_timer: 5
+deployment_branch_policy:
+  protected_branches: true
+  custom_branch_policies: false

@@ -1,0 +1,186 @@
+# Consul Connect Service Mesh Configuration
+# Advanced service mesh configuration for Prometheus AI Platform
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: consul-connect-config
+  namespace: prometheus-ai
+data:
+  consul.hcl: |
+    datacenter = "prometheus-ai"
+    data_dir = "/consul/data"
+    log_level = "INFO"
+    server = true
+    bootstrap_expect = 3
+    
+    # Service Mesh Configuration
+    connect {
+      enabled = true
+      ca_provider = "consul"
+      ca_config {
+        leaf_cert_ttl = "72h"
+        root_cert_ttl = "8760h"
+      }
+    }
+    
+    # Advanced Security Policies
+    acl = {
+      enabled = true
+      default_policy = "deny"
+      enable_token_persistence = true
+    }
+    
+    # Service Discovery
+    dns_config {
+      enable_truncate = true
+      only_passing = true
+    }
+    
+    # Performance Optimization
+    performance {
+      raft_multiplier = 1
+    }
+    
+    # Logging and Monitoring
+    telemetry {
+      prometheus_retention_time = "24h"
+      disable_hostname = true
+    }
+    
+    # UI Configuration
+    ui_config {
+      enabled = true
+      metrics_provider = "prometheus"
+      metrics_proxy {
+        base_url = "http://prometheus:9090"
+      }
+    }
+
+  intentions.hcl: |
+    # Service-to-Service Communication Policies
+    
+    # API Gateway can communicate with all services
+    Kind = "service-intentions"
+    Name = "api-gateway"
+    Sources = [
+      {
+        Name = "*"
+        Action = "allow"
+      }
+    ]
+    
+    # Helios Core service policies
+    Kind = "service-intentions"
+    Name = "helios-core"
+    Sources = [
+      {
+        Name = "api-gateway"
+        Action = "allow"
+      },
+      {
+        Name = "data-ingestion"
+        Action = "allow"
+      },
+      {
+        Name = "volcano-watchtower"
+        Action = "allow"
+      }
+    ]
+    
+    # Data Ingestion service policies
+    Kind = "service-intentions"
+    Name = "data-ingestion"
+    Sources = [
+      {
+        Name = "api-gateway"
+        Action = "allow"
+      },
+      {
+        Name = "volcano-watchtower"
+        Action = "allow"
+      }
+    ]
+    
+    # Database access policies
+    Kind = "service-intentions"
+    Name = "postgres"
+    Sources = [
+      {
+        Name = "helios-core"
+        Action = "allow"
+      },
+      {
+        Name = "data-ingestion"
+        Action = "allow"
+      }
+    ]
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: consul-proxy-defaults
+  namespace: prometheus-ai
+data:
+  proxy-defaults.hcl: |
+    Kind = "proxy-defaults"
+    Name = "global"
+    
+    # Circuit Breaker Configuration
+    Config {
+      protocol = "http"
+      
+      # Advanced Load Balancing
+      load_balancer {
+        policy = "least_request"
+        hash_policies = [
+          {
+            field = "header"
+            field_value = "x-user-id"
+          }
+        ]
+      }
+      
+      # Circuit Breaker Settings
+      passive_health_check {
+        interval = "10s"
+        max_failures = 3
+        enforcing_consecutive_5xx = 100
+      }
+      
+      # Rate Limiting
+      local_rate_limit {
+        token_bucket {
+          max_tokens = 1000
+          tokens_per_fill = 100
+          fill_interval = "1s"
+        }
+      }
+      
+      # Retry Policy
+      retry_policy {
+        retry_on = "5xx,gateway-error,connect-failure,refused-stream"
+        num_retries = 3
+        per_try_timeout = "30s"
+        retry_back_off {
+          base_interval = "1s"
+          max_interval = "10s"
+        }
+      }
+      
+      # Timeout Configuration
+      request_timeout = "60s"
+      idle_timeout = "300s"
+    }
+    
+    # Mesh Gateway Configuration
+    MeshGateway {
+      Mode = "local"
+    }
+    
+    # Transparent Proxy
+    TransparentProxy {
+      OutboundListenerPort = 15001
+      DialedDirectly = true
+    }

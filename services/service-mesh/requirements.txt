@@ -1,0 +1,46 @@
+# Service Mesh Manager Dependencies
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# Async HTTP Client
+aiohttp==3.9.1
+httpx==0.25.2
+
+# Redis Client
+redis[hiredis]==5.0.1
+
+# Consul Client
+python-consul2==0.1.5
+
+# Observability and Monitoring
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+opentelemetry-exporter-jaeger-thrift==1.21.0
+opentelemetry-exporter-prometheus==1.12.0rc1
+prometheus-client==0.19.0
+
+# Logging and Structured Data
+structlog==23.2.0
+
+# System Monitoring
+psutil==5.9.6
+
+# Data Processing
+numpy==1.25.2
+pandas==2.1.4
+
+# Utilities
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Development and Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1

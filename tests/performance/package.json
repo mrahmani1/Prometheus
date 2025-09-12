@@ -1,0 +1,61 @@
+{
+  "name": "prometheus-ai-performance-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive performance testing suite for Prometheus AI Platform geological monitoring system",
+  "main": "performance-test-runner.js",
+  "scripts": {
+    "test": "node performance-test-runner.js",
+    "test:smoke": "node performance-test-runner.js --suite=smoke",
+    "test:quick": "node performance-test-runner.js --suite=quick",
+    "test:full": "node performance-test-runner.js --suite=full",
+    "test:k6": "k6 run k6-load-tests.js",
+    "test:lighthouse": "node lighthouse-ci.js",
+    "test:database": "python database-performance-tests.py",
+    "test:memory": "node memory-leak-detection.js",
+    "test:network": "node network-throttling-tests.js",
+    "test:concurrent": "node concurrent-user-tests.js",
+    "test:resource": "node resource-monitoring.js",
+    "test:regression": "node regression-detection.js",
+    "install:deps": "npm install && pip install -r requirements.txt",
+    "setup": "mkdir -p reports baselines lighthouse-reports memory-reports network-reports concurrent-reports resource-reports regression-reports",
+    "clean": "rm -rf reports/* baselines/* *-reports/*"
+  },
+  "keywords": [
+    "performance",
+    "testing",
+    "geological",
+    "monitoring",
+    "seismic",
+    "volcanic",
+    "load-testing",
+    "k6",
+    "lighthouse",
+    "memory-leak",
+    "regression"
+  ],
+  "author": "Prometheus AI Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "lighthouse": "^11.0.0",
+    "chrome-launcher": "^1.0.0",
+    "k6": "^0.46.0",
+    "chart.js": "^4.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.11.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prometheus-ai/performance-tests.git"
+  },
+  "bugs": {
+    "url": "https://github.com/prometheus-ai/performance-tests/issues"
+  },
+  "homepage": "https://github.com/prometheus-ai/performance-tests#readme"
+}

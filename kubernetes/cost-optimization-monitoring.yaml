@@ -1,0 +1,468 @@
+# Cost Optimization and Performance Monitoring Components
+
+---
+# Cost Optimization Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cost-optimizer
+  namespace: prometheus-ai
+  labels:
+    app: cost-optimizer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cost-optimizer
+  template:
+    metadata:
+      labels:
+        app: cost-optimizer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: cost-optimizer
+        image: prometheus-ai/cost-optimizer:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          valueFrom:
+            secretKeyRef:
+              name: gcp-monitoring-credentials
+              key: project-id
+              optional: true
+        - name: AZURE_SUBSCRIPTION_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-monitoring-credentials
+              key: subscription-id
+              optional: true
+        - name: AWS_REGION
+          valueFrom:
+            secretKeyRef:
+              name: aws-monitoring-credentials
+              key: region
+              optional: true
+        - name: OPTIMIZATION_INTERVAL
+          value: "300" # 5 minutes
+        - name: COST_THRESHOLD_PERCENTAGE
+          value: "80" # Alert when cost efficiency drops below 80%
+        volumeMounts:
+        - name: config
+          mountPath: /etc/cost-optimizer
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: cost-optimizer-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cost-optimizer-service
+  namespace: prometheus-ai
+  labels:
+    app: cost-optimizer
+spec:
+  selector:
+    app: cost-optimizer
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+# Performance Analyzer Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-analyzer
+  namespace: prometheus-ai
+  labels:
+    app: performance-analyzer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: performance-analyzer
+  template:
+    metadata:
+      labels:
+        app: performance-analyzer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: performance-analyzer
+        image: prometheus-ai/performance-analyzer:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-service:9090"
+        - name: ANALYSIS_INTERVAL
+          value: "60" # 1 minute
+        - name: PERFORMANCE_THRESHOLD
+          value: "95" # 95th percentile threshold
+        - name: ENABLE_PREDICTIVE_SCALING
+          value: "true"
+        - name: ENABLE_ANOMALY_DETECTION
+          value: "true"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/performance-analyzer
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: performance-analyzer-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-analyzer-service
+  namespace: prometheus-ai
+  labels:
+    app: performance-analyzer
+spec:
+  selector:
+    app: performance-analyzer
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+# Anomaly Detection Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-detector
+  namespace: prometheus-ai
+  labels:
+    app: anomaly-detector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anomaly-detector
+  template:
+    metadata:
+      labels:
+        app: anomaly-detector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: anomaly-detector
+        image: prometheus-ai/anomaly-detector:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-service:9090"
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch-service:9200"
+        - name: DETECTION_INTERVAL
+          value: "30" # 30 seconds
+        - name: ANOMALY_THRESHOLD
+          value: "0.8" # 80% confidence threshold
+        - name: GEOLOGICAL_ANOMALY_DETECTION
+          value: "true"
+        - name: SYSTEM_ANOMALY_DETECTION
+          value: "true"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/anomaly-detector
+        - name: models
+          mountPath: /var/lib/anomaly-models
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: anomaly-detector-config
+      - name: models
+        persistentVolumeClaim:
+          claimName: anomaly-models-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anomaly-detector-service
+  namespace: prometheus-ai
+  labels:
+    app: anomaly-detector
+spec:
+  selector:
+    app: anomaly-detector
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+# Persistent Volume Claim for Anomaly Detection Models
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: anomaly-models-pvc
+  namespace: prometheus-ai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+---
+# SLA Monitor Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sla-monitor
+  namespace: prometheus-ai
+  labels:
+    app: sla-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sla-monitor
+  template:
+    metadata:
+      labels:
+        app: sla-monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: sla-monitor
+        image: prometheus-ai/sla-monitor:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-service:9090"
+        - name: SLA_AVAILABILITY_TARGET
+          value: "99.5" # 99.5% availability SLA
+        - name: SLA_RESPONSE_TIME_TARGET
+          value: "2000" # 2 seconds response time SLA
+        - name: SLA_ERROR_RATE_TARGET
+          value: "1" # 1% error rate SLA
+        - name: MONITORING_INTERVAL
+          value: "60" # 1 minute
+        - name: REPORT_GENERATION_INTERVAL
+          value: "3600" # 1 hour
+        volumeMounts:
+        - name: config
+          mountPath: /etc/sla-monitor
+        - name: reports
+          mountPath: /var/lib/sla-reports
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: sla-monitor-config
+      - name: reports
+        persistentVolumeClaim:
+          claimName: sla-reports-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sla-monitor-service
+  namespace: prometheus-ai
+  labels:
+    app: sla-monitor
+spec:
+  selector:
+    app: sla-monitor
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+# Persistent Volume Claim for SLA Reports
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sla-reports-pvc
+  namespace: prometheus-ai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+---
+# Business Metrics Collector
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: business-metrics-collector
+  namespace: prometheus-ai
+  labels:
+    app: business-metrics-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: business-metrics-collector
+  template:
+    metadata:
+      labels:
+        app: business-metrics-collector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: business-metrics-collector
+        image: prometheus-ai/business-metrics-collector:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-service:9090"
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch-service:9200"
+        - name: COLLECTION_INTERVAL
+          value: "300" # 5 minutes
+        - name: USER_ANALYTICS_ENABLED
+          value: "true"
+        - name: SCIENTIFIC_ACCURACY_TRACKING
+          value: "true"
+        - name: COST_TRACKING_ENABLED
+          value: "true"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/business-metrics
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: business-metrics-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: business-metrics-service
+  namespace: prometheus-ai
+  labels:
+    app: business-metrics-collector
+spec:
+  selector:
+    app: business-metrics-collector
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP

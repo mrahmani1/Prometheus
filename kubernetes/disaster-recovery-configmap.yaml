@@ -1,0 +1,344 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-config
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+    component: infrastructure
+data:
+  # Backup storage configuration
+  backup-s3-bucket: "prometheus-ai-backups"
+  backup-gcs-bucket: "prometheus-ai-backups-gcs"
+  aws-default-region: "us-west-2"
+  
+  # Multi-region database endpoints
+  postgres-host-us-east-1: "postgresql-us-east-1.prometheus-ai.internal"
+  postgres-host-eu-west-1: "postgresql-eu-west-1.prometheus-ai.internal"
+  influxdb-url-us-east-1: "http://influxdb-us-east-1.prometheus-ai.internal:8086"
+  influxdb-url-eu-west-1: "http://influxdb-eu-west-1.prometheus-ai.internal:8086"
+  neo4j-uri-us-east-1: "bolt://neo4j-us-east-1.prometheus-ai.internal:7687"
+  neo4j-uri-eu-west-1: "bolt://neo4j-eu-west-1.prometheus-ai.internal:7687"
+  
+  # Monitoring configuration
+  metrics-retention-hours: "24"
+  alert-check-interval-seconds: "60"
+  integrity-check-interval-hours: "1"
+  
+  # Recovery configuration
+  default-rto-minutes: "120"
+  default-rpo-minutes: "30"
+  max-parallel-recoveries: "3"
+  
+  # Replication configuration
+  replication-lag-threshold-seconds: "300"
+  replication-health-check-interval-seconds: "30"
+  auto-failover-enabled: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-config-files
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+    component: infrastructure
+data:
+  backup-configs.json: |
+    {
+      "configurations": [
+        {
+          "database_type": "postgresql",
+          "backup_type": "full",
+          "schedule_cron": "0 2 * * *",
+          "retention_days": 30,
+          "compression_enabled": true,
+          "encryption_enabled": true,
+          "verification_enabled": true,
+          "storage_locations": ["local", "s3", "gcs"],
+          "max_parallel_backups": 3,
+          "backup_window_hours": [2, 3, 4]
+        },
+        {
+          "database_type": "influxdb",
+          "backup_type": "snapshot",
+          "schedule_cron": "0 3 * * *",
+          "retention_days": 14,
+          "compression_enabled": true,
+          "encryption_enabled": true,
+          "verification_enabled": true,
+          "storage_locations": ["local", "s3"],
+          "max_parallel_backups": 2,
+          "backup_window_hours": [3, 4]
+        },
+        {
+          "database_type": "neo4j",
+          "backup_type": "full",
+          "schedule_cron": "0 4 * * 0",
+          "retention_days": 60,
+          "compression_enabled": true,
+          "encryption_enabled": true,
+          "verification_enabled": true,
+          "storage_locations": ["local", "s3"],
+          "max_parallel_backups": 1,
+          "backup_window_hours": [4, 5]
+        },
+        {
+          "database_type": "redis",
+          "backup_type": "snapshot",
+          "schedule_cron": "0 */6 * * *",
+          "retention_days": 7,
+          "compression_enabled": true,
+          "encryption_enabled": true,
+          "verification_enabled": true,
+          "storage_locations": ["local", "s3"],
+          "max_parallel_backups": 1,
+          "backup_window_hours": [0, 6, 12, 18]
+        }
+      ]
+    }
+  
+  replication-configs.json: |
+    {
+      "replications": [
+        {
+          "replication_id": "postgres-primary-replication",
+          "source_region": "us-west-2",
+          "target_regions": ["us-east-1", "eu-west-1"],
+          "database_type": "postgresql",
+          "replication_mode": "async",
+          "lag_threshold_seconds": 300,
+          "auto_failover_enabled": true,
+          "conflict_resolution_strategy": "source_wins",
+          "compression_enabled": true,
+          "encryption_enabled": true
+        },
+        {
+          "replication_id": "influxdb-primary-replication",
+          "source_region": "us-west-2",
+          "target_regions": ["us-east-1"],
+          "database_type": "influxdb",
+          "replication_mode": "async",
+          "lag_threshold_seconds": 60,
+          "auto_failover_enabled": false,
+          "conflict_resolution_strategy": "timestamp_wins",
+          "compression_enabled": true,
+          "encryption_enabled": true
+        },
+        {
+          "replication_id": "neo4j-primary-replication",
+          "source_region": "us-west-2",
+          "target_regions": ["us-east-1"],
+          "database_type": "neo4j",
+          "replication_mode": "async",
+          "lag_threshold_seconds": 600,
+          "auto_failover_enabled": false,
+          "conflict_resolution_strategy": "source_wins",
+          "compression_enabled": true,
+          "encryption_enabled": true
+        }
+      ]
+    }
+  
+  recovery-plans.json: |
+    {
+      "plans": [
+        {
+          "plan_id": "database-hardware-failure",
+          "name": "Database Hardware Failure Recovery",
+          "description": "Recovery plan for database hardware failures",
+          "disaster_types": ["hardware_failure"],
+          "affected_services": ["postgresql", "influxdb", "neo4j", "redis"],
+          "recovery_steps": [
+            {
+              "step": 1,
+              "name": "Assess Damage",
+              "action": "assess_database_damage",
+              "timeout_minutes": 10,
+              "required": true
+            },
+            {
+              "step": 2,
+              "name": "Initiate Failover",
+              "action": "initiate_database_failover",
+              "timeout_minutes": 15,
+              "required": true,
+              "depends_on": [1]
+            },
+            {
+              "step": 3,
+              "name": "Restore from Backup",
+              "action": "restore_from_latest_backup",
+              "timeout_minutes": 60,
+              "required": true,
+              "depends_on": [2]
+            },
+            {
+              "step": 4,
+              "name": "Validate Data Integrity",
+              "action": "validate_data_integrity",
+              "timeout_minutes": 30,
+              "required": true,
+              "depends_on": [3]
+            },
+            {
+              "step": 5,
+              "name": "Resume Services",
+              "action": "resume_application_services",
+              "timeout_minutes": 20,
+              "required": true,
+              "depends_on": [4]
+            }
+          ],
+          "recovery_objectives": {
+            "rto_minutes": 120,
+            "rpo_minutes": 15,
+            "service_tier": "critical"
+          },
+          "dependencies": [],
+          "estimated_duration_minutes": 135
+        }
+      ]
+    }
+  
+  continuity-plans.json: |
+    {
+      "plans": [
+        {
+          "plan_id": "critical-research-operations",
+          "name": "Critical Research Operations Continuity",
+          "description": "Ensures continuity of critical geological research operations",
+          "business_functions": [
+            "volcanic_monitoring",
+            "seismic_analysis",
+            "geological_modeling",
+            "data_collection"
+          ],
+          "critical_dependencies": [
+            "helios_ai_engine",
+            "volcano_watchtower",
+            "database_systems",
+            "external_data_feeds"
+          ],
+          "alternative_procedures": [
+            {
+              "function": "volcanic_monitoring",
+              "primary_method": "real_time_automated_monitoring",
+              "alternative_method": "manual_monitoring_with_reduced_frequency",
+              "degradation_level": "partial",
+              "activation_trigger": "primary_system_unavailable_30_minutes"
+            }
+          ],
+          "communication_plan": {
+            "internal_contacts": [
+              {
+                "role": "incident_commander",
+                "name": "Dr. Sarah Johnson",
+                "phone": "+1-555-0101",
+                "email": "sarah.johnson@prometheus.ai"
+              }
+            ],
+            "external_contacts": [
+              {
+                "organization": "USGS Volcano Hazards Program",
+                "contact": "Dr. Robert Smith",
+                "phone": "+1-555-0201",
+                "email": "rsmith@usgs.gov"
+              }
+            ]
+          },
+          "resource_requirements": {
+            "minimum_staff": {
+              "incident_commander": 1,
+              "technical_specialists": 2
+            },
+            "technical_resources": {
+              "backup_data_center": "required"
+            }
+          },
+          "recovery_priorities": [
+            "life_safety_systems",
+            "critical_monitoring_systems",
+            "data_integrity_preservation"
+          ],
+          "testing_schedule": "0 2 1 */3 *"
+        }
+      ]
+    }
+  
+  archival-policies.json: |
+    {
+      "policies": [
+        {
+          "policy_id": "geological-timeseries-archival",
+          "name": "Geological Time-Series Data Archival",
+          "database_type": "influxdb",
+          "archival_rules": [
+            {
+              "data_age_days": 90,
+              "action": "move_to_warm_storage",
+              "compression_level": "standard"
+            },
+            {
+              "data_age_days": 365,
+              "action": "move_to_cold_storage",
+              "compression_level": "high"
+            },
+            {
+              "data_age_days": 2555,
+              "action": "move_to_archive_storage",
+              "compression_level": "maximum"
+            }
+          ],
+          "retention_periods": {
+            "seismic_data": 3650,
+            "deformation_data": 2555,
+            "gas_emission_data": 1825,
+            "thermal_data": 1095,
+            "metadata": -1
+          },
+          "storage_tiers": ["hot", "warm", "cold", "archive"],
+          "compression_settings": {
+            "standard": {"algorithm": "gzip", "level": 6},
+            "high": {"algorithm": "bzip2", "level": 9},
+            "maximum": {"algorithm": "xz", "level": 9}
+          },
+          "encryption_settings": {
+            "algorithm": "AES-256-GCM",
+            "key_rotation_days": 90,
+            "encryption_at_rest": true,
+            "encryption_in_transit": true
+          }
+        }
+      ]
+    }
+  
+  dr-monitoring-config.json: |
+    {
+      "alert_thresholds": {
+        "rto_threshold_minutes": 120,
+        "rpo_threshold_minutes": 30,
+        "backup_success_rate_threshold": 0.95,
+        "replication_health_threshold": 0.90,
+        "data_integrity_threshold": 0.99,
+        "system_availability_threshold": 0.995
+      },
+      "notification_channels": [
+        {
+          "type": "webhook",
+          "url": "https://alerts.prometheus.ai/webhook",
+          "severity_levels": ["critical", "warning"]
+        },
+        {
+          "type": "email",
+          "recipients": ["ops-team@prometheus.ai"],
+          "severity_levels": ["critical"]
+        }
+      ],
+      "metrics_retention": {
+        "detailed_metrics_hours": 24,
+        "summary_metrics_days": 30,
+        "historical_metrics_months": 12
+      }
+    }

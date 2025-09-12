@@ -1,0 +1,841 @@
+# Service Mesh Deployment Configuration for Prometheus AI Platform
+# Comprehensive Consul Connect service mesh with advanced features
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prometheus-ai-mesh
+  labels:
+    name: prometheus-ai-mesh
+    istio-injection: enabled
+
+---
+# Consul Server Deployment
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: consul-server
+  namespace: prometheus-ai-mesh
+  labels:
+    app: consul-server
+    component: service-mesh
+spec:
+  serviceName: consul-server
+  replicas: 3
+  selector:
+    matchLabels:
+      app: consul-server
+  template:
+    metadata:
+      labels:
+        app: consul-server
+        component: service-mesh
+    spec:
+      serviceAccountName: consul-server
+      containers:
+      - name: consul
+        image: consul:1.16.1
+        ports:
+        - containerPort: 8500
+          name: http
+        - containerPort: 8300
+          name: server
+        - containerPort: 8301
+          name: serf-lan
+        - containerPort: 8302
+          name: serf-wan
+        - containerPort: 8600
+          name: dns
+        env:
+        - name: CONSUL_DATACENTER
+          value: "prometheus-ai"
+        - name: CONSUL_DOMAIN
+          value: "consul"
+        - name: CONSUL_ENCRYPT
+          valueFrom:
+            secretKeyRef:
+              name: consul-gossip-key
+              key: key
+        volumeMounts:
+        - name: consul-data
+          mountPath: /consul/data
+        - name: consul-config
+          mountPath: /consul/config
+        command:
+        - consul
+        - agent
+        - -server
+        - -bootstrap-expect=3
+        - -datacenter=prometheus-ai
+        - -data-dir=/consul/data
+        - -config-dir=/consul/config
+        - -bind=0.0.0.0
+        - -client=0.0.0.0
+        - -retry-join=consul-server-0.consul-server.prometheus-ai-mesh.svc.cluster.local
+        - -retry-join=consul-server-1.consul-server.prometheus-ai-mesh.svc.cluster.local
+        - -retry-join=consul-server-2.consul-server.prometheus-ai-mesh.svc.cluster.local
+        - -ui
+        - -connect
+        - -log-level=INFO
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /v1/status/leader
+            port: 8500
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /v1/status/leader
+            port: 8500
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: consul-config
+        configMap:
+          name: consul-config
+  volumeClaimTemplates:
+  - metadata:
+      name: consul-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# Consul Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul-server
+  namespace: prometheus-ai-mesh
+  labels:
+    app: consul-server
+spec:
+  clusterIP: None
+  ports:
+  - port: 8500
+    targetPort: 8500
+    name: http
+  - port: 8300
+    targetPort: 8300
+    name: server
+  - port: 8301
+    targetPort: 8301
+    name: serf-lan
+  - port: 8302
+    targetPort: 8302
+    name: serf-wan
+  - port: 8600
+    targetPort: 8600
+    name: dns
+  selector:
+    app: consul-server
+
+---
+# Consul UI Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul-ui
+  namespace: prometheus-ai-mesh
+  labels:
+    app: consul-server
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8500
+    targetPort: 8500
+    name: http
+  selector:
+    app: consul-server
+
+---
+# Consul Connect Injector
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consul-connect-injector
+  namespace: prometheus-ai-mesh
+  labels:
+    app: consul-connect-injector
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: consul-connect-injector
+  template:
+    metadata:
+      labels:
+        app: consul-connect-injector
+    spec:
+      serviceAccountName: consul-connect-injector
+      containers:
+      - name: consul-connect-injector
+        image: hashicorp/consul-k8s:1.2.1
+        command:
+        - consul-k8s-control-plane
+        - inject-connect
+        - -consul-addr=consul-server:8500
+        - -listen=:8080
+        - -default-inject=false
+        - -enable-health-checks-controller=true
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        ports:
+        - containerPort: 8080
+          name: webhook
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+---
+# Service Mesh Gateway
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mesh-gateway
+  namespace: prometheus-ai-mesh
+  labels:
+    app: mesh-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mesh-gateway
+  template:
+    metadata:
+      labels:
+        app: mesh-gateway
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/mesh-gateway: "true"
+    spec:
+      serviceAccountName: mesh-gateway
+      containers:
+      - name: mesh-gateway
+        image: envoyproxy/envoy:v1.27.0
+        ports:
+        - containerPort: 8443
+          name: https
+        - containerPort: 8080
+          name: http
+        env:
+        - name: CONSUL_HTTP_ADDR
+          value: "consul-server:8500"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+
+---
+# Circuit Breaker Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: circuit-breaker-service
+  namespace: prometheus-ai-mesh
+  labels:
+    app: circuit-breaker-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: circuit-breaker-service
+  template:
+    metadata:
+      labels:
+        app: circuit-breaker-service
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/service-tags: "circuit-breaker,resilience"
+    spec:
+      containers:
+      - name: circuit-breaker
+        image: python:3.11-slim
+        command: ["python", "/app/circuit-breaker.py"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: CONSUL_HOST
+          value: "consul-server"
+        - name: CONSUL_PORT
+          value: "8500"
+        volumeMounts:
+        - name: circuit-breaker-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: circuit-breaker-code
+        configMap:
+          name: circuit-breaker-code
+
+---
+# Rate Limiter Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rate-limiter-service
+  namespace: prometheus-ai-mesh
+  labels:
+    app: rate-limiter-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rate-limiter-service
+  template:
+    metadata:
+      labels:
+        app: rate-limiter-service
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/service-tags: "rate-limiter,traffic-management"
+    spec:
+      containers:
+      - name: rate-limiter
+        image: python:3.11-slim
+        command: ["python", "/app/rate-limiter.py"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: SERVICE_NAME
+          value: "prometheus-ai"
+        volumeMounts:
+        - name: rate-limiter-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: rate-limiter-code
+        configMap:
+          name: rate-limiter-code
+
+---
+# Traffic Manager Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-manager-service
+  namespace: prometheus-ai-mesh
+  labels:
+    app: traffic-manager-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: traffic-manager-service
+  template:
+    metadata:
+      labels:
+        app: traffic-manager-service
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/service-tags: "traffic-manager,load-balancer"
+    spec:
+      containers:
+      - name: traffic-manager
+        image: python:3.11-slim
+        command: ["python", "/app/traffic-management.py"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: CONSUL_HOST
+          value: "consul-server"
+        - name: CONSUL_PORT
+          value: "8500"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        volumeMounts:
+        - name: traffic-manager-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: traffic-manager-code
+        configMap:
+          name: traffic-manager-code
+
+---
+# Chaos Engineering Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-monkey-service
+  namespace: prometheus-ai-mesh
+  labels:
+    app: chaos-monkey-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-monkey-service
+  template:
+    metadata:
+      labels:
+        app: chaos-monkey-service
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/service-tags: "chaos-engineering,testing"
+    spec:
+      serviceAccountName: chaos-monkey
+      containers:
+      - name: chaos-monkey
+        image: python:3.11-slim
+        command: ["python", "/app/chaos-engineering.py"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        - name: KUBERNETES_NAMESPACE
+          value: "prometheus-ai"
+        volumeMounts:
+        - name: chaos-monkey-code
+          mountPath: /app
+        - name: kubeconfig
+          mountPath: /root/.kube
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        securityContext:
+          privileged: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: chaos-monkey-code
+        configMap:
+          name: chaos-monkey-code
+      - name: kubeconfig
+        secret:
+          secretName: kubeconfig
+
+---
+# Service Discovery Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-discovery
+  namespace: prometheus-ai-mesh
+  labels:
+    app: service-discovery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: service-discovery
+  template:
+    metadata:
+      labels:
+        app: service-discovery
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/service-tags: "service-discovery,registry"
+    spec:
+      containers:
+      - name: service-discovery
+        image: python:3.11-slim
+        command: ["python", "/app/service-discovery.py"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: CONSUL_HOST
+          value: "consul-server"
+        - name: CONSUL_PORT
+          value: "8500"
+        volumeMounts:
+        - name: service-discovery-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: service-discovery-code
+        configMap:
+          name: service-discovery-code
+
+---
+# Observability Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mesh-observability
+  namespace: prometheus-ai-mesh
+  labels:
+    app: mesh-observability
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mesh-observability
+  template:
+    metadata:
+      labels:
+        app: mesh-observability
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/service-tags: "observability,monitoring"
+    spec:
+      containers:
+      - name: observability
+        image: python:3.11-slim
+        command: ["python", "/app/observability.py"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: JAEGER_ENDPOINT
+          value: "http://jaeger:14268/api/traces"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        volumeMounts:
+        - name: observability-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: observability-code
+        configMap:
+          name: observability-code
+
+---
+# Service Account for Consul Server
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: consul-server
+  namespace: prometheus-ai-mesh
+
+---
+# Service Account for Consul Connect Injector
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: consul-connect-injector
+  namespace: prometheus-ai-mesh
+
+---
+# Service Account for Mesh Gateway
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mesh-gateway
+  namespace: prometheus-ai-mesh
+
+---
+# Service Account for Chaos Monkey
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-monkey
+  namespace: prometheus-ai-mesh
+
+---
+# ClusterRole for Consul Server
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: consul-server
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+
+---
+# ClusterRole for Consul Connect Injector
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: consul-connect-injector
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["mutatingwebhookconfigurations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+# ClusterRole for Chaos Monkey
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chaos-monkey
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "nodes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+# ClusterRoleBinding for Consul Server
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: consul-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: consul-server
+subjects:
+- kind: ServiceAccount
+  name: consul-server
+  namespace: prometheus-ai-mesh
+
+---
+# ClusterRoleBinding for Consul Connect Injector
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: consul-connect-injector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: consul-connect-injector
+subjects:
+- kind: ServiceAccount
+  name: consul-connect-injector
+  namespace: prometheus-ai-mesh
+
+---
+# ClusterRoleBinding for Chaos Monkey
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chaos-monkey
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: chaos-monkey
+subjects:
+- kind: ServiceAccount
+  name: chaos-monkey
+  namespace: prometheus-ai-mesh
+
+---
+# Consul Gossip Encryption Key Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: consul-gossip-key
+  namespace: prometheus-ai-mesh
+type: Opaque
+data:
+  key: cGcxOGE4MTI5ZGM1MGE4NjlhYWI5ZDUwYTM2OTVjNjM=  # Base64 encoded gossip key
+
+---
+# Network Policy for Service Mesh
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: service-mesh-network-policy
+  namespace: prometheus-ai-mesh
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-ai
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-ai-mesh
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8500
+    - protocol: TCP
+      port: 8300
+    - protocol: TCP
+      port: 8301
+    - protocol: TCP
+      port: 8302
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-ai
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-ai-mesh
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+# Service Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: service-mesh-metrics
+  namespace: prometheus-ai-mesh
+  labels:
+    app: service-mesh
+spec:
+  selector:
+    matchLabels:
+      component: service-mesh
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s

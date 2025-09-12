@@ -1,0 +1,315 @@
+name: Prometheus AI Platform CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, 'feature/*', 'hotfix/*']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      deployment_strategy:
+        description: 'Deployment strategy'
+        required: true
+        default: 'blue-green'
+        type: choice
+        options:
+        - blue-green
+        - canary
+        - rolling
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+jobs:
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      quality-gate: ${{ steps.sonar-quality-gate.outputs.quality-gate-status }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 mypy pytest pytest-cov bandit safety
+
+      - name: Install Node.js dependencies
+        run: |
+          cd services/api-gateway
+          npm ci
+
+      - name: Python code formatting check
+        run: |
+          black --check --diff services/
+          flake8 services/ --max-line-length=88 --extend-ignore=E203,W503
+
+      - name: Python type checking
+        run: |
+          mypy services/ --ignore-missing-imports
+
+      - name: Python security scan
+        run: |
+          bandit -r services/ -f json -o bandit-report.json || true
+          safety check --json --output safety-report.json || true
+
+      - name: Node.js linting
+        run: |
+          cd services/api-gateway
+          npm run lint
+
+      - name: SonarQube analysis
+        uses: sonarqube-quality-gate-action@master
+        id: sonar-quality-gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+    strategy:
+      matrix:
+        service: [helios-core, data-ingestion, volcano-watchtower, api-gateway]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup test environment
+        run: |
+          if [[ "${{ matrix.service }}" == "api-gateway" ]]; then
+            cd services/${{ matrix.service }}
+            npm ci
+            npm test -- --coverage --watchAll=false
+          else
+            cd services/${{ matrix.service }}
+            pip install -r requirements.txt
+            pip install pytest pytest-cov
+            pytest tests/ --cov=. --cov-report=xml --cov-report=html
+          fi
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./services/${{ matrix.service }}/coverage.xml
+          flags: ${{ matrix.service }}
+
+  security-scanning:
+    name: Security Vulnerability Scanning
+    runs-on: ubuntu-latest
+    needs: code-quality
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --all-projects
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [unit-tests, security-scanning]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    strategy:
+      matrix:
+        service: [helios-core, data-ingestion, volcano-watchtower, api-gateway]
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/${{ matrix.service }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Run Trivy container scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-container-${{ matrix.service }}.sarif'
+
+      - name: Upload container scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-container-${{ matrix.service }}.sarif'
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure kubectl for GKE
+        run: |
+          gcloud container clusters get-credentials prometheus-staging \
+            --zone us-central1-a --project ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install prometheus-staging ./helm/prometheus-ai-platform \
+            --namespace prometheus-staging \
+            --create-namespace \
+            --set image.tag=${{ github.sha }} \
+            --set environment=staging \
+            --wait --timeout=10m
+
+      - name: Run smoke tests
+        run: |
+          kubectl wait --for=condition=ready pod -l app=prometheus-ai-platform \
+            --namespace prometheus-staging --timeout=300s
+          chmod +x ./scripts/smoke-tests.sh
+          ./scripts/smoke-tests.sh staging
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-staging]
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup multi-cloud deployment
+        run: |
+          # Setup GCP
+          echo '${{ secrets.GCP_SA_KEY }}' | base64 -d > gcp-key.json
+          gcloud auth activate-service-account --key-file gcp-key.json
+          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+          
+          # Setup Azure
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} \
+            -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          
+          # Setup AWS
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region us-west-2
+
+      - name: Deploy with Blue-Green strategy
+        if: github.event.inputs.deployment_strategy == 'blue-green' || github.event.inputs.deployment_strategy == ''
+        run: |
+          chmod +x ./scripts/blue-green-deploy.sh
+          ./scripts/blue-green-deploy.sh production ${{ github.sha }}
+
+      - name: Deploy with Canary strategy
+        if: github.event.inputs.deployment_strategy == 'canary'
+        run: |
+          chmod +x ./scripts/canary-deploy.sh
+          ./scripts/canary-deploy.sh production ${{ github.sha }}
+
+      - name: Validate deployment
+        run: |
+          chmod +x ./scripts/deployment-validation.sh ./scripts/health-checks.sh
+          ./scripts/deployment-validation.sh production
+          ./scripts/health-checks.sh production
+
+  rollback:
+    name: Automated Rollback
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback deployment
+        run: |
+          chmod +x ./scripts/rollback-deployment.sh
+          ./scripts/rollback-deployment.sh production

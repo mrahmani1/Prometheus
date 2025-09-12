@@ -1,0 +1,295 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: disaster-recovery
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+    component: infrastructure
+    tier: management
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: disaster-recovery
+  template:
+    metadata:
+      labels:
+        app: disaster-recovery
+        component: infrastructure
+        tier: management
+    spec:
+      serviceAccountName: disaster-recovery-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: disaster-recovery
+        image: prometheus-ai/disaster-recovery:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        # Database connections
+        - name: POSTGRES_HOST
+          value: "postgresql"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-database
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        
+        - name: INFLUXDB_URL
+          value: "http://influxdb:8086"
+        - name: INFLUXDB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: influxdb-token
+        - name: INFLUXDB_ORG
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-org
+        - name: INFLUXDB_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: influxdb-bucket
+        
+        - name: NEO4J_URI
+          value: "bolt://neo4j:7687"
+        - name: NEO4J_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: neo4j-username
+        - name: NEO4J_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: neo4j-password
+        
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: redis-password
+        - name: REDIS_DB
+          value: "0"
+        
+        # Storage configuration
+        - name: BACKUP_LOCAL_PATH
+          value: "/data/backups"
+        - name: BACKUP_S3_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: disaster-recovery-config
+              key: backup-s3-bucket
+        - name: BACKUP_GCS_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: disaster-recovery-config
+              key: backup-gcs-bucket
+        
+        # AWS credentials
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: cloud-credentials
+              key: aws-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cloud-credentials
+              key: aws-secret-access-key
+        - name: AWS_DEFAULT_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: disaster-recovery-config
+              key: aws-default-region
+        
+        # Google Cloud credentials
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/etc/gcp/service-account.json"
+        
+        # Multi-region database connections
+        - name: POSTGRES_HOST_US_EAST_1
+          valueFrom:
+            configMapKeyRef:
+              name: disaster-recovery-config
+              key: postgres-host-us-east-1
+        - name: POSTGRES_HOST_EU_WEST_1
+          valueFrom:
+            configMapKeyRef:
+              name: disaster-recovery-config
+              key: postgres-host-eu-west-1
+        
+        - name: INFLUXDB_URL_US_EAST_1
+          valueFrom:
+            configMapKeyRef:
+              name: disaster-recovery-config
+              key: influxdb-url-us-east-1
+        - name: INFLUXDB_URL_EU_WEST_1
+          valueFrom:
+            configMapKeyRef:
+              name: disaster-recovery-config
+              key: influxdb-url-eu-west-1
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        volumeMounts:
+        - name: backup-storage
+          mountPath: /data/backups
+        - name: config-volume
+          mountPath: /etc/prometheus
+          readOnly: true
+        - name: gcp-credentials
+          mountPath: /etc/gcp
+          readOnly: true
+        - name: temp-storage
+          mountPath: /tmp
+      
+      volumes:
+      - name: backup-storage
+        persistentVolumeClaim:
+          claimName: disaster-recovery-backup-pvc
+      - name: config-volume
+        configMap:
+          name: disaster-recovery-config-files
+      - name: gcp-credentials
+        secret:
+          secretName: gcp-service-account
+      - name: temp-storage
+        emptyDir:
+          sizeLimit: 10Gi
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - disaster-recovery
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: disaster-recovery
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+    component: infrastructure
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: disaster-recovery
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: disaster-recovery-sa
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: disaster-recovery-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: disaster-recovery-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: disaster-recovery-role
+subjects:
+- kind: ServiceAccount
+  name: disaster-recovery-sa
+  namespace: prometheus-ai
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: disaster-recovery-backup-pvc
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: fast-ssd
