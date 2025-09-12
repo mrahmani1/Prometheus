@@ -1,0 +1,296 @@
+# Google Kubernetes Engine (GKE) Deployment Configuration
+# Advanced GKE setup with geological workload optimization
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prometheus-gcp
+  labels:
+    name: prometheus-gcp
+    environment: production
+    workload-type: geological-computing
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gcp-integration-config
+  namespace: prometheus-gcp
+data:
+  GCP_PROJECT_ID: "prometheus-ai-platform"
+  GCP_REGION: "us-central1"
+  GCP_ZONE: "us-central1-a"
+  GCP_NETWORK: "prometheus-geological-vpc"
+  GCP_SUBNET: "geological-compute-subnet"
+  LOG_LEVEL: "info"
+  WORKERS: "4"
+  GEOLOGICAL_WORKLOAD_OPTIMIZATION: "enabled"
+  INTELLIGENT_RESOURCE_ALLOCATION: "enabled"
+  ADVANCED_NETWORKING: "enabled"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gcp-service-account-key
+  namespace: prometheus-gcp
+type: Opaque
+data:
+  # Base64 encoded service account key JSON
+  # Replace with actual service account key
+  key.json: ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAicHJvbWV0aGV1cy1haS1wbGF0Zm9ybSIsCiAgInByaXZhdGVfa2V5X2lkIjogIjEyMzQ1Njc4OTAiLAogICJwcml2YXRlX2tleSI6ICItLS0tLUJFR0lOIFBSSVZBVEUgS0VZLS0tLS1cbi4uLlxuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwKICAiY2xpZW50X2VtYWlsIjogInByb21ldGhldXMtc2FAcHJvbWV0aGV1cy1haS1wbGF0Zm9ybS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgImNsaWVudF9pZCI6ICIxMjM0NTY3ODkwIiwKICAiYXV0aF91cmkiOiAiaHR0cHM6Ly9hY2NvdW50cy5nb29nbGUuY29tL28vb2F1dGgyL2F1dGgiLAogICJ0b2tlbl91cmkiOiAiaHR0cHM6Ly9vYXV0aDIuZ29vZ2xlYXBpcy5jb20vdG9rZW4iLAogICJhdXRoX3Byb3ZpZGVyX3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vb2F1dGgyL3YxL2NlcnRzIiwKICAiY2xpZW50X3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vcm9ib3QvdjEvbWV0YWRhdGEveDUwOS9wcm9tZXRoZXVzLXNhJTQwcHJvbWV0aGV1cy1haS1wbGF0Zm9ybS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIKfQ==
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcp-integration-service
+  namespace: prometheus-gcp
+  labels:
+    app: gcp-integration
+    component: core-integration
+    workload-type: geological-computing
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: gcp-integration
+  template:
+    metadata:
+      labels:
+        app: gcp-integration
+        component: core-integration
+        workload-type: geological-computing
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: gcp-integration-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: gcp-integration
+        image: prometheus-ai-platform/gcp-integration:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8000
+          name: metrics
+          protocol: TCP
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/etc/gcp/key.json"
+        envFrom:
+        - configMapRef:
+            name: gcp-integration-config
+        volumeMounts:
+        - name: gcp-service-account
+          mountPath: /etc/gcp
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      volumes:
+      - name: gcp-service-account
+        secret:
+          secretName: gcp-service-account-key
+      - name: tmp
+        emptyDir: {}
+      nodeSelector:
+        workload-type: geological-computing
+      tolerations:
+      - key: "geological-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - gcp-integration
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gcp-integration-sa
+  namespace: prometheus-gcp
+  annotations:
+    iam.gke.io/gcp-service-account: prometheus-sa@prometheus-ai-platform.iam.gserviceaccount.com
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gcp-integration-service
+  namespace: prometheus-gcp
+  labels:
+    app: gcp-integration
+    component: core-integration
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: metrics
+  selector:
+    app: gcp-integration
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gcp-integration-hpa
+  namespace: prometheus-gcp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gcp-integration-service
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: geological_workload_active
+      target:
+        type: AverageValue
+        averageValue: "10"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gcp-integration-network-policy
+  namespace: prometheus-gcp
+spec:
+  podSelector:
+    matchLabels:
+      app: gcp-integration
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-ai
+    - podSelector:
+        matchLabels:
+          component: api-gateway
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gcp-integration-pdb
+  namespace: prometheus-gcp
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: gcp-integration

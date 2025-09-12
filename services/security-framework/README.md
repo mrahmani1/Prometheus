@@ -12,6 +12,7 @@ The Security Framework Service provides comprehensive data protection capabiliti
 - **Encrypted Backup & Archival**: Multi-cloud backup with lifecycle management
 - **Secure Multi-Party Computation**: Privacy-preserving collaborative analysis
 - **Homomorphic Encryption**: Computation on encrypted data
+- **Compliance Dashboard**: Real-time compliance monitoring with interactive visualizations and automated reporting
 
 ## Features
 
@@ -48,6 +49,15 @@ The Security Framework Service provides comprehensive data protection capabiliti
 - Homomorphic encryption for private computation
 - Federated learning for geological models
 - Private set intersection
+
+### 📊 Compliance Dashboard
+- Real-time compliance monitoring across multiple frameworks (GDPR, SOC2, ISO27001)
+- Interactive visualizations with customizable widgets and dashboards
+- Automated compliance reporting with PDF generation and data export
+- Alert management with intelligent notification system
+- Risk assessment matrix with likelihood and impact analysis
+- Data retention compliance monitoring and policy enforcement
+- Audit coverage tracking with comprehensive logging and integrity verification
 
 ## Quick Start
 
@@ -343,6 +353,124 @@ Content-Type: application/json
 }
 ```
 
+### Compliance Dashboard
+
+#### Get Dashboard Data
+
+```bash
+GET /api/v1/compliance/dashboard
+Authorization: Bearer <your-jwt-token>
+Query Parameters:
+  - time_range: last_24_hours|last_7_days|last_30_days|last_90_days|last_year
+  - frameworks: GDPR,SOC2,ISO27001 (comma-separated)
+```
+
+Response:
+```json
+{
+  "metadata": {
+    "generated_at": "2024-01-01T12:00:00Z",
+    "user_permissions": ["compliance_viewer", "compliance_admin"],
+    "time_range": "last_30_days"
+  },
+  "widgets": {
+    "overall_compliance_score": {
+      "widget_config": { ... },
+      "data": {
+        "overall_score": 87.5,
+        "framework_scores": {
+          "GDPR": {"score": 92.0, "policy_count": 25, "violation_count": 2},
+          "SOC2": {"score": 85.0, "policy_count": 30, "violation_count": 4},
+          "ISO27001": {"score": 85.5, "policy_count": 40, "violation_count": 6}
+        },
+        "target_score": 95,
+        "status": "compliant"
+      },
+      "last_updated": "2024-01-01T12:00:00Z"
+    }
+  },
+  "alerts": [
+    {
+      "alert_id": "alert_001",
+      "level": "warning",
+      "title": "Data Retention Policy Violation",
+      "message": "Personal data retained beyond policy limits",
+      "framework": "GDPR",
+      "timestamp": "2024-01-01T11:30:00Z"
+    }
+  ],
+  "summary_metrics": {
+    "total_policies": 95,
+    "active_violations": 12,
+    "compliance_trend": "improving"
+  }
+}
+```
+
+#### Create Compliance Alert
+
+```bash
+POST /api/v1/compliance/alerts
+Content-Type: application/json
+
+{
+  "alert_type": "policy_violation",
+  "level": "warning",
+  "title": "Data Access Policy Violation",
+  "message": "Unauthorized access attempt to confidential geological data",
+  "framework": "SOC2",
+  "affected_resources": ["volcanic_data_2024", "seismic_monitoring"],
+  "recommended_actions": [
+    "Review access permissions",
+    "Audit user activity logs",
+    "Update security policies"
+  ]
+}
+```
+
+#### Acknowledge Alert
+
+```bash
+POST /api/v1/compliance/alerts/{alert_id}/acknowledge
+Content-Type: application/json
+
+{
+  "acknowledged_by": "compliance_officer_001",
+  "notes": "Reviewed and addressed security policy gap"
+}
+```
+
+#### Generate Compliance Report
+
+```bash
+POST /api/v1/compliance/reports/generate
+Content-Type: application/json
+
+{
+  "report_type": "comprehensive",
+  "frameworks": ["GDPR", "SOC2", "ISO27001"],
+  "time_range": "last_90_days",
+  "format": "pdf",
+  "include_sections": [
+    "executive_summary",
+    "compliance_scores",
+    "violation_analysis",
+    "risk_assessment",
+    "recommendations"
+  ]
+}
+```
+
+#### Export Dashboard Data
+
+```bash
+GET /api/v1/compliance/dashboard/export
+Query Parameters:
+  - format: json|csv|excel
+  - time_range: last_30_days
+  - frameworks: GDPR,SOC2,ISO27001
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -506,6 +634,17 @@ For support and questions:
 - Check the documentation wiki
 
 ## Changelog
+
+### v1.1.0 (Latest)
+- **NEW**: Comprehensive Compliance Dashboard with real-time monitoring
+- **NEW**: Interactive visualizations for GDPR, SOC2, and ISO27001 compliance
+- **NEW**: Automated compliance reporting with PDF generation
+- **NEW**: Intelligent alert management with acknowledgment workflow
+- **NEW**: Risk assessment matrix with likelihood and impact analysis
+- **NEW**: Data retention compliance monitoring and policy enforcement
+- **NEW**: Customizable dashboard widgets with role-based access control
+- **ENHANCED**: Database schema with compliance-specific tables and indexes
+- **ENHANCED**: API endpoints for dashboard data, alerts, and reporting
 
 ### v1.0.0
 - Initial release with full security framework

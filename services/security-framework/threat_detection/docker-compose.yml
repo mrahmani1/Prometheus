@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  threat-detection:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://threat_user:threat_pass@postgres:5432/threat_detection
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - redis
+      - postgres
+      - elasticsearch
+    networks:
+      - threat-detection-network
+    volumes:
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./forensics:/app/forensics
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - threat-detection-network
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=threat_detection
+      - POSTGRES_USER=threat_user
+      - POSTGRES_PASSWORD=threat_pass
+    ports:
+      - "5432:5432"
+    networks:
+      - threat-detection-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    networks:
+      - threat-detection-network
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  owasp-zap:
+    image: owasp/zap2docker-stable
+    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
+    ports:
+      - "8080:8080"
+    networks:
+      - threat-detection-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - threat-detection-network
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+
+networks:
+  threat-detection-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  postgres_data:
+  elasticsearch_data:
+  grafana_data:

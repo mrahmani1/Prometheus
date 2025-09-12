@@ -1,0 +1,281 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: disaster-recovery
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+    component: infrastructure
+spec:
+  selector:
+    matchLabels:
+      app: disaster-recovery
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: disaster-recovery-alerts
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+    component: infrastructure
+spec:
+  groups:
+  - name: disaster-recovery.rules
+    rules:
+    - alert: DisasterRecoveryServiceDown
+      expr: up{job="disaster-recovery"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: disaster-recovery
+      annotations:
+        summary: "Disaster Recovery service is down"
+        description: "Disaster Recovery service has been down for more than 1 minute"
+    
+    - alert: ReplicationJobFailed
+      expr: increase(disaster_recovery_replication_failures_total[5m]) > 0
+      for: 0m
+      labels:
+        severity: warning
+        service: disaster-recovery
+      annotations:
+        summary: "Replication job failed"
+        description: "One or more replication jobs have failed in the last 5 minutes"
+    
+    - alert: FailoverJobFailed
+      expr: increase(disaster_recovery_failover_failures_total[5m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        service: disaster-recovery
+      annotations:
+        summary: "Failover job failed"
+        description: "One or more failover jobs have failed in the last 5 minutes"
+    
+    - alert: HighReplicationLag
+      expr: disaster_recovery_replication_lag_seconds > 3600
+      for: 5m
+      labels:
+        severity: warning
+        service: disaster-recovery
+      annotations:
+        summary: "High replication lag detected"
+        description: "Replication lag is {{ $value }} seconds, which is above the 1 hour threshold"
+    
+    - alert: CrossCloudConnectivityIssue
+      expr: disaster_recovery_cross_cloud_latency_ms > 1000
+      for: 2m
+      labels:
+        severity: warning
+        service: disaster-recovery
+      annotations:
+        summary: "Cross-cloud connectivity issue"
+        description: "Cross-cloud latency is {{ $value }}ms, which is above the 1000ms threshold"
+    
+    - alert: SecurityComplianceViolation
+      expr: disaster_recovery_compliance_score < 0.9
+      for: 5m
+      labels:
+        severity: critical
+        service: disaster-recovery
+      annotations:
+        summary: "Security compliance violation detected"
+        description: "Compliance score is {{ $value }}, which is below the 0.9 threshold"
+    
+    - alert: CostThresholdExceeded
+      expr: disaster_recovery_monthly_cost_usd > 10000
+      for: 10m
+      labels:
+        severity: warning
+        service: disaster-recovery
+      annotations:
+        summary: "Monthly cost threshold exceeded"
+        description: "Monthly cost is ${{ $value }}, which exceeds the $10,000 threshold"
+    
+    - alert: BackupJobFailed
+      expr: increase(disaster_recovery_backup_failures_total[1h]) > 0
+      for: 0m
+      labels:
+        severity: warning
+        service: disaster-recovery
+      annotations:
+        summary: "Backup job failed"
+        description: "One or more backup jobs have failed in the last hour"
+    
+    - alert: ProviderConnectionLost
+      expr: disaster_recovery_provider_connected == 0
+      for: 2m
+      labels:
+        severity: critical
+        service: disaster-recovery
+      annotations:
+        summary: "Cloud provider connection lost"
+        description: "Connection to cloud provider {{ $labels.provider }} has been lost"
+    
+    - alert: HighErrorRate
+      expr: rate(disaster_recovery_http_requests_total{status=~"5.."}[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        service: disaster-recovery
+      annotations:
+        summary: "High error rate detected"
+        description: "Error rate is {{ $value | humanizePercentage }}, which is above 10%"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-grafana-dashboard
+  namespace: prometheus-ai
+  labels:
+    app: disaster-recovery
+    component: infrastructure
+    grafana_dashboard: "1"
+data:
+  disaster-recovery-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Multi-Cloud Disaster Recovery",
+        "tags": ["disaster-recovery", "multi-cloud", "infrastructure"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "System Overview",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"disaster-recovery\"}",
+                "legendFormat": "Service Status"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Active Replications",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "disaster_recovery_active_replications",
+                "legendFormat": "Active Jobs"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Replication Status",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "disaster_recovery_replications_by_status",
+                "legendFormat": "{{ status }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Cross-Cloud Latency",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "disaster_recovery_cross_cloud_latency_ms",
+                "legendFormat": "{{ source_provider }} -> {{ target_provider }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Latency (ms)",
+                "min": 0
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Monthly Costs by Provider",
+            "type": "bargauge",
+            "targets": [
+              {
+                "expr": "disaster_recovery_monthly_cost_by_provider_usd",
+                "legendFormat": "{{ provider }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Security Compliance Score",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "disaster_recovery_compliance_score",
+                "legendFormat": "Compliance Score"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "min": 0,
+                "max": 1,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.8},
+                    {"color": "green", "value": 0.9}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 7,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(disaster_recovery_http_requests_total[5m])",
+                "legendFormat": "{{ method }} {{ status }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests/sec",
+                "min": 0
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }

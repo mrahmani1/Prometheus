@@ -24,6 +24,15 @@
 - **Azure CLI**: For cloud deployment
 - **NVIDIA Docker**: For GPU support in containers
 
+### VR/AR Development Requirements (🔄 **IN DEVELOPMENT**)
+For immersive visualization development:
+- **Unity 3D**: 2022.3 LTS or higher for VR/AR application development
+- **Unreal Engine**: 5.1+ for high-fidelity geological visualization
+- **VR Hardware**: Meta Quest 2/3, HTC Vive Pro, Valve Index, or Pico 4 Enterprise
+- **AR Hardware**: iOS/Android devices with ARKit/ARCore, Microsoft HoloLens, Magic Leap
+- **Haptic Devices**: 3D Systems Touch, Novint Falcon, or Ultraleap hand tracking
+- **WebXR Browser**: Chrome 90+, Firefox 98+, or Edge 90+ for browser-based VR/AR
+
 ---
 
 ## 🚀 Quick Start (Development)
@@ -89,6 +98,14 @@ docker-compose ps
 - **Neo4j Browser**: http://localhost:7474
 - **Consul UI**: http://localhost:8500
 - **Grafana Monitoring**: http://localhost:3001
+
+#### Future VR/AR Services (🔄 **IN DEVELOPMENT**)
+- **VR Geological Explorer**: http://localhost:8007/docs
+- **AR Field Assistant**: http://localhost:8008/docs
+- **Haptic Feedback Service**: http://localhost:8009/docs
+- **Collaborative VR/AR**: http://localhost:8010/docs
+- **Gesture Control Service**: http://localhost:8011/docs
+- **Immersive Analytics**: http://localhost:8012/docs
 
 ---
 
@@ -173,6 +190,13 @@ pip install azure-ai-ml azure-storage-blob azure-identity
 pip install google-cloud-aiplatform google-cloud-storage
 pip install boto3 sagemaker
 pip install mlflow
+
+# ✅ NEW: Install Advanced ML Pipeline dependencies
+pip install optuna pytorch-lightning transformers timm
+pip install xgboost lightgbm catboost
+pip install networkx pgmpy causal-learn
+pip install higher learn2learn  # For meta-learning (MAML)
+pip install stable-baselines3  # For reinforcement learning
 ```
 
 #### 3. Database Setup

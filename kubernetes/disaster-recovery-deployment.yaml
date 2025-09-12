@@ -6,9 +6,14 @@ metadata:
   labels:
     app: disaster-recovery
     component: infrastructure
-    tier: management
+    version: v1.0.0
 spec:
-  replicas: 2
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: disaster-recovery
@@ -17,9 +22,13 @@ spec:
       labels:
         app: disaster-recovery
         component: infrastructure
-        tier: management
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
-      serviceAccountName: disaster-recovery-sa
+      serviceAccountName: disaster-recovery
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -29,131 +38,148 @@ spec:
         image: prometheus-ai/disaster-recovery:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080
+        - containerPort: 8000
           name: http
           protocol: TCP
         env:
-        # Database connections
-        - name: POSTGRES_HOST
-          value: "postgresql"
-        - name: POSTGRES_PORT
-          value: "5432"
-        - name: POSTGRES_DB
-          valueFrom:
-            secretKeyRef:
-              name: database-secrets
-              key: postgres-database
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: database-secrets
-              key: postgres-username
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: database-secrets
-              key: postgres-password
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8000"
+        - name: WORKERS
+          value: "4"
         
-        - name: INFLUXDB_URL
-          value: "http://influxdb:8086"
-        - name: INFLUXDB_TOKEN
+        # Cloud Provider Configuration
+        - name: GCP_ENABLED
+          value: "true"
+        - name: GCP_PROJECT_ID
           valueFrom:
             secretKeyRef:
-              name: database-secrets
-              key: influxdb-token
-        - name: INFLUXDB_ORG
-          valueFrom:
-            configMapKeyRef:
-              name: database-config
-              key: influxdb-org
-        - name: INFLUXDB_BUCKET
-          valueFrom:
-            configMapKeyRef:
-              name: database-config
-              key: influxdb-bucket
+              name: disaster-recovery-secrets
+              key: gcp-project-id
+        - name: GCP_REGIONS
+          value: "us-central1,europe-west1,asia-southeast1"
         
-        - name: NEO4J_URI
-          value: "bolt://neo4j:7687"
-        - name: NEO4J_USER
+        - name: AZURE_ENABLED
+          value: "true"
+        - name: AZURE_SUBSCRIPTION_ID
           valueFrom:
             secretKeyRef:
-              name: database-secrets
-              key: neo4j-username
-        - name: NEO4J_PASSWORD
+              name: disaster-recovery-secrets
+              key: azure-subscription-id
+        - name: AZURE_TENANT_ID
           valueFrom:
             secretKeyRef:
-              name: database-secrets
-              key: neo4j-password
+              name: disaster-recovery-secrets
+              key: azure-tenant-id
+        - name: AZURE_REGIONS
+          value: "eastus,westeurope,southeastasia"
         
-        - name: REDIS_HOST
-          value: "redis"
-        - name: REDIS_PORT
-          value: "6379"
-        - name: REDIS_PASSWORD
+        - name: AWS_ENABLED
+          value: "true"
+        - name: AWS_ACCOUNT_ID
           valueFrom:
             secretKeyRef:
-              name: database-secrets
-              key: redis-password
-        - name: REDIS_DB
-          value: "0"
-        
-        # Storage configuration
-        - name: BACKUP_LOCAL_PATH
-          value: "/data/backups"
-        - name: BACKUP_S3_BUCKET
-          valueFrom:
-            configMapKeyRef:
-              name: disaster-recovery-config
-              key: backup-s3-bucket
-        - name: BACKUP_GCS_BUCKET
-          valueFrom:
-            configMapKeyRef:
-              name: disaster-recovery-config
-              key: backup-gcs-bucket
-        
-        # AWS credentials
+              name: disaster-recovery-secrets
+              key: aws-account-id
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:
-              name: cloud-credentials
+              name: disaster-recovery-secrets
               key: aws-access-key-id
         - name: AWS_SECRET_ACCESS_KEY
           valueFrom:
             secretKeyRef:
-              name: cloud-credentials
+              name: disaster-recovery-secrets
               key: aws-secret-access-key
-        - name: AWS_DEFAULT_REGION
-          valueFrom:
-            configMapKeyRef:
-              name: disaster-recovery-config
-              key: aws-default-region
+        - name: AWS_REGIONS
+          value: "us-east-1,eu-west-1,ap-southeast-1"
         
-        # Google Cloud credentials
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "/etc/gcp/service-account.json"
+        # Feature Configuration
+        - name: REPLICATION_ENABLED
+          value: "true"
+        - name: REPLICATION_SYNC_INTERVAL
+          value: "300"
+        - name: REPLICATION_MAX_JOBS
+          value: "10"
         
-        # Multi-region database connections
-        - name: POSTGRES_HOST_US_EAST_1
-          valueFrom:
-            configMapKeyRef:
-              name: disaster-recovery-config
-              key: postgres-host-us-east-1
-        - name: POSTGRES_HOST_EU_WEST_1
-          valueFrom:
-            configMapKeyRef:
-              name: disaster-recovery-config
-              key: postgres-host-eu-west-1
+        - name: FAILOVER_ENABLED
+          value: "true"
+        - name: AUTOMATIC_FAILOVER
+          value: "false"
+        - name: FAILOVER_VALIDATION_TIMEOUT
+          value: "300"
         
-        - name: INFLUXDB_URL_US_EAST_1
+        - name: BACKUP_ENABLED
+          value: "true"
+        - name: BACKUP_RETENTION_DAYS
+          value: "30"
+        - name: CROSS_REGION_BACKUP
+          value: "true"
+        
+        - name: ENCRYPTION_AT_REST
+          value: "true"
+        - name: ENCRYPTION_IN_TRANSIT
+          value: "true"
+        - name: MFA_REQUIRED
+          value: "true"
+        
+        - name: MONITORING_ENABLED
+          value: "true"
+        - name: MONITORING_INTERVAL
+          value: "60"
+        
+        - name: COST_OPTIMIZATION_ENABLED
+          value: "true"
+        - name: COST_ANALYSIS_INTERVAL
+          value: "24"
+        - name: AUTO_COST_OPTIMIZATION
+          value: "false"
+        
+        # Database Configuration
+        - name: DATABASE_URL
           valueFrom:
-            configMapKeyRef:
-              name: disaster-recovery-config
-              key: influxdb-url-us-east-1
-        - name: INFLUXDB_URL_EU_WEST_1
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: database-url
+        - name: REDIS_URL
           valueFrom:
-            configMapKeyRef:
-              name: disaster-recovery-config
-              key: influxdb-url-eu-west-1
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: redis-url
+        
+        # External Services
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        - name: GRAFANA_URL
+          value: "http://grafana:3000"
+        - name: CONSUL_URL
+          value: "http://consul:8500"
+        
+        # Authentication
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: jwt-secret-key
+        - name: JWT_ALGORITHM
+          value: "HS256"
+        - name: JWT_EXPIRATION_HOURS
+          value: "24"
+        
+        # Rate Limiting
+        - name: RATE_LIMIT_REQUESTS
+          value: "100"
+        - name: RATE_LIMIT_WINDOW
+          value: "60"
+        
+        # CORS
+        - name: CORS_ORIGINS
+          value: "*"
         
         resources:
           requests:
@@ -166,46 +192,40 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8080
+            port: 8000
           initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
           failureThreshold: 3
         
         readinessProbe:
           httpGet:
             path: /ready
-            port: 8080
-          initialDelaySeconds: 15
-          periodSeconds: 10
-          timeoutSeconds: 5
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
           failureThreshold: 3
         
         volumeMounts:
-        - name: backup-storage
-          mountPath: /data/backups
-        - name: config-volume
-          mountPath: /etc/prometheus
-          readOnly: true
         - name: gcp-credentials
           mountPath: /etc/gcp
           readOnly: true
-        - name: temp-storage
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: tmp
           mountPath: /tmp
       
       volumes:
-      - name: backup-storage
-        persistentVolumeClaim:
-          claimName: disaster-recovery-backup-pvc
-      - name: config-volume
-        configMap:
-          name: disaster-recovery-config-files
       - name: gcp-credentials
         secret:
-          secretName: gcp-service-account
-      - name: temp-storage
-        emptyDir:
-          sizeLimit: 10Gi
+          secretName: gcp-service-account-key
+      - name: config
+        configMap:
+          name: disaster-recovery-config
+      - name: tmp
+        emptyDir: {}
       
       affinity:
         podAntiAffinity:
@@ -219,6 +239,11 @@ spec:
                   values:
                   - disaster-recovery
               topologyKey: kubernetes.io/hostname
+      
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
 
 ---
 apiVersion: v1
@@ -229,11 +254,15 @@ metadata:
   labels:
     app: disaster-recovery
     component: infrastructure
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
 spec:
   type: ClusterIP
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 8000
+    targetPort: 8000
     protocol: TCP
     name: http
   selector:
@@ -243,53 +272,149 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: disaster-recovery-sa
+  name: disaster-recovery
   namespace: prometheus-ai
   labels:
     app: disaster-recovery
+    component: infrastructure
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: disaster-recovery-role
+  name: disaster-recovery
+  labels:
+    app: disaster-recovery
+    component: infrastructure
 rules:
 - apiGroups: [""]
-  resources: ["pods", "services", "endpoints", "persistentvolumeclaims"]
+  resources: ["pods", "services", "endpoints", "persistentvolumeclaims", "events", "configmaps", "secrets"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["apps"]
-  resources: ["deployments", "replicasets", "statefulsets"]
+  resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: [""]
-  resources: ["events"]
-  verbs: ["create", "patch"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors", "podmonitors"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: disaster-recovery-binding
+  name: disaster-recovery
+  labels:
+    app: disaster-recovery
+    component: infrastructure
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: disaster-recovery-role
+  name: disaster-recovery
 subjects:
 - kind: ServiceAccount
-  name: disaster-recovery-sa
+  name: disaster-recovery
   namespace: prometheus-ai
 
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: ConfigMap
 metadata:
-  name: disaster-recovery-backup-pvc
+  name: disaster-recovery-config
   namespace: prometheus-ai
   labels:
     app: disaster-recovery
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Gi
-  storageClassName: fast-ssd
+    component: infrastructure
+data:
+  config.yaml: |
+    service:
+      name: "multi-cloud-disaster-recovery"
+      version: "1.0.0"
+      environment: "production"
+    
+    providers:
+      gcp:
+        enabled: true
+        regions:
+          - "us-central1"
+          - "europe-west1"
+          - "asia-southeast1"
+      azure:
+        enabled: true
+        regions:
+          - "eastus"
+          - "westeurope"
+          - "southeastasia"
+      aws:
+        enabled: true
+        regions:
+          - "us-east-1"
+          - "eu-west-1"
+          - "ap-southeast-1"
+    
+    features:
+      replication:
+        enabled: true
+        sync_interval_seconds: 300
+        max_concurrent_jobs: 10
+        retry_attempts: 3
+        compression_enabled: true
+        encryption_enabled: true
+      
+      failover:
+        enabled: true
+        automatic_failover: false
+        validation_timeout_seconds: 300
+        rollback_timeout_seconds: 600
+        health_check_interval_seconds: 30
+        max_failover_attempts: 3
+      
+      backup:
+        enabled: true
+        default_retention_days: 30
+        max_retention_days: 365
+        encryption_enabled: true
+        compression_enabled: true
+        cross_region_backup: true
+        backup_schedule_cron: "0 2 * * *"
+      
+      security:
+        encryption_at_rest: true
+        encryption_in_transit: true
+        mfa_required: true
+        audit_logging: true
+        vulnerability_scanning: true
+        compliance_monitoring: true
+        security_scan_interval_hours: 24
+      
+      monitoring:
+        enabled: true
+        metrics_interval_seconds: 60
+        health_check_interval_seconds: 30
+        alert_thresholds:
+          cpu_usage: 80.0
+          memory_usage: 85.0
+          disk_usage: 90.0
+          network_latency_ms: 100.0
+          error_rate: 5.0
+      
+      cost_optimization:
+        enabled: true
+        analysis_interval_hours: 24
+        auto_optimization: false
+        cost_alert_threshold_percent: 20.0
+        reserved_instance_recommendations: true
+        spot_instance_recommendations: true
+    
+    compliance_frameworks:
+      - "SOC2"
+      - "ISO27001"
+      - "GDPR"
+      - "HIPAA"
+      - "PCI-DSS"
+    
+    logging:
+      level: "INFO"
+      format: "json"
+      structured: true

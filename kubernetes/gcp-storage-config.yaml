@@ -1,0 +1,297 @@
+# Google Cloud Storage Configuration
+# Advanced storage integration with geological data lifecycle management
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gcp-storage-config
+  namespace: prometheus-gcp
+data:
+  # Storage bucket configurations for different geological data types
+  storage-config.yaml: |
+    geological_storage_buckets:
+      seismic_data:
+        name: "prometheus-seismic-data"
+        storage_class: "STANDARD"
+        location: "us-central1"
+        lifecycle_rules:
+          - action:
+              type: "SetStorageClass"
+              storage_class: "NEARLINE"
+            condition:
+              age: 30
+              matches_storage_class: ["STANDARD"]
+          - action:
+              type: "SetStorageClass"
+              storage_class: "COLDLINE"
+            condition:
+              age: 365
+              matches_storage_class: ["NEARLINE"]
+          - action:
+              type: "SetStorageClass"
+              storage_class: "ARCHIVE"
+            condition:
+              age: 2555  # 7 years
+              matches_storage_class: ["COLDLINE"]
+        versioning:
+          enabled: true
+        retention_policy:
+          retention_period: 2555  # 7 years in days
+        cors:
+          - origin: ["*"]
+            method: ["GET", "POST", "PUT"]
+            response_header: ["Content-Type"]
+            max_age_seconds: 3600
+        
+      volcanic_monitoring:
+        name: "prometheus-volcanic-monitoring"
+        storage_class: "STANDARD"
+        location: "us-central1"
+        lifecycle_rules:
+          - action:
+              type: "SetStorageClass"
+              storage_class: "NEARLINE"
+            condition:
+              age: 7
+              matches_storage_class: ["STANDARD"]
+          - action:
+              type: "SetStorageClass"
+              storage_class: "COLDLINE"
+            condition:
+              age: 90
+              matches_storage_class: ["NEARLINE"]
+        versioning:
+          enabled: true
+        retention_policy:
+          retention_period: 1095  # 3 years
+        
+      geological_models:
+        name: "prometheus-geological-models"
+        storage_class: "STANDARD"
+        location: "us-central1"
+        lifecycle_rules:
+          - action:
+              type: "SetStorageClass"
+              storage_class: "NEARLINE"
+            condition:
+              age: 90
+              matches_storage_class: ["STANDARD"]
+          - action:
+              type: "SetStorageClass"
+              storage_class: "ARCHIVE"
+            condition:
+              age: 1095  # 3 years
+              matches_storage_class: ["NEARLINE"]
+        versioning:
+          enabled: true
+        retention_policy:
+          retention_period: 3650  # 10 years
+        
+      resource_assessment:
+        name: "prometheus-resource-assessment"
+        storage_class: "STANDARD"
+        location: "us-central1"
+        lifecycle_rules:
+          - action:
+              type: "SetStorageClass"
+              storage_class: "NEARLINE"
+            condition:
+              age: 180
+              matches_storage_class: ["STANDARD"]
+          - action:
+              type: "SetStorageClass"
+              storage_class: "COLDLINE"
+            condition:
+              age: 730  # 2 years
+              matches_storage_class: ["NEARLINE"]
+        versioning:
+          enabled: true
+        retention_policy:
+          retention_period: 2555  # 7 years
+        
+      ml_models:
+        name: "prometheus-ml-models"
+        storage_class: "STANDARD"
+        location: "us-central1"
+        lifecycle_rules:
+          - action:
+              type: "SetStorageClass"
+              storage_class: "NEARLINE"
+            condition:
+              age: 30
+              matches_storage_class: ["STANDARD"]
+          - action:
+              type: "SetStorageClass"
+              storage_class: "COLDLINE"
+            condition:
+              age: 365
+              matches_storage_class: ["NEARLINE"]
+        versioning:
+          enabled: true
+        retention_policy:
+          retention_period: 1825  # 5 years
+        
+      backup_archive:
+        name: "prometheus-backup-archive"
+        storage_class: "ARCHIVE"
+        location: "us-central1"
+        lifecycle_rules:
+          - action:
+              type: "Delete"
+            condition:
+              age: 3650  # 10 years
+        versioning:
+          enabled: true
+        retention_policy:
+          retention_period: 3650  # 10 years
+
+    # Intelligent data management policies
+    data_management_policies:
+      auto_classification:
+        enabled: true
+        rules:
+          - pattern: "seismic/*"
+            bucket: "seismic_data"
+            metadata:
+              data_type: "seismic"
+              sensitivity: "public"
+          - pattern: "volcanic/*"
+            bucket: "volcanic_monitoring"
+            metadata:
+              data_type: "volcanic"
+              sensitivity: "public"
+          - pattern: "models/*"
+            bucket: "geological_models"
+            metadata:
+              data_type: "model"
+              sensitivity: "internal"
+          - pattern: "assessment/*"
+            bucket: "resource_assessment"
+            metadata:
+              data_type: "assessment"
+              sensitivity: "confidential"
+      
+      automated_archival:
+        enabled: true
+        schedule: "0 2 * * *"  # Daily at 2 AM
+        policies:
+          - source_age_days: 30
+            target_storage_class: "NEARLINE"
+          - source_age_days: 365
+            target_storage_class: "COLDLINE"
+          - source_age_days: 2555
+            target_storage_class: "ARCHIVE"
+      
+      cost_optimization:
+        enabled: true
+        monitoring_interval: "24h"
+        optimization_rules:
+          - metric: "access_frequency"
+            threshold: 0.1  # Less than 0.1 accesses per day
+            action: "downgrade_storage_class"
+          - metric: "storage_cost"
+            threshold: 1000  # $1000 per month
+            action: "review_lifecycle_policies"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gcp-storage-lifecycle-manager
+  namespace: prometheus-gcp
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: gcp-integration-sa
+          containers:
+          - name: storage-lifecycle-manager
+            image: prometheus-ai-platform/gcp-integration:latest
+            command:
+            - python
+            - -c
+            - |
+              import asyncio
+              import logging
+              from google.cloud import storage
+              import yaml
+              import os
+              
+              async def manage_storage_lifecycle():
+                  """Manage storage lifecycle policies"""
+                  client = storage.Client()
+                  
+                  # Load configuration
+                  with open('/etc/config/storage-config.yaml', 'r') as f:
+                      config = yaml.safe_load(f)
+                  
+                  for bucket_name, bucket_config in config['geological_storage_buckets'].items():
+                      try:
+                          bucket = client.bucket(bucket_config['name'])
+                          
+                          # Apply lifecycle rules
+                          if 'lifecycle_rules' in bucket_config:
+                              bucket.lifecycle_rules = bucket_config['lifecycle_rules']
+                              bucket.patch()
+                              
+                          logging.info(f"Updated lifecycle rules for {bucket_config['name']}")
+                          
+                      except Exception as e:
+                          logging.error(f"Failed to update {bucket_config['name']}: {e}")
+              
+              if __name__ == "__main__":
+                  asyncio.run(manage_storage_lifecycle())
+            env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/gcp/key.json"
+            volumeMounts:
+            - name: gcp-service-account
+              mountPath: /etc/gcp
+              readOnly: true
+            - name: storage-config
+              mountPath: /etc/config
+              readOnly: true
+          volumes:
+          - name: gcp-service-account
+            secret:
+              secretName: gcp-service-account-key
+          - name: storage-config
+            configMap:
+              name: gcp-storage-config
+          restartPolicy: OnFailure
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gcp-storage-manager
+  namespace: prometheus-gcp
+  labels:
+    app: gcp-storage-manager
+    component: storage-lifecycle
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: gcp-storage-manager
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gcp-storage-metrics
+  namespace: prometheus-gcp
+spec:
+  selector:
+    matchLabels:
+      app: gcp-integration
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics

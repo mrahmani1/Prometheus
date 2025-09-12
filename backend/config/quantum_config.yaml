@@ -1,0 +1,260 @@
+# Quantum Computing Integration Configuration
+# This file contains configuration settings for quantum computing capabilities
+# including circuit parameters, cloud services, and security settings.
+
+quantum_computing:
+  # Core quantum circuit configuration
+  circuit:
+    num_qubits: 6                    # Number of qubits for geological simulations
+    circuit_depth: 4                 # Depth of quantum circuits
+    entanglement: "linear"           # Entanglement pattern: linear, full, circular
+    rotation_blocks: ["ry", "rz"]    # Rotation gate types
+    entanglement_blocks: "cx"        # Entanglement gate type
+    insert_barriers: true            # Insert barriers for noise analysis
+    parameter_prefix: "θ"            # Parameter naming prefix
+    
+  # Quantum machine learning configuration
+  machine_learning:
+    num_qubits: 4                    # Qubits for ML models
+    num_layers: 3                    # Variational circuit layers
+    optimizer: "SPSA"                # Classical optimizer: SPSA, COBYLA, L_BFGS_B
+    max_iterations: 100              # Maximum optimization iterations
+    learning_rate: 0.01              # Learning rate for optimization
+    feature_encoding: "amplitude"    # Feature encoding: amplitude, angle, basis
+    
+  # Quantum optimization configuration
+  optimization:
+    num_qubits: 6                    # Qubits for optimization problems
+    qaoa_layers: 2                   # QAOA circuit layers
+    optimizer: "COBYLA"              # Classical optimizer for QAOA
+    max_iterations: 200              # Maximum optimization iterations
+    penalty_weight: 10.0             # Constraint penalty weight
+    
+  # Quantum cryptography configuration
+  cryptography:
+    key_length: 256                  # Quantum key length in bits
+    security_level: "high"           # Security level: low, medium, high, ultra
+    key_rotation_interval: 30        # Key rotation interval in days
+    verification_method: "sha256"    # Classical verification method
+    
+  # Performance and resource limits
+  performance:
+    max_qubits: 20                   # Maximum qubits for any operation
+    max_circuit_depth: 100           # Maximum circuit depth
+    max_shots: 10000                 # Maximum shots per execution
+    timeout_seconds: 300             # Execution timeout
+    memory_limit_gb: 8               # Memory limit for simulations
+    
+  # Error mitigation settings
+  error_mitigation:
+    enabled: true                    # Enable error mitigation
+    methods: ["zne", "rem"]          # Zero noise extrapolation, readout error mitigation
+    calibration_shots: 1000          # Shots for calibration
+    extrapolation_factors: [1, 2, 3] # Noise scaling factors for ZNE
+    
+# Multi-cloud quantum service configuration
+cloud_services:
+  # Google Quantum AI configuration
+  google_quantum:
+    enabled: false                   # Enable Google Quantum AI
+    project_id: ""                   # Google Cloud project ID
+    processor_id: "rainbow"          # Quantum processor ID
+    location: "us-central1-c"        # Processor location
+    credentials_path: ""             # Path to service account credentials
+    
+  # IBM Quantum configuration
+  ibm_quantum:
+    enabled: false                   # Enable IBM Quantum
+    token: ""                        # IBM Quantum API token
+    hub: "ibm-q"                     # IBM Quantum hub
+    group: "open"                    # IBM Quantum group
+    project: "main"                  # IBM Quantum project
+    backend: "ibmq_qasm_simulator"   # Default backend
+    
+  # AWS Braket configuration
+  aws_braket:
+    enabled: false                   # Enable AWS Braket
+    access_key_id: ""                # AWS access key ID
+    secret_access_key: ""            # AWS secret access key
+    region: "us-east-1"              # AWS region
+    device_arn: ""                   # Quantum device ARN
+    s3_bucket: ""                    # S3 bucket for results
+    
+  # Azure Quantum configuration
+  azure_quantum:
+    enabled: false                   # Enable Azure Quantum
+    subscription_id: ""              # Azure subscription ID
+    resource_group: ""               # Azure resource group
+    workspace_name: ""               # Azure Quantum workspace name
+    location: "East US"              # Azure region
+    target: "ionq.simulator"         # Default quantum target
+    
+  # Service selection preferences
+  selection:
+    auto_select: true                # Automatically select optimal service
+    prefer_real_hardware: false      # Prefer real quantum hardware over simulators
+    cost_optimization: true          # Consider cost in service selection
+    latency_optimization: true       # Consider latency in service selection
+    
+# Geological application specific settings
+geological_applications:
+  # Volcanic monitoring quantum algorithms
+  volcanic_monitoring:
+    hamiltonian_terms: ["stress", "thermal", "magmatic", "hydrothermal"]
+    coupling_strengths: [1.0, 0.8, 0.6, 0.4]
+    time_evolution_steps: 10
+    measurement_basis: ["z", "x", "y"]
+    
+  # Seismic analysis quantum ML
+  seismic_analysis:
+    feature_dimensions: 4            # Number of seismic features
+    classification_classes: 2        # Number of event classes
+    training_shots: 1024             # Shots for training
+    validation_split: 0.2            # Validation data fraction
+    
+  # Resource optimization quantum algorithms
+  resource_optimization:
+    problem_types: ["drilling", "exploration", "extraction"]
+    constraint_types: ["budget", "environmental", "technical"]
+    solution_validation: true        # Validate quantum solutions
+    classical_comparison: true       # Compare with classical methods
+    
+  # Geological data security
+  data_security:
+    encryption_algorithms: ["quantum_xor", "aes_quantum_key"]
+    key_distribution: "bb84"         # Quantum key distribution protocol
+    authentication_method: "quantum_signature"
+    data_classification_levels: ["public", "internal", "confidential", "secret"]
+    
+# Monitoring and logging configuration
+monitoring:
+  # Performance metrics
+  metrics:
+    enabled: true                    # Enable metrics collection
+    collection_interval: 60          # Metrics collection interval (seconds)
+    retention_days: 30               # Metrics retention period
+    export_format: "prometheus"      # Metrics export format
+    
+  # Logging configuration
+  logging:
+    level: "INFO"                    # Log level: DEBUG, INFO, WARNING, ERROR
+    format: "json"                   # Log format: json, text
+    file_path: "/var/log/quantum/"   # Log file directory
+    max_file_size: "100MB"           # Maximum log file size
+    backup_count: 5                  # Number of backup log files
+    
+  # Alerting configuration
+  alerting:
+    enabled: true                    # Enable alerting
+    channels: ["email", "slack"]     # Alert channels
+    thresholds:
+      error_rate: 0.05               # Error rate threshold
+      latency_ms: 5000               # Latency threshold
+      queue_depth: 100               # Queue depth threshold
+      
+# Development and testing settings
+development:
+  # Testing configuration
+  testing:
+    mock_quantum_execution: true     # Mock quantum execution for testing
+    synthetic_data_generation: true  # Generate synthetic geological data
+    benchmark_datasets: true         # Use benchmark datasets
+    performance_profiling: true      # Enable performance profiling
+    
+  # Debugging configuration
+  debugging:
+    circuit_visualization: true      # Enable circuit visualization
+    state_vector_logging: false      # Log quantum state vectors (memory intensive)
+    parameter_tracking: true         # Track optimization parameters
+    execution_tracing: true          # Trace quantum execution steps
+    
+  # Simulation settings
+  simulation:
+    backend_type: "aer_simulator"    # Simulation backend
+    noise_model: "ideal"             # Noise model: ideal, device, custom
+    basis_gates: ["u1", "u2", "u3", "cx"] # Basis gate set
+    coupling_map: null               # Qubit connectivity (null for all-to-all)
+    
+# Security and compliance settings
+security:
+  # Access control
+  access_control:
+    authentication_required: true    # Require authentication
+    authorization_method: "rbac"     # Role-based access control
+    session_timeout: 3600            # Session timeout (seconds)
+    max_concurrent_sessions: 10      # Maximum concurrent sessions
+    
+  # Data protection
+  data_protection:
+    encryption_at_rest: true         # Encrypt data at rest
+    encryption_in_transit: true      # Encrypt data in transit
+    key_management: "quantum"        # Key management system
+    data_anonymization: true         # Anonymize sensitive data
+    
+  # Compliance
+  compliance:
+    gdpr_compliance: true            # GDPR compliance
+    audit_logging: true              # Enable audit logging
+    data_retention_policy: 365       # Data retention period (days)
+    privacy_by_design: true          # Privacy by design principles
+    
+# Integration settings
+integration:
+  # API configuration
+  api:
+    version: "v1"                    # API version
+    rate_limiting: true              # Enable rate limiting
+    requests_per_minute: 100         # Rate limit
+    authentication_method: "jwt"     # JWT authentication
+    
+  # Database integration
+  database:
+    connection_pool_size: 10         # Database connection pool size
+    query_timeout: 30                # Query timeout (seconds)
+    transaction_isolation: "read_committed" # Transaction isolation level
+    
+  # Message queue integration
+  message_queue:
+    broker_type: "kafka"             # Message broker type
+    topic_prefix: "quantum_"         # Topic prefix
+    batch_size: 100                  # Message batch size
+    compression: "gzip"              # Message compression
+    
+# Environment-specific overrides
+environments:
+  development:
+    quantum_computing:
+      circuit:
+        num_qubits: 4                # Smaller circuits for development
+      performance:
+        max_qubits: 8                # Lower limits for development
+        timeout_seconds: 60          # Shorter timeout
+    cloud_services:
+      google_quantum:
+        enabled: false               # Disable cloud services in development
+      ibm_quantum:
+        enabled: false
+      aws_braket:
+        enabled: false
+      azure_quantum:
+        enabled: false
+        
+  testing:
+    development:
+      testing:
+        mock_quantum_execution: true # Always mock in testing
+        synthetic_data_generation: true
+        
+  production:
+    quantum_computing:
+      circuit:
+        num_qubits: 20               # Full capability in production
+      performance:
+        max_qubits: 50               # Higher limits for production
+        timeout_seconds: 600         # Longer timeout
+    monitoring:
+      logging:
+        level: "WARNING"             # Less verbose logging in production
+    security:
+      access_control:
+        session_timeout: 1800        # Shorter session timeout in production

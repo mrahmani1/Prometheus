@@ -1,0 +1,360 @@
+# Automated Scientific Discovery System Configuration
+# This file contains configuration settings for all components of the discovery system
+
+system:
+  name: "Automated Scientific Discovery System"
+  version: "1.0.0"
+  environment: "development"  # development, staging, production
+  log_level: "INFO"
+  max_concurrent_pipelines: 10
+  default_timeout: 3600  # seconds
+
+# Hypothesis Generation Configuration
+hypothesis_generation:
+  models:
+    text_generation_model: "t5-base"
+    sentence_transformer_model: "all-MiniLM-L6-v2"
+    spacy_model: "en_core_web_sm"
+  
+  parameters:
+    max_hypotheses_per_pattern: 3
+    min_confidence_threshold: 0.3
+    min_novelty_threshold: 0.2
+    min_testability_threshold: 0.1
+    temperature: 0.7
+    max_length: 200
+  
+  geological_knowledge:
+    enable_domain_constraints: true
+    enforce_physical_laws: true
+    use_temporal_scales: true
+    use_spatial_scales: true
+
+# Experiment Design Configuration
+experiment_design:
+  design_types:
+    - "observational_study"
+    - "controlled_experiment"
+    - "field_study"
+    - "laboratory_experiment"
+    - "computational_simulation"
+  
+  parameters:
+    min_feasibility_threshold: 0.4
+    max_cost_estimate: 100000  # USD
+    default_timeline_weeks: 12
+    risk_tolerance: 0.7
+  
+  resource_estimation:
+    personnel_cost_per_month: 5000  # USD
+    equipment_base_cost: 2000  # USD
+    materials_base_cost: 500  # USD
+    overhead_percentage: 0.3
+
+# Literature Mining Configuration
+literature_mining:
+  sources:
+    arxiv:
+      enabled: true
+      max_results_per_query: 50
+      categories: ["physics.geo-ph", "cs.LG", "stat.ML"]
+    
+    google_scholar:
+      enabled: true
+      max_results_per_query: 30
+      rate_limit_delay: 2  # seconds
+    
+    pubmed:
+      enabled: false  # Requires API key
+      max_results_per_query: 25
+  
+  parameters:
+    max_papers_total: 100
+    similarity_threshold: 0.9  # for deduplication
+    min_citation_count: 0
+    max_abstract_length: 2000
+  
+  analysis:
+    enable_semantic_clustering: true
+    enable_temporal_analysis: true
+    enable_citation_network: true
+    min_cluster_size: 3
+
+# Knowledge Graph Configuration
+knowledge_graph:
+  node_types:
+    - "paper"
+    - "author"
+    - "hypothesis"
+    - "concept"
+    - "institution"
+  
+  relationship_types:
+    - "cites"
+    - "authored_by"
+    - "affiliated_with"
+    - "studies"
+    - "similar_to"
+    - "supports"
+    - "contradicts"
+  
+  parameters:
+    max_nodes: 10000
+    similarity_threshold: 0.7
+    enable_inference: true
+    enable_transitivity: true
+    enable_symmetry: true
+
+# Peer Review Configuration
+peer_review:
+  criteria:
+    novelty:
+      weight: 0.25
+      min_score: 0.3
+    methodology:
+      weight: 0.25
+      min_score: 0.4
+    significance:
+      weight: 0.20
+      min_score: 0.3
+    clarity:
+      weight: 0.15
+      min_score: 0.4
+    validity:
+      weight: 0.15
+      min_score: 0.4
+  
+  validation_thresholds:
+    validated: 0.8
+    requires_revision: 0.6
+    in_review: 0.4
+    rejected: 0.0
+  
+  parameters:
+    enable_automated_feedback: true
+    generate_recommendations: true
+    max_recommendations: 10
+
+# Scientific Writing Configuration
+scientific_writing:
+  models:
+    text_generation_model: "t5-base"
+    style_model: "academic"
+  
+  document_types:
+    - "academic_paper"
+    - "research_proposal"
+    - "grant_proposal"
+    - "conference_abstract"
+  
+  parameters:
+    max_section_length: 1000
+    citation_style: "apa"
+    enable_quality_improvement: true
+    check_plagiarism: false  # Requires external service
+  
+  sections:
+    paper:
+      - "title"
+      - "abstract"
+      - "introduction"
+      - "methods"
+      - "results"
+      - "discussion"
+      - "conclusion"
+      - "references"
+
+# Collaboration Matching Configuration
+collaboration_matching:
+  matching_criteria:
+    research_interests: 0.3
+    complementary_skills: 0.25
+    geographic_proximity: 0.15
+    career_stage_compatibility: 0.1
+    publication_compatibility: 0.1
+    collaboration_history: 0.1
+  
+  parameters:
+    min_compatibility_threshold: 0.6
+    max_matches_returned: 10
+    enable_project_suggestions: true
+    enable_contact_recommendations: true
+  
+  geographic_scoring:
+    same_institution: 1.0
+    same_city: 0.9
+    same_country: 0.7
+    same_continent: 0.5
+    different_continent: 0.3
+
+# Patent Analysis Configuration
+patent_analysis:
+  databases:
+    uspto:
+      enabled: false  # Requires API access
+    epo:
+      enabled: false  # Requires API access
+    wipo:
+      enabled: false  # Requires API access
+  
+  parameters:
+    max_patents_analyzed: 100
+    relevance_threshold: 0.6
+    novelty_threshold: 0.7
+    patent_expiry_years: 20
+  
+  classification_systems:
+    - "IPC"  # International Patent Classification
+    - "CPC"  # Cooperative Patent Classification
+    - "USPC"  # US Patent Classification
+  
+  analysis_types:
+    - "prior_art_search"
+    - "novelty_assessment"
+    - "freedom_to_operate"
+    - "competitive_landscape"
+
+# Impact Analysis Configuration
+impact_analysis:
+  metrics:
+    basic:
+      - "citation_count"
+      - "h_index"
+      - "i10_index"
+      - "publication_count"
+    
+    advanced:
+      - "field_weighted_citation_impact"
+      - "collaboration_index"
+      - "interdisciplinary_index"
+      - "innovation_index"
+  
+  field_averages:
+    volcanology:
+      h_index: 15
+      avg_citations_per_paper: 25
+      total_publications: 30
+    
+    seismology:
+      h_index: 18
+      avg_citations_per_paper: 30
+      total_publications: 35
+    
+    geodynamics:
+      h_index: 20
+      avg_citations_per_paper: 35
+      total_publications: 40
+  
+  parameters:
+    prediction_horizon_years: 5
+    min_papers_for_analysis: 5
+    enable_trend_analysis: true
+    enable_network_analysis: true
+
+# Database Configuration
+database:
+  vector_store:
+    provider: "faiss"  # faiss, pinecone, weaviate
+    dimension: 384
+    index_type: "IVF"
+    nprobe: 10
+  
+  graph_database:
+    provider: "networkx"  # networkx, neo4j
+    enable_persistence: true
+    max_nodes: 100000
+  
+  cache:
+    provider: "redis"
+    ttl: 3600  # seconds
+    max_memory: "1gb"
+
+# API Configuration
+api:
+  rate_limiting:
+    requests_per_minute: 60
+    burst_limit: 10
+  
+  authentication:
+    enable_jwt: true
+    token_expiry_hours: 24
+    require_api_key: false
+  
+  external_services:
+    arxiv:
+      base_url: "http://export.arxiv.org/api/query"
+      timeout: 30
+    
+    crossref:
+      base_url: "https://api.crossref.org"
+      timeout: 30
+      user_agent: "AutomatedDiscoverySystem/1.0"
+
+# Monitoring and Logging
+monitoring:
+  enable_metrics: true
+  metrics_port: 9090
+  
+  logging:
+    level: "INFO"
+    format: "json"
+    file_rotation: true
+    max_file_size: "100MB"
+    backup_count: 5
+  
+  alerts:
+    enable_email: false
+    enable_slack: false
+    error_threshold: 5
+    response_time_threshold: 30  # seconds
+
+# Security Configuration
+security:
+  encryption:
+    enable_at_rest: true
+    enable_in_transit: true
+    algorithm: "AES-256"
+  
+  data_privacy:
+    anonymize_personal_data: true
+    data_retention_days: 365
+    enable_gdpr_compliance: true
+  
+  access_control:
+    enable_rbac: true
+    default_role: "researcher"
+    admin_approval_required: false
+
+# Performance Configuration
+performance:
+  parallel_processing:
+    max_workers: 4
+    enable_gpu: false
+    gpu_memory_limit: "4GB"
+  
+  caching:
+    enable_model_caching: true
+    enable_result_caching: true
+    cache_size_limit: "2GB"
+  
+  optimization:
+    enable_batch_processing: true
+    batch_size: 32
+    enable_lazy_loading: true
+
+# Development Configuration
+development:
+  debug_mode: true
+  enable_profiling: false
+  mock_external_apis: true
+  
+  testing:
+    enable_unit_tests: true
+    enable_integration_tests: true
+    test_data_path: "test_data/"
+    coverage_threshold: 0.8
+  
+  documentation:
+    auto_generate_docs: true
+    include_examples: true
+    output_format: "markdown"

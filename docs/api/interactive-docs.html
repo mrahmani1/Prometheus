@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prometheus AI Platform - Interactive API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css" />
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.10.5/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.10.5/favicon-16x16.png" sizes="16x16" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        
+        body {
+            margin: 0;
+            background: #fafafa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 0.5rem 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .service-selector {
+            background: white;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        
+        .service-selector label {
+            font-weight: 600;
+            margin-right: 1rem;
+            color: #333;
+        }
+        
+        .service-selector select {
+            padding: 0.5rem 1rem;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+            font-size: 1rem;
+            background: white;
+            color: #333;
+            cursor: pointer;
+        }
+        
+        .service-selector select:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .auth-section {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .auth-section input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+        }
+        
+        .auth-section button {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .auth-section button:hover {
+            background: #764ba2;
+        }
+        
+        .auth-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .auth-status.authenticated {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .auth-status.unauthenticated {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        #swagger-ui {
+            max-width: none;
+        }
+        
+        .swagger-ui .topbar {
+            display: none;
+        }
+        
+        .info-section {
+            background: white;
+            margin: 2rem auto;
+            max-width: 1200px;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .info-section h2 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .feature-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .code-example {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Prometheus AI Platform</h1>
+        <p>Interactive API Documentation & Testing Suite</p>
+    </div>
+    
+    <div class="service-selector">
+        <label for="service-select">Select Service:</label>
+        <select id="service-select">
+            <option value="">Choose a service...</option>
+            <option value="helios-core">Helios Core - AI/ML Engine</option>
+            <option value="volcano-watchtower">Volcano Watchtower - Monitoring</option>
+            <option value="data-ingestion">Data Ingestion - Processing</option>
+            <option value="api-gateway">API Gateway - Routing</option>
+        </select>
+    </div>
+    
+    <div class="auth-section">
+        <label>JWT Token:</label>
+        <input type="password" id="jwt-token" placeholder="Enter your JWT token for authenticated requests">
+        <button onclick="setAuthToken()">Set Token</button>
+        <span id="auth-status" class="auth-status unauthenticated">Not Authenticated</span>
+    </div>
+    
+    <div class="info-section">
+        <h2>🚀 Getting Started</h2>
+        <p>Welcome to the Prometheus AI Platform API documentation. This interactive interface allows you to explore, test, and integrate with our geological analysis and monitoring services.</p>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>🧠 Physics-Informed Neural Networks</h3>
+                <p>Advanced AI models that respect geological constraints and physical laws for accurate predictions and simulations.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🌋 Real-time Monitoring</h3>
+                <p>Continuous volcanic monitoring with multi-sensor data fusion and intelligent alert systems.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📊 Interactive Testing</h3>
+                <p>Test API endpoints directly in your browser with live examples and real-time responses.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔒 Secure Authentication</h3>
+                <p>JWT-based authentication with role-based access control for secure API access.</p>
+            </div>
+        </div>
+        
+        <h3>Quick Start Example</h3>
+        <p>Here's how to make your first API call:</p>
+        
+        <div class="code-example">
+curl -X POST "https://api.prometheus-ai.com/api/v1/helios/analyze/geological" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data_type": "seismic",
+    "spatial_extent": {
+      "min_lat": 45.0,
+      "max_lat": 46.0,
+      "min_lon": -122.0,
+      "max_lon": -121.0
+    },
+    "parameters": {
+      "frequency_range": [1.0, 10.0],
+      "magnitude_threshold": 2.0
+    }
+  }'
+        </div>
+        
+        <h3>Authentication</h3>
+        <p>To authenticate your requests:</p>
+        <ol>
+            <li>Obtain a JWT token from the authentication endpoint</li>
+            <li>Enter the token in the field above</li>
+            <li>All subsequent API calls will include the authentication header</li>
+        </ol>
+        
+        <div class="code-example">
+# Get authentication token
+curl -X POST "https://api.prometheus-ai.com/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "your_username",
+    "password": "your_password"
+  }'
+        </div>
+    </div>
+    
+    <div id="swagger-ui"></div>
+    
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        let ui;
+        let currentToken = null;
+        
+        // Service specifications mapping
+        const serviceSpecs = {
+            'helios-core': './specs/helios-core.json',
+            'volcano-watchtower': './specs/volcano-watchtower.json',
+            'data-ingestion': './specs/data-ingestion.json',
+            'api-gateway': './specs/api-gateway.json'
+        };
+        
+        // Initialize Swagger UI
+        function initSwaggerUI(specUrl) {
+            const swaggerContainer = document.getElementById('swagger-ui');
+            swaggerContainer.innerHTML = '<div class="loading">Loading API specification...</div>';
+            
+            try {
+                ui = SwaggerUIBundle({
+                    url: specUrl,
+                    dom_id: '#swagger-ui',
+                    deepLinking: true,
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIStandalonePreset
+                    ],
+                    plugins: [
+                        SwaggerUIBundle.plugins.DownloadUrl
+                    ],
+                    layout: "StandaloneLayout",
+                    requestInterceptor: (request) => {
+                        // Add authentication header if token is set
+                        if (currentToken) {
+                            request.headers['Authorization'] = `Bearer ${currentToken}`;
+                        }
+                        
+                        // Add correlation ID
+                        request.headers['X-Correlation-ID'] = generateCorrelationId();
+                        
+                        return request;
+                    },
+                    responseInterceptor: (response) => {
+                        // Log response for debugging
+                        console.log('API Response:', response);
+                        return response;
+                    },
+                    onComplete: () => {
+                        console.log('Swagger UI loaded successfully');
+                        
+                        // Apply custom styling
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            .swagger-ui .info .title {
+                                color: #667eea;
+                            }
+                            .swagger-ui .btn.authorize {
+                                background-color: #667eea;
+                                border-color: #667eea;
+                            }
+                            .swagger-ui .btn.execute {
+                                background-color: #28a745;
+                                border-color: #28a745;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    },
+                    onFailure: (error) => {
+                        console.error('Failed to load API spec:', error);
+                        swaggerContainer.innerHTML = `
+                            <div class="error">
+                                Failed to load API specification: ${error.message}
+                                <br><br>
+                                Please ensure the service is running and the specification file exists.
+                            </div>
+                        `;
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing Swagger UI:', error);
+                swaggerContainer.innerHTML = `
+                    <div class="error">
+                        Error initializing API documentation: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Handle service selection
+        document.getElementById('service-select').addEventListener('change', function(e) {
+            const selectedService = e.target.value;
+            if (selectedService && serviceSpecs[selectedService]) {
+                initSwaggerUI(serviceSpecs[selectedService]);
+            } else {
+                document.getElementById('swagger-ui').innerHTML = '';
+            }
+        });
+        
+        // Set authentication token
+        function setAuthToken() {
+            const tokenInput = document.getElementById('jwt-token');
+            const token = tokenInput.value.trim();
+            const statusElement = document.getElementById('auth-status');
+            
+            if (token) {
+                currentToken = token;
+                statusElement.textContent = 'Authenticated';
+                statusElement.className = 'auth-status authenticated';
+                
+                // Update Swagger UI authorization if it's loaded
+                if (ui) {
+                    ui.preauthorizeApiKey('BearerAuth', `Bearer ${token}`);
+                }
+                
+                console.log('Authentication token set');
+            } else {
+                currentToken = null;
+                statusElement.textContent = 'Not Authenticated';
+                statusElement.className = 'auth-status unauthenticated';
+                console.log('Authentication token cleared');
+            }
+        }
+        
+        // Generate correlation ID for requests
+        function generateCorrelationId() {
+            return 'req-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // Handle Enter key in token input
+        document.getElementById('jwt-token').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                setAuthToken();
+            }
+        });
+        
+        // Load default service on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-select first service if available
+            const serviceSelect = document.getElementById('service-select');
+            if (serviceSelect.options.length > 1) {
+                serviceSelect.selectedIndex = 1;
+                serviceSelect.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + K to focus on service selector
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('service-select').focus();
+            }
+            
+            // Ctrl/Cmd + T to focus on token input
+            if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+                e.preventDefault();
+                document.getElementById('jwt-token').focus();
+            }
+        });
+        
+        // Add service health check functionality
+        async function checkServiceHealth(serviceName) {
+            try {
+                const baseUrls = {
+                    'helios-core': 'http://localhost:8001',
+                    'volcano-watchtower': 'http://localhost:8002',
+                    'data-ingestion': 'http://localhost:8003',
+                    'api-gateway': 'http://localhost:3000'
+                };
+                
+                const response = await fetch(`${baseUrls[serviceName]}/health`);
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Update service selector with health status
+        async function updateServiceHealth() {
+            const serviceSelect = document.getElementById('service-select');
+            const options = serviceSelect.querySelectorAll('option[value]');
+            
+            for (const option of options) {
+                if (option.value) {
+                    const isHealthy = await checkServiceHealth(option.value);
+                    const indicator = isHealthy ? '🟢' : '🔴';
+                    option.textContent = option.textContent.replace(/^[🟢🔴]\s*/, '') + ` ${indicator}`;
+                }
+            }
+        }
+        
+        // Check service health periodically
+        setInterval(updateServiceHealth, 30000); // Every 30 seconds
+        updateServiceHealth(); // Initial check
+    </script>
+</body>
+</html>

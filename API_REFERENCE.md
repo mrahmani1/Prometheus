@@ -11,6 +11,8 @@ API Gateway:           http://localhost:3000    # Node.js Express with service d
 Helios Core Service:   http://localhost:8001    # Python FastAPI with PINN engine
 Data Ingestion:        http://localhost:8002    # Python FastAPI with multi-source processing
 Volcano Watchtower:    http://localhost:8003    # Python FastAPI with real-time monitoring
+GCP Integration:       http://localhost:8004    # ✅ ENHANCED: Google Cloud Platform integration with advanced Dataflow processing
+Advanced ML Pipeline:  http://localhost:8001/ml # ✅ NEW: Advanced ML capabilities integrated in Helios Core
 ```
 
 ### Infrastructure Services (✅ **IMPLEMENTED**)
@@ -29,6 +31,17 @@ API Gateway:           https://api.prometheus-ai.com
 Helios Core:           https://api.prometheus-ai.com/api/v1/helios
 Data Ingestion:        https://api.prometheus-ai.com/api/v1/data
 Volcano Watchtower:    https://api.prometheus-ai.com/api/v1/volcano
+GCP Integration:       https://api.prometheus-ai.com/api/v1/gcp
+```
+
+### Future VR/AR Services (🔄 **IN DEVELOPMENT**)
+```
+VR Geological Explorer:    http://localhost:8007    # Virtual reality geological exploration
+AR Field Assistant:        http://localhost:8008    # Augmented reality field data overlay
+Haptic Feedback Service:   http://localhost:8009    # Tactile geological exploration
+Collaborative VR/AR:       http://localhost:8010    # Multi-user immersive environments
+Gesture Control Service:   http://localhost:8011    # Natural interaction interfaces
+Immersive Analytics:       http://localhost:8012    # 3D/4D data visualization in VR/AR
 ```
 
 ### Authentication (✅ **IMPLEMENTED**)
@@ -765,6 +778,619 @@ Start gradual rollout of new model version.
   "current_traffic_percentage": 5,
   "next_stage_time": "2025-01-11T10:30:00Z",
   "monitoring_dashboard": "https://monitoring.prometheus-ai.com/rollouts/rollout_98765"
+}
+```
+
+---
+
+## ☁️ GCP Integration Service API (Port 8004) ✅ **ENHANCED**
+
+### Advanced Dataflow Processing
+
+#### POST `/api/v1/dataflow/process-stream`
+Process geological data streams using Google Cloud Dataflow with specialized pipelines.
+
+**Request:**
+```json
+{
+  "stream_name": "volcanic-monitoring-stream",
+  "processing_type": "volcanic",
+  "parameters": {
+    "deformation_threshold": 5.0,
+    "gas_flux_threshold": 500.0,
+    "thermal_threshold": 25.0,
+    "volcano_ids": ["mount_st_helens", "yellowstone"]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "processing_type": "volcanic",
+  "job_id": "dataflow-job-12345",
+  "job_name": "volcanic-monitoring-1642234567",
+  "status": "running",
+  "parameters": {
+    "deformation_threshold": 5.0,
+    "gas_flux_threshold": 500.0,
+    "thermal_threshold": 25.0,
+    "volcano_ids": ["mount_st_helens", "yellowstone"]
+  },
+  "created_at": "2025-01-11T10:30:00Z"
+}
+```
+
+#### POST `/api/v1/dataflow/process-stream` (Seismic Processing)
+Process seismic data streams with real-time event detection.
+
+**Request:**
+```json
+{
+  "stream_name": "seismic-data-stream",
+  "processing_type": "seismic",
+  "parameters": {
+    "magnitude_threshold": 4.0,
+    "depth_threshold": 100.0,
+    "region_filter": "california"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "processing_type": "seismic",
+  "job_id": "dataflow-job-67890",
+  "job_name": "seismic-processing-1642234567",
+  "status": "running",
+  "parameters": {
+    "magnitude_threshold": 4.0,
+    "depth_threshold": 100.0,
+    "region_filter": "california"
+  },
+  "created_at": "2025-01-11T10:30:00Z"
+}
+```
+
+#### POST `/api/v1/dataflow/process-stream` (Real-time Alerts)
+Process real-time alert streams with intelligent prioritization and routing.
+
+**Request:**
+```json
+{
+  "stream_name": "geological-alerts-stream",
+  "processing_type": "real_time_alerts",
+  "parameters": {
+    "alert_types": ["seismic", "volcanic", "landslide"],
+    "priority_levels": ["critical", "high", "medium"],
+    "notification_channels": ["email", "sms", "webhook"]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "processing_type": "real_time_alerts",
+  "job_id": "dataflow-job-13579",
+  "job_name": "real-time-alerts-1642234567",
+  "status": "running",
+  "parameters": {
+    "alert_types": ["seismic", "volcanic", "landslide"],
+    "priority_levels": ["critical", "high", "medium"],
+    "notification_channels": ["email", "sms", "webhook"]
+  },
+  "created_at": "2025-01-11T10:30:00Z"
+}
+```
+
+#### GET `/api/v1/dataflow/jobs/{job_id}`
+Get Dataflow job status and details.
+
+**Response:**
+```json
+{
+  "job_id": "dataflow-job-12345",
+  "job_name": "volcanic-monitoring-1642234567",
+  "status": "JOB_STATE_RUNNING",
+  "create_time": "2025-01-11T10:30:00Z",
+  "start_time": "2025-01-11T10:32:00Z",
+  "job_type": "JOB_TYPE_STREAMING",
+  "pipeline_description": {
+    "display_data": [
+      {
+        "key": "inputSubscription",
+        "value": "projects/prometheus-ai/subscriptions/volcanic-monitoring-stream"
+      },
+      {
+        "key": "outputTable", 
+        "value": "prometheus-ai:geological_analytics.volcanic_monitoring"
+      }
+    ]
+  }
+}
+```
+
+#### GET `/api/v1/dataflow/jobs`
+List all active Dataflow jobs.
+
+**Response:**
+```json
+{
+  "active_jobs": [
+    {
+      "job_id": "dataflow-job-12345",
+      "job_name": "volcanic-monitoring-1642234567",
+      "status": "JOB_STATE_RUNNING",
+      "create_time": "2025-01-11T10:30:00Z",
+      "job_type": "JOB_TYPE_STREAMING"
+    },
+    {
+      "job_id": "dataflow-job-67890",
+      "job_name": "seismic-processing-1642234567",
+      "status": "JOB_STATE_RUNNING",
+      "create_time": "2025-01-11T10:25:00Z",
+      "job_type": "JOB_TYPE_STREAMING"
+    }
+  ]
+}
+```
+
+#### DELETE `/api/v1/dataflow/jobs/{job_id}`
+Cancel a running Dataflow job.
+
+**Response:**
+```json
+{
+  "job_id": "dataflow-job-12345",
+  "status": "JOB_STATE_CANCELLED",
+  "message": "Job cancellation requested"
+}
+```
+
+### Dataflow Pipeline Templates
+
+The GCP Integration service supports 4 specialized Dataflow pipeline templates:
+
+1. **Seismic Event Detector** (`seismic_event_detector`)
+   - Real-time seismic event detection and classification
+   - Magnitude and depth threshold filtering
+   - Regional filtering capabilities
+   - Automated alert generation
+
+2. **Volcanic Alert System** (`volcanic_alert_system`)
+   - Multi-parameter volcanic monitoring
+   - Deformation, gas flux, and thermal threshold monitoring
+   - Volcano-specific configuration
+   - Real-time eruption forecasting
+
+3. **Geological Stream Processor** (`geological_stream_processor`)
+   - General geological data stream processing
+   - Configurable windowing and data validation
+   - Multi-format data support
+   - Quality control and anomaly detection
+
+4. **Mineral Data Enricher** (`mineral_data_enricher`)
+   - Geochemical data processing and enrichment
+   - Element filtering and sample type classification
+   - Quality threshold validation
+   - Mineral deposit correlation
+
+### Processing Configuration Types
+
+#### Seismic Processing Configuration
+```json
+{
+  "pipeline_type": "streaming",
+  "input_source": "pubsub",
+  "output_sink": "bigquery",
+  "processing_functions": [
+    "seismic_event_detection",
+    "magnitude_classification", 
+    "location_validation",
+    "alert_generation"
+  ],
+  "windowing": {
+    "type": "sliding",
+    "size": "60s",
+    "period": "10s"
+  }
+}
+```
+
+#### Real-time Alerts Configuration
+```json
+{
+  "pipeline_type": "streaming",
+  "input_source": "pubsub",
+  "output_sink": "pubsub",
+  "processing_functions": [
+    "threshold_monitoring",
+    "alert_prioritization",
+    "notification_routing",
+    "escalation_management"
+  ],
+  "windowing": {
+    "type": "global"
+  }
+}
+```
+
+---
+
+## 🤖 Advanced ML Pipeline API (✅ **PRODUCTION-READY**)
+
+### Neural Architecture Search (NAS)
+
+#### POST `/ml-pipeline/nas/search`
+Perform automated neural architecture search for optimal geological model design.
+
+**Request:**
+```json
+{
+  "search_config": {
+    "max_trials": 100,
+    "max_epochs_per_trial": 50,
+    "pruning_enabled": true,
+    "multi_objective": true,
+    "objectives": ["accuracy", "latency", "memory"]
+  },
+  "model_constraints": {
+    "max_parameters": 10000000,
+    "max_layers": 8,
+    "activation_functions": ["relu", "gelu", "swish"],
+    "dropout_range": [0.1, 0.5]
+  },
+  "training_data": {
+    "dataset_path": "s3://prometheus-data/geological_training.csv",
+    "input_dim": 128,
+    "output_dim": 5,
+    "validation_split": 0.2
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "search_id": "nas_search_12345",
+  "status": "completed",
+  "best_architecture": {
+    "trial_id": 67,
+    "parameters": {
+      "n_layers": 6,
+      "hidden_dim": 256,
+      "dropout_rate": 0.3,
+      "activation": "gelu"
+    },
+    "performance": {
+      "accuracy": 0.94,
+      "latency_ms": 45.2,
+      "memory_mb": 128,
+      "parameters": 8500000
+    }
+  },
+  "optimization_history": [...],
+  "pareto_front": [...]
+}
+```
+
+### Ensemble Learning
+
+#### POST `/ml-pipeline/ensemble/create`
+Create ensemble of diverse geological models with uncertainty quantification.
+
+**Request:**
+```json
+{
+  "ensemble_config": {
+    "base_models": ["cnn", "transformer", "gnn", "pinn"],
+    "stacking_method": "neural_stacking",
+    "uncertainty_method": "deep_ensemble",
+    "num_ensemble_members": 5,
+    "diversity_regularization": 0.1
+  },
+  "training_config": {
+    "epochs": 100,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "early_stopping": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ensemble_id": "ensemble_67890",
+  "status": "training",
+  "base_models": [
+    {
+      "model_type": "cnn",
+      "status": "completed",
+      "accuracy": 0.89
+    },
+    {
+      "model_type": "transformer", 
+      "status": "training",
+      "progress": 0.75
+    }
+  ],
+  "meta_model_status": "pending",
+  "estimated_completion": "2025-01-11T16:30:00Z"
+}
+```
+
+#### POST `/ml-pipeline/ensemble/{ensemble_id}/predict`
+Make predictions with uncertainty quantification using ensemble models.
+
+**Request:**
+```json
+{
+  "input_data": {
+    "seismic_features": [2.1, 1.8, 2.3],
+    "deformation_data": [0.5, 0.3, 0.7],
+    "geochemical_data": [150, 120, 180]
+  },
+  "uncertainty_options": {
+    "confidence_intervals": [0.68, 0.95],
+    "monte_carlo_samples": 100
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "predictions": {
+    "mean": [0.15, 0.25, 0.35, 0.20, 0.05],
+    "std": [0.03, 0.04, 0.05, 0.03, 0.01],
+    "confidence_intervals": {
+      "68%": [[0.12, 0.18], [0.21, 0.29], ...],
+      "95%": [[0.09, 0.21], [0.17, 0.33], ...]
+    }
+  },
+  "ensemble_agreement": 0.87,
+  "model_contributions": {
+    "cnn": 0.25,
+    "transformer": 0.30,
+    "gnn": 0.20,
+    "pinn": 0.25
+  }
+}
+```
+
+### Transfer Learning
+
+#### POST `/ml-pipeline/transfer/adapt`
+Adapt pre-trained geological models to new domains with physics constraints.
+
+**Request:**
+```json
+{
+  "transfer_config": {
+    "source_domain": "general_geology",
+    "target_domain": "volcanic_systems",
+    "adaptation_method": "domain_adversarial",
+    "physics_constraints": true,
+    "fine_tuning_strategy": "gradual_unfreezing"
+  },
+  "source_model_id": "model_12345",
+  "target_data": {
+    "dataset_path": "s3://prometheus-data/volcanic_target.csv",
+    "validation_split": 0.2
+  },
+  "adaptation_params": {
+    "adaptation_epochs": 50,
+    "learning_rate": 0.0001,
+    "domain_loss_weight": 0.1
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "adaptation_id": "adapt_54321",
+  "status": "completed",
+  "adapted_model_id": "model_adapted_67890",
+  "performance": {
+    "source_domain_accuracy": 0.89,
+    "target_domain_accuracy": 0.85,
+    "domain_adaptation_loss": 0.12
+  },
+  "physics_constraints_satisfied": true,
+  "adaptation_time": "45 minutes"
+}
+```
+
+### Few-Shot Learning
+
+#### POST `/ml-pipeline/few-shot/train`
+Train models for rare geological phenomena using meta-learning approaches.
+
+**Request:**
+```json
+{
+  "few_shot_config": {
+    "support_shots": 5,
+    "query_shots": 15,
+    "meta_learning_algorithm": "maml",
+    "adaptation_steps": 5,
+    "adaptation_lr": 0.01
+  },
+  "task_distribution": {
+    "rare_mineral_identification": 0.3,
+    "unusual_seismic_patterns": 0.4,
+    "exotic_volcanic_processes": 0.3
+  },
+  "meta_training_episodes": 1000
+}
+```
+
+**Response:**
+```json
+{
+  "few_shot_model_id": "few_shot_98765",
+  "meta_training_status": "completed",
+  "performance": {
+    "meta_accuracy": 0.78,
+    "adaptation_speed": "3 gradient steps",
+    "generalization_score": 0.82
+  },
+  "supported_tasks": [
+    "rare_mineral_identification",
+    "unusual_seismic_patterns", 
+    "exotic_volcanic_processes"
+  ]
+}
+```
+
+### Continual Learning
+
+#### POST `/ml-pipeline/continual/update`
+Update models with new geological data while preventing catastrophic forgetting.
+
+**Request:**
+```json
+{
+  "continual_config": {
+    "memory_size": 1000,
+    "rehearsal_method": "experience_replay",
+    "regularization_method": "elastic_weight_consolidation",
+    "plasticity_stability_tradeoff": 0.5
+  },
+  "new_data": {
+    "dataset_path": "s3://prometheus-data/new_geological_data.csv",
+    "task_type": "volcanic_eruption_prediction"
+  },
+  "base_model_id": "model_12345"
+}
+```
+
+**Response:**
+```json
+{
+  "continual_model_id": "continual_13579",
+  "update_status": "completed",
+  "performance": {
+    "new_task_accuracy": 0.87,
+    "old_task_retention": 0.91,
+    "forgetting_measure": 0.02
+  },
+  "memory_usage": {
+    "replay_buffer_size": 1000,
+    "importance_weights_stored": 50000
+  }
+}
+```
+
+### Generative Models
+
+#### POST `/ml-pipeline/generative/synthesize`
+Generate realistic geological data using physics-informed GANs.
+
+**Request:**
+```json
+{
+  "generative_config": {
+    "model_type": "physics_informed_gan",
+    "latent_dim": 128,
+    "physics_loss_weight": 1.0,
+    "adversarial_loss_weight": 1.0
+  },
+  "synthesis_params": {
+    "num_samples": 1000,
+    "geological_constraints": {
+      "rock_type": "volcanic",
+      "age_range": [0, 100],
+      "location_bounds": {
+        "min_lat": 40.0,
+        "max_lat": 45.0,
+        "min_lon": -125.0,
+        "max_lon": -120.0
+      }
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "synthesis_id": "synth_24680",
+  "generated_data": {
+    "dataset_path": "s3://prometheus-data/synthetic_geological_data.csv",
+    "num_samples": 1000,
+    "data_quality_score": 0.89
+  },
+  "physics_validation": {
+    "conservation_laws_satisfied": true,
+    "thermodynamic_consistency": 0.94,
+    "geological_realism_score": 0.91
+  },
+  "generation_time": "12 minutes"
+}
+```
+
+### Causal Inference
+
+#### POST `/ml-pipeline/causal/discover`
+Discover causal relationships in geological processes using advanced algorithms.
+
+**Request:**
+```json
+{
+  "causal_config": {
+    "method": "pc_algorithm",
+    "independence_test": "partial_correlation",
+    "significance_level": 0.05,
+    "max_conditioning_set_size": 3
+  },
+  "data": {
+    "dataset_path": "s3://prometheus-data/geological_processes.csv",
+    "variables": [
+      "seismic_activity",
+      "ground_deformation", 
+      "gas_emissions",
+      "temperature_anomalies",
+      "eruption_occurrence"
+    ]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "causal_graph": {
+    "nodes": ["seismic_activity", "ground_deformation", "gas_emissions", "temperature_anomalies", "eruption_occurrence"],
+    "edges": [
+      {
+        "from": "seismic_activity",
+        "to": "ground_deformation",
+        "strength": 0.78,
+        "confidence": 0.95
+      },
+      {
+        "from": "gas_emissions",
+        "to": "eruption_occurrence", 
+        "strength": 0.85,
+        "confidence": 0.98
+      }
+    ]
+  },
+  "causal_insights": [
+    "Seismic activity is a strong causal driver of ground deformation",
+    "Gas emissions are the strongest predictor of eruption occurrence",
+    "Temperature anomalies show weak causal relationships"
+  ],
+  "statistical_tests": {
+    "independence_tests_performed": 45,
+    "significant_relationships": 12,
+    "false_discovery_rate": 0.05
+  }
 }
 ```
 

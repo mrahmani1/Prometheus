@@ -1,0 +1,361 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Volcano Watchtower Service",
+    "description": "Real-time volcanic monitoring and eruption forecasting system",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Prometheus AI Platform Team",
+      "email": "support@prometheus-ai.com",
+      "url": "https://prometheus-ai.com/support"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8002",
+      "description": "Development server"
+    },
+    {
+      "url": "http://staging.prometheus-ai.com:8002",
+      "description": "Staging server"
+    },
+    {
+      "url": "http://api.prometheus-ai.com:8002",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/monitor/volcano/{volcano_id}": {
+      "post": {
+        "summary": "Start Volcanic Monitoring",
+        "description": "Initialize real-time monitoring for a specific volcano",
+        "tags": [
+          "Monitoring",
+          "Volcanic"
+        ],
+        "operationId": "post__monitor_volcano_volcano_id",
+        "parameters": [
+          {
+            "name": "volcano_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unique volcano identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monitoring started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "monitoring_id": {
+                      "type": "string"
+                    },
+                    "data_sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VolcanicMonitoringRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-examples": [
+          {
+            "name": "Mount St. Helens Monitoring",
+            "description": "Start comprehensive monitoring for Mount St. Helens",
+            "request": {
+              "volcano_id": "MSH",
+              "data_sources": [
+                "seismic",
+                "gps",
+                "insar",
+                "gas"
+              ],
+              "alert_thresholds": {
+                "magnitude_threshold": 2.0,
+                "deformation_threshold": 0.01,
+                "gas_threshold": 100.0
+              }
+            },
+            "response": {
+              "status": "monitoring_active",
+              "monitoring_id": "MSH-2025-001",
+              "data_sources": [
+                "seismic",
+                "gps",
+                "insar",
+                "gas"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/forecast/eruption/{volcano_id}": {
+      "get": {
+        "summary": "Get Eruption Forecast",
+        "description": "Get probabilistic eruption forecast for a volcano",
+        "tags": [
+          "Forecasting",
+          "Volcanic"
+        ],
+        "operationId": "get__forecast_eruption_volcano_id",
+        "parameters": [
+          {
+            "name": "volcano_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unique volcano identifier"
+          },
+          {
+            "name": "time_horizon",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "1y"
+              ]
+            },
+            "description": "Forecast time horizon"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Forecast generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EruptionForecast"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-examples": [
+          {
+            "name": "Yellowstone Forecast",
+            "description": "Get 30-day eruption forecast for Yellowstone",
+            "request": {},
+            "response": {
+              "volcano_id": "YEL",
+              "probability": 0.001,
+              "time_window": "30d",
+              "confidence_interval": {
+                "lower": 0.0005,
+                "upper": 0.002
+              },
+              "contributing_factors": [
+                "seismic_swarm",
+                "ground_deformation"
+              ],
+              "alert_level": "yellow"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "VolcanicMonitoringRequest": {
+        "type": "object",
+        "required": [
+          "volcano_id",
+          "data_sources"
+        ],
+        "properties": {
+          "volcano_id": {
+            "type": "string",
+            "description": "Unique volcano identifier"
+          },
+          "data_sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "seismic",
+                "gps",
+                "insar",
+                "gas",
+                "thermal"
+              ]
+            },
+            "description": "Data sources to monitor"
+          },
+          "alert_thresholds": {
+            "type": "object",
+            "properties": {
+              "magnitude_threshold": {
+                "type": "number"
+              },
+              "deformation_threshold": {
+                "type": "number"
+              },
+              "gas_threshold": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "EruptionForecast": {
+        "type": "object",
+        "properties": {
+          "volcano_id": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "time_window": {
+            "type": "string"
+          },
+          "confidence_interval": {
+            "type": "object",
+            "properties": {
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              }
+            }
+          },
+          "contributing_factors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "alert_level": {
+            "type": "string",
+            "enum": [
+              "green",
+              "yellow",
+              "orange",
+              "red"
+            ]
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token for authentication"
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for service-to-service communication"
+      }
+    },
+    "parameters": {
+      "CorrelationId": {
+        "name": "X-Correlation-ID",
+        "in": "header",
+        "description": "Request correlation ID for tracking",
+        "schema": {
+          "type": "string"
+        },
+        "example": "req-12345-abcde"
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Authentication information is missing or invalid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Insufficient permissions",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "Analysis",
+      "description": "Data analysis endpoints"
+    },
+    {
+      "name": "Simulation",
+      "description": "Physics simulation endpoints"
+    },
+    {
+      "name": "Monitoring",
+      "description": "Real-time monitoring endpoints"
+    },
+    {
+      "name": "Forecasting",
+      "description": "Prediction and forecasting endpoints"
+    }
+  ]
+}

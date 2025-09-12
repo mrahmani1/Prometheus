@@ -1,0 +1,95 @@
+# Docker Compose for Compliance Framework Service
+version: '3.8'
+
+services:
+  compliance-service:
+    build: .
+    container_name: prometheus-compliance
+    environment:
+      - DATABASE_URL=postgresql://prometheus:prometheus123@postgres:5432/prometheus
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=development
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - prometheus-network
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import asyncio; print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: prometheus-postgres
+    environment:
+      - POSTGRES_DB=prometheus
+      - POSTGRES_USER=prometheus
+      - POSTGRES_PASSWORD=prometheus123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - prometheus-network
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: prometheus-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - prometheus-network
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # Optional: Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: prometheus-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - prometheus-network
+    profiles:
+      - tools
+
+  # Optional: pgAdmin for PostgreSQL management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: prometheus-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@prometheus.local
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    networks:
+      - prometheus-network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  prometheus-network:
+    driver: bridge

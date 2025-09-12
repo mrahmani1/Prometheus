@@ -1,0 +1,347 @@
+# Google Cloud Pub/Sub Configuration
+# Advanced event-driven architecture for geological data processing
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gcp-pubsub-config
+  namespace: prometheus-gcp
+data:
+  pubsub-config.yaml: |
+    # Geological event topics and subscriptions
+    geological_topics:
+      seismic_events:
+        name: "prometheus-seismic-events"
+        description: "Real-time seismic event notifications"
+        message_retention_duration: "604800s"  # 7 days
+        labels:
+          data_type: "seismic"
+          priority: "high"
+          geological_domain: "seismology"
+        schema:
+          type: "AVRO"
+          definition: |
+            {
+              "type": "record",
+              "name": "SeismicEvent",
+              "fields": [
+                {"name": "event_id", "type": "string"},
+                {"name": "timestamp", "type": "long"},
+                {"name": "latitude", "type": "double"},
+                {"name": "longitude", "type": "double"},
+                {"name": "depth", "type": "double"},
+                {"name": "magnitude", "type": "double"},
+                {"name": "event_type", "type": "string"},
+                {"name": "confidence", "type": "double"},
+                {"name": "station_count", "type": "int"}
+              ]
+            }
+        
+      volcanic_alerts:
+        name: "prometheus-volcanic-alerts"
+        description: "Volcanic monitoring alerts and notifications"
+        message_retention_duration: "259200s"  # 3 days
+        labels:
+          data_type: "volcanic"
+          priority: "critical"
+          geological_domain: "volcanology"
+        schema:
+          type: "AVRO"
+          definition: |
+            {
+              "type": "record",
+              "name": "VolcanicAlert",
+              "fields": [
+                {"name": "volcano_id", "type": "string"},
+                {"name": "alert_level", "type": "string"},
+                {"name": "timestamp", "type": "long"},
+                {"name": "alert_type", "type": "string"},
+                {"name": "confidence", "type": "double"},
+                {"name": "parameters", "type": {"type": "map", "values": "double"}},
+                {"name": "forecast_horizon", "type": "long"}
+              ]
+            }
+        
+      geological_models:
+        name: "prometheus-geological-models"
+        description: "Geological model updates and results"
+        message_retention_duration: "1209600s"  # 14 days
+        labels:
+          data_type: "model"
+          priority: "medium"
+          geological_domain: "modeling"
+        
+      resource_discoveries:
+        name: "prometheus-resource-discoveries"
+        description: "Resource assessment and discovery notifications"
+        message_retention_duration: "2592000s"  # 30 days
+        labels:
+          data_type: "resource"
+          priority: "medium"
+          geological_domain: "resource_assessment"
+        
+      ml_model_updates:
+        name: "prometheus-ml-model-updates"
+        description: "Machine learning model training and deployment updates"
+        message_retention_duration: "604800s"  # 7 days
+        labels:
+          data_type: "ml_model"
+          priority: "medium"
+          geological_domain: "ai_ml"
+
+    # Intelligent message routing and processing
+    geological_subscriptions:
+      seismic_processing:
+        topic: "prometheus-seismic-events"
+        name: "seismic-processing-subscription"
+        ack_deadline_seconds: 60
+        message_retention_duration: "604800s"
+        retry_policy:
+          minimum_backoff: "10s"
+          maximum_backoff: "600s"
+        dead_letter_policy:
+          dead_letter_topic: "prometheus-seismic-events-dlq"
+          max_delivery_attempts: 5
+        filter: 'attributes.magnitude >= "4.0"'
+        push_config:
+          push_endpoint: "https://seismic-processor.prometheus-ai.svc.cluster.local/api/v1/events"
+          attributes:
+            x-goog-version: "v1"
+        
+      volcanic_monitoring:
+        topic: "prometheus-volcanic-alerts"
+        name: "volcanic-monitoring-subscription"
+        ack_deadline_seconds: 30
+        message_retention_duration: "259200s"
+        retry_policy:
+          minimum_backoff: "5s"
+          maximum_backoff: "300s"
+        dead_letter_policy:
+          dead_letter_topic: "prometheus-volcanic-alerts-dlq"
+          max_delivery_attempts: 3
+        filter: 'attributes.alert_level IN ("WATCH", "WARNING", "ADVISORY")'
+        push_config:
+          push_endpoint: "https://volcano-watchtower.prometheus-ai.svc.cluster.local/api/v1/alerts"
+          
+      real_time_analysis:
+        topic: "prometheus-seismic-events"
+        name: "real-time-analysis-subscription"
+        ack_deadline_seconds: 10
+        message_retention_duration: "86400s"  # 1 day
+        retry_policy:
+          minimum_backoff: "1s"
+          maximum_backoff: "60s"
+        filter: 'attributes.priority = "high"'
+        push_config:
+          push_endpoint: "https://real-time-analyzer.prometheus-ai.svc.cluster.local/api/v1/process"
+          
+      model_training:
+        topic: "prometheus-geological-models"
+        name: "model-training-subscription"
+        ack_deadline_seconds: 300  # 5 minutes for long-running training
+        message_retention_duration: "1209600s"
+        retry_policy:
+          minimum_backoff: "60s"
+          maximum_backoff: "3600s"
+        pull_config:
+          max_messages: 1
+          max_extension_period: "3600s"
+
+    # Advanced message processing configuration
+    message_processing:
+      batch_settings:
+        max_messages: 1000
+        max_bytes: 10485760  # 10MB
+        max_latency: "100ms"
+      
+      flow_control:
+        max_outstanding_messages: 10000
+        max_outstanding_bytes: 104857600  # 100MB
+      
+      compression:
+        enabled: true
+        algorithm: "gzip"
+      
+      encryption:
+        enabled: true
+        kms_key_name: "projects/prometheus-ai-platform/locations/us-central1/keyRings/geological-data/cryptoKeys/pubsub-encryption"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcp-pubsub-manager
+  namespace: prometheus-gcp
+  labels:
+    app: gcp-pubsub-manager
+    component: event-processing
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gcp-pubsub-manager
+  template:
+    metadata:
+      labels:
+        app: gcp-pubsub-manager
+        component: event-processing
+    spec:
+      serviceAccountName: gcp-integration-sa
+      containers:
+      - name: pubsub-manager
+        image: prometheus-ai-platform/gcp-integration:latest
+        command:
+        - python
+        - -c
+        - |
+          import asyncio
+          import json
+          import logging
+          from google.cloud import pubsub_v1
+          from google.cloud.pubsub_v1.types import PushConfig, RetryPolicy, DeadLetterPolicy
+          import yaml
+          import os
+          
+          class GeologicalPubSubManager:
+              def __init__(self):
+                  self.publisher = pubsub_v1.PublisherClient()
+                  self.subscriber = pubsub_v1.SubscriberClient()
+                  self.project_id = os.getenv('GCP_PROJECT_ID', 'prometheus-ai-platform')
+                  
+              async def setup_topics_and_subscriptions(self):
+                  """Setup Pub/Sub topics and subscriptions for geological data"""
+                  with open('/etc/config/pubsub-config.yaml', 'r') as f:
+                      config = yaml.safe_load(f)
+                  
+                  # Create topics
+                  for topic_name, topic_config in config['geological_topics'].items():
+                      try:
+                          topic_path = self.publisher.topic_path(self.project_id, topic_config['name'])
+                          
+                          # Create topic if it doesn't exist
+                          try:
+                              self.publisher.create_topic(request={"name": topic_path})
+                              logging.info(f"Created topic: {topic_config['name']}")
+                          except Exception as e:
+                              if "already exists" not in str(e):
+                                  logging.error(f"Failed to create topic {topic_config['name']}: {e}")
+                          
+                      except Exception as e:
+                          logging.error(f"Error setting up topic {topic_name}: {e}")
+                  
+                  # Create subscriptions
+                  for sub_name, sub_config in config['geological_subscriptions'].items():
+                      try:
+                          topic_path = self.publisher.topic_path(self.project_id, sub_config['topic'])
+                          subscription_path = self.subscriber.subscription_path(self.project_id, sub_config['name'])
+                          
+                          # Configure push config if specified
+                          push_config = None
+                          if 'push_config' in sub_config:
+                              push_config = PushConfig(
+                                  push_endpoint=sub_config['push_config']['push_endpoint'],
+                                  attributes=sub_config['push_config'].get('attributes', {})
+                              )
+                          
+                          # Configure retry policy
+                          retry_policy = None
+                          if 'retry_policy' in sub_config:
+                              retry_policy = RetryPolicy(
+                                  minimum_backoff=sub_config['retry_policy']['minimum_backoff'],
+                                  maximum_backoff=sub_config['retry_policy']['maximum_backoff']
+                              )
+                          
+                          # Configure dead letter policy
+                          dead_letter_policy = None
+                          if 'dead_letter_policy' in sub_config:
+                              dlq_topic_path = self.publisher.topic_path(
+                                  self.project_id, 
+                                  sub_config['dead_letter_policy']['dead_letter_topic']
+                              )
+                              dead_letter_policy = DeadLetterPolicy(
+                                  dead_letter_topic=dlq_topic_path,
+                                  max_delivery_attempts=sub_config['dead_letter_policy']['max_delivery_attempts']
+                              )
+                          
+                          # Create subscription
+                          try:
+                              self.subscriber.create_subscription(
+                                  request={
+                                      "name": subscription_path,
+                                      "topic": topic_path,
+                                      "push_config": push_config,
+                                      "ack_deadline_seconds": sub_config.get('ack_deadline_seconds', 60),
+                                      "retry_policy": retry_policy,
+                                      "dead_letter_policy": dead_letter_policy,
+                                      "filter": sub_config.get('filter', ''),
+                                      "message_retention_duration": sub_config.get('message_retention_duration', '604800s')
+                                  }
+                              )
+                              logging.info(f"Created subscription: {sub_config['name']}")
+                          except Exception as e:
+                              if "already exists" not in str(e):
+                                  logging.error(f"Failed to create subscription {sub_config['name']}: {e}")
+                          
+                      except Exception as e:
+                          logging.error(f"Error setting up subscription {sub_name}: {e}")
+          
+          async def main():
+              manager = GeologicalPubSubManager()
+              await manager.setup_topics_and_subscriptions()
+              
+              # Keep the service running
+              while True:
+                  await asyncio.sleep(60)
+                  logging.info("Pub/Sub manager running...")
+          
+          if __name__ == "__main__":
+              logging.basicConfig(level=logging.INFO)
+              asyncio.run(main())
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/etc/gcp/key.json"
+        - name: GCP_PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: gcp-integration-config
+              key: GCP_PROJECT_ID
+        volumeMounts:
+        - name: gcp-service-account
+          mountPath: /etc/gcp
+          readOnly: true
+        - name: pubsub-config
+          mountPath: /etc/config
+          readOnly: true
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+      volumes:
+      - name: gcp-service-account
+        secret:
+          secretName: gcp-service-account-key
+      - name: pubsub-config
+        configMap:
+          name: gcp-pubsub-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gcp-pubsub-manager
+  namespace: prometheus-gcp
+  labels:
+    app: gcp-pubsub-manager
+    component: event-processing
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: gcp-pubsub-manager

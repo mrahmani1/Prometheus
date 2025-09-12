@@ -1,0 +1,52 @@
+# GCP Data Analytics Integration Service Configuration
+
+service:
+  name: "gcp-data-analytics-integration"
+  version: "1.0.0"
+  port: 8080
+  host: "0.0.0.0"
+  
+gcp:
+  project_id: "${GOOGLE_CLOUD_PROJECT}"
+  region: "${GOOGLE_CLOUD_REGION:-us-central1}"
+  
+bigquery:
+  dataset_id: "geological_analytics"
+  ml_dataset_id: "geological_ml"
+  location: "US"
+  
+dataflow:
+  region: "${GOOGLE_CLOUD_REGION:-us-central1}"
+  temp_location: "gs://prometheus-dataflow-temp"
+  staging_location: "gs://prometheus-dataflow-staging"
+  
+dataproc:
+  region: "${GOOGLE_CLOUD_REGION:-us-central1}"
+  
+earth_engine:
+  output_bucket: "prometheus-earth-engine-outputs"
+  temp_bucket: "prometheus-earth-engine-temp"
+  
+composer:
+  location: "${GOOGLE_CLOUD_REGION:-us-central1}"
+  environment_name: "prometheus-composer"
+  
+data_fusion:
+  location: "${GOOGLE_CLOUD_REGION:-us-central1}"
+  instance_name: "prometheus-data-fusion"
+  
+data_catalog:
+  location: "${GOOGLE_CLOUD_REGION:-us-central1}"
+  entry_group_id: "geological-data"
+  
+dataplex:
+  location: "${GOOGLE_CLOUD_REGION:-us-central1}"
+  lake_id: "geological-data-lake"
+  
+logging:
+  level: "INFO"
+  format: "json"
+  
+monitoring:
+  enabled: true
+  metrics_port: 9090

@@ -4,7 +4,7 @@ This directory contains the microservices implementation of the Prometheus AI Pl
 
 ## Architecture Overview
 
-The platform consists of four core microservices:
+The platform consists of core microservices and specialized services:
 
 ### 1. API Gateway (`api-gateway/`)
 - **Technology**: Node.js + Express
@@ -51,6 +51,59 @@ The platform consists of four core microservices:
   - Multi-sensor data fusion
   - Real-time alert generation
   - WebSocket streaming for live data
+
+## Specialized Services
+
+### 5. Security Framework (`security-framework/`)
+- **Technology**: Python + FastAPI
+- **Port**: 8004
+- **Purpose**: Advanced data protection and compliance monitoring
+- **Features**:
+  - End-to-end encryption with HSM integration
+  - Data loss prevention (DLP) with geological data sensitivity analysis
+  - **Compliance Dashboard**: Real-time compliance monitoring with interactive visualizations
+  - Secure data sharing and collaboration
+  - Privacy-preserving analytics with homomorphic encryption
+  - Multi-framework compliance (GDPR, SOC2, ISO27001)
+
+### 6. Disaster Recovery (`disaster-recovery/`)
+- **Technology**: Python + FastAPI
+- **Port**: 8005
+- **Purpose**: Multi-cloud disaster recovery and synchronization
+- **Status**: 🔄 **IN PROGRESS**
+- **Features**:
+  - Cross-cloud data replication (GCP ↔ Azure ↔ AWS)
+  - Automated failover between cloud providers
+  - Multi-cloud backup and recovery strategies
+  - Cross-cloud cost optimization and resource arbitrage
+  - Multi-cloud security and compliance monitoring
+  - Cross-cloud network connectivity and VPN management
+  - Unified multi-cloud monitoring and alerting
+  - Cross-cloud identity and access management
+  - Multi-cloud resource scheduling and optimization
+  - Cross-cloud data governance and compliance
+
+### 7. Model Manager (`model-manager/`)
+- **Technology**: Python + FastAPI
+- **Port**: 8006
+- **Purpose**: ML model lifecycle management and MLOps
+- **Features**:
+  - Model versioning and storage across multiple backends
+  - Automated model deployment and monitoring
+  - Multi-cloud integration (AWS, Azure, GCP)
+  - Model performance tracking and drift detection
+  - A/B testing infrastructure for model updates
+
+### 8. Analytics Service (`analytics/`)
+- **Technology**: Python + FastAPI
+- **Port**: 8007
+- **Purpose**: Advanced geological analytics and distributed computing
+- **Features**:
+  - Complex geological analysis workflows
+  - GPU acceleration for neural network inference
+  - Distributed computing for large-scale analysis
+  - Batch processing workflows
+  - Performance optimization for geological computations
 
 ## Infrastructure Services
 
@@ -150,6 +203,31 @@ python main.py
 - `POST /alerts/configure` - Configure alerts
 - `GET /volcanoes/{id}/status` - Volcano status
 - `WS /ws/{volcano_id}` - Real-time WebSocket
+
+### Security Framework (Port 8004)
+- `POST /api/v1/encrypt` - Encrypt geological data
+- `POST /api/v1/decrypt` - Decrypt geological data
+- `POST /api/v1/classify` - Classify data sensitivity
+- `POST /api/v1/dlp/evaluate` - Data loss prevention evaluation
+- `GET /api/v1/compliance/dashboard` - Compliance dashboard data
+- `POST /api/v1/compliance/alerts` - Create compliance alerts
+- `POST /api/v1/compliance/reports/generate` - Generate compliance reports
+
+### Disaster Recovery (Port 8005) - 🔄 **IN PROGRESS**
+- `GET /api/v1/health` - Service health check
+- `GET /api/v1/status` - Multi-cloud disaster recovery status
+- `POST /api/v1/replication/start` - Start cross-cloud data replication
+- `POST /api/v1/replication/stop` - Stop data replication
+- `GET /api/v1/replication/status` - Get replication status
+- `POST /api/v1/failover/initiate` - Initiate automated failover
+- `POST /api/v1/failover/rollback` - Rollback failover
+- `GET /api/v1/backup/status` - Get backup status across clouds
+- `POST /api/v1/backup/create` - Create multi-cloud backup
+- `POST /api/v1/backup/restore` - Restore from backup
+- `GET /api/v1/cost/optimization` - Get cost optimization recommendations
+- `GET /api/v1/security/compliance` - Get multi-cloud compliance status
+- `GET /api/v1/network/connectivity` - Check cross-cloud network status
+- `GET /api/v1/monitoring/alerts` - Get unified monitoring alerts
 
 ## Configuration
 
@@ -305,6 +383,24 @@ export LOG_LEVEL=debug
 4. Update documentation for new endpoints
 5. Ensure proper error handling and logging
 
+## Future Development
+
+### Immersive Visualization Services (🔄 **IN DEVELOPMENT**)
+The platform is expanding to include immersive VR/AR capabilities:
+
+- **VR Geological Explorer Service**: Virtual reality geological exploration with immersive 3D environments
+- **AR Field Assistant Service**: Augmented reality field data overlay for real-time geological visualization
+- **Haptic Feedback Service**: Tactile geological exploration with force feedback systems
+- **Collaborative VR/AR Service**: Multi-user immersive environments for geological research
+- **Gesture Control Service**: Natural interaction interfaces with gesture and voice recognition
+- **Immersive Analytics Service**: 3D/4D data visualization and manipulation in virtual environments
+
+These services will integrate with the existing microservices architecture to provide:
+- Real-time geological data streaming to VR/AR environments
+- Collaborative research capabilities across virtual and physical spaces
+- Educational and training modules for geological professionals
+- Advanced visualization of complex geological processes and structures
+
 ## Next Steps
 
 1. **Kubernetes Deployment** - Production-ready orchestration
@@ -312,3 +408,4 @@ export LOG_LEVEL=debug
 3. **API Documentation** - OpenAPI/Swagger specifications
 4. **Performance Optimization** - Caching strategies and optimization
 5. **Security Hardening** - Advanced security measures
+6. **VR/AR Integration** - Immersive visualization service development
