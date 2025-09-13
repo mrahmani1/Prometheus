@@ -1,0 +1,322 @@
+# Real-Time Process Monitor Configuration
+# Production-grade configuration for geological process monitoring
+
+# Database Configuration
+database:
+  redis:
+    host: ${REDIS_HOST:-localhost}
+    port: ${REDIS_PORT:-6379}
+    password: ${REDIS_PASSWORD:-}
+    db: ${REDIS_DB:-0}
+    max_connections: 20
+    socket_timeout: 30
+    socket_connect_timeout: 30
+    retry_on_timeout: true
+    health_check_interval: 30
+
+  influxdb:
+    url: ${INFLUXDB_URL:-http://localhost:8086}
+    token: ${INFLUXDB_TOKEN}
+    org: ${INFLUXDB_ORG:-prometheus}
+    bucket: ${INFLUXDB_BUCKET:-geological_data}
+    timeout: 30000
+    verify_ssl: true
+    enable_gzip: true
+    batch_size: 1000
+    flush_interval: 1000
+
+  postgresql:
+    host: ${POSTGRES_HOST:-localhost}
+    port: ${POSTGRES_PORT:-5432}
+    database: ${POSTGRES_DB:-prometheus}
+    username: ${POSTGRES_USER:-prometheus}
+    password: ${POSTGRES_PASSWORD}
+    pool_size: 20
+    max_overflow: 30
+    pool_timeout: 30
+    pool_recycle: 3600
+
+# Real-Time Data Sources
+data_sources:
+  iris_earthscope:
+    enabled: true
+    base_url: "https://service.iris.edu/fdsnws/dataselect/1/"
+    username: ${IRIS_USERNAME}
+    password: ${IRIS_PASSWORD}
+    timeout: 30
+    retry_attempts: 3
+    retry_delay: 5
+    rate_limit: 10  # requests per second
+    stations:
+      - "IU.ANMO.00.BHZ"
+      - "US.WMOK.00.BHZ"
+      - "TA.*.*.BHZ"
+    parameters:
+      - ground_velocity
+      - dominant_frequency
+      - signal_to_noise_ratio
+      - peak_ground_acceleration
+
+  usgs_volcano_hazards:
+    enabled: true
+    base_url: "https://volcanoes.usgs.gov/observatories/api/v1/"
+    api_key: ${USGS_API_KEY}
+    timeout: 30
+    retry_attempts: 3
+    retry_delay: 5
+    rate_limit: 5  # requests per second
+    observatories:
+      - "AVO"  # Alaska Volcano Observatory
+      - "CVO"  # Cascades Volcano Observatory
+      - "HVO"  # Hawaiian Volcano Observatory
+      - "YVO"  # Yellowstone Volcano Observatory
+    parameters:
+      - so2_flux
+      - thermal_radiance
+      - volcanic_tremor
+      - gas_temperature
+      - seismic_energy
+
+  nasa_earthdata:
+    enabled: true
+    base_url: "https://earthdata.nasa.gov/api/v1/"
+    username: ${NASA_USERNAME}
+    password: ${NASA_PASSWORD}
+    timeout: 60
+    retry_attempts: 3
+    retry_delay: 10
+    rate_limit: 2  # requests per second
+    datasets:
+      - "MODIS_TERRA_THERMAL"
+      - "MODIS_AQUA_THERMAL"
+      - "VIIRS_THERMAL_ANOMALIES"
+    parameters:
+      - thermal_anomaly_power
+      - surface_temperature
+      - thermal_confidence
+
+  copernicus_satellites:
+    enabled: true
+    base_url: "https://scihub.copernicus.eu/dhus/api/"
+    username: ${COPERNICUS_USERNAME}
+    password: ${COPERNICUS_PASSWORD}
+    timeout: 120
+    retry_attempts: 3
+    retry_delay: 15
+    rate_limit: 1  # requests per second
+    satellites:
+      - "Sentinel-1A"
+      - "Sentinel-1B"
+      - "Sentinel-2A"
+      - "Sentinel-2B"
+    parameters:
+      - coherence
+      - displacement_los
+      - surface_deformation
+
+  asf_hyp3_mtsar:
+    enabled: true
+    base_url: "https://hyp3-api.asf.alaska.edu/"
+    api_key: ${ASF_API_KEY}
+    timeout: 180
+    retry_attempts: 3
+    retry_delay: 20
+    rate_limit: 0.5  # requests per second
+    processing_types:
+      - "INSAR_GAMMA"
+      - "AUTORIFT"
+    parameters:
+      - interferometric_coherence
+      - line_of_sight_displacement
+      - displacement_time_series
+      - deformation_velocity
+
+# Processing Configuration
+processing:
+  max_workers: ${MAX_WORKERS:-8}
+  processing_frequency: 10  # Hz
+  buffer_size: 10000  # Maximum data points per buffer
+  time_window: 3600  # seconds (1 hour)
+  batch_size: 100
+  
+  # Quality Control
+  quality_control:
+    min_quality_score: 0.5
+    max_processing_latency: 10.0  # seconds
+    data_completeness_threshold: 0.8
+    outlier_detection_threshold: 3.0  # standard deviations
+    
+  # Causal Analysis
+  causal_analysis:
+    min_data_points: 20
+    max_lag: 10  # time steps
+    confidence_threshold: 0.7
+    strength_threshold: 0.5
+    update_frequency: 5  # seconds
+    
+  # Anomaly Detection
+  anomaly_detection:
+    algorithms:
+      - "isolation_forest"
+      - "statistical_outliers"
+      - "temporal_patterns"
+    contamination_rate: 0.1
+    sensitivity: 0.8
+    min_anomaly_score: 0.7
+    
+# Alert Configuration
+alerts:
+  severity_thresholds:
+    low: 0.3
+    medium: 0.6
+    high: 0.8
+    critical: 0.95
+    
+  notification_channels:
+    email:
+      enabled: true
+      smtp_server: ${SMTP_SERVER}
+      smtp_port: ${SMTP_PORT:-587}
+      username: ${SMTP_USERNAME}
+      password: ${SMTP_PASSWORD}
+      recipients:
+        - "alerts@prometheus-ai.com"
+        - "operations@prometheus-ai.com"
+    
+    slack:
+      enabled: true
+      webhook_url: ${SLACK_WEBHOOK_URL}
+      channel: "#geological-alerts"
+      
+    sms:
+      enabled: false
+      provider: "twilio"
+      account_sid: ${TWILIO_ACCOUNT_SID}
+      auth_token: ${TWILIO_AUTH_TOKEN}
+      from_number: ${TWILIO_FROM_NUMBER}
+      recipients:
+        - "+1234567890"
+  
+  alert_rules:
+    causal_strength_change:
+      threshold: 0.5  # 50% change
+      severity: "medium"
+      cooldown: 300  # seconds
+      
+    anomaly_detection:
+      threshold: 0.8
+      severity: "high"
+      cooldown: 60  # seconds
+      
+    data_quality_degradation:
+      threshold: 0.3  # Below 30% quality
+      severity: "medium"
+      cooldown: 600  # seconds
+      
+    system_performance:
+      latency_threshold: 5.0  # seconds
+      throughput_threshold: 10  # points per second
+      severity: "low"
+      cooldown: 300  # seconds
+
+# WebSocket Configuration
+websocket:
+  host: ${WEBSOCKET_HOST:-0.0.0.0}
+  port: ${WEBSOCKET_PORT:-8765}
+  max_connections: 100
+  ping_interval: 30
+  ping_timeout: 10
+  close_timeout: 10
+  max_message_size: 1048576  # 1MB
+  compression: "deflate"
+
+# Monitoring and Observability
+monitoring:
+  metrics:
+    enabled: true
+    port: ${METRICS_PORT:-9090}
+    path: "/metrics"
+    
+  logging:
+    level: ${LOG_LEVEL:-INFO}
+    format: "json"
+    file: ${LOG_FILE:-/var/log/prometheus/real_time_monitor.log}
+    max_size: "100MB"
+    backup_count: 5
+    
+  tracing:
+    enabled: true
+    jaeger_endpoint: ${JAEGER_ENDPOINT}
+    service_name: "real-time-process-monitor"
+    
+  health_checks:
+    enabled: true
+    port: ${HEALTH_CHECK_PORT:-8080}
+    path: "/health"
+    interval: 30  # seconds
+
+# Security Configuration
+security:
+  authentication:
+    enabled: true
+    method: "jwt"
+    secret_key: ${JWT_SECRET_KEY}
+    token_expiry: 3600  # seconds
+    
+  authorization:
+    enabled: true
+    roles:
+      - "admin"
+      - "operator"
+      - "viewer"
+      
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key: ${ENCRYPTION_KEY}
+    
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_size: 100
+
+# Performance Tuning
+performance:
+  memory:
+    max_heap_size: "4GB"
+    gc_algorithm: "G1GC"
+    
+  cpu:
+    thread_pool_size: ${CPU_CORES:-8}
+    async_pool_size: ${ASYNC_POOL_SIZE:-16}
+    
+  network:
+    connection_pool_size: 50
+    socket_timeout: 30
+    keep_alive: true
+    
+  caching:
+    enabled: true
+    ttl: 300  # seconds
+    max_size: 10000  # entries
+
+# Development and Testing
+development:
+  debug_mode: ${DEBUG_MODE:-false}
+  mock_data_sources: ${MOCK_DATA_SOURCES:-false}
+  test_data_frequency: 1  # Hz
+  profiling_enabled: ${PROFILING_ENABLED:-false}
+  
+# Backup and Recovery
+backup:
+  enabled: true
+  frequency: "daily"
+  retention_days: 30
+  storage_location: ${BACKUP_LOCATION:-/var/backups/prometheus}
+  compression: true
+  
+recovery:
+  auto_recovery: true
+  max_retry_attempts: 3
+  retry_delay: 60  # seconds
+  fallback_mode: true

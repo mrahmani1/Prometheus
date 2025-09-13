@@ -1,0 +1,367 @@
+# Monitoring Network Registry Configuration
+# Production-grade configuration for global volcanic monitoring network management
+
+# Database Configuration
+database:
+  # Primary PostgreSQL database
+  primary:
+    host: "localhost"
+    port: 5432
+    database: "monitoring_network"
+    username: "monitoring_user"
+    password: "${MONITORING_DB_PASSWORD}"
+    pool_size: 20
+    max_overflow: 30
+    pool_timeout: 30
+    pool_recycle: 3600
+    
+  # Read replica for queries (optional)
+  replica:
+    host: "localhost"
+    port: 5433
+    database: "monitoring_network"
+    username: "monitoring_reader"
+    password: "${MONITORING_DB_READER_PASSWORD}"
+    
+# Redis Configuration for Caching
+redis:
+  host: "localhost"
+  port: 6379
+  database: 0
+  password: "${REDIS_PASSWORD}"
+  connection_pool_size: 50
+  socket_timeout: 5
+  socket_connect_timeout: 5
+  
+# Kafka Configuration for Real-time Streaming
+kafka:
+  bootstrap_servers:
+    - "localhost:9092"
+    - "localhost:9093"
+    - "localhost:9094"
+  security_protocol: "SASL_SSL"
+  sasl_mechanism: "PLAIN"
+  sasl_username: "${KAFKA_USERNAME}"
+  sasl_password: "${KAFKA_PASSWORD}"
+  
+  # Topic configurations
+  topics:
+    observatory_events: "monitoring.observatory.events"
+    station_events: "monitoring.station.events"
+    stream_events: "monitoring.stream.events"
+    performance_metrics: "monitoring.performance.metrics"
+    alerts: "monitoring.alerts"
+    
+  # Producer settings
+  producer:
+    acks: "all"
+    retries: 3
+    batch_size: 16384
+    linger_ms: 10
+    buffer_memory: 33554432
+    
+  # Consumer settings
+  consumer:
+    group_id: "monitoring_network_registry"
+    auto_offset_reset: "earliest"
+    enable_auto_commit: true
+    auto_commit_interval_ms: 1000
+
+# External Data Source APIs
+external_apis:
+  # USGS Volcano Hazards Program
+  usgs_vhp:
+    base_url: "https://volcanoes.usgs.gov/observatories/api"
+    api_key: "${USGS_API_KEY}"
+    rate_limit: 100  # requests per minute
+    timeout: 30
+    retry_attempts: 3
+    endpoints:
+      observatories: "/observatories"
+      stations: "/stations"
+      data_streams: "/streams"
+      
+  # INGV (Italy)
+  ingv:
+    base_url: "https://www.ct.ingv.it/api"
+    api_key: "${INGV_API_KEY}"
+    rate_limit: 50
+    timeout: 30
+    retry_attempts: 3
+    endpoints:
+      stations: "/stations"
+      networks: "/networks"
+      
+  # JMA (Japan)
+  jma:
+    base_url: "https://www.data.jma.go.jp/svd/vois/data/api"
+    api_key: "${JMA_API_KEY}"
+    rate_limit: 30
+    timeout: 30
+    retry_attempts: 3
+    endpoints:
+      observatories: "/observatories"
+      monitoring: "/monitoring"
+      
+  # World Organization of Volcano Observatories (WOVO)
+  wovo:
+    base_url: "https://www.wovo.org/api"
+    api_key: "${WOVO_API_KEY}"
+    rate_limit: 60
+    timeout: 30
+    retry_attempts: 3
+    endpoints:
+      observatories: "/observatories"
+      networks: "/networks"
+      
+  # IRIS Data Services
+  iris:
+    base_url: "https://service.iris.edu"
+    rate_limit: 200
+    timeout: 60
+    retry_attempts: 3
+    endpoints:
+      stations: "/fdsnws/station/1/query"
+      dataselect: "/fdsnws/dataselect/1/query"
+      
+  # UNAVCO GPS Data
+  unavco:
+    base_url: "https://www.unavco.org/data/gps-gnss/data-access-methods/dai2/app"
+    api_key: "${UNAVCO_API_KEY}"
+    rate_limit: 100
+    timeout: 60
+    retry_attempts: 3
+
+# Network Coverage Analysis Settings
+coverage_analysis:
+  # Default parameters for coverage calculations
+  default_monitoring_range_km: 50.0
+  grid_resolution_degrees: 0.1
+  minimum_station_density: 0.001  # stations per km²
+  target_coverage_percentage: 90.0
+  redundancy_threshold: 2  # minimum stations for redundancy
+  
+  # Network-specific monitoring ranges (km)
+  monitoring_ranges:
+    seismic: 50.0
+    gps_gnss: 30.0
+    deformation: 25.0
+    gas_geochemical: 15.0
+    thermal: 20.0
+    infrasound: 100.0
+    gravimetric: 10.0
+    magnetic: 40.0
+    
+# Performance Assessment Settings
+performance_assessment:
+  # Thresholds for performance metrics
+  thresholds:
+    minimum_uptime: 95.0  # percentage
+    minimum_data_completeness: 90.0  # percentage
+    maximum_latency_p95: 300.0  # seconds
+    maximum_error_rate: 0.05  # 5%
+    maximum_false_alarm_rate: 0.02  # 2%
+    minimum_detection_capability: 0.80  # 80%
+    
+  # Assessment time windows
+  time_windows:
+    real_time: 3600  # 1 hour in seconds
+    daily: 86400  # 24 hours
+    weekly: 604800  # 7 days
+    monthly: 2592000  # 30 days
+    
+# Real-time Data Integration Settings
+real_time_integration:
+  # Connection settings
+  connection_timeout: 30
+  read_timeout: 60
+  max_connections_per_host: 10
+  max_total_connections: 100
+  
+  # Stream processing settings
+  buffer_size: 1000
+  batch_size: 100
+  processing_interval: 1.0  # seconds
+  max_retry_attempts: 5
+  retry_backoff_factor: 2.0
+  
+  # Quality control settings
+  quality_checks:
+    enable_range_validation: true
+    enable_spike_detection: true
+    enable_gap_detection: true
+    enable_timing_validation: true
+    
+  # Supported data formats
+  supported_formats:
+    - "miniSEED"
+    - "RINEX"
+    - "JSON"
+    - "CSV"
+    - "NetCDF"
+
+# Monitoring Gap Analysis Settings
+gap_analysis:
+  # Priority scoring weights
+  priority_weights:
+    coverage_gap: 0.4
+    population_exposure: 0.3
+    volcanic_hazard_level: 0.2
+    existing_infrastructure: 0.1
+    
+  # Cost estimation parameters (USD)
+  deployment_costs:
+    seismic_station: 50000
+    gps_station: 30000
+    thermal_camera: 25000
+    gas_sensor: 40000
+    deformation_sensor: 35000
+    multi_parameter_station: 75000
+    
+  # Installation factors
+  installation_factors:
+    easy_access: 1.0
+    moderate_access: 1.3
+    difficult_access: 1.8
+    extreme_access: 2.5
+    
+# Synchronization Settings
+synchronization:
+  # Automatic sync schedule (cron format)
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  
+  # Sync intervals for different data types
+  intervals:
+    observatories: 86400  # 24 hours
+    stations: 43200  # 12 hours
+    data_streams: 3600  # 1 hour
+    performance_metrics: 300  # 5 minutes
+    
+  # Conflict resolution strategies
+  conflict_resolution:
+    observatory_updates: "external_source_priority"
+    station_updates: "most_recent_timestamp"
+    stream_updates: "merge_metadata"
+    
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log file settings
+  file_logging:
+    enabled: true
+    filename: "monitoring_network_registry.log"
+    max_size_mb: 100
+    backup_count: 5
+    
+  # Structured logging for production
+  structured_logging:
+    enabled: true
+    format: "json"
+    include_fields:
+      - "timestamp"
+      - "level"
+      - "logger"
+      - "message"
+      - "module"
+      - "function"
+      - "line_number"
+      - "correlation_id"
+
+# Security Settings
+security:
+  # API authentication
+  api_authentication:
+    method: "JWT"
+    secret_key: "${JWT_SECRET_KEY}"
+    algorithm: "HS256"
+    expiration_hours: 24
+    
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_size: 100
+    
+  # Data encryption
+  encryption:
+    encrypt_sensitive_data: true
+    encryption_key: "${DATA_ENCRYPTION_KEY}"
+    
+  # Access control
+  access_control:
+    enable_rbac: true
+    default_permissions: "read"
+    admin_users:
+      - "admin@monitoring.org"
+      - "system@monitoring.org"
+
+# Monitoring and Alerting
+monitoring:
+  # Health check settings
+  health_checks:
+    enabled: true
+    interval: 60  # seconds
+    timeout: 10
+    
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: 30  # seconds
+    retention_days: 90
+    
+  # Alerting thresholds
+  alerts:
+    database_connection_failure: true
+    high_error_rate_threshold: 0.1  # 10%
+    low_uptime_threshold: 0.95  # 95%
+    high_latency_threshold: 300  # seconds
+    
+  # Notification channels
+  notifications:
+    email:
+      enabled: true
+      smtp_server: "smtp.monitoring.org"
+      smtp_port: 587
+      username: "${SMTP_USERNAME}"
+      password: "${SMTP_PASSWORD}"
+      recipients:
+        - "alerts@monitoring.org"
+        - "ops@monitoring.org"
+    
+    slack:
+      enabled: true
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#monitoring-alerts"
+
+# Backup and Recovery
+backup:
+  # Database backup settings
+  database_backup:
+    enabled: true
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    retention_days: 30
+    compression: true
+    
+  # Configuration backup
+  config_backup:
+    enabled: true
+    schedule: "0 0 * * 0"  # Weekly on Sunday
+    retention_weeks: 12
+
+# Development and Testing
+development:
+  # Test database settings
+  test_database:
+    use_in_memory: true
+    reset_on_startup: true
+    
+  # Mock external APIs for testing
+  mock_external_apis: true
+  
+  # Debug settings
+  debug:
+    enabled: false
+    log_sql_queries: false
+    profile_performance: false

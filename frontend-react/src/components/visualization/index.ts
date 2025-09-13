@@ -16,6 +16,9 @@ export { GeologicalDataGrid } from './grids/GeologicalDataGrid';
 // Export Components
 export { DataExporter } from './export/DataExporter';
 
+// Causal Network Visualization Components
+export * from './causal';
+
 // Re-export types
 export type {
   GeologicalData,
