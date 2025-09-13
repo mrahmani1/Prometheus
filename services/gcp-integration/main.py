@@ -76,9 +76,9 @@ earth_engine_service: Optional[EarthEngineGeologicalAnalysis] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
-    global (bigquery_service, dataflow_service, dataproc_service, composer_service,
-            data_fusion_service, looker_service, data_catalog_service, dataplex_service,
-            earth_engine_service)
+    global bigquery_service, dataflow_service, dataproc_service, composer_service
+    global data_fusion_service, looker_service, data_catalog_service, dataplex_service
+    global earth_engine_service
     
     logger.info("Starting GCP Data Analytics Integration Service")
     

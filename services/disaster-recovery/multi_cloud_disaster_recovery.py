@@ -136,8 +136,8 @@ class FailoverJob:
     completed_at: Optional[datetime] = None
     rollback_enabled: bool = True
     validation_results: Dict[str, Any] = field(default_factory=dict)
-cl
-ass CloudProviderClient:
+
+class CloudProviderClient:
     """Base class for cloud provider clients"""
     
     def __init__(self, provider: CloudProvider, config: Dict[str, Any]):
@@ -421,8 +421,9 @@ class CostOptimizationEngine:
             ]
         })
         
-        return recommendationscl
-ass SecurityMonitor:
+        return recommendations
+    
+class SecurityMonitor:
     """Multi-cloud security monitoring"""
     
     def __init__(self, providers: Dict[CloudProvider, CloudProviderClient]):
@@ -653,8 +654,9 @@ class NetworkManager:
                     latency = await self._measure_latency(provider1, provider2)
                     latency_matrix[provider1.value][provider2.value] = latency
         
-        return latency_matrixcl
-ass IdentityManager:
+        return latency_matrix
+        
+class IdentityManager:
     """Multi-cloud identity and access management"""
     
     def __init__(self, providers: Dict[CloudProvider, CloudProviderClient]):
@@ -961,8 +963,9 @@ class DataGovernance:
                 "remediation_actions": []
             }
         
-        return compliance_statusclass 
-MultiCloudDisasterRecovery:
+        return compliance_status
+        
+class MultiCloudDisasterRecovery:
     """Main multi-cloud disaster recovery orchestrator"""
     
     def __init__(self, config: DisasterRecoveryConfig):

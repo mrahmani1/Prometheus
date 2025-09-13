@@ -1,0 +1,192 @@
+# Intelligent Cache Service Configuration
+
+# Service settings
+service:
+  name: "intelligent-cache"
+  version: "1.0.0"
+  host: "0.0.0.0"
+  port: 8080
+  debug: false
+  cors_origins:
+    - "*"
+
+# Cache configuration
+cache:
+  max_l1_size: 1073741824  # 1GB in bytes
+  max_l2_size: 10737418240  # 10GB in bytes
+  default_ttl_hours: 24
+  compression_enabled: true
+  deduplication_enabled: true
+  geological_optimization: true
+  
+  # Redis configuration
+  redis:
+    url: "redis://localhost:6379"
+    db: 0
+    max_connections: 20
+    retry_on_timeout: true
+    socket_keepalive: true
+    socket_keepalive_options: {}
+
+# Query optimizer configuration
+query_optimizer:
+  enable_caching: true
+  cache_ttl_hours: 1
+  slow_query_threshold: 5.0
+  auto_index_creation: false
+  geological_optimization: true
+  parallel_execution: true
+
+# Prefetch engine configuration
+prefetch:
+  enabled: true
+  max_concurrent: 10
+  min_confidence: 0.3
+  workflow_prediction: true
+  user_behavior_analysis: true
+  spatial_temporal_prediction: true
+
+# Performance monitoring configuration
+performance_monitor:
+  enabled: true
+  collection_interval: 30  # seconds
+  retention_days: 7
+  geological_optimization: true
+  
+  # Alert thresholds
+  alert_thresholds:
+    latency:
+      warning: 1.0
+      error: 5.0
+      critical: 10.0
+    hit_rate:
+      warning: 0.7
+      error: 0.5
+      critical: 0.3
+    memory_usage:
+      warning: 0.8
+      error: 0.9
+      critical: 0.95
+    cpu_usage:
+      warning: 0.7
+      error: 0.85
+      critical: 0.95
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/var/log/intelligent-cache/service.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+
+# Security configuration
+security:
+  enable_auth: false  # Set to true in production
+  jwt_secret: "your-secret-key-here"
+  jwt_algorithm: "HS256"
+  jwt_expiration_hours: 24
+
+# Geological domain configuration
+geological:
+  # Volcanic monitoring optimization
+  volcanic_monitoring:
+    real_time_cache_ttl: 300  # 5 minutes
+    alert_level_priorities:
+      1: 0.3  # Low
+      2: 0.5  # Moderate
+      3: 0.8  # High
+      4: 1.0  # Critical
+    
+  # Seismic analysis optimization
+  seismic_analysis:
+    waveform_compression: true
+    parallel_processing: true
+    magnitude_index_threshold: 3.0
+    
+  # Geological modeling optimization
+  geological_modeling:
+    model_cache_ttl: 86400  # 24 hours
+    enable_3d_spatial_index: true
+    compression_level: 9
+    
+  # Resource assessment optimization
+  resource_assessment:
+    economic_cache_ttl: 43200  # 12 hours
+    grade_threshold: 0.1
+    enable_prospectivity_cache: true
+
+# Integration settings
+integrations:
+  # Database connections
+  databases:
+    postgresql:
+      url: "postgresql+asyncpg://user:password@localhost:5432/prometheus"
+      pool_size: 20
+      max_overflow: 30
+      
+    influxdb:
+      url: "http://localhost:8086"
+      token: "your-influxdb-token"
+      org: "prometheus-ai"
+      bucket: "geological-data"
+      
+    neo4j:
+      url: "bolt://localhost:7687"
+      username: "neo4j"
+      password: "password"
+      
+  # External services
+  external_services:
+    prometheus_metrics:
+      url: "http://localhost:9090"
+      enabled: true
+      
+    grafana_dashboards:
+      url: "http://localhost:3000"
+      enabled: true
+      
+    consul_service_discovery:
+      url: "http://localhost:8500"
+      enabled: true
+      service_name: "intelligent-cache"
+
+# Resource limits and optimization
+resources:
+  # Memory limits
+  memory:
+    max_heap_size: "2g"
+    gc_threshold: 0.8
+    
+  # CPU limits
+  cpu:
+    max_workers: 4
+    thread_pool_size: 20
+    
+  # Network limits
+  network:
+    max_connections: 1000
+    connection_timeout: 30
+    read_timeout: 60
+    
+  # Disk limits
+  disk:
+    max_cache_size: "50g"
+    cleanup_threshold: 0.9
+
+# Development and testing
+development:
+  mock_data_enabled: false
+  test_mode: false
+  debug_geological_workflows: false
+  performance_profiling: false
+
+# Production settings
+production:
+  enable_metrics_export: true
+  enable_distributed_tracing: true
+  enable_health_checks: true
+  graceful_shutdown_timeout: 30

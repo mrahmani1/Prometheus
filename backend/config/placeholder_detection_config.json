@@ -1,0 +1,142 @@
+{
+  "detection": {
+    "scan_directories": [
+      "backend/modules",
+      "backend/core",
+      "services"
+    ],
+    "file_extensions": [".py"],
+    "exclude_patterns": [
+      "__pycache__",
+      ".pyc",
+      "test_",
+      "_test.py",
+      ".pytest_cache",
+      "node_modules"
+    ],
+    "confidence_threshold": 0.7,
+    "context_lines": 3,
+    "enable_ast_analysis": true,
+    "enable_semantic_analysis": true,
+    "priority_weights": {
+      "data_source_impact": 0.4,
+      "algorithm_complexity": 0.3,
+      "usage_frequency": 0.2,
+      "scientific_accuracy": 0.1
+    }
+  },
+  "tracking": {
+    "db_path": "backend/core/replacement_tracking.db"
+  },
+  "reports_dir": "backend/reports",
+  "notification": {
+    "enable_email": false,
+    "enable_slack": false,
+    "email_recipients": [],
+    "slack_webhook": ""
+  },
+  "real_data_sources": {
+    "seismic_data": {
+      "sources": ["IRIS/EarthScope", "USGS Earthquake Catalog"],
+      "apis": [
+        "https://service.iris.edu/fdsnws/",
+        "https://earthquake.usgs.gov/fdsnws/"
+      ],
+      "data_types": ["waveforms", "catalogs", "station_metadata"],
+      "priority": "high"
+    },
+    "volcanic_data": {
+      "sources": ["USGS Volcano Hazards Program", "Global Volcanism Program"],
+      "apis": [
+        "https://volcanoes.usgs.gov/vsc-api/",
+        "https://volcano.si.edu/api/"
+      ],
+      "data_types": ["alerts", "monitoring", "eruption_history"],
+      "priority": "high"
+    },
+    "satellite_data": {
+      "sources": ["NASA EarthData", "Copernicus", "ASF-Hyp3"],
+      "apis": [
+        "https://earthdata.nasa.gov/api/",
+        "https://scihub.copernicus.eu/",
+        "https://hyp3-api.asf.alaska.edu/"
+      ],
+      "data_types": ["InSAR", "thermal", "optical", "radar", "MT-SAR"],
+      "priority": "high"
+    },
+    "geochemical_data": {
+      "sources": ["EarthChem", "GEOROC", "NAVDAT", "PetDB"],
+      "apis": [
+        "https://www.earthchem.org/api/",
+        "http://georoc.mpch-mainz.gwdg.de/"
+      ],
+      "data_types": ["compositions", "isotopes", "trace_elements"],
+      "priority": "medium"
+    },
+    "geological_surveys": {
+      "sources": ["USGS", "BGS", "GSC", "GA"],
+      "apis": [
+        "https://mrdata.usgs.gov/",
+        "https://www.bgs.ac.uk/api/"
+      ],
+      "data_types": ["geological_maps", "borehole_data", "mineral_resources"],
+      "priority": "medium"
+    }
+  },
+  "replacement_strategies": {
+    "mock_data": {
+      "strategy": "integrate_real_data_source",
+      "estimated_effort_multiplier": 2.0,
+      "requires_authentication": true,
+      "testing_requirements": ["integration_tests", "data_validation_tests"]
+    },
+    "synthetic_data": {
+      "strategy": "replace_with_authentic_data",
+      "estimated_effort_multiplier": 1.5,
+      "requires_authentication": true,
+      "testing_requirements": ["data_quality_tests", "accuracy_validation"]
+    },
+    "simplified_algorithm": {
+      "strategy": "implement_production_algorithm",
+      "estimated_effort_multiplier": 2.5,
+      "requires_authentication": false,
+      "testing_requirements": ["algorithm_validation", "performance_tests", "accuracy_tests"]
+    },
+    "todo_implementation": {
+      "strategy": "complete_implementation",
+      "estimated_effort_multiplier": 1.0,
+      "requires_authentication": false,
+      "testing_requirements": ["unit_tests", "integration_tests"]
+    },
+    "empty_implementation": {
+      "strategy": "implement_full_functionality",
+      "estimated_effort_multiplier": 1.8,
+      "requires_authentication": false,
+      "testing_requirements": ["unit_tests", "functional_tests"]
+    }
+  },
+  "sprint_configuration": {
+    "default_duration_weeks": 2,
+    "hours_per_week": 40,
+    "parallel_developers": 2,
+    "priority_focus": ["critical", "high"],
+    "sprint_capacity_buffer": 0.8
+  },
+  "validation_criteria": {
+    "scientific_accuracy": {
+      "require_peer_review": true,
+      "require_benchmark_validation": true,
+      "minimum_test_coverage": 0.8
+    },
+    "data_quality": {
+      "require_source_validation": true,
+      "require_cross_validation": true,
+      "minimum_data_completeness": 0.9
+    },
+    "performance": {
+      "maximum_latency_ms": 1000,
+      "minimum_throughput_rps": 10,
+      "memory_usage_limit_mb": 512
+    }
+  }
+}

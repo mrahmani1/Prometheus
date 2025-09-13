@@ -1297,8 +1297,9 @@ async def _apply_feature_engineering(data: pd.DataFrame, config: Dict[str, Any])
             engineered_data["time_since_last_event"] = engineered_data["timestamp"].diff().dt.total_seconds()
     
     return engineered_data
-    #
- Recommendations AI Integration
+
+    #Recommendations AI Integration
+    
     async def generate_geological_recommendations(self, user_context: Dict[str, Any],
                                                 geological_data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate geological data insights using Recommendations AI"""

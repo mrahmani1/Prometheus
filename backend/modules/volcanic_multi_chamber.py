@@ -62112,79 +62112,80 @@ class MultiChamberSimulator(AdvancedMultiChamberSimulator):
             # Get real station coordinates and metadata
             station_coords = self._get_real_station_coordinates(stations, config)
             
-            # Advanced waveform preprocessing and quality control
-            preprocessed_waveforms = self._preprocess_array_waveforms(
-                station_data, stations, config)
-            
-            if not preprocessed_waveforms:
-                return self._fallback_array_localization(station_data, stations, config)
-            
-            # Multi-band frequency domain beamforming
-            beamforming_results = self._perform_multiband_beamforming(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Advanced cross-correlation analysis with sub-sample precision
-            advanced_correlations = self._advanced_cross_correlation_analysis(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Coherence-based array analysis
-            coherence_analysis = self._perform_array_coherence_analysis(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Time-domain beamforming with steering vectors
-            time_domain_beamforming = self._time_domain_beamforming_analysis(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Frequency-wavenumber (f-k) analysis
-            fk_analysis = self._frequency_wavenumber_analysis(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Multiple Signal Classification (MUSIC) algorithm
-            music_results = self._music_array_processing(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Semblance-based array processing
-            semblance_analysis = self._semblance_array_processing(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Machine learning-based source characterization
-            ml_source_characterization = self._ml_source_characterization(
-                beamforming_results, advanced_correlations, coherence_analysis, config)
-            
-            # Grid search-based source localization
-            grid_search_localization = self._grid_search_source_localization(
-                preprocessed_waveforms, station_coords, config)
-            
-            # Probabilistic source location estimation
-            probabilistic_location = self._probabilistic_source_estimation(
-                beamforming_results, fk_analysis, music_results, 
-                grid_search_localization, config)
-            
-            # Uncertainty quantification for location estimates
-            location_uncertainty = self._quantify_location_uncertainty(
-                probabilistic_location, beamforming_results, config)
-            
-            # Quality assessment and confidence scoring
-            quality_metrics = self._assess_localization_quality(
-                beamforming_results, advanced_correlations, coherence_analysis,
-                probabilistic_location, location_uncertainty, config)
-            
-            # Ensemble location estimate combining all methods
-            ensemble_location = self._ensemble_location_estimation(
-                beamforming_results, fk_analysis, music_results,
-                probabilistic_location, quality_metrics, config)
-            
-            # Real-time validation against geological constraints
-            validated_location = self._validate_location_against_geology(
-                ensemble_location, config)
-            
-            estimated_location = validated_location
-            # Calculate comprehensive localization confidence
-            localization_confidence = self._calculate_comprehensive_confidence(
-                quality_metrics, location_uncertainty, validated_location, config)
-            
-            # Store advanced cross-correlations for detailed analysis
-            cross_correlations = advanced_correlations.get('correlation_pairs', [])
+            try:
+                # Advanced waveform preprocessing and quality control
+                preprocessed_waveforms = self._preprocess_array_waveforms(
+                    station_data, stations, config)
+                
+                if not preprocessed_waveforms:
+                    return self._fallback_array_localization(station_data, stations, config)
+                
+                # Multi-band frequency domain beamforming
+                beamforming_results = self._perform_multiband_beamforming(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Advanced cross-correlation analysis with sub-sample precision
+                advanced_correlations = self._advanced_cross_correlation_analysis(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Coherence-based array analysis
+                coherence_analysis = self._perform_array_coherence_analysis(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Time-domain beamforming with steering vectors
+                time_domain_beamforming = self._time_domain_beamforming_analysis(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Frequency-wavenumber (f-k) analysis
+                fk_analysis = self._frequency_wavenumber_analysis(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Multiple Signal Classification (MUSIC) algorithm
+                music_results = self._music_array_processing(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Semblance-based array processing
+                semblance_analysis = self._semblance_array_processing(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Machine learning-based source characterization
+                ml_source_characterization = self._ml_source_characterization(
+                    beamforming_results, advanced_correlations, coherence_analysis, config)
+                
+                # Grid search-based source localization
+                grid_search_localization = self._grid_search_source_localization(
+                    preprocessed_waveforms, station_coords, config)
+                
+                # Probabilistic source location estimation
+                probabilistic_location = self._probabilistic_source_estimation(
+                    beamforming_results, fk_analysis, music_results, 
+                    grid_search_localization, config)
+                
+                # Uncertainty quantification for location estimates
+                location_uncertainty = self._quantify_location_uncertainty(
+                    probabilistic_location, beamforming_results, config)
+                
+                # Quality assessment and confidence scoring
+                quality_metrics = self._assess_localization_quality(
+                    beamforming_results, advanced_correlations, coherence_analysis,
+                    probabilistic_location, location_uncertainty, config)
+                
+                # Ensemble location estimate combining all methods
+                ensemble_location = self._ensemble_location_estimation(
+                    beamforming_results, fk_analysis, music_results,
+                    probabilistic_location, quality_metrics, config)
+                
+                # Real-time validation against geological constraints
+                validated_location = self._validate_location_against_geology(
+                    ensemble_location, config)
+                
+                estimated_location = validated_location
+                # Calculate comprehensive localization confidence
+                localization_confidence = self._calculate_comprehensive_confidence(
+                    quality_metrics, location_uncertainty, validated_location, config)
+                
+                # Store advanced cross-correlations for detailed analysis
+                cross_correlations = advanced_correlations.get('correlation_pairs', [])
             
             except Exception as e:
                 self.logger.error(f"Advanced array processing failed: {e}")

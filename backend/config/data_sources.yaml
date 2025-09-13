@@ -1,0 +1,170 @@
+# Real Data Sources Configuration
+# Configuration for all authenticated geological data source connectors
+
+data_sources:
+  # IRIS/EarthScope Seismic Data
+  iris_primary:
+    type: iris
+    name: "IRIS/EarthScope Seismic Data"
+    base_url: "http://service.iris.edu"
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    rate_limit: 100
+    data_type: "seismic"
+    # Optional authentication (most IRIS services are open)
+    # api_key: "${IRIS_API_KEY}"
+
+  # USGS Volcano Hazards Program
+  usgs_volcano_primary:
+    type: usgs_volcano
+    name: "USGS Volcano Hazards Program"
+    base_url: "https://api.usgs.gov/volcano"
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    rate_limit: 60
+    data_type: "volcanic"
+    api_key: "${USGS_API_KEY}"
+
+  # NASA EarthData
+  nasa_earthdata_primary:
+    type: nasa_earthdata
+    name: "NASA EarthData"
+    base_url: "https://api.earthdata.nasa.gov"
+    enabled: true
+    timeout: 60
+    max_retries: 3
+    rate_limit: 50
+    data_type: "satellite"
+    username: "${NASA_EARTHDATA_USERNAME}"
+    password: "${NASA_EARTHDATA_PASSWORD}"
+
+  # Copernicus Data Space Ecosystem
+  copernicus_primary:
+    type: copernicus
+    name: "Copernicus Data Space Ecosystem"
+    base_url: "https://catalogue.dataspace.copernicus.eu"
+    enabled: true
+    timeout: 60
+    max_retries: 3
+    rate_limit: 40
+    data_type: "satellite"
+    username: "${COPERNICUS_USERNAME}"
+    password: "${COPERNICUS_PASSWORD}"
+
+  # ASF-Hyp3 InSAR Processing
+  asf_hyp3_primary:
+    type: asf_hyp3
+    name: "ASF-Hyp3 InSAR Processing"
+    base_url: "https://hyp3-api.asf.alaska.edu"
+    enabled: true
+    timeout: 120
+    max_retries: 3
+    rate_limit: 30
+    data_type: "insar"
+    username: "${ASF_USERNAME}"
+    password: "${ASF_PASSWORD}"
+
+  # Geochemical Databases (EarthChem, GEOROC, NAVDAT, PetDB)
+  geochem_primary:
+    type: geochem
+    name: "Geochemical Databases"
+    base_url: "https://api.earthchem.org"
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    rate_limit: 60
+    data_type: "geochemical"
+    api_key: "${EARTHCHEM_API_KEY}"
+
+  # National Geological Surveys (USGS, BGS, GSC, GA)
+  geological_survey_primary:
+    type: geological_survey
+    name: "National Geological Surveys"
+    base_url: "https://api.usgs.gov"
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    rate_limit: 60
+    data_type: "geological_survey"
+    api_key: "${USGS_GEOLOGY_API_KEY}"
+
+# Health Monitoring Configuration
+health_monitoring:
+  check_interval: 60 # seconds
+  history_retention_hours: 24
+  alert_thresholds:
+    response_time_ms: 5000
+    success_rate: 0.95
+    consecutive_failures: 3
+    error_rate_threshold: 0.1
+
+# Failover Configuration
+failover:
+  seismic_data:
+    primary_source: "iris_primary"
+    fallback_sources: []
+    max_failures: 3
+    failure_window_minutes: 15
+    recovery_check_interval: 300
+    auto_failback: true
+
+  volcanic_data:
+    primary_source: "usgs_volcano_primary"
+    fallback_sources: []
+    max_failures: 3
+    failure_window_minutes: 15
+    recovery_check_interval: 300
+    auto_failback: true
+
+  satellite_data:
+    primary_source: "nasa_earthdata_primary"
+    fallback_sources: ["copernicus_primary"]
+    max_failures: 3
+    failure_window_minutes: 15
+    recovery_check_interval: 300
+    auto_failback: true
+
+  insar_data:
+    primary_source: "asf_hyp3_primary"
+    fallback_sources: []
+    max_failures: 3
+    failure_window_minutes: 15
+    recovery_check_interval: 300
+    auto_failback: true
+
+  geochemical_data:
+    primary_source: "geochem_primary"
+    fallback_sources: []
+    max_failures: 3
+    failure_window_minutes: 15
+    recovery_check_interval: 300
+    auto_failback: true
+
+  geological_survey_data:
+    primary_source: "geological_survey_primary"
+    fallback_sources: []
+    max_failures: 3
+    failure_window_minutes: 15
+    recovery_check_interval: 300
+    auto_failback: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "file"
+      filename: "logs/real_data_connectors.log"
+      max_bytes: 10485760 # 10MB
+      backup_count: 5
+    - type: "console"
+
+# Performance Configuration
+performance:
+  connection_pool_size: 10
+  max_concurrent_requests: 50
+  request_timeout: 30
+  retry_backoff_factor: 2
+  cache_ttl_seconds: 300

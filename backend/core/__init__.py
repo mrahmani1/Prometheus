@@ -31,6 +31,23 @@ from .database_integration import (
     initialize_database_integrator
 )
 
+from .real_data_connectors import (
+    BaseDataConnector,
+    DataSourceConfig,
+    ConnectionStatus,
+    DataSourceType,
+    GeologicalObservation,
+    IRISConnector,
+    USGSVolcanoConnector,
+    NASAEarthDataConnector,
+    CopernicusConnector,
+    ASFHyp3Connector,
+    GeochemConnector,
+    GeologicalSurveyConnector,
+    DataSourceHealthMonitor,
+    ConnectorFactory
+)
+
 __all__ = [
     # Module Integration
     'CoreModuleIntegrationFramework',
@@ -55,5 +72,21 @@ __all__ = [
     'DatabaseMetrics',
     'QueryResult',
     'get_database_integrator',
-    'initialize_database_integrator'
+    'initialize_database_integrator',
+    
+    # Real Data Connectors
+    'BaseDataConnector',
+    'DataSourceConfig',
+    'ConnectionStatus',
+    'DataSourceType',
+    'GeologicalObservation',
+    'IRISConnector',
+    'USGSVolcanoConnector',
+    'NASAEarthDataConnector',
+    'CopernicusConnector',
+    'ASFHyp3Connector',
+    'GeochemConnector',
+    'GeologicalSurveyConnector',
+    'DataSourceHealthMonitor',
+    'ConnectorFactory'
 ]
