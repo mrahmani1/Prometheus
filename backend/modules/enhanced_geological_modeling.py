@@ -950,6 +950,156 @@ class RealDataGeologicalModeler:
                 })
         
         return relationships
+    
+    def _create_confidence_map(self, regional_data: Dict[str, List]) -> Dict[str, Any]:
+        """Create confidence map for geological model"""
+        try:
+            confidence_map = {
+                'data_density': {},
+                'source_reliability': {},
+                'spatial_coverage': {},
+                'overall_confidence': 0.0
+            }
+            
+            # Assess data density
+            formations = regional_data.get('formations', [])
+            boreholes = regional_data.get('boreholes', [])
+            deposits = regional_data.get('mineral_deposits', [])
+            
+            total_data_points = len(formations) + len(boreholes) + len(deposits)
+            
+            if total_data_points > 0:
+                confidence_map['data_density']['formations'] = len(formations) / total_data_points
+                confidence_map['data_density']['boreholes'] = len(boreholes) / total_data_points
+                confidence_map['data_density']['deposits'] = len(deposits) / total_data_points
+            
+            # Assess source reliability
+            source_scores = {}
+            all_sources = []
+            
+            for formation in formations:
+                all_sources.append(formation.data_source)
+                source_scores[formation.data_source] = formation.confidence_level
+            
+            for borehole in boreholes:
+                all_sources.append(borehole.data_source)
+                source_scores[borehole.data_source] = borehole.quality_score
+            
+            if source_scores:
+                confidence_map['source_reliability'] = source_scores
+                confidence_map['overall_confidence'] = np.mean(list(source_scores.values()))
+            
+            # Assess spatial coverage
+            if formations:
+                total_area = 0
+                for formation in formations:
+                    if formation.spatial_extent:
+                        # Estimate area from spatial extent
+                        coords = np.array(formation.spatial_extent)
+                        if len(coords) > 2:
+                            # Simple area estimation
+                            area = self._estimate_polygon_area(coords)
+                            total_area += area
+                
+                confidence_map['spatial_coverage']['total_area_km2'] = total_area
+                confidence_map['spatial_coverage']['formation_count'] = len(formations)
+            
+            return confidence_map
+            
+        except Exception as e:
+            logger.error(f"Failed to create confidence map: {e}")
+            return {}
+    
+    def _estimate_polygon_area(self, coords: np.ndarray) -> float:
+        """Estimate area of polygon from coordinates"""
+        try:
+            if len(coords) < 3:
+                return 0.0
+            
+            # Simple shoelace formula for polygon area
+            x = coords[:, 0]
+            y = coords[:, 1]
+            
+            area = 0.5 * abs(sum(x[i] * y[i+1] - x[i+1] * y[i] for i in range(-1, len(x)-1)))
+            
+            # Convert to approximate km2 (rough conversion)
+            area_km2 = area * 111.32 * 111.32  # degrees to km conversion
+            
+            return area_km2
+            
+        except Exception as e:
+            logger.error(f"Failed to estimate polygon area: {e}")
+            return 0.0
+    
+    def _get_data_source_summary(self, regional_data: Dict[str, List]) -> Dict[str, Any]:
+        """Get summary of data sources used in model"""
+        try:
+            summary = {
+                'sources_used': set(),
+                'data_counts': {},
+                'quality_summary': {}
+            }
+            
+            # Count data by source
+            for data_type, data_list in regional_data.items():
+                summary['data_counts'][data_type] = len(data_list)
+                
+                for item in data_list:
+                    if hasattr(item, 'data_source'):
+                        summary['sources_used'].add(item.data_source)
+            
+            summary['sources_used'] = list(summary['sources_used'])
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Failed to get data source summary: {e}")
+            return {}
+
+    async def _calculate_model_quality_metrics(self, regional_data: Dict[str, List]) -> Dict[str, Any]:
+        """Calculate quality metrics for the geological model"""
+        try:
+            metrics = {
+                'data_completeness': 0.0,
+                'spatial_coverage': 0.0,
+                'temporal_coverage': 0.0,
+                'source_diversity': 0.0,
+                'overall_quality': 0.0
+            }
+            
+            # Data completeness
+            total_possible_data_types = 6  # formations, boreholes, deposits, etc.
+            available_data_types = sum(1 for data_list in regional_data.values() if data_list)
+            metrics['data_completeness'] = available_data_types / total_possible_data_types
+            
+            # Source diversity
+            all_sources = set()
+            for data_list in regional_data.values():
+                for item in data_list:
+                    if hasattr(item, 'data_source'):
+                        all_sources.add(item.data_source)
+            
+            max_sources = 4  # USGS, BGS, GSC, GA
+            metrics['source_diversity'] = min(len(all_sources) / max_sources, 1.0)
+            
+            # Spatial coverage (simplified)
+            formations = regional_data.get('formations', [])
+            if formations:
+                # Estimate coverage based on number of formations
+                metrics['spatial_coverage'] = min(len(formations) / 10, 1.0)  # 10 formations = full coverage
+            
+            # Overall quality
+            metrics['overall_quality'] = np.mean([
+                metrics['data_completeness'],
+                metrics['spatial_coverage'],
+                metrics['source_diversity']
+            ])
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate model quality metrics: {e}")
+            return {}
 
 class ImplicitSurfaceModeler:
     """Enhanced implicit surface modeling for geological boundaries"""
@@ -1298,120 +1448,6 @@ class GeologicalValidationEngine:
             logger.error(f"Failed to validate resource consistency: {e}")
             return 0.0
 
-# Additional helper methods for the main class
-    def _create_confidence_map(self, regional_data: Dict[str, List]) -> Dict[str, Any]:
-        """Create confidence map for geological model"""
-        try:
-            confidence_map = {
-                'data_density': {},
-                'source_reliability': {},
-                'spatial_coverage': {},
-                'overall_confidence': 0.0
-            }
-            
-            # Assess data density
-            formations = regional_data.get('formations', [])
-            boreholes = regional_data.get('boreholes', [])
-            deposits = regional_data.get('mineral_deposits', [])
-            
-            total_data_points = len(formations) + len(boreholes) + len(deposits)
-            
-            if total_data_points > 0:
-                confidence_map['data_density']['formations'] = len(formations) / total_data_points
-                confidence_map['data_density']['boreholes'] = len(boreholes) / total_data_points
-                confidence_map['data_density']['deposits'] = len(deposits) / total_data_points
-            
-            # Assess source reliability
-            source_scores = {}
-            for formation in formations:
-                source = formation.data_source
-                if source not in source_scores:
-                    source_scores[source] = []
-                source_scores[source].append(formation.confidence_level)
-            
-            for source, scores in source_scores.items():
-                confidence_map['source_reliability'][source] = np.mean(scores)
-            
-            # Calculate overall confidence
-            if source_scores:
-                all_scores = [score for scores in source_scores.values() for score in scores]
-                confidence_map['overall_confidence'] = np.mean(all_scores)
-            
-            return confidence_map
-            
-        except Exception as e:
-            logger.error(f"Failed to create confidence map: {e}")
-            return {}
-
-    def _get_data_source_summary(self, regional_data: Dict[str, List]) -> Dict[str, Any]:
-        """Get summary of data sources used in model"""
-        try:
-            summary = {
-                'sources_used': set(),
-                'data_counts': {},
-                'quality_summary': {}
-            }
-            
-            # Count data by source
-            for data_type, data_list in regional_data.items():
-                summary['data_counts'][data_type] = len(data_list)
-                
-                for item in data_list:
-                    if hasattr(item, 'data_source'):
-                        summary['sources_used'].add(item.data_source)
-            
-            summary['sources_used'] = list(summary['sources_used'])
-            
-            return summary
-            
-        except Exception as e:
-            logger.error(f"Failed to get data source summary: {e}")
-            return {}
-
-    async def _calculate_model_quality_metrics(self, regional_data: Dict[str, List]) -> Dict[str, Any]:
-        """Calculate quality metrics for the geological model"""
-        try:
-            metrics = {
-                'data_completeness': 0.0,
-                'spatial_coverage': 0.0,
-                'temporal_coverage': 0.0,
-                'source_diversity': 0.0,
-                'overall_quality': 0.0
-            }
-            
-            # Data completeness
-            total_possible_data_types = 6  # formations, boreholes, deposits, etc.
-            available_data_types = sum(1 for data_list in regional_data.values() if data_list)
-            metrics['data_completeness'] = available_data_types / total_possible_data_types
-            
-            # Source diversity
-            all_sources = set()
-            for data_list in regional_data.values():
-                for item in data_list:
-                    if hasattr(item, 'data_source'):
-                        all_sources.add(item.data_source)
-            
-            max_sources = 4  # USGS, BGS, GSC, GA
-            metrics['source_diversity'] = min(len(all_sources) / max_sources, 1.0)
-            
-            # Spatial coverage (simplified)
-            formations = regional_data.get('formations', [])
-            if formations:
-                # Estimate coverage based on number of formations
-                metrics['spatial_coverage'] = min(len(formations) / 10, 1.0)  # 10 formations = full coverage
-            
-            # Overall quality
-            metrics['overall_quality'] = np.mean([
-                metrics['data_completeness'],
-                metrics['spatial_coverage'],
-                metrics['source_diversity']
-            ])
-            
-            return metrics
-            
-        except Exception as e:
-            logger.error(f"Failed to calculate model quality metrics: {e}")
-            return {}
 
 # Test and demonstration functions
 async def test_enhanced_geological_modeling():

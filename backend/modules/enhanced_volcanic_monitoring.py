@@ -412,7 +412,7 @@ async def _analyze_seismic_baseline(self, seismic_data: List[VolcanicObservation
             self.logger.error(f"Seismic baseline analysis failed: {e}")
             return {'status': 'analysis_failed', 'error': str(e), 'baseline_established': False}
     
-    async def _analyze_deformation_baseline(self, gps_data: List[VolcanicObservation], 
+async def _analyze_deformation_baseline(self, gps_data: List[VolcanicObservation], 
                                           mtsar_data: List[MTSARDeformation]) -> Dict[str, Any]:
         """Analyze deformation data to establish baseline conditions"""
         try:
@@ -484,7 +484,7 @@ async def _analyze_seismic_baseline(self, seismic_data: List[VolcanicObservation
             self.logger.error(f"Deformation baseline analysis failed: {e}")
             return {'status': 'analysis_failed', 'error': str(e), 'baseline_established': False}
     
-    async def _analyze_gas_baseline(self, gas_data: List[GasEmissionData]) -> Dict[str, Any]:
+async def _analyze_gas_baseline(self, gas_data: List[GasEmissionData]) -> Dict[str, Any]:
         """Analyze gas emission data to establish baseline conditions"""
         try:
             if not gas_data:
@@ -529,7 +529,7 @@ async def _analyze_seismic_baseline(self, seismic_data: List[VolcanicObservation
             self.logger.error(f"Gas baseline analysis failed: {e}")
             return {'status': 'analysis_failed', 'error': str(e), 'baseline_established': False}
     
-    async def _analyze_thermal_baseline(self, thermal_data: List[VolcanicObservation]) -> Dict[str, Any]:
+async def _analyze_thermal_baseline(self, thermal_data: List[VolcanicObservation]) -> Dict[str, Any]:
         """Analyze thermal data to establish baseline conditions"""
         try:
             if not thermal_data:
@@ -578,7 +578,7 @@ async def _analyze_seismic_baseline(self, seismic_data: List[VolcanicObservation
             self.logger.error(f"Thermal baseline analysis failed: {e}")
             return {'status': 'analysis_failed', 'error': str(e), 'baseline_established': False}
     
-    async def _perform_mtsar_coherence_analysis(self, mtsar_data: List[MTSARDeformation], 
+async def _perform_mtsar_coherence_analysis(self, mtsar_data: List[MTSARDeformation], 
                                               volcano_coords: Tuple[float, float]) -> MTSARCoherenceAnalysis:
         """Perform comprehensive MT-SAR coherence analysis for surface change detection"""
         try:
@@ -705,8 +705,9 @@ async def _analyze_seismic_baseline(self, seismic_data: List[VolcanicObservation
                 velocity_uncertainty=np.array([]),
                 coherence_loss_areas=[],
                 surface_change_detection={'error': str(e)}
-            )    def
- _classify_emission_level(self, so2_concentration: float) -> str:
+            )
+
+    def _classify_emission_level(self, so2_concentration: float) -> str:
         """Classify volcanic gas emission level based on SO2 concentration"""
         if so2_concentration < 100:
             return 'background'

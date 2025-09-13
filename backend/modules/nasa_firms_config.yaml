@@ -1,0 +1,203 @@
+# NASA FIRMS Thermal Integration Configuration
+# ==========================================
+
+# API Configuration
+api:
+  base_url: "https://firms.modaps.eosdis.nasa.gov/api"
+  timeout_seconds: 30
+  retry_attempts: 3
+  retry_delay_seconds: 5
+
+# Data Source Endpoints
+endpoints:
+  modis_c6: "/area/csv/{map_key}/MODIS_C6"
+  viirs_375m: "/area/csv/{map_key}/VIIRS_SNPP_375m"
+  viirs_noaa20: "/area/csv/{map_key}/VIIRS_NOAA20_375m"
+  modis_nrt: "/area/csv/{map_key}/MODIS_NRT"
+  viirs_nrt: "/area/csv/{map_key}/VIIRS_NRT"
+
+# Thermal Analysis Parameters
+thermal_analysis:
+  # Spatial parameters
+  volcanic_radius_km: 50.0          # Radius around volcano to consider
+  cluster_distance_km: 5.0          # Distance for clustering thermal anomalies
+  
+  # Thermal thresholds
+  thermal_threshold_k: 350.0        # Kelvin threshold for volcanic thermal anomalies
+  frp_threshold_mw: 10.0            # Fire Radiative Power threshold for volcanoes
+  confidence_threshold: 50          # Minimum confidence for thermal anomalies
+  
+  # Temporal parameters
+  trend_window_days: 30             # Days for trend analysis
+  forecast_horizon_days: 7          # Days to forecast ahead
+  monitoring_interval_minutes: 15   # Real-time monitoring check interval
+  
+  # Quality control
+  quality_score_threshold: 0.7      # Minimum quality score threshold
+  max_distance_to_volcano_km: 100.0 # Maximum distance to associate with volcano
+
+# Alert Configuration
+alerts:
+  # Alert level thresholds (0.0 - 1.0 normalized intensity)
+  level_thresholds:
+    level_1: 0.0   # Minimal activity
+    level_2: 0.2   # Low activity
+    level_3: 0.4   # Moderate activity
+    level_4: 0.6   # High activity
+    level_5: 0.8   # Very high activity
+  
+  # Alert type configurations
+  thermal_increase:
+    min_trend_strength: 0.3
+    max_p_value: 0.05
+    confidence_boost: 0.1
+  
+  thermal_cluster:
+    min_cluster_size: 3
+    min_total_frp: 50.0
+    spatial_extent_factor: 1.0
+  
+  thermal_pattern:
+    min_anomaly_count: 5
+    zscore_threshold: 2.5
+    pattern_confidence_factor: 0.8
+
+# Data Integration Settings
+integration:
+  # Ground station correlation
+  max_spatial_distance_km: 10.0     # Max distance for ground-satellite correlation
+  max_temporal_difference_hours: 6  # Max time difference for correlation
+  min_correlation_observations: 3   # Minimum observations for valid correlation
+  
+  # Spatial validation
+  min_overlap_fraction: 0.3         # Minimum spatial overlap for validation
+  gap_threshold_km: 20.0            # Distance threshold for monitoring gaps
+  
+  # Quality assessment
+  high_quality_threshold: 0.8       # Threshold for high-quality data
+  high_confidence_threshold: 0.75   # Threshold for high-confidence satellite data
+  max_temporal_gap_hours: 24        # Maximum acceptable temporal gap
+
+# Forecasting Parameters
+forecasting:
+  # Statistical methods
+  use_linear_regression: true
+  use_arima: true
+  confidence_level: 0.95            # Confidence level for prediction intervals
+  
+  # ARIMA model parameters
+  arima_order: [1, 1, 1]           # (p, d, q) order for ARIMA model
+  min_observations_arima: 10        # Minimum observations for ARIMA fitting
+  
+  # Validation
+  cross_validation_folds: 5         # Number of folds for cross-validation
+  forecast_accuracy_threshold: 0.7  # Minimum acceptable forecast accuracy
+
+# Monitoring Session Configuration
+monitoring:
+  # Session management
+  max_active_sessions: 10           # Maximum concurrent monitoring sessions
+  session_timeout_hours: 24         # Automatic session timeout
+  
+  # Data retention
+  cache_retention_days: 30          # Days to retain cached data
+  alert_retention_days: 90          # Days to retain alert history
+  
+  # Performance
+  max_anomalies_per_request: 1000   # Maximum anomalies to process per request
+  batch_processing_size: 100        # Batch size for processing operations
+
+# Volcanic Systems Database
+volcanic_systems:
+  # Default volcanic systems for testing/demo
+  kilauea:
+    name: "Kilauea"
+    location: [19.4069, -155.2834, 1222]
+    country: "United States"
+    region: "Hawaii"
+    type: "Shield volcano"
+    monitoring_priority: "high"
+  
+  etna:
+    name: "Mount Etna"
+    location: [37.7510, 14.9934, 3329]
+    country: "Italy"
+    region: "Sicily"
+    type: "Stratovolcano"
+    monitoring_priority: "high"
+  
+  stromboli:
+    name: "Stromboli"
+    location: [38.7890, 15.2130, 924]
+    country: "Italy"
+    region: "Aeolian Islands"
+    type: "Stratovolcano"
+    monitoring_priority: "medium"
+  
+  yasur:
+    name: "Yasur"
+    location: [-19.5320, 169.4470, 361]
+    country: "Vanuatu"
+    region: "Tanna Island"
+    type: "Stratovolcano"
+    monitoring_priority: "medium"
+
+# Logging Configuration
+logging:
+  level: "INFO"                     # Logging level (DEBUG, INFO, WARNING, ERROR)
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # File logging
+  enable_file_logging: true
+  log_file: "nasa_firms_thermal.log"
+  max_file_size_mb: 100
+  backup_count: 5
+  
+  # Performance logging
+  log_performance_metrics: true
+  performance_log_interval_minutes: 60
+
+# Security Configuration
+security:
+  # API key management
+  api_key_env_var: "NASA_FIRMS_API_KEY"
+  map_key_env_var: "NASA_FIRMS_MAP_KEY"
+  
+  # Rate limiting
+  max_requests_per_minute: 60
+  max_requests_per_hour: 1000
+  
+  # Data validation
+  validate_coordinates: true
+  validate_timestamps: true
+  sanitize_inputs: true
+
+# Performance Optimization
+performance:
+  # Caching
+  enable_caching: true
+  cache_ttl_minutes: 60             # Time-to-live for cached data
+  max_cache_size_mb: 500            # Maximum cache size
+  
+  # Parallel processing
+  max_concurrent_requests: 5        # Maximum concurrent API requests
+  enable_async_processing: true
+  
+  # Memory management
+  max_memory_usage_mb: 2000         # Maximum memory usage
+  garbage_collection_interval: 300  # Seconds between garbage collection
+
+# Testing Configuration
+testing:
+  # Test data
+  use_mock_data: false              # Use mock data for testing
+  mock_data_size: 100               # Number of mock anomalies to generate
+  
+  # Test parameters
+  test_volcano_id: "kilauea"
+  test_period_days: 7
+  test_timeout_seconds: 30
+  
+  # Validation thresholds
+  min_test_coverage: 0.8            # Minimum test coverage required
+  max_test_runtime_minutes: 10      # Maximum test runtime
