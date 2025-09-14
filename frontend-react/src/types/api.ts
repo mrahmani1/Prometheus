@@ -8,10 +8,10 @@ import {
   VolcanicState,
   DeformationData,
   ResourceProspect,
-  MagmaticSystem,
-  GeologicalAge,
+  // MagmaticSystem, // Unused
+  // GeologicalAge, // Unused
   QualityMetrics,
-  ValidationResult,
+  // ValidationResult, // Unused
   StreamEvent
 } from './geological';
 

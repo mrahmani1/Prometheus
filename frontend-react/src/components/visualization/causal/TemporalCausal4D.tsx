@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { 
   OrbitControls, 
   PerspectiveCamera, 
@@ -16,7 +16,7 @@ import {
   CausalNode, 
   CausalEdge, 
   TemporalVisualizationConfig,
-  TemporalScale 
+  // TemporalScale // Unused 
 } from './types';
 
 export interface TemporalCausal4DProps {
@@ -47,19 +47,19 @@ interface Edge4D extends CausalEdge {
 
 const TEMPORAL_AXIS_LENGTH = 20;
 const SPATIAL_SCALE = 10;
-const TIME_SCALE_FACTORS = {
-  millisecond: 0.001,
-  second: 1,
-  minute: 60,
-  hour: 3600,
-  day: 86400,
-  month: 2592000,
-  year: 31536000,
-  decade: 315360000,
-  century: 3153600000,
-  millennium: 31536000000,
-  geological: 31536000000000,
-};
+// const TIME_SCALE_FACTORS = { // Unused
+//   millisecond: 0.001,
+//   second: 1,
+//   minute: 60,
+//   hour: 3600,
+//   day: 86400,
+//   month: 2592000,
+//   year: 31536000,
+//   decade: 315360000,
+//   century: 3153600000,
+//   millennium: 31536000000,
+//   geological: 31536000000000,
+// };
 
 /**
  * Advanced 4D visualization of temporal causal relationships
@@ -72,8 +72,8 @@ export const TemporalCausal4D: React.FC<TemporalCausal4DProps> = ({
   selectedNodes,
   onNodeSelect,
   onEdgeSelect,
-  width,
-  height,
+  // width, // Unused
+  // height, // Unused
 }) => {
   const [nodes4D, setNodes4D] = useState<Node4D[]>([]);
   const [edges4D, setEdges4D] = useState<Edge4D[]>([]);
@@ -340,10 +340,10 @@ const Node4DVisualization: React.FC<{
   onSelect: () => void;
 }> = ({ node, temporalIndex, config, isSelected, onSelect }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const trailRef = useRef<THREE.Group>(null);
+  // const trailRef = useRef<THREE.Group>(null); // Unused
 
   // Animate node based on temporal position
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (!meshRef.current) return;
 
     // Interpolate position based on temporal index

@@ -24,7 +24,7 @@ import {
   Clear,
   ExpandMore,
   AccountTree,
-  Timeline,
+  // Timeline, // Unused
   Science,
   TrendingUp
 } from '@mui/icons-material';

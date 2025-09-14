@@ -5,8 +5,8 @@
 
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
-import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+// import { persistStore, persistReducer } from 'redux-persist';
+// import storage from 'redux-persist/lib/storage';
 
 import { apiSlice } from './api/apiSlice';
 import authReducer from './slices/authSlice';
@@ -17,13 +17,13 @@ import monitoringReducer from './slices/monitoringSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import notificationReducer from './slices/notificationSlice';
 
-// Persist configuration
-const persistConfig = {
-  key: 'prometheus-ai',
-  storage,
-  whitelist: ['auth', 'ui', 'dashboard'], // Only persist these slices
-  blacklist: ['api', 'geological', 'monitoring'], // Don't persist real-time data
-};
+// Persist configuration (temporarily disabled)
+// const persistConfig = {
+//   key: 'prometheus-ai',
+//   storage,
+//   whitelist: ['auth', 'ui', 'dashboard'], // Only persist these slices
+//   blacklist: ['api', 'geological', 'monitoring'], // Don't persist real-time data
+// };
 
 // Root reducer
 const rootReducer = {
@@ -37,12 +37,9 @@ const rootReducer = {
   notifications: notificationReducer,
 };
 
-// Create persisted reducer
-const persistedReducer = persistReducer(persistConfig, rootReducer as any);
-
 // Configure store with advanced middleware
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: rootReducer,
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: {
@@ -59,8 +56,8 @@ export const store = configureStore({
 // Setup RTK Query listeners for automatic refetching
 setupListeners(store.dispatch);
 
-// Create persistor
-export const persistor = persistStore(store);
+// Create persistor (temporarily disabled to fix type issues)
+// export const persistor = persistStore(store);
 
 // Export types
 export type RootState = ReturnType<typeof store.getState>;

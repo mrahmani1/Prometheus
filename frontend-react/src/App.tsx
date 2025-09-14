@@ -6,14 +6,13 @@
 import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { HelmetProvider } from 'react-helmet-async';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import { store, persistor } from './store';
+import { store } from './store';
 import { useAppSelector, useAppDispatch } from './hooks/redux';
 import { lightTheme, darkTheme, accessibilityTheme, highContrastTheme } from './theme';
 import { updateViewport } from './store/slices/uiSlice';
@@ -261,9 +260,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Provider store={store}>
-      <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
-        <AppContent />
-      </PersistGate>
+      <AppContent />
     </Provider>
   );
 };

@@ -139,7 +139,7 @@ export const apiSlice = createApi({
 
     getSeismicEvent: builder.query<ApiResponse<any>, string>({
       query: eventId => `/seismic/events/${eventId}`,
-      providesTags: (result, error, eventId) => [{ type: 'SeismicData', id: eventId }],
+      providesTags: (_result, _error, eventId) => [{ type: 'SeismicData', id: eventId }],
     }),
 
     analyzeSeismicWaveform: builder.mutation<ApiResponse<any>, { eventId: string; analysisType: string }>({
@@ -148,7 +148,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: { analysisType },
       }),
-      invalidatesTags: (result, error, { eventId }) => [{ type: 'SeismicData', id: eventId }],
+      invalidatesTags: (_result, _error, { eventId }) => [{ type: 'SeismicData', id: eventId }],
     }),
 
     // Volcanic monitoring endpoints
@@ -163,7 +163,7 @@ export const apiSlice = createApi({
 
     getVolcanoDetails: builder.query<ApiResponse<any>, string>({
       query: volcanoId => `/volcanic/volcanoes/${volcanoId}`,
-      providesTags: (result, error, volcanoId) => [{ type: 'VolcanicMonitoring', id: volcanoId }],
+      providesTags: (_result, _error, volcanoId) => [{ type: 'VolcanicMonitoring', id: volcanoId }],
     }),
 
     updateAlertLevel: builder.mutation<ApiResponse<any>, { volcanoId: string; alertLevel: string; reason: string }>({
@@ -172,7 +172,7 @@ export const apiSlice = createApi({
         method: 'PUT',
         body: { alertLevel, reason },
       }),
-      invalidatesTags: (result, error, { volcanoId }) => [{ type: 'VolcanicMonitoring', id: volcanoId }],
+      invalidatesTags: (_result, _error, { volcanoId }) => [{ type: 'VolcanicMonitoring', id: volcanoId }],
     }),
 
     generateEruptionForecast: builder.mutation<ApiResponse<any>, { volcanoId: string; timeWindow: string }>({

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import * as d3 from 'd3';
 import Plot from 'react-plotly.js';
 import { 
@@ -107,17 +107,17 @@ const SeismogramChart: React.FC<{
 
     // Draw seismogram traces
     data.forEach((event, index) => {
-      if (!event.waveform_data) return;
+      if (!event.waveformData) return;
 
       const yOffset = (index * innerHeight) / data.length;
       const traceHeight = innerHeight / data.length * 0.8;
 
       // Generate synthetic waveform if not available
-      const waveform = event.waveform_data || generateSyntheticWaveform(event);
+      const waveform = event.waveformData || generateSyntheticWaveform(event);
       const timeStep = (timeWindow[1] - timeWindow[0]) / waveform.length;
 
       const line = d3.line<number>()
-        .x((d, i) => xScale(timeWindow[0] + i * timeStep))
+        .x((_d, i) => xScale(timeWindow[0] + i * timeStep))
         .y(d => yOffset + traceHeight / 2 - (d * traceHeight / 2))
         .curve(d3.curveLinear);
 
@@ -145,13 +145,13 @@ const SeismogramChart: React.FC<{
         .attr('x', 5)
         .attr('y', yOffset + 15)
         .style('font-size', '12px')
-        .text(`M${event.magnitude.toFixed(1)} - ${event.event_id}`);
+        .text(`M${event.magnitude.toFixed(1)} - ${event.eventId}`);
 
       // Mark P and S wave arrivals
-      if (event.p_arrival_time) {
+      if (event.momentTensor?.pAxis) {
         g.append('line')
-          .attr('x1', xScale(event.p_arrival_time))
-          .attr('x2', xScale(event.p_arrival_time))
+          .attr('x1', xScale(event.timestamp.getTime()))
+          .attr('x2', xScale(event.timestamp.getTime()))
           .attr('y1', yOffset)
           .attr('y2', yOffset + traceHeight)
           .attr('stroke', SCIENTIFIC_COLOR_SCHEMES.seismic.pWave)
@@ -159,10 +159,10 @@ const SeismogramChart: React.FC<{
           .attr('stroke-dasharray', '5,5');
       }
 
-      if (event.s_arrival_time) {
+      if (event.momentTensor?.tAxis) {
         g.append('line')
-          .attr('x1', xScale(event.s_arrival_time))
-          .attr('x2', xScale(event.s_arrival_time))
+          .attr('x1', xScale(event.timestamp.getTime() + 1000))
+          .attr('x2', xScale(event.timestamp.getTime() + 1000))
           .attr('y1', yOffset)
           .attr('y2', yOffset + traceHeight)
           .attr('stroke', SCIENTIFIC_COLOR_SCHEMES.seismic.sWave)
@@ -195,7 +195,7 @@ const SeismogramChart: React.FC<{
         <Typography variant="body2">Time Window (s):</Typography>
         <Slider
           value={timeWindow}
-          onChange={(_, value) => setTimeWindow(value as number[])}
+          onChange={(_: Event, value: number | number[]) => setTimeWindow(value as number[])}
           min={0}
           max={600}
           step={10}
@@ -204,7 +204,7 @@ const SeismogramChart: React.FC<{
         <Typography variant="body2">Amplitude Scale:</Typography>
         <Slider
           value={amplitudeScale}
-          onChange={(_, value) => setAmplitudeScale(value as number)}
+          onChange={(_: Event, value: number | number[]) => setAmplitudeScale(value as number)}
           min={0.1}
           max={10}
           step={0.1}
@@ -222,11 +222,11 @@ const SpectrogramChart: React.FC<{
   height: number;
 }> = ({ data, width, height }) => {
   const spectrogramData = useMemo(() => {
-    if (!data.length || !data[0].waveform_data) return null;
+    if (!data.length || !data[0].waveformData) return null;
 
     // Generate spectrogram data using FFT
     const event = data[0];
-    const waveform = event.waveform_data || new Float32Array(1000);
+    const waveform = event.waveformData || new Float32Array(1000);
     const windowSize = 256;
     const overlap = 128;
     const sampleRate = 100; // Hz
@@ -320,7 +320,7 @@ const GeologicalTimeSeriesChart: React.FC<{
 }> = ({ data, width, height, parameter }) => {
   const chartData = useMemo(() => {
     const traces = data.reduce((acc, item) => {
-      const key = item.data_type || 'unknown';
+      const key = item.dataType || 'unknown';
       if (!acc[key]) {
         acc[key] = {
           x: [],
@@ -333,7 +333,8 @@ const GeologicalTimeSeriesChart: React.FC<{
       }
       
       acc[key].x.push(item.timestamp);
-      acc[key].y.push(item[parameter as keyof typeof item] as number);
+      const value = item[parameter as keyof typeof item];
+      acc[key].y.push(typeof value === 'number' ? value : 0);
       
       return acc;
     }, {} as Record<string, any>);
@@ -379,12 +380,12 @@ export const ScientificCharts: React.FC<ScientificChartsProps> = ({
   chartType = 'timeseries',
   onDataSelect,
   realTimeUpdate = false,
-  exportFormats = ['png', 'svg', 'pdf']
+  // exportFormats = ['png', 'svg', 'pdf'] // Unused
 }) => {
   const [currentChartType, setCurrentChartType] = useState(chartType);
   const [selectedParameter, setSelectedParameter] = useState('magnitude');
-  const [showControls, setShowControls] = useState(true);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
+  const [showControls] = useState(true);
+  const [dimensions] = useState({ width: 800, height: 400 });
 
   // Available parameters for visualization
   const availableParameters = useMemo(() => {
@@ -405,7 +406,7 @@ export const ScientificCharts: React.FC<ScientificChartsProps> = ({
             data={seismicEvents}
             width={dimensions.width}
             height={dimensions.height}
-            onWaveformSelect={onDataSelect}
+            onWaveformSelect={onWaveformSelect}
           />
         );
       
@@ -430,17 +431,20 @@ export const ScientificCharts: React.FC<ScientificChartsProps> = ({
       
       case 'scatter':
         const scatterData = [{
-          x: data.map(d => d.longitude),
-          y: data.map(d => d.latitude),
+          x: data.map(d => d.location.longitude),
+          y: data.map(d => d.location.latitude),
           mode: 'markers' as const,
           type: 'scatter' as const,
           marker: {
-            size: data.map(d => (d[selectedParameter as keyof typeof d] as number) || 5),
-            color: data.map(d => d.data_type),
+            size: data.map(d => {
+              const value = d[selectedParameter as keyof typeof d];
+              return typeof value === 'number' ? value : 5;
+            }),
+            color: data.map(d => d.dataType),
             colorscale: 'Viridis',
             showscale: true
           },
-          text: data.map(d => `${d.data_type}: ${d[selectedParameter as keyof typeof d]}`),
+          text: data.map(d => `${d.dataType}: ${d[selectedParameter as keyof typeof d]}`),
           hovertemplate: '%{text}<extra></extra>'
         }];
 
@@ -488,7 +492,7 @@ export const ScientificCharts: React.FC<ScientificChartsProps> = ({
                 <InputLabel>Chart Type</InputLabel>
                 <Select
                   value={currentChartType}
-                  onChange={(e) => setCurrentChartType(e.target.value)}
+                  onChange={(e) => setCurrentChartType(e.target.value as typeof currentChartType)}
                 >
                   <MenuItem value="timeseries">Time Series</MenuItem>
                   <MenuItem value="scatter">Scatter Plot</MenuItem>

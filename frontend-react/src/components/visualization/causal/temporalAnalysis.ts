@@ -2,13 +2,13 @@ import * as d3 from 'd3';
 import { 
   TemporalCausalSnapshot, 
   CausalGraph, 
-  CausalEdge, 
-  CausalNode,
+  // CausalEdge, // Unused
+  // CausalNode, // Unused
   TemporalScale,
   TimeSeriesPoint,
   LagAnalysisResult,
-  SeasonalPattern,
-  TrendAnalysis,
+  // SeasonalPattern, // Unused
+  // TrendAnalysis, // Unused
   DetectedPattern
 } from './types';
 
@@ -295,7 +295,7 @@ export class TemporalLagAnalyzer {
    */
   private fitAutoregressive(values: number[], order: number): { coefficients: number[]; rss: number } {
     // Simplified AR model fitting using least squares
-    const n = values.length - order;
+    // const n = values.length - order; // Unused
     const X: number[][] = [];
     const y: number[] = [];
     
@@ -450,7 +450,7 @@ export class TemporalLagAnalyzer {
   /**
    * Calculate p-value for F-test
    */
-  private fTestPValue(fStatistic: number, df1: number, df2: number): number {
+  private fTestPValue(fStatistic: number, _df1: number, _df2: number): number {
     // Simplified F-distribution p-value calculation
     // In production, use a proper statistical library
     return fStatistic > 3.84 ? 0.01 : 0.1; // Rough approximation
@@ -533,8 +533,8 @@ export class TemporalPatternDetector {
     
     // Extract time series data
     const strengthTimeSeries = this.extractStrengthTimeSeries(snapshots);
-    const nodeCountTimeSeries = this.extractNodeCountTimeSeries(snapshots);
-    const edgeCountTimeSeries = this.extractEdgeCountTimeSeries(snapshots);
+    // const nodeCountTimeSeries = this.extractNodeCountTimeSeries(snapshots); // Unused
+    // const edgeCountTimeSeries = this.extractEdgeCountTimeSeries(snapshots); // Unused
     
     // Detect different pattern types
     if (this.config.seasonalityTests) {
@@ -615,7 +615,7 @@ export class TemporalPatternDetector {
     const fftResult = this.performFFT(values);
     
     // Find significant frequencies
-    const significantFreqs = fftResult.frequencies.filter((freq, index) => 
+    const significantFreqs = fftResult.frequencies.filter((_freq, index) => 
       fftResult.magnitudes[index] > this.calculateSignificanceThreshold(fftResult.magnitudes)
     );
     
@@ -922,7 +922,7 @@ export class TemporalPatternDetector {
   /**
    * Calculate statistical significance of periodicity
    */
-  private calculatePeriodicitySignificance(values: number[], frequency: number): number {
+  private calculatePeriodicitySignificance(_values: number[], _frequency: number): number {
     // Simplified significance test
     // In production, use proper spectral analysis significance tests
     return 0.01;
@@ -1038,11 +1038,11 @@ export class TemporalCausalMetricsCalculator {
     if (values.length < 8) return 0;
     
     const detector = new TemporalPatternDetector();
-    const timeSeries = values.map((value, index) => ({
-      timestamp: new Date(index * 1000),
-      value,
-      confidence: [value * 0.9, value * 1.1] as [number, number],
-    }));
+    // const timeSeries = values.map((value, index) => ({ // Unused
+    //   timestamp: new Date(index * 1000),
+    //   value,
+    //   confidence: [value * 0.9, value * 1.1] as [number, number],
+    // }));
     
     const patterns = detector.detectPatterns([]);
     const periodicPatterns = patterns.filter(p => p.type === 'periodic');
@@ -1068,4 +1068,4 @@ export class TemporalCausalMetricsCalculator {
   }
 }
 
-export { TemporalLagAnalyzer, TemporalPatternDetector, TemporalCausalMetricsCalculator };
+// Classes are already exported individually above

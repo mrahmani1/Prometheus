@@ -4,9 +4,9 @@ import {
   Paper,
   Typography,
   Grid,
-  Card,
-  CardContent,
-  CardHeader,
+  // Card, // Unused
+  // CardContent, // Unused
+  // CardHeader, // Unused
   IconButton,
   Tooltip,
   Switch,
@@ -15,40 +15,40 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Divider,
+  // Divider, // Unused
   Chip,
   Badge,
-  LinearProgress,
-  Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  // LinearProgress, // Unused
+  // Alert, // Unused
+  // Accordion, // Unused
+  // AccordionSummary, // Unused
+  // AccordionDetails, // Unused
   Button,
   ButtonGroup,
 } from '@mui/material';
 import {
   Sync,
   SyncDisabled,
-  Visibility,
+  // Visibility, // Unused
   VisibilityOff,
-  ZoomIn,
-  ZoomOut,
+  // ZoomIn, // Unused
+  // ZoomOut, // Unused
   Fullscreen,
   FullscreenExit,
-  Settings,
+  // Settings, // Unused
   Timeline,
-  ShowChart,
-  TrendingUp,
-  ExpandMore,
+  // ShowChart, // Unused
+  // TrendingUp, // Unused
+  // ExpandMore, // Unused
   GridView,
   ViewModule,
   AspectRatio,
 } from '@mui/icons-material';
-import { Canvas } from '@react-three/fiber';
-import * as d3 from 'd3';
+// import { Canvas } from '@react-three/fiber'; // Unused
+// import * as d3 from 'd3'; // Unused
 import { 
   TemporalCausalSnapshot, 
-  CausalGraph, 
+  // CausalGraph, // Unused 
   TemporalScale, 
   TemporalVisualizationConfig,
   DetectedPattern,
@@ -157,7 +157,7 @@ export const MultiViewTemporalSync: React.FC<MultiViewTemporalSyncProps> = ({
   currentTime,
   config,
   detectedPatterns,
-  onTimeChange,
+  // onTimeChange, // Unused
   onConfigChange,
   onViewInteraction,
   width = 1200,
@@ -178,7 +178,7 @@ export const MultiViewTemporalSync: React.FC<MultiViewTemporalSyncProps> = ({
 
   // Refs for view synchronization
   const viewRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const metricsCalculator = useRef(new TemporalCausalMetricsCalculator());
+  // const metricsCalculator = useRef(new TemporalCausalMetricsCalculator()); // Unused
 
   // Initialize views with processed data
   useEffect(() => {
@@ -373,7 +373,7 @@ export const MultiViewTemporalSync: React.FC<MultiViewTemporalSyncProps> = ({
           return (
             <Paper
               key={view.id}
-              ref={(el) => {
+              ref={(el: HTMLDivElement | null) => {
                 if (el) viewRefs.current.set(view.id, el);
               }}
               sx={{
@@ -703,25 +703,25 @@ function isPatternRelevantForScale(pattern: DetectedPattern, scale: TemporalScal
 }
 
 // Individual view components (simplified implementations)
-const NetworkView: React.FC<any> = ({ snapshots, currentTime, scale, width, height, onInteraction }) => (
+const NetworkView: React.FC<any> = ({ width, height }) => (
   <Box sx={{ width, height, bgcolor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Network View ({scale})</Typography>
   </Box>
 );
 
-const TimelineView: React.FC<any> = ({ snapshots, currentTime, scale, width, height, onInteraction }) => (
+const TimelineView: React.FC<any> = ({ width, height }) => (
   <Box sx={{ width, height, bgcolor: '#f0f8ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Timeline View ({scale})</Typography>
   </Box>
 );
 
-const MetricsView: React.FC<any> = ({ snapshots, currentTime, scale, width, height, onInteraction }) => (
+const MetricsView: React.FC<any> = ({ width, height }) => (
   <Box sx={{ width, height, bgcolor: '#f0fff0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Metrics View ({scale})</Typography>
   </Box>
 );
 
-const PatternsView: React.FC<any> = ({ snapshots, currentTime, scale, width, height, onInteraction }) => (
+const PatternsView: React.FC<any> = ({ width, height }) => (
   <Box sx={{ width, height, bgcolor: '#fff8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Patterns View ({scale})</Typography>
   </Box>

@@ -4,7 +4,7 @@
  */
 
 import { createTheme, ThemeOptions } from '@mui/material/styles';
-import { alpha } from '@mui/material/styles';
+// import { alpha } from '@mui/material/styles'; // Unused
 
 // Geological color palette
 const geologicalColors = {

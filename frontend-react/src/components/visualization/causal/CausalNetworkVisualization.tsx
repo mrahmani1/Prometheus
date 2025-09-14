@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Paper, Toolbar, IconButton, Tooltip, Slider, Typography } from '@mui/material';
+import { Box, Paper, Toolbar, IconButton, Tooltip, Typography } from '@mui/material';
 import {
   ZoomIn,
   ZoomOut,
   CenterFocusStrong,
-  Fullscreen,
+  // Fullscreen, // Unused
   Settings,
   FilterList,
   Search,
@@ -18,14 +18,14 @@ import { CausalEdgeRenderer } from './CausalEdgeRenderer';
 import { CausalFilterPanel } from './CausalFilterPanel';
 import { CausalSearchInterface } from './CausalSearchInterface';
 import {
-  CausalGraph,
+  // CausalGraph, // Unused
   CausalNode,
   CausalEdge,
-  CausalLayoutConfig,
+  // CausalLayoutConfig, // Unused
   CausalVisualizationProps,
-  CausalNetworkState,
-  InteractionMode,
-  RenderMode
+  // CausalNetworkState, // Unused
+  // InteractionMode, // Unused
+  // RenderMode // Unused
 } from './types';
 
 interface CausalNetworkVisualizationState {
@@ -59,11 +59,11 @@ export const CausalNetworkVisualization: React.FC<CausalVisualizationProps> = ({
   searchQuery,
   highlightedPaths = [],
   interactionMode = 'explore',
-  renderMode = 'canvas',
+  // renderMode = 'canvas', // Unused
   showLabels = true,
   showConfidenceIntervals = true,
   showTemporalLags = true,
-  animationEnabled = true
+  // animationEnabled = true // Unused
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

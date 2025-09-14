@@ -4,7 +4,7 @@ import {
   Paper,
   Typography,
   Slider,
-  Button,
+  // Button, // Unused
   ButtonGroup,
   IconButton,
   Tooltip,
@@ -19,8 +19,8 @@ import {
   Card,
   CardContent,
   LinearProgress,
-  Alert,
-  Divider,
+  // Alert, // Unused
+  // Divider, // Unused
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -31,35 +31,35 @@ import {
   Stop,
   SkipPrevious,
   SkipNext,
-  FastForward,
-  FastRewind,
-  Timeline,
-  ZoomIn,
-  ZoomOut,
-  FilterList,
-  Settings,
-  Visibility,
-  VisibilityOff,
-  TrendingUp,
-  ShowChart,
+  // FastForward, // Unused
+  // FastRewind, // Unused
+  // Timeline, // Unused
+  // ZoomIn, // Unused
+  // ZoomOut, // Unused
+  // FilterList, // Unused
+  // Settings, // Unused
+  // Visibility, // Unused
+  // VisibilityOff, // Unused
+  // TrendingUp, // Unused
+  // ShowChart, // Unused
   ExpandMore,
-  Sync,
-  AccessTime,
+  // Sync, // Unused
+  // AccessTime, // Unused
 } from '@mui/icons-material';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment } from '@react-three/drei';
 import * as d3 from 'd3';
 import { 
   CausalGraph, 
-  CausalNode, 
+  // CausalNode, // Unused 
   CausalEdge, 
   TemporalScale, 
   GeologicalProcessType,
-  TemporalCausalAnalysis,
+  // TemporalCausalAnalysis, // Unused
   TimeSeriesPoint,
-  LagAnalysisResult,
-  SeasonalPattern,
-  TrendAnalysis
+  // LagAnalysisResult, // Unused
+  // SeasonalPattern, // Unused
+  // TrendAnalysis // Unused
 } from './types';
 
 // Enhanced temporal data structures
@@ -207,7 +207,7 @@ export const MultiScaleTemporalExplorer: React.FC<MultiScaleTemporalExplorerProp
 
   // Refs for animation and visualization
   const animationRef = useRef<number>();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // const canvasRef = useRef<HTMLCanvasElement>(null); // Unused
   const timelineRef = useRef<SVGSVGElement>(null);
 
   // Memoized computations
@@ -541,7 +541,7 @@ export const MultiScaleTemporalExplorer: React.FC<MultiScaleTemporalExplorerProp
                 <Box sx={{ width: 100, ml: 2 }}>
                   <Slider
                     value={config.playbackSpeed}
-                    onChange={(_, value) => setConfig(prev => ({ ...prev, playbackSpeed: value as number }))}
+                    onChange={(_: Event, value: number | number[]) => setConfig(prev => ({ ...prev, playbackSpeed: value as number }))}
                     min={0.1}
                     max={10}
                     step={0.1}

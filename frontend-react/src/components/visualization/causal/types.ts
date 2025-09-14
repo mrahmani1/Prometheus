@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+// import { ReactNode } from 'react'; // Unused
 
 export interface CausalNode {
   id: string;
@@ -362,4 +362,55 @@ export interface LocalSpatialIndicator {
   value: number;
   pValue: number;
   clusterType: 'HH' | 'LL' | 'HL' | 'LH' | 'NS';
+}
+
+// Additional missing types for temporal analysis
+export interface TemporalCausalSnapshot {
+  timestamp: Date;
+  graph: CausalGraph;
+  metadata: Record<string, any>;
+}
+
+export interface DetectedPattern {
+  id: string;
+  type: 'periodic' | 'trend' | 'anomaly' | 'phase-transition' | 'cascade';
+  startTime: Date;
+  endTime: Date;
+  confidence: number;
+  description: string;
+  parameters: Record<string, any>;
+  timeRange: [Date, Date];
+  statisticalSignificance: number;
+  affectedNodes: string[];
+}
+
+export interface TemporalVisualizationConfig {
+  timeRange: [Date, Date];
+  resolution: number;
+  showPatterns: boolean;
+  showTrends: boolean;
+  animationSpeed: number;
+  colorScheme: string;
+  showTemporalLags: boolean;
+  showConfidenceBands: boolean;
+  showPatternHighlights: boolean;
+  enableSynchronization: boolean;
+  playbackSpeed: number;
+  viewMode?: string;
+  temporalFilters?: any;
+}
+
+// Additional missing types
+export interface TemporalEvolutionData {
+  timestamp: Date;
+  nodes: CausalNode[];
+  edges: CausalEdge[];
+  metrics: Record<string, number>;
+}
+
+export interface CausalEvolutionAnalysis {
+  timeRange: [Date, Date];
+  evolutionData: TemporalEvolutionData[];
+  patterns: DetectedPattern[];
+  trends: any[];
 }

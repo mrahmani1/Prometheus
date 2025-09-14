@@ -16,20 +16,18 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
+  // TextField - unused
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Tabs,
   Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  // Accordion, AccordionSummary, AccordionDetails - unused
   Tooltip,
   Snackbar,
   Alert as MuiAlert,
-  Divider,
+  // Divider - unused
   Menu,
   Switch,
   FormControlLabel
@@ -39,24 +37,24 @@ import {
   Error,
   Info,
   CheckCircle,
-  ExpandMore,
+  // ExpandMore - unused
   Notifications,
-  NotificationsOff,
+  // NotificationsOff - unused
   FilterList,
-  Sort,
+  // Sort - unused
   MoreVert,
   Check,
   Close,
-  Refresh,
+  // Refresh - unused
   Settings,
   VolumeUp,
   VolumeOff,
   Schedule,
   Person,
   LocationOn,
-  Timeline
+  // Timeline - unused
 } from '@mui/icons-material';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns'; // formatDistanceToNow - unused
 import { DashboardAlert, AlertLevel, AlertType, NotificationSettings } from '../../types/dashboard';
 import { GeologicalData, SeismicEvent, VolcanicState } from '../../types/geological';
 
@@ -173,7 +171,7 @@ export const AlertManager: React.FC<AlertManagerProps> = ({
   onAlertDismiss,
   onSettingsChange,
   notificationSettings,
-  realTimeData,
+  realTimeData: _realTimeData,
   maxAlerts = 100,
   autoRefresh = true
 }) => {
@@ -442,7 +440,7 @@ export const AlertManager: React.FC<AlertManagerProps> = ({
             </Tooltip>
             <IconButton
               size="small"
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 setSelectedAlert(alert);
                 setMenuAnchor(e.currentTarget);
               }}
@@ -493,7 +491,7 @@ export const AlertManager: React.FC<AlertManagerProps> = ({
 
       {/* Tabs */}
       <Paper sx={{ mb: 2 }}>
-        <Tabs value={currentTab} onChange={(_, value) => setCurrentTab(value)}>
+        <Tabs value={currentTab} onChange={(_: React.SyntheticEvent, value: number) => setCurrentTab(value)}>
           <Tab label={`Active (${alertStats.active})`} />
           <Tab label={`Acknowledged (${alertStats.acknowledged})`} />
           <Tab label={`Resolved (${alertStats.resolved})`} />
@@ -686,17 +684,17 @@ export const AlertManager: React.FC<AlertManagerProps> = ({
       </Dialog>
 
       {/* Notification Snackbar */}
-      <Snackbar
-        open={Boolean(notification)}
-        autoHideDuration={3000}
-        onClose={() => setNotification(null)}
-      >
-        {notification && (
+      {notification && (
+        <Snackbar
+          open={Boolean(notification)}
+          autoHideDuration={3000}
+          onClose={() => setNotification(null)}
+        >
           <MuiAlert severity={notification.severity} onClose={() => setNotification(null)}>
             {notification.message}
           </MuiAlert>
-        )}
-      </Snackbar>
+        </Snackbar>
+      )}
     </Box>
   );
 };

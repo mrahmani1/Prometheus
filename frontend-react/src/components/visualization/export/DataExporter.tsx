@@ -27,14 +27,14 @@ import {
   Download,
   Settings,
   ExpandMore,
-  Image as ImageIcon,
+  // Image as ImageIcon, // Unused
   PictureAsPdf,
   TableChart,
   Code,
   Map as MapIcon
 } from '@mui/icons-material';
 import { GeologicalData, SeismicEvent, VolcanicState } from '../../../types/geological';
-import * as turf from '@turf/turf';
+// import * as turf from '@turf/turf'; // Temporarily disabled due to type issues
 
 interface DataExporterProps {
   data: (GeologicalData | SeismicEvent | VolcanicState)[];

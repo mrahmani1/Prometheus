@@ -6,7 +6,7 @@ import {
   GridToolbar,
   GridFilterModel,
   GridSortModel,
-  GridSelectionModel,
+  GridRowSelectionModel,
   GridRenderCellParams,
   GridValueFormatterParams,
   GridValueGetterParams
@@ -19,11 +19,11 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Switch,
-  FormControlLabel,
+  // FormControl, // Unused
+  // InputLabel, // Unused
+  // Select, // Unused
+  // Switch, // Unused
+  // FormControlLabel, // Unused
   Button,
   Dialog,
   DialogTitle,
@@ -35,8 +35,8 @@ import {
 import {
   MoreVert,
   Download,
-  Refresh,
-  FilterList,
+  // Refresh, // Unused
+  // FilterList, // Unused
   Visibility,
   Edit,
   Delete,
@@ -90,7 +90,7 @@ const validators = {
 };
 
 // Custom cell renderers for geological data
-const GeologicalCellRenderer: React.FC<GridRenderCellParams> = ({ value, field, row }) => {
+const GeologicalCellRenderer: React.FC<GridRenderCellParams> = ({ value, field }) => {
   switch (field) {
     case 'alert_level':
       const alertColors = {
@@ -160,8 +160,7 @@ const generateColumns = (dataType: string, customColumns?: GridColDef[]): GridCo
     {
       field: 'id',
       headerName: 'ID',
-      width: 120,
-      pinned: 'left'
+      width: 120
     },
     {
       field: 'timestamp',
@@ -297,11 +296,11 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
   onExport,
   onVisualize,
   realTimeUpdate = false,
-  enableVirtualization = true,
+  // enableVirtualization = true, // Unused
   customColumns,
   height = 600
 }) => {
-  const [selectionModel, setSelectionModel] = useState<GridSelectionModel>([]);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
   const [filterModel, setFilterModel] = useState<GridFilterModel>({ items: [] });
   const [sortModel, setSortModel] = useState<GridSortModel>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -326,9 +325,9 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
         <Box>
           <IconButton
             size="small"
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              setAnchorEl(e.currentTarget);
+              setAnchorEl(e.currentTarget as HTMLElement);
               setEditingRow(params.row);
             }}
           >
@@ -377,7 +376,7 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
   }, [dataType]);
 
   // Handle selection change
-  const handleSelectionChange = useCallback((newSelection: GridSelectionModel) => {
+  const handleSelectionChange = useCallback((newSelection: GridRowSelectionModel) => {
     setSelectionModel(newSelection);
     const selectedRows = rows.filter(row => newSelection.includes(row.id));
     onRowSelect?.(selectedRows);
@@ -400,14 +399,14 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
   const handleExport = useCallback((format: string) => {
     const selectedRows = rows.filter(row => selectionModel.includes(row.id));
     const exportData = selectedRows.length > 0 ? selectedRows : rows;
-    onExport?.(exportData, format);
+    onExport?.([...exportData], format);
   }, [rows, selectionModel, onExport]);
 
   // Visualize data
   const handleVisualize = useCallback((type: string) => {
     const selectedRows = rows.filter(row => selectionModel.includes(row.id));
     const visualizeData = selectedRows.length > 0 ? selectedRows : rows;
-    onVisualize?.(visualizeData, type);
+    onVisualize?.([...visualizeData], type);
   }, [rows, selectionModel, onVisualize]);
 
   // Auto-refresh for real-time updates
@@ -506,7 +505,6 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
             }
           }}
           experimentalFeatures={{ 
-            newEditingApi: true,
             columnGrouping: true
           }}
           getRowClassName={(params) => 
@@ -564,10 +562,10 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
                     label={key.charAt(0).toUpperCase() + key.slice(1)}
                     value={value || ''}
                     onChange={(e) => {
-                      setEditingRow(prev => ({ ...prev, [key]: e.target.value }));
+                      setEditingRow((prev: any) => ({ ...prev, [key]: (e.target as HTMLInputElement).value }));
                     }}
-                    error={Boolean(validationErrors[editingRow.id]?.[key])}
-                    helperText={validationErrors[editingRow.id]?.[key]}
+                    error={Boolean(validationErrors[editingRow.id]?.[key as string])}
+                    helperText={validationErrors[editingRow.id]?.[key as string]}
                     sx={{ mb: 2 }}
                   />
                 );

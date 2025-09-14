@@ -35,6 +35,7 @@ export interface TemporalRange {
 
 // Seismic data types
 export interface SeismicEvent {
+  id: string;
   eventId: string;
   timestamp: Date;
   location: Point3D;
@@ -69,6 +70,9 @@ export interface MomentTensorSolution {
   strike: number;
   dip: number;
   rake: number;
+  pAxis: Point3D;
+  tAxis: Point3D;
+  nAxis: Point3D;
 }
 
 export interface SourceMechanism {
@@ -113,6 +117,7 @@ export interface Complex {
 
 // Volcanic monitoring types
 export interface VolcanicState {
+  id: string;
   volcanoId: string;
   timestamp: Date;
   alertLevel: AlertLevel;
@@ -991,6 +996,77 @@ export interface InteractivityConfig {
   hoverable: boolean;
   clickable: boolean;
   brushable: boolean;
+}
+
+// Comprehensive geological data container
+export interface GeologicalData {
+  id: string;
+  timestamp: Date;
+  location: GeographicCoordinate;
+  dataType: GeologicalDataType;
+  seismicEvents?: SeismicEvent[];
+  volcanicStates?: VolcanicState[];
+  deformationData?: DeformationData[];
+  resourceProspects?: ResourceProspect[];
+  magmaticSystems?: MagmaticSystem[];
+  qualityMetrics: QualityMetrics;
+  metadata: Record<string, unknown>;
+}
+
+export enum GeologicalDataType {
+  SEISMIC = 'seismic',
+  VOLCANIC = 'volcanic',
+  DEFORMATION = 'deformation',
+  RESOURCE = 'resource',
+  MAGMATIC = 'magmatic',
+  GEOCHEMICAL = 'geochemical',
+  GEOPHYSICAL = 'geophysical'
+}
+
+// 3D Geological Model
+export interface GeologicalModel3D {
+  id: string;
+  name: string;
+  bounds: GeographicBounds;
+  resolution: [number, number, number];
+  layers: GeologicalLayer3D[];
+  structures: StructuralFeature[];
+  properties: ModelProperties;
+  metadata: Record<string, unknown>;
+}
+
+export interface GeologicalLayer3D {
+  id: string;
+  name: string;
+  lithology: LithologyUnit;
+  geometry: LayerGeometry;
+  properties: LayerProperties;
+  age: GeologicalAge;
+}
+
+export interface LayerGeometry {
+  vertices: Float32Array;
+  faces: Uint32Array;
+  normals: Float32Array;
+  textureCoordinates?: Float32Array;
+}
+
+export interface LayerProperties {
+  density: number;
+  porosity: number;
+  permeability: number;
+  elasticModulus: number;
+  poissonRatio: number;
+  thermalConductivity: number;
+}
+
+export interface ModelProperties {
+  coordinateSystem: string;
+  verticalDatum: string;
+  units: string;
+  accuracy: number;
+  confidence: number;
+  validationResults: ValidationResult;
 }
 
 // Error handling and user feedback types

@@ -16,8 +16,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Button,
-  Tooltip,
-  Chip
+  Tooltip
 } from '@mui/material';
 import {
   Close,
@@ -25,13 +24,7 @@ import {
   ExpandMore,
   Refresh,
   PlayArrow,
-  Pause,
-  Stop,
-  Speed,
-  Visibility,
-  VisibilityOff,
-  Tune,
-  Animation
+  Pause
 } from '@mui/icons-material';
 import {
   CausalLayoutConfig,
@@ -129,31 +122,31 @@ export const CausalNetworkControls: React.FC<CausalNetworkControlsProps> = ({
     onLayoutConfigChange(newConfig);
   };
 
-  const handleForceStrengthChange = (event: Event, value: number | number[]) => {
+  const handleForceStrengthChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({ forceStrength: value as number });
   };
 
-  const handleLinkDistanceChange = (event: Event, value: number | number[]) => {
+  const handleLinkDistanceChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({ linkDistance: value as number });
   };
 
-  const handleNodeRepulsionChange = (event: Event, value: number | number[]) => {
+  const handleNodeRepulsionChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({ nodeRepulsion: value as number });
   };
 
-  const handleCenterForceChange = (event: Event, value: number | number[]) => {
+  const handleCenterForceChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({ centerForce: value as number });
   };
 
-  const handleCollisionRadiusChange = (event: Event, value: number | number[]) => {
+  const handleCollisionRadiusChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({ collisionRadius: value as number });
   };
 
-  const handleAlphaDecayChange = (event: Event, value: number | number[]) => {
+  const handleAlphaDecayChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({ alphaDecay: value as number });
   };
 
-  const handleVelocityDecayChange = (event: Event, value: number | number[]) => {
+  const handleVelocityDecayChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({ velocityDecay: value as number });
   };
 
@@ -173,7 +166,7 @@ export const CausalNetworkControls: React.FC<CausalNetworkControlsProps> = ({
     });
   };
 
-  const handleClusterStrengthChange = (event: Event, value: number | number[]) => {
+  const handleClusterStrengthChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({
       clustering: { ...localConfig.clustering, clusterStrength: value as number }
     });
@@ -191,13 +184,13 @@ export const CausalNetworkControls: React.FC<CausalNetworkControlsProps> = ({
     });
   };
 
-  const handleLevelSeparationChange = (event: Event, value: number | number[]) => {
+  const handleLevelSeparationChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({
       hierarchical: { ...localConfig.hierarchical, levelSeparation: value as number }
     });
   };
 
-  const handleNodeSeparationChange = (event: Event, value: number | number[]) => {
+  const handleNodeSeparationChange = (_event: Event, value: number | number[]) => {
     handleConfigChange({
       hierarchical: { ...localConfig.hierarchical, nodeSeparation: value as number }
     });

@@ -8,7 +8,7 @@ import {
   VoiceCommand,
   GestureCommand,
   ImmersiveAnalysis,
-  HolographicProjection,
+  // HolographicProjection, // Unused
   SpatialComputing,
   TrainingModule,
   LearningProgress,
@@ -362,7 +362,7 @@ const immersiveSlice = createSlice({
       state.lastUpdate = Date.now();
     },
     
-    addHologram: (state, action: PayloadAction<any>) => {
+    addHologram: (state, _action: PayloadAction<any>) => {
       // Add hologram to display
       state.holographicDisplay.hologramCount += 1;
       state.lastUpdate = Date.now();
@@ -410,7 +410,7 @@ const immersiveSlice = createSlice({
       state.lastUpdate = Date.now();
     },
     
-    updateEducationalContent: (state, action: PayloadAction<Partial<EducationalContent>>) => {
+    updateEducationalContent: (state, _action: PayloadAction<Partial<EducationalContent>>) => {
       // Update current educational content
       state.lastUpdate = Date.now();
     },

@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { ProcessingStatus } from '../../../types/causal';
 import { 
   Box, 
   Paper, 
@@ -16,7 +17,7 @@ import {
   PlayArrow, 
   Pause, 
   Stop, 
-  Settings, 
+  // Settings, // Unused 
   Download,
   Refresh
 } from '@mui/icons-material';
@@ -125,7 +126,7 @@ class ConnectionQualityMonitor {
   private latencyHistory: number[] = [];
   private packetLossCount: number = 0;
   private totalPackets: number = 0;
-  private lastPingTime: number = 0;
+  // private lastPingTime: number = 0; // Unused
 
   recordLatency(latency: number) {
     this.latencyHistory.push(latency);
@@ -165,7 +166,7 @@ class ConnectionQualityMonitor {
 export const RealTimeDataStream: React.FC<RealTimeDataStreamProps> = ({
   wsUrl = 'ws://localhost:8080',
   bufferSize = 10000,
-  updateInterval = 1000,
+  // updateInterval = 1000, // Unused
   onDataReceived,
   onConnectionChange,
   dataTypes = ['geological', 'seismic', 'volcanic'],
@@ -288,16 +289,16 @@ export const RealTimeDataStream: React.FC<RealTimeDataStreamProps> = ({
 
     // Create stream event
     const streamEvent: StreamEvent = {
-      event_id: `${type}_${Date.now()}_${Math.random()}`,
-      event_type: type as any,
+      eventId: `${type}_${Date.now()}_${Math.random()}`,
+      eventType: type as any,
       timestamp: new Date(),
-      source_id: data.id || 'unknown',
+      sourceId: data.id || 'unknown',
       data,
       metadata: {
         bufferSize: bufferRef.current.getBufferInfo()[type]?.count || 0,
         dataRate: bufferRef.current.getDataRate(type)
       },
-      processing_status: 'received'
+      processingStatus: 'RECEIVED' as ProcessingStatus
     };
 
     onDataReceived?.(streamEvent);
@@ -542,12 +543,12 @@ export const RealTimeDataStream: React.FC<RealTimeDataStreamProps> = ({
             </Typography>
             <Slider
               value={streamConfig.timeWindow}
-              onChange={(_, value) => setStreamConfig(prev => ({ ...prev, timeWindow: value as number }))}
+              onChange={(_: Event, value: number | number[]) => setStreamConfig(prev => ({ ...prev, timeWindow: value as number }))}
               min={30000}
               max={3600000}
               step={30000}
               valueLabelDisplay="auto"
-              valueLabelFormat={(value) => `${value / 1000}s`}
+              valueLabelFormat={(value: number) => `${value / 1000}s`}
             />
           </Grid>
           
@@ -557,7 +558,7 @@ export const RealTimeDataStream: React.FC<RealTimeDataStreamProps> = ({
             </Typography>
             <Slider
               value={streamConfig.maxDataRate}
-              onChange={(_, value) => setStreamConfig(prev => ({ ...prev, maxDataRate: value as number }))}
+              onChange={(_: Event, value: number | number[]) => setStreamConfig(prev => ({ ...prev, maxDataRate: value as number }))}
               min={1}
               max={1000}
               step={10}

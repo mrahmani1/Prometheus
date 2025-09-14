@@ -3,11 +3,11 @@ import {
   Box,
   Paper,
   Typography,
-  Slider,
+  // Slider, // Unused
   Button,
   ButtonGroup,
   IconButton,
-  Tooltip,
+  // Tooltip, // Unused
   Switch,
   FormControlLabel,
   Select,
@@ -18,17 +18,17 @@ import {
   Grid,
   Card,
   CardContent,
-  TextField,
+  // TextField, // Unused
   Divider,
   SpeedDial,
   SpeedDialAction,
   SpeedDialIcon,
   Popover,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Badge,
+  // List, // Unused
+  // ListItem, // Unused
+  // ListItemText, // Unused
+  // ListItemIcon, // Unused
+  // Badge, // Unused
 } from '@mui/material';
 import {
   PlayArrow,
@@ -36,27 +36,27 @@ import {
   Stop,
   SkipPrevious,
   SkipNext,
-  FastForward,
-  FastRewind,
-  Timeline,
+  // FastForward, // Unused
+  // FastRewind, // Unused
+  // Timeline, // Unused
   ZoomIn,
   ZoomOut,
-  FilterList,
-  Settings,
+  // FilterList, // Unused
+  // Settings, // Unused
   Bookmark,
   BookmarkBorder,
   Schedule,
-  Speed,
-  Sync,
-  Loop,
-  Shuffle,
-  AccessTime,
+  // Speed, // Unused
+  // Sync, // Unused
+  // Loop, // Unused
+  // Shuffle, // Unused
+  // AccessTime, // Unused
   TrendingUp,
-  ShowChart,
-  Visibility,
-  VisibilityOff,
-  CalendarToday,
-  Update,
+  // ShowChart, // Unused
+  // Visibility, // Unused
+  // VisibilityOff, // Unused
+  // CalendarToday, // Unused
+  // Update, // Unused
   History,
 } from '@mui/icons-material';
 import * as d3 from 'd3';

@@ -11,7 +11,7 @@ import { WEBSOCKET_CONFIG } from '../../utils/constants';
 const WebSocketManager: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isAuthenticated } = useAppSelector(state => state.auth);
-  const { connected } = useAppSelector(state => state.monitoring.websocket);
+  const { connected, messageCount } = useAppSelector(state => state.monitoring.websocket);
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -60,7 +60,7 @@ const WebSocketManager: React.FC = () => {
           }
           
           dispatch(setWebSocketStatus({
-            messageCount: (prev: any) => prev.messageCount + 1,
+            messageCount: messageCount + 1,
           }));
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -87,6 +87,7 @@ const WebSocketManager: React.FC = () => {
           title: 'Connection Error',
           message: 'Lost connection to real-time data stream',
           duration: 5000,
+          persistent: false,
         }));
       };
     } catch (error) {

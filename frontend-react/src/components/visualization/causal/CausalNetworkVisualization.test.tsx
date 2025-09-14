@@ -1,8 +1,8 @@
-import React from 'react';
+// import React from 'react'; // Unused in test file
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CausalNetworkVisualization } from './CausalNetworkVisualization';
-import { CausalGraph, CausalLayoutConfig } from './types';
+import { CausalGraph, CausalLayoutConfig, GeologicalProcessType } from './types';
 
 // Mock D3 to avoid DOM manipulation issues in tests
 vi.mock('d3', () => {
@@ -291,7 +291,7 @@ describe('CausalNetworkVisualization', () => {
     const filterConfig = {
       strengthRange: [0.5, 1.0] as [number, number],
       confidenceThreshold: 0.8,
-      processTypes: ['seismic'],
+      processTypes: ['seismic' as GeologicalProcessType],
       spatialScales: [],
       temporalScales: [],
       edgeTypes: [],

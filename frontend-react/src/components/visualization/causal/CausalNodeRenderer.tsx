@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import * as d3 from 'd3';
+// import * as d3 from 'd3'; // Unused
 import { CausalNode, GeologicalProcessType, SpatialScale, TemporalScale } from './types';
 
 interface CausalNodeRendererProps {

@@ -55,7 +55,7 @@ const SCALING_FACTORS = {
 };
 
 export const ResponsiveVisualization: React.FC<ResponsiveVisualizationProps> = ({
-  data,
+  // data, // Unused
   children,
   minHeight = 300,
   maxHeight = 800,
@@ -75,7 +75,7 @@ export const ResponsiveVisualization: React.FC<ResponsiveVisualizationProps> = (
   // Media queries for responsive behavior
   const isMobile = useMediaQuery(`(max-width:${breakpoints.mobile}px)`);
   const isTablet = useMediaQuery(`(max-width:${breakpoints.tablet}px) and (min-width:${breakpoints.mobile + 1}px)`);
-  const isDesktop = useMediaQuery(`(min-width:${breakpoints.desktop}px)`);
+  // const isDesktop = useMediaQuery(`(min-width:${breakpoints.desktop}px)`); // Unused
 
   // Calculate optimal dimensions based on container and device
   const calculateDimensions = useCallback(() => {
@@ -310,23 +310,23 @@ export const ResponsiveGeologicalContainer: React.FC<{
   enableExport?: boolean;
 }> = ({ 
   children, 
-  enableFullscreen = true, 
-  enableExport = true 
+  // enableFullscreen = true, // Unused 
+  // enableExport = true // Unused 
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const settings = useResponsiveGeologicalVisualization();
   
-  const toggleFullscreen = useCallback(() => {
-    if (!enableFullscreen) return;
-    
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  }, [enableFullscreen]);
+  // const toggleFullscreen = useCallback(() => { // Unused
+  //   if (!enableFullscreen) return;
+  //   
+  //   if (!document.fullscreenElement) {
+  //     document.documentElement.requestFullscreen();
+  //     setIsFullscreen(true);
+  //   } else {
+  //     document.exitFullscreen();
+  //     setIsFullscreen(false);
+  //   }
+  // }, [enableFullscreen]);
   
   useEffect(() => {
     const handleFullscreenChange = () => {
