@@ -206,7 +206,7 @@ const ComprehensiveCausalDashboard: React.FC<ComprehensiveCausalDashboardProps> 
   // Advanced analysis state
   // const [temporalModel] = useState<TemporalCausalModel | null>(null); // Unused
   // const [multiScaleModel] = useState<MultiScaleCausalModel | null>(null); // Unused
-  // const [hypothesisTests] = useState<any[]>([]); // Unused
+  const [, setHypothesisTests] = useState<any[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<CausalAlert[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<CausalMetrics | null>(null);
   
@@ -474,19 +474,19 @@ const ComprehensiveCausalDashboard: React.FC<ComprehensiveCausalDashboardProps> 
             updatedGraph.nodes = updatedGraph.nodes.filter(n => n.id !== change.elementId);
             break;
           case 'edge_added':
-            if (change.edge) {
-              updatedGraph.edges.push(change.edge);
+            if (change.details.edge) {
+              updatedGraph.edges.push(change.details.edge);
             }
             break;
           case 'edge_removed':
-            updatedGraph.edges = updatedGraph.edges.filter(e => e.id !== change.edgeId);
+            updatedGraph.edges = updatedGraph.edges.filter(e => e.id !== change.elementId);
             break;
-          case 'strength_changed':
-            const edge = updatedGraph.edges.find(e => e.id === change.edgeId);
-            if (edge && change.newStrength !== undefined) {
-              edge.causalStrength = change.newStrength;
-            }
-            break;
+          // case 'strength_changed': // Not in the enum, commenting out
+          //   const edge = updatedGraph.edges.find(e => e.id === change.elementId);
+          //   if (edge && change.details.newStrength !== undefined) {
+          //     edge.causalStrength = change.details.newStrength;
+          //   }
+          //   break;
         }
       });
       
@@ -669,11 +669,11 @@ const ComprehensiveCausalDashboard: React.FC<ComprehensiveCausalDashboardProps> 
     );
   }, []);
 
-  const handleNodeHover = useCallback((node: CausalNode | null) => {
+  const handleNodeHover = useCallback((_node: CausalNode | null) => {
     // Handle node hover for tooltips and highlighting
   }, []);
 
-  const handleEdgeHover = useCallback((edge: CausalEdge | null) => {
+  const handleEdgeHover = useCallback((_edge: CausalEdge | null) => {
     // Handle edge hover for tooltips and highlighting
   }, []);
 
@@ -695,54 +695,54 @@ const ComprehensiveCausalDashboard: React.FC<ComprehensiveCausalDashboardProps> 
     }));
   }, [dispatch]);
 
-  const handleTimeRangeChange = useCallback((start: Date, end: Date) => {
+  const handleTimeRangeChange = useCallback((_start: Date, _end: Date) => {
     // Handle temporal range changes
   }, []);
 
-  const handleScaleChange = useCallback((scale: string) => {
-    // Handle temporal scale changes
-  }, []);
+  // const handleScaleChange = useCallback((_scale: string) => { // Unused
+  //   // Handle temporal scale changes
+  // }, []);
 
-  const handleTemporalFilterChange = useCallback((filter: any) => {
-    // Handle temporal filter changes
-  }, []);
+  // const handleTemporalFilterChange = useCallback((_filter: any) => { // Unused
+  //   // Handle temporal filter changes
+  // }, []);
 
-  const handleRealTimeAlert = useCallback((alert: any) => {
-    dispatch(addNotification({
-      id: `alert-${Date.now()}`,
-      type: alert.severity || 'warning',
-      title: alert.title || 'Real-Time Alert',
-      message: alert.message,
-      timestamp: new Date(),
-      autoHide: alert.severity !== 'error',
-      duration: alert.severity === 'error' ? undefined : 5000,
-    }));
-  }, [dispatch]);
+  // const handleRealTimeAlert = useCallback((alert: any) => { // Unused function
+  //   dispatch(addNotification({
+  //     id: `alert-${Date.now()}`,
+  //     type: alert.severity || 'warning',
+  //     title: alert.title || 'Real-Time Alert',
+  //     message: alert.message,
+  //     timestamp: new Date(),
+  //     autoHide: alert.severity !== 'error',
+  //     duration: alert.severity === 'error' ? undefined : 5000,
+  //   }));
+  // }, [dispatch]);
 
-  const handleHypothesisTest = useCallback((hypothesis: any) => {
+  const handleHypothesisTest = useCallback((_hypothesis: any) => {
     // Handle hypothesis testing
   }, []);
 
-  const handleModelUpdate = useCallback((model: any) => {
-    // Handle model updates from hypothesis testing
-  }, []);
+  // const handleModelUpdate = useCallback((_model: any) => { // Unused
+  //   // Handle model updates from hypothesis testing
+  // }, []);
 
   const handleCollaborativeUpdate = useCallback((update: any) => {
     // Handle collaborative graph updates
     setCausalGraph(update.graph);
   }, []);
 
-  const handleAnnotation = useCallback((annotation: any) => {
+  const handleAnnotation = useCallback((_annotation: any) => {
     // Handle collaborative annotations
   }, []);
 
-  const handleConflictResolution = useCallback((resolution: any) => {
+  const handleConflictResolution = useCallback((_resolution: any) => {
     // Handle collaborative conflict resolution
   }, []);
 
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: string) => {
-    dispatch(setActiveTab(newValue));
-  }, [dispatch]);
+  // const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: string) => { // Unused
+  //   dispatch(setActiveTab(newValue));
+  // }, [dispatch]);
 
   const handleDrawerToggle = useCallback(() => {
     dispatch(setDrawerOpen(!drawerOpen));
@@ -1100,7 +1100,7 @@ const ComprehensiveCausalDashboard: React.FC<ComprehensiveCausalDashboardProps> 
                       <Slider
                         size="small"
                         value={discoveryConfig.confidenceThreshold || 0.05}
-                        onChange={(_, value) => setDiscoveryConfig(prev => ({
+                        onChange={(_: Event, value: number | number[]) => setDiscoveryConfig(prev => ({
                           ...prev,
                           confidenceThreshold: value as number
                         }))}

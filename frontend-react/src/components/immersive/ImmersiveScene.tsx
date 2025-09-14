@@ -10,23 +10,17 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { 
   useXR, 
   useController, 
-  useHitTest, 
+  // useHitTest - unused, 
   Interactive,
   useXREvent
 } from '@react-three/xr';
 import {
   Text,
-  Html,
+  // Html - unused
   Sphere,
-  Box,
-  Plane,
+  // Box, Plane - unused
   Line,
-  Points,
-  useGLTF,
-  useTexture,
-  Instances,
-  Instance,
-  Trail,
+  // Points, useGLTF, useTexture, Instances, Instance, Trail - unused
   Billboard,
   Float
 } from '@react-three/drei';
@@ -85,8 +79,8 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
   const [geologicalLayers, setGeologicalLayers] = useState<GeologicalLayer[]>([]);
   const [interactiveElements, setInteractiveElements] = useState<InteractiveElement[]>([]);
   const [collaborativeAvatars, setCollaborativeAvatars] = useState<CollaborativeAvatar[]>([]);
-  const [selectedObject, setSelectedObject] = useState<THREE.Object3D | null>(null);
-  const [measurementMode, setMeasurementMode] = useState(false);
+  // const [selectedObject] = useState<THREE.Object3D | null>(null); // Unused
+  const [measurementMode] = useState(false);
   const [measurementPoints, setMeasurementPoints] = useState<THREE.Vector3[]>([]);
 
   const sceneRef = useRef<THREE.Group>(null);
@@ -98,7 +92,7 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
   // Hand tracking and gesture recognition
   const leftController = useController('left');
   const rightController = useController('right');
-  const hitTest = useHitTest();
+  // const hitTest = useHitTest(); // Unused
 
   // Initialize geological scene
   useEffect(() => {
@@ -440,7 +434,7 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
     }
   }, []);
 
-  const handleControllerRelease = useCallback((event: any) => {
+  const handleControllerRelease = useCallback((_event: any) => {
     // Handle controller release
     setSelectedObject(null);
   }, []);
@@ -474,9 +468,9 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
   }, []);
 
   // Animation loop
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     // Animate geological layers
-    geologicalLayers.forEach((layer, index) => {
+    geologicalLayers.forEach((layer, _index) => {
       if (layer.animated) {
         layer.timeStep += delta;
         // Update layer visualization based on time
@@ -506,15 +500,15 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
     }
   }, []);
 
-  const updateSeismicAnimation = useCallback((layer: GeologicalLayer, time: number) => {
+  const updateSeismicAnimation = useCallback((_layer: GeologicalLayer, _time: number) => {
     // Animate seismic waves propagation
   }, []);
 
-  const updateThermalAnimation = useCallback((layer: GeologicalLayer, time: number) => {
+  const updateThermalAnimation = useCallback((_layer: GeologicalLayer, _time: number) => {
     // Animate thermal changes over time
   }, []);
 
-  const updateCollaborativeAvatars = useCallback((delta: number) => {
+  const updateCollaborativeAvatars = useCallback((_delta: number) => {
     // Update positions and animations of collaborative avatars
     collaborativeAvatars.forEach(avatar => {
       if (avatar.isActive) {
@@ -577,7 +571,7 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
     return hasMetals ? 0.8 : 0.1;
   };
 
-  const generateGeologicalTexture = (rockType: string): THREE.Texture => {
+  const generateGeologicalTexture = (_rockType: string): THREE.Texture => {
     // Generate procedural texture based on rock type
     const canvas = document.createElement('canvas');
     canvas.width = 512;
@@ -592,7 +586,7 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
     return new THREE.CanvasTexture(canvas);
   };
 
-  const generateNormalMap = (rockType: string): THREE.Texture => {
+  const generateNormalMap = (_rockType: string): THREE.Texture => {
     // Generate normal map for surface detail
     const canvas = document.createElement('canvas');
     canvas.width = 512;

@@ -61,7 +61,7 @@ import {
   Tooltip
 } from '@mui/material';
 import {
-  VrHeadset,
+  Headset as VrHeadset,
   CameraAlt,
   Mic,
   MicOff,

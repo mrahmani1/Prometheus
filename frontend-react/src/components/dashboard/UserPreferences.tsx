@@ -12,7 +12,7 @@ import {
   Slider,
   TextField,
   Button,
-  Divider,
+  // Divider - unused
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -24,12 +24,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Tooltip
+  // List, ListItem, ListItemText, ListItemSecondaryAction, IconButton - unused
+  // Tooltip - unused
 } from '@mui/material';
 import {
   ExpandMore,
@@ -37,17 +33,17 @@ import {
   Restore,
   Download,
   Upload,
-  Delete,
+  // Delete - unused
   Palette,
   Language,
   Accessibility,
   Speed,
   Notifications,
-  Security,
+  // Security - unused
   Storage,
-  Sync
+  // Sync - unused
 } from '@mui/icons-material';
-import { UserPreferences, NotificationSettings, AccessibilitySettings, PerformanceSettings } from '../../types/dashboard';
+import { UserPreferences } from '../../types/dashboard'; // NotificationSettings, AccessibilitySettings, PerformanceSettings - unused
 
 interface UserPreferencesProps {
   preferences: UserPreferences;
@@ -112,7 +108,7 @@ const NUMBER_FORMATS = [
 export const UserPreferencesComponent: React.FC<UserPreferencesProps> = ({
   preferences,
   onPreferencesChange,
-  onExport,
+  onExport: _onExport,
   onImport,
   onReset
 }) => {

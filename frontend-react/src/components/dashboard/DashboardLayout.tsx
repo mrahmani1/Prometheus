@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -11,20 +11,17 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
+  // TextField, FormControl, InputLabel, Select - unused
   Grid,
   Chip,
   Alert,
   Snackbar,
   Fab,
-  Tooltip
+  // Tooltip - unused
 } from '@mui/material';
 import {
   Add,
-  Settings,
+  // Settings - unused
   MoreVert,
   Edit,
   Delete,
@@ -32,10 +29,9 @@ import {
   FullscreenExit,
   Refresh,
   Save,
-  Restore,
+  // Restore - unused
   Dashboard as DashboardIcon,
-  GridView,
-  ViewModule
+  // GridView, ViewModule - unused
 } from '@mui/icons-material';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { DashboardWidget, WidgetConfig, DashboardConfig, UserPreferences } from '../../types/dashboard';
@@ -159,7 +155,7 @@ const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   widgets,
   onWidgetAdd,
-  onWidgetUpdate,
+  onWidgetUpdate: _onWidgetUpdate,
   onWidgetRemove,
   onLayoutChange,
   onDashboardSave,
@@ -169,17 +165,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   readOnly = false
 }) => {
   const [layouts, setLayouts] = useState(DEFAULT_LAYOUTS);
-  const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
+  const [, setCurrentBreakpoint] = useState('lg');
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
   const [widgetMenuAnchor, setWidgetMenuAnchor] = useState<HTMLElement | null>(null);
   const [addWidgetDialog, setAddWidgetDialog] = useState(false);
-  const [settingsDialog, setSettingsDialog] = useState(false);
+  const [, setSettingsDialog] = useState(false);
   const [fullscreenWidget, setFullscreenWidget] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string; severity: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
   // Dashboard configuration state
-  const [dashboardConfig, setDashboardConfig] = useState<DashboardConfig>({
+  const [dashboardConfig] = useState<DashboardConfig>({
     id: 'default-dashboard',
     name: 'Geological Monitoring Dashboard',
     description: 'Real-time geological data monitoring and analysis',

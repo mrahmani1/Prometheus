@@ -1,24 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, Grid, Text, Box as ThreeBox } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Environment, Grid } from '@react-three/drei'; // Text, Box as ThreeBox - unused
 import * as THREE from 'three';
 import {
   Box,
   Paper,
   Typography,
   Grid,
-  Card,
-  CardContent,
+  // Card, CardContent - unused
   Slider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  // FormControl, InputLabel, Select, MenuItem - unused
   Switch,
   FormControlLabel,
   Button,
   IconButton,
-  Tooltip,
+  // Tooltip - unused
   Tabs,
   Tab,
   Accordion,
@@ -26,7 +22,7 @@ import {
   AccordionDetails,
   LinearProgress,
   Chip,
-  Alert
+  // Alert - unused
 } from '@mui/material';
 import {
   PlayArrow,

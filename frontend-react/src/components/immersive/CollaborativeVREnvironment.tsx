@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { VRButton, XR, Controllers, Hands } from '@react-three/xr';
-import { Text, Avatar, Line, Sphere, Box } from '@react-three/drei';
+import { Text, Line, Sphere, Box } from '@react-three/drei';
 import * as THREE from 'three';
 import { useDispatch, useSelector } from 'react-redux';
 import { io, Socket } from 'socket.io-client';
