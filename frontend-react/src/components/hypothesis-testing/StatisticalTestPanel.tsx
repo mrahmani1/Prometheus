@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
-  Paper,
+  // Paper - unused
   Typography,
   Slider,
   TextField,
@@ -11,7 +11,7 @@ import {
   InputLabel,
   Switch,
   FormControlLabel,
-  Button,
+  // Button - unused
   Chip,
   Alert,
   Accordion,
@@ -37,10 +37,8 @@ import {
   CausalHypothesis,
   TestParameters,
   HypothesisTestResult,
-  StatisticalTest,
-  MultipleTestingCorrection,
-  BootstrapMethod,
-  CrossValidationMethod
+  // StatisticalTest, MultipleTestingCorrection - unused
+  // BootstrapMethod, CrossValidationMethod - unused
 } from '../../types/causal-analysis';
 
 interface StatisticalTestPanelProps {
@@ -59,7 +57,7 @@ export const StatisticalTestPanel: React.FC<StatisticalTestPanelProps> = ({
   isTestingInProgress
 }) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['basic']));
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [_showAdvancedOptions, _setShowAdvancedOptions] = useState(false);
 
   const toggleSection = useCallback((section: string) => {
     setExpandedSections(prev => {
@@ -123,7 +121,7 @@ export const StatisticalTestPanel: React.FC<StatisticalTestPanelProps> = ({
       {parameterWarnings.length > 0 && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>Parameter Warnings:</Typography>
-          {parameterWarnings.map((warning, index) => (
+          {parameterWarnings.map((warning: string, index: number) => (
             <Typography key={index} variant="body2">• {warning}</Typography>
           ))}
         </Alert>
@@ -155,7 +153,7 @@ export const StatisticalTestPanel: React.FC<StatisticalTestPanelProps> = ({
               </Box>
               <Slider
                 value={testParameters.significanceLevel}
-                onChange={(_, value) => handleParameterChange('significanceLevel', value)}
+                onChange={(_: Event, value: number | number[]) => handleParameterChange('significanceLevel', value)}
                 min={0.001}
                 max={0.1}
                 step={0.001}
@@ -181,7 +179,7 @@ export const StatisticalTestPanel: React.FC<StatisticalTestPanelProps> = ({
               </Box>
               <Slider
                 value={testParameters.confidenceInterval}
-                onChange={(_, value) => handleParameterChange('confidenceInterval', value)}
+                onChange={(_: Event, value: number | number[]) => handleParameterChange('confidenceInterval', value)}
                 min={0.8}
                 max={0.999}
                 step={0.001}
@@ -231,7 +229,7 @@ export const StatisticalTestPanel: React.FC<StatisticalTestPanelProps> = ({
               </Typography>
               <Slider
                 value={testParameters.temporalLagRange}
-                onChange={(_, value) => handleParameterChange('temporalLagRange', value)}
+                onChange={(_: Event, value: number | number[]) => handleParameterChange('temporalLagRange', value)}
                 min={0}
                 max={3650} // 10 years
                 step={1}
@@ -251,11 +249,11 @@ export const StatisticalTestPanel: React.FC<StatisticalTestPanelProps> = ({
               </Typography>
               <Slider
                 value={testParameters.spatialScaleRange}
-                onChange={(_, value) => handleParameterChange('spatialScaleRange', value)}
+                onChange={(_: Event, value: number | number[]) => handleParameterChange('spatialScaleRange', value)}
                 min={0.001}
                 max={10000}
                 step={0.1}
-                scale={(x) => Math.log10(x)}
+                scale={(x: number) => Math.log10(x)}
                 marks={[
                   { value: 0.001, label: '1m' },
                   { value: 1, label: '1km' },

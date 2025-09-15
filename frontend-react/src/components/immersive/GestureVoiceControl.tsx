@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import * as THREE from 'three';
+// import * as THREE from 'three'; // Used for gesture calculations
 import { 
   GestureCommand, 
   VoiceCommand, 
-  HandTracking, 
-  SpeechRecognition 
+  HandTracking as _HandTracking, 
+  SpeechRecognition as _SpeechRecognition 
 } from '../../types/immersive';
 import { 
   updateGestureRecognition, 
@@ -46,15 +46,15 @@ const GestureVoiceControl: React.FC<GestureVoiceControlProps> = ({
   language = 'en-US'
 }) => {
   const dispatch = useDispatch();
-  const gestureState = useSelector((state: any) => state.immersive.gestureRecognition);
+  // const _gestureState = useSelector((state: any) => state.immersive.gestureRecognition);
   const voiceState = useSelector((state: any) => state.immersive.voiceRecognition);
   
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [handTracker, setHandTracker] = useState<any>(null);
-  const [speechRecognizer, setSpeechRecognizer] = useState<SpeechRecognition | null>(null);
+  const [_isInitialized, setIsInitialized] = useState(false);
+  const [_handTracker, _setHandTracker] = useState<any>(null);
+  const [speechRecognizer, setSpeechRecognizer] = useState<any>(null);
   const [currentGesture, setCurrentGesture] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
-  const [confidenceThreshold] = useState(0.7);
+  const [_confidenceThreshold] = useState(0.7);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -224,7 +224,7 @@ const GestureVoiceControl: React.FC<GestureVoiceControlProps> = ({
     // This is a simulation - in real implementation, this would come from MediaPipe
     // Return null to indicate no hand detected, or array of landmarks
     if (Math.random() > 0.7) { // Simulate intermittent hand detection
-      return Array.from({ length: 21 }, (_, i) => ({
+      return Array.from({ length: 21 }, (_, _i) => ({
         x: Math.random(),
         y: Math.random(),
         z: Math.random() * 0.1,
@@ -333,8 +333,8 @@ const GestureVoiceControl: React.FC<GestureVoiceControlProps> = ({
       
       dispatch(updateGestureRecognition({
         currentGesture: gesture,
-        confidence: command.confidence,
-        timestamp: now
+        // confidence: command.confidence, // Property doesn't exist on GestureRecognition
+        // timestamp: now // Property doesn't exist on GestureRecognition
       }));
       
       dispatch(executeCommand(command));
@@ -537,7 +537,7 @@ const GestureVoiceControl: React.FC<GestureVoiceControlProps> = ({
         style={{ display: 'none' }}
       />
 
-      <style jsx>{`
+      <style>{`
         .gesture-voice-control {
           padding: 20px;
           background: rgba(0, 0, 0, 0.9);

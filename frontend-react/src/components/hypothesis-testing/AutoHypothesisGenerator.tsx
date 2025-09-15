@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
-  Paper,
+  // Paper - unused
   Typography,
   Button,
   Slider,
-  TextField,
+  // TextField - unused
   Select,
   MenuItem,
   FormControl,
@@ -22,30 +22,21 @@ import {
   AccordionDetails,
   FormControlLabel,
   Switch,
-  Tooltip,
-  IconButton,
+  // Tooltip, IconButton - unused
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction
+  // List, ListItem, ListItemText, ListItemSecondaryAction - unused
 } from '@mui/material';
 import {
   AutoAwesome as AutoAwesomeIcon,
   Psychology as PsychologyIcon,
-  TrendingUp as TrendingUpIcon,
+  // TrendingUp as TrendingUpIcon, Refresh as RefreshIcon, Science as ScienceIcon, Lightbulb as LightbulbIcon, Assessment as AssessmentIcon, Star as StarIcon - unused
   Settings as SettingsIcon,
-  Refresh as RefreshIcon,
   FilterList as FilterListIcon,
   ExpandMore as ExpandMoreIcon,
-  Science as ScienceIcon,
-  Lightbulb as LightbulbIcon,
-  Assessment as AssessmentIcon,
   Info as InfoIcon,
-  Star as StarIcon,
   Download as DownloadIcon
 } from '@mui/icons-material';
 import {
@@ -54,9 +45,10 @@ import {
   GeologicalProcess,
   GenerationAlgorithm,
   HypothesisGenerationConfig,
-  GeneratedHypothesisMetrics,
-  PatternType,
-  ConstraintType
+  CausalRelationshipType,
+  SpatialScale,
+  // GeneratedHypothesisMetrics, ConstraintType - unused
+  PatternType
 } from '../../types/causal-analysis';
 
 interface AutoHypothesisGeneratorProps {
@@ -340,7 +332,7 @@ export const AutoHypothesisGenerator: React.FC<AutoHypothesisGeneratorProps> = (
               </Typography>
               <Slider
                 value={generationConfig.maxHypotheses}
-                onChange={(_, value) => handleConfigChange('maxHypotheses', value)}
+                onChange={(_: Event, value: number | number[]) => handleConfigChange('maxHypotheses', value)}
                 min={5}
                 max={50}
                 step={5}
@@ -358,7 +350,7 @@ export const AutoHypothesisGenerator: React.FC<AutoHypothesisGeneratorProps> = (
               </Typography>
               <Slider
                 value={generationConfig.significanceThreshold}
-                onChange={(_, value) => handleConfigChange('significanceThreshold', value)}
+                onChange={(_: Event, value: number | number[]) => handleConfigChange('significanceThreshold', value)}
                 min={0.001}
                 max={0.1}
                 step={0.001}
@@ -449,7 +441,7 @@ export const AutoHypothesisGenerator: React.FC<AutoHypothesisGeneratorProps> = (
                   </Typography>
                   <Slider
                     value={filterCriteria.minScore}
-                    onChange={(_, value) => setFilterCriteria(prev => ({ ...prev, minScore: value as number }))}
+                    onChange={(_: Event, value: number | number[]) => setFilterCriteria(prev => ({ ...prev, minScore: value as number }))}
                     min={0}
                     max={1}
                     step={0.1}
@@ -462,7 +454,7 @@ export const AutoHypothesisGenerator: React.FC<AutoHypothesisGeneratorProps> = (
                   </Typography>
                   <Slider
                     value={filterCriteria.maxComplexity}
-                    onChange={(_, value) => setFilterCriteria(prev => ({ ...prev, maxComplexity: value as number }))}
+                    onChange={(_: Event, value: number | number[]) => setFilterCriteria(prev => ({ ...prev, maxComplexity: value as number }))}
                     min={0}
                     max={1}
                     step={0.1}
@@ -673,7 +665,7 @@ const AdvancedConfigurationPanel: React.FC<{
           </Typography>
           <Slider
             value={[config.minVariables, config.maxVariables]}
-            onChange={(_, value) => {
+            onChange={(_: Event, value: number | number[]) => {
               const [min, max] = value as number[];
               onConfigChange('minVariables', min);
               onConfigChange('maxVariables', max);
@@ -691,7 +683,7 @@ const AdvancedConfigurationPanel: React.FC<{
           </Typography>
           <Slider
             value={[config.minEdges, config.maxEdges]}
-            onChange={(_, value) => {
+            onChange={(_: Event, value: number | number[]) => {
               const [min, max] = value as number[];
               onConfigChange('minEdges', min);
               onConfigChange('maxEdges', max);
@@ -714,7 +706,7 @@ const AdvancedConfigurationPanel: React.FC<{
               </Typography>
               <Slider
                 value={config.noveltyWeight}
-                onChange={(_, value) => onConfigChange('noveltyWeight', value)}
+                onChange={(_: Event, value: number | number[]) => onConfigChange('noveltyWeight', value)}
                 min={0}
                 max={1}
                 step={0.1}
@@ -726,7 +718,7 @@ const AdvancedConfigurationPanel: React.FC<{
               </Typography>
               <Slider
                 value={config.plausibilityWeight}
-                onChange={(_, value) => onConfigChange('plausibilityWeight', value)}
+                onChange={(_: Event, value: number | number[]) => onConfigChange('plausibilityWeight', value)}
                 min={0}
                 max={1}
                 step={0.1}
@@ -738,7 +730,7 @@ const AdvancedConfigurationPanel: React.FC<{
               </Typography>
               <Slider
                 value={config.simplicityWeight}
-                onChange={(_, value) => onConfigChange('simplicityWeight', value)}
+                onChange={(_: Event, value: number | number[]) => onConfigChange('simplicityWeight', value)}
                 min={0}
                 max={1}
                 step={0.1}
@@ -807,7 +799,7 @@ const AdvancedConfigurationPanel: React.FC<{
 async function runGenerationAlgorithm(
   algorithm: GenerationAlgorithm,
   variables: CausalVariable[],
-  processes: GeologicalProcess[],
+  _processes: GeologicalProcess[],
   config: HypothesisGenerationConfig,
   patterns: Set<PatternType>
 ): Promise<CausalHypothesis[]> {
@@ -873,16 +865,16 @@ function generateRandomEdges(variables: CausalVariable[], numEdges: number) {
           id: `edge_${sourceIdx}_${targetIdx}`,
           sourceId: variables[sourceIdx].id,
           targetId: variables[targetIdx].id,
-          relationshipType: Math.random() > 0.8 ? 'inhibitory' : 'causal',
+          relationshipType: (Math.random() > 0.8 ? 'inhibitory' : 'causal') as CausalRelationshipType,
           strength: Math.random() * 0.6 + 0.4,
           confidence: Math.random() * 0.3 + 0.7,
           temporalLag: Math.floor(Math.random() * 30),
-          spatialScale: ['local', 'regional', 'global'][Math.floor(Math.random() * 3)],
+          spatialScale: (['local', 'regional', 'global'] as const)[Math.floor(Math.random() * 3)] as SpatialScale,
           constraints: [],
           metadata: {
             created: new Date(),
-            discoveryMethod: 'auto-generated',
-            validationStatus: 'proposed'
+            discoveryMethod: 'auto-generated' as const,
+            validationStatus: 'proposed' as const
           }
         });
       }
@@ -927,7 +919,7 @@ function createHypothesisSignature(hypothesis: CausalHypothesis): string {
   return `${varNames}|${edgeSignatures}`;
 }
 
-function rankHypotheses(hypotheses: CausalHypothesis[], config: HypothesisGenerationConfig): CausalHypothesis[] {
+function rankHypotheses(hypotheses: CausalHypothesis[], _config: HypothesisGenerationConfig): CausalHypothesis[] {
   return hypotheses.sort((a, b) => {
     const aScore = a.metadata.generationMetrics!.overallScore;
     const bScore = b.metadata.generationMetrics!.overallScore;

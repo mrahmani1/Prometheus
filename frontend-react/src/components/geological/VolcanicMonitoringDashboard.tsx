@@ -8,7 +8,7 @@ import {
   CardContent,
   Chip,
   Alert,
-  LinearProgress,
+  // LinearProgress - unused
   IconButton,
   Tooltip,
   Switch,
@@ -18,10 +18,7 @@ import {
   FormControl,
   InputLabel,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  // Dialog, DialogTitle, DialogContent, DialogActions - unused
   List,
   ListItem,
   ListItemText,
@@ -29,29 +26,20 @@ import {
   Divider
 } from '@mui/material';
 import {
-  Warning,
-  TrendingUp,
-  TrendingDown,
+  // Warning, TrendingUp, TrendingDown, Fullscreen, Settings, LocationOn, Timeline, Speed, Notifications, Map as MapIcon - unused
   Refresh,
-  Fullscreen,
-  Settings,
-  LocationOn,
-  Timeline,
   Thermostat,
-  Speed,
-  Notifications,
-  Map as MapIcon,
-  BarChart,
-  ShowChart
+  BarChart as _BarChart,
+  ShowChart as _ShowChart
 } from '@mui/icons-material';
-import { format, subHours, subDays } from 'date-fns';
+import { format, subHours as _subHours, subDays } from 'date-fns';
 import {
   VolcanicState,
   AlertLevel,
-  ThermalAnomaly,
+  ThermalAnomaly as _ThermalAnomaly,
   GasComposition,
-  CalderaClassification,
-  SupereruptionRiskAssessment
+  CalderaClassification as _CalderaClassification,
+  SupereruptionRiskAssessment as _SupereruptionRiskAssessment
 } from '../../types/geological';
 import { ScientificCharts } from '../visualization/charts/ScientificCharts';
 import { GeologicalMap } from '../visualization/maps/GeologicalMap';
@@ -134,11 +122,11 @@ export const VolcanicMonitoringDashboard: React.FC<VolcanicMonitoringDashboardPr
   }
 }) => {
   const [autoRefresh, setAutoRefresh] = useState(realTimeUpdates);
-  const [refreshInterval, setRefreshInterval] = useState(30); // seconds
+  const [refreshInterval, _setRefreshInterval] = useState(30); // seconds
   const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'map'>('overview');
-  const [selectedParameter, setSelectedParameter] = useState('eruptionProbability');
-  const [alertDialog, setAlertDialog] = useState(false);
-  const [currentAlert, setCurrentAlert] = useState<any>(null);
+  const [_selectedParameter, _setSelectedParameter] = useState('eruptionProbability');
+  const [_alertDialog, _setAlertDialog] = useState(false);
+  const [_currentAlert, _setCurrentAlert] = useState<any>(null);
 
   // Filter volcanic states by time range and selection
   const filteredVolcanicStates = useMemo(() => {
@@ -263,7 +251,9 @@ export const VolcanicMonitoringDashboard: React.FC<VolcanicMonitoringDashboardPr
 
     if (value >= thresholds.critical[0]) return 'error';
     if (value >= thresholds.high[0]) return 'warning';
-    if (value >= thresholds.elevated[0]) return 'info';
+    // Handle different threshold structures
+    if ('elevated' in thresholds && value >= (thresholds as any).elevated[0]) return 'info';
+    if ('moderate' in thresholds && value >= (thresholds as any).moderate[0]) return 'info';
     return 'success';
   }, []);
 

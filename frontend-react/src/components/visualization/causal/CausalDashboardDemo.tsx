@@ -12,11 +12,7 @@ import {
   CausalPath,
   InteractionMode,
   RenderMode,
-  GeologicalProcessType,
-  SpatialScale,
-  TemporalScale,
-  CausalEdgeType,
-  ValidationStatus
+  // GeologicalProcessType, SpatialScale, TemporalScale, CausalEdgeType, ValidationStatus - unused
 } from './types';
 
 export const CausalDashboardDemo: React.FC = () => {
@@ -43,7 +39,7 @@ export const CausalDashboardDemo: React.FC = () => {
     }
   });
 
-  const [filterConfig, setFilterConfig] = useState<CausalFilterConfig>({
+  const [filterConfig, _setFilterConfig] = useState<CausalFilterConfig>({
     strengthRange: [0.2, 1.0],
     confidenceThreshold: 0.5,
     processTypes: [],
@@ -64,7 +60,7 @@ export const CausalDashboardDemo: React.FC = () => {
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
   const [highlightedPaths, setHighlightedPaths] = useState<CausalPath[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, _setSearchQuery] = useState('');
   const [showControls, setShowControls] = useState(false);
   const [showPathExplorer, setShowPathExplorer] = useState(false);
 

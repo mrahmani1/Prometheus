@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
-  Paper,
+  // Paper - unused
   Typography,
   TextField,
   Button,
@@ -10,9 +10,7 @@ import {
   List,
   ListItem,
   ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
+  // ListItemText, ListItemSecondaryAction, IconButton - unused
   Dialog,
   DialogTitle,
   DialogContent,
@@ -22,7 +20,7 @@ import {
   FormControl,
   InputLabel,
   Badge,
-  Tooltip,
+  // Tooltip - unused
   Card,
   CardContent,
   Grid,
@@ -30,25 +28,25 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Divider
+  Divider as _Divider
 } from '@mui/material';
 import {
   Comment as CommentIcon,
   Reply as ReplyIcon,
   ThumbUp as ThumbUpIcon,
-  ThumbDown as ThumbDownIcon,
+  ThumbDown as _ThumbDownIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
+  Delete as _DeleteIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
-  Person as PersonIcon,
+  Person as _PersonIcon,
   Group as GroupIcon,
-  Notifications as NotificationsIcon,
+  Notifications as _NotificationsIcon,
   ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Warning as WarningIcon,
-  Info as InfoIcon
+  // Info as InfoIcon - unused
 } from '@mui/icons-material';
 import {
   CausalHypothesis,
@@ -74,20 +72,20 @@ export const CollaborativeReviewPanel: React.FC<CollaborativeReviewPanelProps> =
   onHypothesisChange
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [_reviews, _setReviews] = useState<Review[]>([]);
   const [newComment, setNewComment] = useState('');
   const [selectedCommentType, setSelectedCommentType] = useState<CommentType>('general');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showResolvedComments, setShowResolvedComments] = useState(false);
-  const [activeUsers, setActiveUsers] = useState<CollaborativeUser[]>([]);
+  const [activeUsers, _setActiveUsers] = useState<CollaborativeUser[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
   const [conflicts, setConflicts] = useState<ConflictResolution[]>([]);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
-  const [selectedConflict, setSelectedConflict] = useState<ConflictResolution | null>(null);
+  const [_selectedConflict, _setSelectedConflict] = useState<ConflictResolution | null>(null);
 
   const currentUser = collaborativeSession?.currentUser || 'anonymous';
   const isOwner = hypothesis?.metadata.author === currentUser;
-  const canEdit = isOwner || collaborativeSession?.permissions?.canEdit;
+  const canEdit = isOwner || (collaborativeSession?.permissions?.canEdit ?? false);
 
   // Simulate real-time updates
   useEffect(() => {
@@ -187,7 +185,7 @@ export const CollaborativeReviewPanel: React.FC<CollaborativeReviewPanelProps> =
       suggestions: []
     };
 
-    setReviews(prev => [review, ...prev]);
+    _setReviews((prev: Review[]) => [review, ...prev]);
 
     // Update hypothesis metadata
     const updatedHypothesis = {
@@ -203,19 +201,21 @@ export const CollaborativeReviewPanel: React.FC<CollaborativeReviewPanelProps> =
     onHypothesisChange(updatedHypothesis);
   }, [hypothesis, currentUser, onHypothesisChange]);
 
-  const handleCreateChangeRequest = useCallback((description: string, targetElement: string) => {
-    const changeRequest: ChangeRequest = {
-      id: `change_${Date.now()}`,
-      requester: currentUser,
-      description,
-      targetElement,
-      status: 'pending',
-      timestamp: new Date(),
-      votes: { approve: 0, reject: 0 }
-    };
+  // const _handleCreateChangeRequest = useCallback((description: string, targetElement: string) => {
+  //   const changeRequest: ChangeRequest = {
+  //     id: `change_${Date.now()}`,
+  //     requester: currentUser,
+  //     description,
+  //     targetElement,
+  //     proposedChange: {},
+  //     status: 'pending' as const,
+  //     timestamp: new Date(),
+  //     votes: { approve: 0, reject: 0 },
+  //     reviewers: []
+  //   };
 
-    setChangeRequests(prev => [changeRequest, ...prev]);
-  }, [currentUser]);
+  //   setChangeRequests(prev => [changeRequest, ...prev]);
+  // }, [currentUser]);
 
   const handleVoteOnChange = useCallback((changeId: string, vote: 'approve' | 'reject') => {
     setChangeRequests(prev => prev.map(cr => 
@@ -249,9 +249,9 @@ export const CollaborativeReviewPanel: React.FC<CollaborativeReviewPanelProps> =
     return comments.filter(comment => showResolvedComments || !comment.resolved);
   }, [comments, showResolvedComments]);
 
-  const pendingReviews = useMemo(() => {
-    return reviews.filter(review => review.status === 'pending');
-  }, [reviews]);
+  // const _pendingReviews = useMemo(() => {
+  //   return reviews.filter(review => review.status === 'pending');
+  // }, [reviews]);
 
   const unresolvedConflicts = useMemo(() => {
     return conflicts.filter(conflict => conflict.status === 'pending');
@@ -619,7 +619,7 @@ const ChangeRequestItem: React.FC<{
   currentUser: string;
   onVote: (id: string, vote: 'approve' | 'reject') => void;
   canVote: boolean;
-}> = ({ request, currentUser, onVote, canVote }) => {
+}> = ({ request, currentUser: _currentUser, onVote, canVote }) => {
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>

@@ -6,7 +6,7 @@
  * control of geological visualizations and data analysis.
  */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 // Gesture recognition interfaces
@@ -117,19 +117,19 @@ interface ControlConstraints {
 
 export class GestureVoiceControlSystem {
   private gestureRecognizers: Map<string, GestureRecognizer> = new Map();
-  private voiceRecognition: SpeechRecognition | null = null;
-  private handTracker: any = null;
-  private bodyTracker: any = null;
-  private eyeTracker: any = null;
+  private voiceRecognition: any = null;
+  // private _handTracker: any = null;
+  // private _bodyTracker: any = null;
+  // private _eyeTracker: any = null;
   
   private gestureActions: Map<string, GestureAction> = new Map();
   private voiceCommands: Map<string, VoiceCommand> = new Map();
   private context: ControlContext;
   
   private isListening: boolean = false;
-  private isTrackingGestures: boolean = false;
-  private lastGesture: HandGesture | null = null;
-  private lastVoiceCommand: VoiceCommand | null = null;
+  // private _isTrackingGestures: boolean = false;
+  // private _lastGesture: HandGesture | null = null;
+  private _lastVoiceCommand: VoiceCommand | null = null;
   
   private callbacks: {
     onGestureRecognized?: (gesture: HandGesture | BodyGesture) => void;
@@ -191,7 +191,7 @@ export class GestureVoiceControlSystem {
         };
         
         this.gestureRecognizers.set('mediapipe-hands', recognizer);
-        this.handTracker = handTracker;
+        // this._handTracker = handTracker;
         
         // Set up hand tracking callbacks
         handTracker.onResults = (results: any) => {
@@ -219,7 +219,7 @@ export class GestureVoiceControlSystem {
         };
         
         this.gestureRecognizers.set('mediapipe-pose', recognizer);
-        this.bodyTracker = poseTracker;
+        // this._bodyTracker = poseTracker;
         
         // Set up pose tracking callbacks
         poseTracker.onResults = (results: any) => {
@@ -272,7 +272,7 @@ export class GestureVoiceControlSystem {
         };
         
         this.gestureRecognizers.set('eye-tracker', recognizer);
-        this.eyeTracker = eyeTracker;
+        // this._eyeTracker = eyeTracker;
         
         // Set up eye tracking callbacks
         eyeTracker.setGazeListener((data: any) => {
@@ -670,7 +670,7 @@ export class GestureVoiceControlSystem {
 
   // Gesture handlers
   private handleGestureRecognized(gesture: HandGesture): void {
-    this.lastGesture = gesture;
+    // this.lastGesture = gesture;
     this.callbacks.onGestureRecognized?.(gesture);
 
     // Find matching action
@@ -698,7 +698,7 @@ export class GestureVoiceControlSystem {
   }
 
   private handleVoiceCommand(command: VoiceCommand): void {
-    this.lastVoiceCommand = command;
+    this._lastVoiceCommand = command;
     this.callbacks.onVoiceCommand?.(command);
 
     // Find matching voice action
@@ -724,12 +724,12 @@ export class GestureVoiceControlSystem {
     console.log('Grab manipulate at:', params.position);
   }
 
-  private handleWaveGesture(gesture: BodyGesture): void {
+  private handleWaveGesture(_gesture: BodyGesture): void {
     // Handle wave gesture (e.g., greeting in collaborative mode)
     console.log('Wave gesture detected');
   }
 
-  private handleNodGesture(gesture: BodyGesture): void {
+  private handleNodGesture(_gesture: BodyGesture): void {
     // Handle nod gesture (e.g., confirmation)
     console.log('Nod gesture detected');
   }
@@ -737,7 +737,7 @@ export class GestureVoiceControlSystem {
   // Voice command handlers
   private handleShowFeature(command: VoiceCommand): void {
     const objectEntity = command.entities.find(e => e.type === 'object');
-    const featureEntity = command.entities.find(e => e.type === 'feature_type');
+    const featureEntity = command.entities.find(e => e.type === 'parameter');
     
     if (objectEntity && featureEntity) {
       console.log(`Show ${featureEntity.value}: ${objectEntity.value}`);
@@ -746,58 +746,58 @@ export class GestureVoiceControlSystem {
 
   private handleZoomCommand(command: VoiceCommand): void {
     const actionEntity = command.entities.find(e => e.type === 'action');
-    const targetEntity = command.entities.find(e => e.type === 'target');
+    const targetEntity = command.entities.find(e => e.type === 'object');
     
     console.log(`Zoom ${actionEntity?.value} on ${targetEntity?.value || 'current view'}`);
   }
 
   private handleRotateCommand(command: VoiceCommand): void {
     const objectEntity = command.entities.find(e => e.type === 'object');
-    const directionEntity = command.entities.find(e => e.type === 'direction');
+    const directionEntity = command.entities.find(e => e.type === 'parameter');
     
     console.log(`Rotate ${objectEntity?.value} ${directionEntity?.value}`);
   }
 
   private handleMeasureCommand(command: VoiceCommand): void {
-    const typeEntity = command.entities.find(e => e.type === 'measurement_type');
-    const startEntity = command.entities.find(e => e.type === 'start_object');
-    const endEntity = command.entities.find(e => e.type === 'end_object');
+    // const typeEntity = command.entities.find(e => e.type === 'parameter');
+    // const startEntity = command.entities.find(e => e.type === 'start_object');
+    // const endEntity = command.entities.find(e => e.type === 'end_object');
     
-    console.log(`Measure ${typeEntity?.value} from ${startEntity?.value} to ${endEntity?.value}`);
+    console.log(`Measure command received: ${command.transcript}`);
   }
 
   private handleSampleCommand(command: VoiceCommand): void {
-    const typeEntity = command.entities.find(e => e.type === 'sample_type');
-    const locationEntity = command.entities.find(e => e.type === 'location');
+    // const typeEntity = command.entities.find(e => e.type === 'sample_type');
+    // const locationEntity = command.entities.find(e => e.type === 'location');
     
-    console.log(`Take ${typeEntity?.value} at ${locationEntity?.value}`);
+    console.log(`Sample command received: ${command.transcript}`);
   }
 
   private handleAnalyzeCommand(command: VoiceCommand): void {
-    const objectEntity = command.entities.find(e => e.type === 'object');
-    const analysisEntity = command.entities.find(e => e.type === 'analysis_type');
+    // const objectEntity = command.entities.find(e => e.type === 'object');
+    // const analysisEntity = command.entities.find(e => e.type === 'analysis_type');
     
-    console.log(`Analyze ${objectEntity?.value} ${analysisEntity?.value}`);
+    console.log(`Analyze command received: ${command.transcript}`);
   }
 
   private handleHideLayersCommand(command: VoiceCommand): void {
-    const scopeEntity = command.entities.find(e => e.type === 'scope');
-    console.log(`Hide ${scopeEntity?.value || ''} layers`);
+    // const scopeEntity = command.entities.find(e => e.type === 'scope');
+    console.log(`Hide layers command received: ${command.transcript}`);
   }
 
   private handleShowDataLayerCommand(command: VoiceCommand): void {
-    const dataTypeEntity = command.entities.find(e => e.type === 'data_type');
-    console.log(`Show ${dataTypeEntity?.value} data layer`);
+    // const dataTypeEntity = command.entities.find(e => e.type === 'data_type');
+    console.log(`Show data layer command received: ${command.transcript}`);
   }
 
   private handleStartSessionCommand(command: VoiceCommand): void {
-    const sessionTypeEntity = command.entities.find(e => e.type === 'session_type');
-    console.log(`Start ${sessionTypeEntity?.value} session`);
+    // const sessionTypeEntity = command.entities.find(e => e.type === 'session_type');
+    console.log(`Start session command received: ${command.transcript}`);
   }
 
   private handleNavigateCommand(command: VoiceCommand): void {
-    const locationEntity = command.entities.find(e => e.type === 'location');
-    console.log(`Navigate to ${locationEntity?.value}`);
+    // const locationEntity = command.entities.find(e => e.type === 'location');
+    console.log(`Navigate command received: ${command.transcript}`);
   }
 
   // Utility methods

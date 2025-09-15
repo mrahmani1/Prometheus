@@ -6,7 +6,7 @@
  * to immersive geological visualization and analysis capabilities.
  */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 // Accessibility interfaces
@@ -138,12 +138,12 @@ export class AccessibilityVRSystem {
   private features: Map<string, AccessibilityFeature> = new Map();
   private audioContext: AudioContext | null = null;
   private speechSynthesis: SpeechSynthesis | null = null;
-  private screenReader: ScreenReader | null = null;
-  private hapticSystem: any = null;
+  // private _screenReader: ScreenReader | null = null;
+  // private _hapticSystem: any = null;
   
   private audioDescriptions: Map<string, AudioDescription> = new Map();
   private voiceQueue: VoiceGuidance[] = [];
-  private currentAudio: HTMLAudioElement | null = null;
+  // private _currentAudio: HTMLAudioElement | null = null;
   private isDescribing: boolean = false;
   
   private visualEnhancements: VisualEnhancement = {
@@ -329,7 +329,7 @@ export class AccessibilityVRSystem {
   }
 
   private initializeScreenReader(): void {
-    this.screenReader = new ScreenReader();
+    // this.screenReader = new ScreenReader();
   }
 
   // Profile management
@@ -497,7 +497,7 @@ export class AccessibilityVRSystem {
   }
 
   // Audio descriptions
-  private setupAudioDescriptions(settings: any): void {
+  private setupAudioDescriptions(_settings: any): void {
     // Initialize text-to-speech for geological descriptions
     if (this.speechSynthesis) {
       this.speechSynthesis.cancel(); // Clear any existing speech
@@ -542,7 +542,7 @@ export class AccessibilityVRSystem {
     this.speechSynthesis.speak(utterance);
   }
 
-  private applySpatialAudio(utterance: SpeechSynthesisUtterance, position: THREE.Vector3): void {
+  private applySpatialAudio(_utterance: SpeechSynthesisUtterance, _position: THREE.Vector3): void {
     // Implement spatial audio positioning for screen reader
     // This would require more advanced audio processing
   }
@@ -555,9 +555,9 @@ export class AccessibilityVRSystem {
   }
 
   // Haptic navigation
-  private setupHapticNavigation(settings: any): void {
+  private setupHapticNavigation(_settings: any): void {
     // Initialize haptic feedback for navigation
-    this.navigationAssistance.hapticPathfinding = settings.pathfinding || false;
+    this.navigationAssistance.hapticPathfinding = _settings.pathfinding || false;
   }
 
   public provideHapticGuidance(guidance: HapticGuidance): void {
@@ -583,14 +583,14 @@ export class AccessibilityVRSystem {
     }
   }
 
-  private triggerNavigationHaptics(guidance: HapticGuidance): void {
+  private triggerNavigationHaptics(_guidance: HapticGuidance): void {
     // Implement directional haptic feedback for navigation
     if ('vibrate' in navigator) {
-      navigator.vibrate(guidance.pattern);
+      navigator.vibrate(_guidance.pattern);
     }
   }
 
-  private triggerObjectOutlineHaptics(guidance: HapticGuidance): void {
+  private triggerObjectOutlineHaptics(_guidance: HapticGuidance): void {
     // Implement object outline haptic feedback
     if ('vibrate' in navigator) {
       const outlinePattern = [100, 50, 100, 50, 100]; // Outline pattern
@@ -598,14 +598,14 @@ export class AccessibilityVRSystem {
     }
   }
 
-  private triggerTextureHaptics(guidance: HapticGuidance): void {
+  private triggerTextureHaptics(_guidance: HapticGuidance): void {
     // Implement texture-based haptic feedback
     if ('vibrate' in navigator) {
-      navigator.vibrate(guidance.pattern);
+      navigator.vibrate(_guidance.pattern);
     }
   }
 
-  private triggerWarningHaptics(guidance: HapticGuidance): void {
+  private triggerWarningHaptics(_guidance: HapticGuidance): void {
     // Implement warning haptic pattern
     if ('vibrate' in navigator) {
       const warningPattern = [200, 100, 200, 100, 200];
@@ -613,7 +613,7 @@ export class AccessibilityVRSystem {
     }
   }
 
-  private triggerConfirmationHaptics(guidance: HapticGuidance): void {
+  private triggerConfirmationHaptics(_guidance: HapticGuidance): void {
     // Implement confirmation haptic pattern
     if ('vibrate' in navigator) {
       const confirmationPattern = [50, 50, 50];
@@ -626,7 +626,7 @@ export class AccessibilityVRSystem {
   }
 
   // Voice control
-  private setupVoiceControl(settings: any): void {
+  private setupVoiceControl(_settings: any): void {
     this.navigationAssistance.voiceDirections = true;
   }
 
@@ -635,10 +635,10 @@ export class AccessibilityVRSystem {
   }
 
   // Visual enhancements
-  private applyHighContrast(settings: any): void {
+  private applyHighContrast(_settings: any): void {
     this.visualEnhancements.highContrast = true;
-    this.visualEnhancements.colorAdjustment.contrast = settings.contrastRatio || 4.5;
-    this.visualEnhancements.edgeEnhancement = settings.edgeEnhancement || false;
+    this.visualEnhancements.colorAdjustment.contrast = _settings.contrastRatio || 4.5;
+    this.visualEnhancements.edgeEnhancement = _settings.edgeEnhancement || false;
   }
 
   private removeHighContrast(): void {
@@ -647,11 +647,11 @@ export class AccessibilityVRSystem {
     this.visualEnhancements.edgeEnhancement = false;
   }
 
-  private applyColorCorrection(settings: any): void {
-    this.visualEnhancements.colorAdjustment.type = settings.type || 'none';
+  private applyColorCorrection(_settings: any): void {
+    this.visualEnhancements.colorAdjustment.type = _settings.type || 'none';
     
     // Apply color correction matrices based on type
-    switch (settings.type) {
+    switch (_settings.type) {
       case 'protanopia':
         this.applyProtanopiaCorrection();
         break;
@@ -688,7 +688,7 @@ export class AccessibilityVRSystem {
     this.visualEnhancements.colorAdjustment.type = 'none';
   }
 
-  private applyMotionReduction(settings: any): void {
+  private applyMotionReduction(_settings: any): void {
     this.visualEnhancements.motionReduction = true;
     // Reduce animation speeds and disable auto-rotation
   }
@@ -698,7 +698,7 @@ export class AccessibilityVRSystem {
   }
 
   // Interface simplification
-  private applySimplifiedInterface(settings: any): void {
+  private applySimplifiedInterface(_settings: any): void {
     // Implement simplified interface logic
   }
 
@@ -707,7 +707,7 @@ export class AccessibilityVRSystem {
   }
 
   // Captions and subtitles
-  private setupCaptions(settings: any): void {
+  private setupCaptions(_settings: any): void {
     // Initialize caption system
   }
 
@@ -716,7 +716,7 @@ export class AccessibilityVRSystem {
   }
 
   // Sign language
-  private setupSignLanguage(settings: any): void {
+  private setupSignLanguage(_settings: any): void {
     // Initialize sign language avatar
   }
 
@@ -725,7 +725,7 @@ export class AccessibilityVRSystem {
   }
 
   // Cognitive assistance
-  private setupCognitiveAssistance(settings: any): void {
+  private setupCognitiveAssistance(_settings: any): void {
     // Initialize cognitive assistance features
   }
 
@@ -884,43 +884,43 @@ export class AccessibilityVRSystem {
 }
 
 // Screen Reader class for VR/AR environments
-class ScreenReader {
-  private isActive: boolean = false;
-  private focusedElement: any = null;
-  private navigationMode: 'object' | 'spatial' | 'semantic' = 'object';
+// class _ScreenReader {
+//   private _isActive: boolean = false;
+//   private _focusedElement: any = null;
+//   private _navigationMode: 'object' | 'spatial' | 'semantic' = 'object';
 
-  public activate(): void {
-    this.isActive = true;
-  }
+//   public activate(): void {
+//     this._isActive = true;
+//   }
 
-  public deactivate(): void {
-    this.isActive = false;
-  }
+//   public deactivate(): void {
+//     this._isActive = false;
+//   }
 
-  public focusElement(element: any): void {
-    this.focusedElement = element;
-    this.announceElement(element);
-  }
+//   public focusElement(element: any): void {
+//     this._focusedElement = element;
+//     this.announceElement(element);
+//   }
 
-  private announceElement(element: any): void {
-    // Announce the focused element
-    const description = this.generateElementDescription(element);
-    // This would integrate with the speech synthesis system
-  }
+//   private announceElement(element: any): void {
+//     // Announce the focused element
+//     const _description = this.generateElementDescription(element);
+//     // This would integrate with the speech synthesis system
+//   }
 
-  private generateElementDescription(element: any): string {
-    // Generate accessible description for 3D objects
-    if (element.userData?.geologicalType) {
-      return `${element.userData.geologicalType} at position ${element.position.x.toFixed(1)}, ${element.position.y.toFixed(1)}, ${element.position.z.toFixed(1)}`;
-    }
+//   private generateElementDescription(element: any): string {
+//     // Generate accessible description for 3D objects
+//     if (element.userData?.geologicalType) {
+//       return `${element.userData.geologicalType} at position ${element.position.x.toFixed(1)}, ${element.position.y.toFixed(1)}, ${element.position.z.toFixed(1)}`;
+//     }
     
-    return `3D object at position ${element.position.x.toFixed(1)}, ${element.position.y.toFixed(1)}, ${element.position.z.toFixed(1)}`;
-  }
+//     return `3D object at position ${element.position.x.toFixed(1)}, ${element.position.y.toFixed(1)}, ${element.position.z.toFixed(1)}`;
+//   }
 
-  public navigate(direction: 'next' | 'previous' | 'up' | 'down' | 'left' | 'right'): void {
-    // Implement spatial navigation for screen reader
-  }
-}
+//   public navigate(_direction: 'next' | 'previous' | 'up' | 'down' | 'left' | 'right'): void {
+//     // Implement spatial navigation for screen reader
+//   }
+// }
 
 // React component wrapper
 export const AccessibilityVRProvider: React.FC<{
@@ -929,7 +929,7 @@ export const AccessibilityVRProvider: React.FC<{
   onSystemReady?: (system: AccessibilityVRSystem) => void;
 }> = ({ children, profile, onSystemReady }) => {
   const systemRef = useRef<AccessibilityVRSystem | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [_isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const initializeSystem = async () => {

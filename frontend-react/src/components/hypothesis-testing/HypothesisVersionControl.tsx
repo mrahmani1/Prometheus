@@ -7,7 +7,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
+  // ListItemSecondaryAction - unused
   IconButton,
   Chip,
   Dialog,
@@ -25,28 +25,24 @@ import {
   Alert,
   Tooltip,
   Divider,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent
+  // Timeline components - not available in @mui/material
+  // Timeline, TimelineItem, TimelineSeparator, TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent
 } from '@mui/material';
 import {
   History as HistoryIcon,
   Restore as RestoreIcon,
   Compare as CompareIcon,
   Save as SaveIcon,
-  Branch as BranchIcon,
+  // Branch as BranchIcon, // Not available in MUI
+  AccountTree as BranchIcon, // Alternative for branch
   Merge as MergeIcon,
-  Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Label as LabelIcon,
-  Schedule as ScheduleIcon,
+  Delete as _DeleteIcon,
+  Visibility as _VisibilityIcon,
+  Edit as _EditIcon,
+  Label as _LabelIcon,
+  Schedule as _ScheduleIcon,
   Person as PersonIcon,
-  Difference as DifferenceIcon
+  Difference as _DifferenceIcon
 } from '@mui/icons-material';
 import {
   CausalHypothesis,
@@ -54,7 +50,7 @@ import {
   VersionBranch,
   VersionDiff,
   MergeConflict,
-  VersionMetadata
+  // VersionMetadata - unused
 } from '../../types/causal-analysis';
 
 interface HypothesisVersionControlProps {
@@ -119,8 +115,18 @@ export const HypothesisVersionControl: React.FC<HypothesisVersionControlProps> =
         metadata: {
           changeType: 'modification',
           changesCount: hypothesis.edges.length,
-          testResults: { pValue: 0.03, effectSize: 0.45 },
-          reviewStatus: 'reviewed'
+          testResults: { 
+            id: 'test-1', 
+            hypothesisId: hypothesis.id, 
+            timestamp: new Date(), 
+            pValue: 0.03, 
+            effectSize: 0.45, 
+            confidenceInterval: { lower: 0.2, upper: 0.7 }, 
+            testStatistic: 2.1, 
+            degreesOfFreedom: 10, 
+            metadata: { testType: 'pearson-correlation', datasetSize: 100, dataQuality: 'high', assumptions: [], warnings: [], computationTime: 1000 } 
+          },
+          reviewStatus: 'approved'
         }
       },
       {
@@ -148,7 +154,17 @@ export const HypothesisVersionControl: React.FC<HypothesisVersionControlProps> =
         metadata: {
           changeType: 'addition',
           changesCount: 1,
-          testResults: { pValue: 0.02, effectSize: 0.52 },
+          testResults: { 
+            id: 'test-2', 
+            hypothesisId: hypothesis.id, 
+            timestamp: new Date(), 
+            pValue: 0.02, 
+            effectSize: 0.52, 
+            confidenceInterval: { lower: 0.3, upper: 0.8 }, 
+            testStatistic: 2.5, 
+            degreesOfFreedom: 12, 
+            metadata: { testType: 'pearson-correlation', datasetSize: 120, dataQuality: 'high', assumptions: [], warnings: [], computationTime: 1200 } 
+          },
           reviewStatus: 'pending'
         }
       }
@@ -414,34 +430,22 @@ export const HypothesisVersionControl: React.FC<HypothesisVersionControlProps> =
             No versions found in this branch. Create your first version by committing changes above.
           </Alert>
         ) : (
-          <Timeline>
-            {branchVersions.map((version, index) => (
-              <TimelineItem key={version.id}>
-                <TimelineOppositeContent sx={{ m: 'auto 0' }} variant="body2" color="text.secondary">
-                  {version.timestamp.toLocaleDateString()}
-                  <br />
-                  {version.timestamp.toLocaleTimeString()}
-                </TimelineOppositeContent>
-                
-                <TimelineSeparator>
-                  <TimelineDot color={getVersionColor(version.metadata.changeType)}>
-                    {getVersionIcon(version.metadata.changeType)}
-                  </TimelineDot>
-                  {index < branchVersions.length - 1 && <TimelineConnector />}
-                </TimelineSeparator>
-                
-                <TimelineContent sx={{ py: '12px', px: 2 }}>
-                  <VersionCard
-                    version={version}
-                    isSelected={selectedVersions.has(version.id)}
-                    onSelect={(selected) => handleVersionSelect(version.id, selected)}
-                    onRestore={() => handleRestoreVersion(version)}
-                    canSelect={selectedVersions.size < 2 || selectedVersions.has(version.id)}
-                  />
-                </TimelineContent>
-              </TimelineItem>
+          <List>
+            {branchVersions.map((version) => (
+              <ListItem key={version.id} sx={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {version.timestamp.toLocaleDateString()} - {version.timestamp.toLocaleTimeString()}
+                </Typography>
+                <VersionCard
+                  version={version}
+                  isSelected={selectedVersions.has(version.id)}
+                  onSelect={(selected) => handleVersionSelect(version.id, selected)}
+                  onRestore={() => handleRestoreVersion(version)}
+                  canSelect={selectedVersions.size < 2 || selectedVersions.has(version.id)}
+                />
+              </ListItem>
             ))}
-          </Timeline>
+          </List>
         )}
       </Paper>
 
@@ -646,8 +650,8 @@ const VersionDiffView: React.FC<{ diff: VersionDiff }> = ({ diff }) => {
             <Chip
               label={change.type}
               size="small"
-              color={change.type === 'added' ? 'success' : 
-                     change.type === 'removed' ? 'error' : 'warning'}
+              color={change.type === 'addition' ? 'success' : 
+                     change.type === 'removal' ? 'error' : 'warning'}
             />
           </ListItem>
         ))}
@@ -719,27 +723,27 @@ const MergeConflictResolver: React.FC<{
 };
 
 // Utility functions
-function getVersionColor(changeType: string): 'primary' | 'secondary' | 'success' | 'warning' | 'error' {
-  switch (changeType) {
-    case 'creation': return 'success';
-    case 'modification': return 'primary';
-    case 'addition': return 'secondary';
-    case 'removal': return 'warning';
-    case 'merge': return 'error';
-    default: return 'primary';
-  }
-}
+// function _getVersionColor(changeType: string): 'primary' | 'secondary' | 'success' | 'warning' | 'error' {
+//   switch (changeType) {
+//     case 'creation': return 'success';
+//     case 'modification': return 'primary';
+//     case 'addition': return 'secondary';
+//     case 'removal': return 'warning';
+//     case 'merge': return 'error';
+//     default: return 'primary';
+//   }
+// }
 
-function getVersionIcon(changeType: string) {
-  switch (changeType) {
-    case 'creation': return <SaveIcon />;
-    case 'modification': return <EditIcon />;
-    case 'addition': return <BranchIcon />;
-    case 'removal': return <DeleteIcon />;
-    case 'merge': return <MergeIcon />;
-    default: return <HistoryIcon />;
-  }
-}
+// function _getVersionIcon(changeType: string) {
+//   switch (changeType) {
+//     case 'creation': return <SaveIcon />;
+//     case 'modification': return <EditIcon />;
+//     case 'addition': return <BranchIcon />;
+//     case 'removal': return <DeleteIcon />;
+//     case 'merge': return <MergeIcon />;
+//     default: return <HistoryIcon />;
+//   }
+// }
 
 function calculateChanges(current: CausalHypothesis, previous?: CausalHypothesis): number {
   if (!previous) return 0;
@@ -772,7 +776,7 @@ function calculateVersionDiff(version1: HypothesisVersion, version2: HypothesisV
   
   if (v1VarCount !== v2VarCount) {
     changes.push({
-      type: v2VarCount > v1VarCount ? 'added' : 'removed',
+      type: v2VarCount > v1VarCount ? ('addition' as const) : ('removal' as const),
       field: 'variables',
       description: `Variables changed from ${v1VarCount} to ${v2VarCount}`,
       oldValue: v1VarCount,
@@ -786,7 +790,7 @@ function calculateVersionDiff(version1: HypothesisVersion, version2: HypothesisV
   
   if (v1EdgeCount !== v2EdgeCount) {
     changes.push({
-      type: v2EdgeCount > v1EdgeCount ? 'added' : 'removed',
+      type: v2EdgeCount > v1EdgeCount ? ('addition' as const) : ('removal' as const),
       field: 'edges',
       description: `Edges changed from ${v1EdgeCount} to ${v2EdgeCount}`,
       oldValue: v1EdgeCount,
@@ -797,7 +801,7 @@ function calculateVersionDiff(version1: HypothesisVersion, version2: HypothesisV
   // Compare names
   if (version1.hypothesis.name !== version2.hypothesis.name) {
     changes.push({
-      type: 'modified',
+      type: 'modification' as const,
       field: 'name',
       description: `Name changed`,
       oldValue: version1.hypothesis.name,

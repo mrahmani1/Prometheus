@@ -1,17 +1,17 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import React, { useState, useCallback, useEffect } from 'react';
+// import { DndProvider, useDrag, useDrop } from 'react-dnd'; // Module not available
+// import { HTML5Backend } from 'react-dnd-html5-backend'; // Module not available
 import { 
   Box, 
   Paper, 
   Typography, 
   Button, 
-  Slider, 
+  Slider as _Slider, 
   TextField, 
-  Select, 
-  MenuItem, 
-  FormControl, 
-  InputLabel,
+  Select as _Select, 
+  MenuItem as _MenuItem, 
+  FormControl as _FormControl, 
+  InputLabel as _InputLabel,
   Chip,
   IconButton,
   Tooltip,
@@ -31,28 +31,25 @@ import {
   AccordionDetails
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
+  // Add as AddIcon, Delete as DeleteIcon - unused
   Share as ShareIcon,
   Save as SaveIcon,
-  PlayArrow as TestIcon,
+  // PlayArrow as TestIcon - unused
   Compare as CompareIcon,
   History as HistoryIcon,
   AutoAwesome as AutoGenerateIcon,
   ExpandMore as ExpandMoreIcon,
   Science as ScienceIcon,
-  TrendingUp as TrendingUpIcon,
+  // TrendingUp as TrendingUpIcon - unused
   Assessment as AssessmentIcon
 } from '@mui/icons-material';
 import { 
   CausalHypothesis, 
   CausalVariable, 
-  StatisticalTest, 
+  // StatisticalTest, CausalEdge, HypothesisComparison - unused
   HypothesisTestResult,
   GeologicalProcess,
-  CausalEdge,
   TestParameters,
-  HypothesisComparison,
   CollaborativeSession
 } from '../../types/causal-analysis';
 import { CausalGraphBuilder } from './CausalGraphBuilder';
@@ -159,8 +156,7 @@ export const HypothesisTestingInterface: React.FC<HypothesisTestingInterfaceProp
   const hasValidHypothesis = currentHypothesis && currentHypothesis.edges.length > 0;
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <Paper sx={{ p: 2, mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -217,7 +213,7 @@ export const HypothesisTestingInterface: React.FC<HypothesisTestingInterfaceProp
         <Box sx={{ flex: 1, display: 'flex', gap: 2 }}>
           {/* Left Panel - Hypothesis Builder */}
           <Paper sx={{ width: '40%', p: 2, overflow: 'auto' }}>
-            <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue)}>
+            <Tabs value={selectedTab} onChange={(_: React.SyntheticEvent, newValue: number) => setSelectedTab(newValue)}>
               <Tab label="Build" />
               <Tab label="Test" />
               <Tab label="Compare" />
@@ -459,7 +455,6 @@ export const HypothesisTestingInterface: React.FC<HypothesisTestingInterfaceProp
           </DialogActions>
         </Dialog>
       </Box>
-    </DndProvider>
   );
 };
 

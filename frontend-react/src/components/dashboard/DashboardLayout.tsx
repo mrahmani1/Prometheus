@@ -34,7 +34,7 @@ import {
   // GridView, ViewModule - unused
 } from '@mui/icons-material';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
-import { DashboardWidget, WidgetConfig, DashboardConfig, UserPreferences } from '../../types/dashboard';
+import { DashboardWidget, WidgetConfig, DashboardConfig, UserPreferences, WidgetType } from '../../types/dashboard';
 import { GeologicalData, SeismicEvent, VolcanicState } from '../../types/geological';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -243,7 +243,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
     const newWidget: DashboardWidget = {
       id: `${widgetType}-${Date.now()}`,
-      type: widgetType,
+      type: widgetType as WidgetType,
       title: widgetTemplate.name,
       config: {
         refreshInterval: 30000,
@@ -448,7 +448,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </IconButton>
               <IconButton
                 size="small"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   setSelectedWidget(widget.id);
                   setWidgetMenuAnchor(e.currentTarget);
                 }}
@@ -612,11 +612,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         onClose={() => setNotification(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
-        {notification && (
-          <Alert severity={notification.severity} onClose={() => setNotification(null)}>
-            {notification.message}
-          </Alert>
-        )}
+        <Alert severity={notification?.severity || 'info'} onClose={() => setNotification(null)}>
+          {notification?.message || ''}
+        </Alert>
       </Snackbar>
     </Box>
   );

@@ -3,12 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MultiScaleTemporalExplorer } from './MultiScaleTemporalExplorer';
 import { 
-  TemporalEvolutionData, 
-  TemporalCausalSnapshot, 
-  CausalGraph,
-  DetectedPattern,
   TemporalVisualizationConfig 
 } from './types';
+import {
+  TemporalEvolutionData, 
+  TemporalCausalSnapshot, 
+  DetectedPattern
+} from '../../../types/causal';
 
 // Mock Three.js Canvas component
 vi.mock('@react-three/fiber', () => ({
@@ -48,7 +49,7 @@ vi.mock('d3', () => ({
     strength: vi.fn().mockReturnThis(),
   })),
   forceCenter: vi.fn(),
-  mean: vi.fn((arr) => arr.reduce((a, b) => a + b, 0) / arr.length),
+  mean: vi.fn((arr: number[]) => arr.reduce((a: number, b: number) => a + b, 0) / arr.length),
   deviation: vi.fn(() => 1),
 }));
 
@@ -135,20 +136,26 @@ const createMockPatterns = (): DetectedPattern[] => [
   {
     id: 'pattern_1',
     type: 'periodic',
+    startTime: new Date('2023-01-01'),
+    endTime: new Date('2023-01-10'),
     timeRange: [new Date('2023-01-01'), new Date('2023-01-10')],
     confidence: 0.85,
     description: 'Periodic pattern detected',
     affectedNodes: ['node_0', 'node_1'],
     statisticalSignificance: 0.01,
+    parameters: { period: 24 },
   },
   {
     id: 'pattern_2',
     type: 'trend',
+    startTime: new Date('2023-01-05'),
+    endTime: new Date('2023-01-10'),
     timeRange: [new Date('2023-01-05'), new Date('2023-01-10')],
     confidence: 0.75,
     description: 'Increasing trend detected',
     affectedNodes: ['node_2', 'node_3'],
     statisticalSignificance: 0.02,
+    parameters: { slope: 0.1 },
   },
 ];
 

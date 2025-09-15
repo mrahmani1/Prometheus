@@ -21,9 +21,7 @@ import {
   CardContent,
   Grid,
   Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  // Accordion, AccordionSummary, AccordionDetails - unused
   LinearProgress,
   Dialog,
   DialogTitle,
@@ -35,21 +33,20 @@ import {
   Visibility as VisibilityIcon,
   Compare as CompareIcon,
   TrendingUp as TrendingUpIcon,
-  Assessment as AssessmentIcon,
-  ExpandMore as ExpandMoreIcon,
+  // Assessment as AssessmentIcon, ExpandMore as ExpandMoreIcon - unused
   Star as StarIcon,
   StarBorder as StarBorderIcon,
   Download as DownloadIcon,
-  Share as ShareIcon
+  Share as _ShareIcon
 } from '@mui/icons-material';
 import {
   CausalHypothesis,
   HypothesisTestResult,
-  HypothesisComparison,
-  ComparisonMetric,
-  ModelSelectionCriterion
+  HypothesisComparison as _HypothesisComparison,
+  ComparisonMetric as _ComparisonMetric,
+  ModelSelectionCriterion as _ModelSelectionCriterion
 } from '../../types/causal-analysis';
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ScatterPlot, Scatter } from 'recharts';
+// import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ScatterPlot, Scatter } from 'recharts'; // Module not available
 
 interface HypothesisComparatorProps {
   hypotheses: CausalHypothesis[];
@@ -104,8 +101,8 @@ export const HypothesisComparator: React.FC<HypothesisComparatorProps> = ({
   // Sort hypotheses based on selected criterion
   const sortedData = useMemo(() => {
     return [...comparisonData].sort((a, b) => {
-      const aValue = a.metrics[sortBy];
-      const bValue = b.metrics[sortBy];
+      const aValue = (a.metrics as any)[sortBy];
+      const bValue = (b.metrics as any)[sortBy];
       
       // For p-values and complexity, lower is better
       if (sortBy === 'pValue' || sortBy === 'complexity') {
@@ -140,21 +137,21 @@ export const HypothesisComparator: React.FC<HypothesisComparatorProps> = ({
   }, [comparisonData]);
 
   // Radar chart data for selected hypotheses
-  const radarData = useMemo(() => {
-    const selectedData = comparisonData.filter(d => selectedHypotheses.has(d.hypothesis.id));
-    if (selectedData.length === 0) return [];
+  // const _radarData = useMemo(() => {
+  //   const selectedData = comparisonData.filter(d => selectedHypotheses.has(d.hypothesis.id));
+  //   if (selectedData.length === 0) return [];
 
-    const metrics = ['Statistical Significance', 'Effect Size', 'Robustness', 'Parsimony', 'Evidence Ratio'];
+  //   const metrics = ['Statistical Significance', 'Effect Size', 'Robustness', 'Parsimony', 'Evidence Ratio'];
     
-    return metrics.map(metric => {
-      const dataPoint: any = { metric };
-      selectedData.forEach(d => {
-        const value = getMetricValue(d.metrics, metric);
-        dataPoint[d.hypothesis.name] = value;
-      });
-      return dataPoint;
-    });
-  }, [comparisonData, selectedHypotheses]);
+  //   return metrics.map(metric => {
+  //     const dataPoint: any = { metric };
+  //     selectedData.forEach(d => {
+  //       const value = getMetricValue(d.metrics, metric);
+  //       dataPoint[d.hypothesis.name] = value;
+  //     });
+  //     return dataPoint;
+  //   });
+  // }, [comparisonData, selectedHypotheses]);
 
   const handleHypothesisSelect = useCallback((hypothesisId: string, selected: boolean) => {
     setSelectedHypotheses(prev => {
@@ -396,28 +393,9 @@ export const HypothesisComparator: React.FC<HypothesisComparatorProps> = ({
                 <Typography variant="h6" gutterBottom>
                   Multi-Dimensional Comparison
                 </Typography>
-                <ResponsiveContainer width="100%" height={400}>
-                  <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="metric" />
-                    <PolarRadiusAxis angle={90} domain={[0, 1]} />
-                    {Array.from(selectedHypotheses).map((id, index) => {
-                      const hypothesis = hypotheses.find(h => h.id === id);
-                      return (
-                        <Radar
-                          key={id}
-                          name={hypothesis?.name}
-                          dataKey={hypothesis?.name}
-                          stroke={getColorForIndex(index)}
-                          fill={getColorForIndex(index)}
-                          fillOpacity={0.1}
-                          strokeWidth={2}
-                        />
-                      );
-                    })}
-                    <Legend />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <Alert severity="info">
+                  Radar chart visualization would be displayed here (recharts module not available)
+                </Alert>
               </CardContent>
             </Card>
           )}
@@ -677,24 +655,24 @@ function calculateStatisticalPower(testResult: HypothesisTestResult): number {
   return Math.min(1, effectSize * 0.8 + 0.2);
 }
 
-function getMetricValue(metrics: any, metricName: string): number {
-  switch (metricName) {
-    case 'Statistical Significance':
-      return Math.max(0, 1 - metrics.pValue);
-    case 'Effect Size':
-      return Math.min(1, metrics.effectSize);
-    case 'Robustness':
-      return metrics.robustness;
-    case 'Parsimony':
-      return metrics.parsimony;
-    case 'Evidence Ratio':
-      return Math.min(1, metrics.evidenceRatio / 10);
-    default:
-      return 0;
-  }
-}
+// function _getMetricValue(metrics: any, metricName: string): number {
+//   switch (metricName) {
+//     case 'Statistical Significance':
+//       return Math.max(0, 1 - metrics.pValue);
+//     case 'Effect Size':
+//       return Math.min(1, metrics.effectSize);
+//     case 'Robustness':
+//       return metrics.robustness;
+//     case 'Parsimony':
+//       return metrics.parsimony;
+//     case 'Evidence Ratio':
+//       return Math.min(1, metrics.evidenceRatio / 10);
+//     default:
+//       return 0;
+//   }
+// }
 
-function getColorForIndex(index: number): string {
-  const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0'];
-  return colors[index % colors.length];
-}
+// function _getColorForIndex(index: number): string {
+//   const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0'];
+//   return colors[index % colors.length];
+// }

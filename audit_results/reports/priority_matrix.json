@@ -1,0 +1,1242 @@
+{
+  "immediate": [
+    {
+      "module": "backend\\api.py",
+      "patterns": 48,
+      "effort": 25.3,
+      "impact": 96.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\debug_bilinear_methods.py",
+      "patterns": 5,
+      "effort": 0.2,
+      "impact": 22.6,
+      "complexity": 0.45249999999999996
+    },
+    {
+      "module": "backend\\run_comprehensive_audit.py",
+      "patterns": 18,
+      "effort": 7.9,
+      "impact": 64.4,
+      "complexity": 1.8
+    },
+    {
+      "module": "backend\\test_comprehensive_auditor.py",
+      "patterns": 46,
+      "effort": 9.2,
+      "impact": 104.1,
+      "complexity": 1.0
+    },
+    {
+      "module": "backend\\validate_enhanced_coupling_performance.py",
+      "patterns": 11,
+      "effort": 3.8,
+      "impact": 28.199999999999996,
+      "complexity": 1.835
+    },
+    {
+      "module": "backend\\validate_monitor_implementation.py",
+      "patterns": 6,
+      "effort": 1.6,
+      "impact": 8.0,
+      "complexity": 1.95
+    },
+    {
+      "module": "backend\\validate_seismic_enhancement.py",
+      "patterns": 12,
+      "effort": 2.1,
+      "impact": 37.800000000000004,
+      "complexity": 1.0225
+    },
+    {
+      "module": "backend\\core\\database_config_manager.py",
+      "patterns": 10,
+      "effort": 4.3,
+      "impact": 23.299999999999997,
+      "complexity": 2.8449999999999998
+    },
+    {
+      "module": "backend\\core\\distributed_query_executor.py",
+      "patterns": 4,
+      "effort": 3.0,
+      "impact": 22.0,
+      "complexity": 3.5125
+    },
+    {
+      "module": "backend\\core\\placeholder_detection_engine.py",
+      "patterns": 59,
+      "effort": 33.3,
+      "impact": 129.1000000000001,
+      "complexity": 2.78
+    },
+    {
+      "module": "backend\\core\\replacement_tracking_system.py",
+      "patterns": 9,
+      "effort": 3.6,
+      "impact": 22.3,
+      "complexity": 2.2075
+    },
+    {
+      "module": "backend\\modules\\3d_geological_modeler.py",
+      "patterns": 22,
+      "effort": 19.5,
+      "impact": 61.200000000000024,
+      "complexity": 2.8375
+    },
+    {
+      "module": "backend\\modules\\3d_magmatic_system_modeler.py",
+      "patterns": 171,
+      "effort": 235.1,
+      "impact": 677.0999999999997,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\adaptive_integration_support.py",
+      "patterns": 3,
+      "effort": 0.7,
+      "impact": 16.8,
+      "complexity": 1.8849999999999998
+    },
+    {
+      "module": "backend\\modules\\adaptive_model_selection.py",
+      "patterns": 30,
+      "effort": 40.6,
+      "impact": 123.39999999999999,
+      "complexity": 3.55
+    },
+    {
+      "module": "backend\\modules\\advanced_causal_discovery_suite.py",
+      "patterns": 24,
+      "effort": 25.1,
+      "impact": 90.4,
+      "complexity": 3.0875
+    },
+    {
+      "module": "backend\\modules\\advanced_changepoint_detection.py",
+      "patterns": 2,
+      "effort": 0.7,
+      "impact": 8.6,
+      "complexity": 2.2375
+    },
+    {
+      "module": "backend\\modules\\advanced_crystallographic_methods.py",
+      "patterns": 6,
+      "effort": 2.8,
+      "impact": 30.6,
+      "complexity": 3.04
+    },
+    {
+      "module": "backend\\modules\\advanced_dimensionality_reduction.py",
+      "patterns": 43,
+      "effort": 54.2,
+      "impact": 186.0,
+      "complexity": 2.6125
+    },
+    {
+      "module": "backend\\modules\\advanced_dimensionality_reduction_helpers.py",
+      "patterns": 106,
+      "effort": 143.9,
+      "impact": 394.79999999999995,
+      "complexity": 3.575
+    },
+    {
+      "module": "backend\\modules\\advanced_geological_gat.py",
+      "patterns": 37,
+      "effort": 25.2,
+      "impact": 175.7,
+      "complexity": 3.2249999999999996
+    },
+    {
+      "module": "backend\\modules\\advanced_magma_source_analysis.py",
+      "patterns": 118,
+      "effort": 162.2,
+      "impact": 512.4999999999999,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\advanced_methods.py",
+      "patterns": 16,
+      "effort": 17.4,
+      "impact": 65.10000000000001,
+      "complexity": 2.5625
+    },
+    {
+      "module": "backend\\modules\\advanced_ml_model_management.py",
+      "patterns": 75,
+      "effort": 72.1,
+      "impact": 329.3,
+      "complexity": 3.45
+    },
+    {
+      "module": "backend\\modules\\advanced_ml_pipeline.py",
+      "patterns": 34,
+      "effort": 43.6,
+      "impact": 68.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\advanced_property_predictor.py",
+      "patterns": 96,
+      "effort": 37.5,
+      "impact": 418.6999999999998,
+      "complexity": 2.6774999999999998
+    },
+    {
+      "module": "backend\\modules\\advanced_testing_framework.py",
+      "patterns": 102,
+      "effort": 138.2,
+      "impact": 218.6,
+      "complexity": 3.55
+    },
+    {
+      "module": "backend\\modules\\advanced_trace_element_analysis.py",
+      "patterns": 43,
+      "effort": 57.5,
+      "impact": 175.60000000000002,
+      "complexity": 3.375
+    },
+    {
+      "module": "backend\\modules\\advanced_uncertainty_methods.py",
+      "patterns": 83,
+      "effort": 84.8,
+      "impact": 308.7999999999999,
+      "complexity": 2.75
+    },
+    {
+      "module": "backend\\modules\\advanced_wavelet_analysis.py",
+      "patterns": 4,
+      "effort": 1.3,
+      "impact": 19.2,
+      "complexity": 1.8875000000000002
+    },
+    {
+      "module": "backend\\modules\\alteration_mapper_ml.py",
+      "patterns": 29,
+      "effort": 35.4,
+      "impact": 124.4,
+      "complexity": 3.2375
+    },
+    {
+      "module": "backend\\modules\\ambient_noise_engine.py",
+      "patterns": 103,
+      "effort": 154.5,
+      "impact": 206.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\array_processor_ml.py",
+      "patterns": 418,
+      "effort": 574.8,
+      "impact": 1613.3000000000063,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\autonomous_geoscience.py",
+      "patterns": 18,
+      "effort": 20.5,
+      "impact": 87.9,
+      "complexity": 3.525
+    },
+    {
+      "module": "backend\\modules\\autonomous_geoscience_integration.py",
+      "patterns": 3,
+      "effort": 2.2,
+      "impact": 14.6,
+      "complexity": 3.6125000000000003
+    },
+    {
+      "module": "backend\\modules\\cap_rock_stability_analyzer.py",
+      "patterns": 94,
+      "effort": 141.0,
+      "impact": 188.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\causal_analysis_helpers.py",
+      "patterns": 11,
+      "effort": 2.9,
+      "impact": 54.4,
+      "complexity": 2.3175
+    },
+    {
+      "module": "backend\\modules\\causal_inference_engine.py",
+      "patterns": 35,
+      "effort": 44.9,
+      "impact": 149.9,
+      "complexity": 3.15
+    },
+    {
+      "module": "backend\\modules\\causal_temporal_helpers.py",
+      "patterns": 11,
+      "effort": 2.5,
+      "impact": 30.299999999999997,
+      "complexity": 2.1399999999999997
+    },
+    {
+      "module": "backend\\modules\\causal_uncertainty_quantification.py",
+      "patterns": 26,
+      "effort": 24.4,
+      "impact": 52.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\causal_uncertainty_simple.py",
+      "patterns": 19,
+      "effort": 3.1,
+      "impact": 89.1,
+      "complexity": 1.3900000000000001
+    },
+    {
+      "module": "backend\\modules\\coulomb_stress_modeler.py",
+      "patterns": 12,
+      "effort": 13.0,
+      "impact": 59.5,
+      "complexity": 2.85
+    },
+    {
+      "module": "backend\\modules\\database_integration.py",
+      "patterns": 10,
+      "effort": 12.2,
+      "impact": 44.7,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\data_integration_pipeline.py",
+      "patterns": 347,
+      "effort": 450.7,
+      "impact": 1528.2000000000003,
+      "complexity": 2.9875
+    },
+    {
+      "module": "backend\\modules\\data_integration_pipeline_simple.py",
+      "patterns": 224,
+      "effort": 252.9,
+      "impact": 978.0,
+      "complexity": 2.8375
+    },
+    {
+      "module": "backend\\modules\\deep_earth_ml.py",
+      "patterns": 27,
+      "effort": 36.8,
+      "impact": 124.1,
+      "complexity": 3.6375
+    },
+    {
+      "module": "backend\\modules\\deformation_analyzer.py",
+      "patterns": 26,
+      "effort": 34.4,
+      "impact": 125.8,
+      "complexity": 3.2125
+    },
+    {
+      "module": "backend\\modules\\demo_modular_system.py",
+      "patterns": 13,
+      "effort": 2.1,
+      "impact": 52.10000000000001,
+      "complexity": 0.8725
+    },
+    {
+      "module": "backend\\modules\\digital_twin_api.py",
+      "patterns": 40,
+      "effort": 60.0,
+      "impact": 80.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\digital_twin_data_management.py",
+      "patterns": 38,
+      "effort": 27.6,
+      "impact": 172.5,
+      "complexity": 3.6625
+    },
+    {
+      "module": "backend\\modules\\digital_twin_earth.py",
+      "patterns": 40,
+      "effort": 53.2,
+      "impact": 189.6,
+      "complexity": 3.3125
+    },
+    {
+      "module": "backend\\modules\\digital_twin_performance_optimization.py",
+      "patterns": 9,
+      "effort": 8.7,
+      "impact": 32.39999999999999,
+      "complexity": 3.25
+    },
+    {
+      "module": "backend\\modules\\digital_twin_visualization.py",
+      "patterns": 19,
+      "effort": 14.8,
+      "impact": 63.90000000000001,
+      "complexity": 3.6550000000000002
+    },
+    {
+      "module": "backend\\modules\\economic_optimizer.py",
+      "patterns": 19,
+      "effort": 25.5,
+      "impact": 87.9,
+      "complexity": 3.4125
+    },
+    {
+      "module": "backend\\modules\\edge_computing.py",
+      "patterns": 130,
+      "effort": 178.8,
+      "impact": 552.5,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\elastic_inversion_models.py",
+      "patterns": 515,
+      "effort": 708.1,
+      "impact": 2041.9000000000042,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\enhanced_kalman_filter.py",
+      "patterns": 57,
+      "effort": 78.4,
+      "impact": 257.9,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\enhanced_trace_element_analysis.py",
+      "patterns": 7,
+      "effort": 9.0,
+      "impact": 23.199999999999996,
+      "complexity": 2.8625
+    },
+    {
+      "module": "backend\\modules\\enhanced_volcanic_monitoring.py",
+      "patterns": 18,
+      "effort": 16.8,
+      "impact": 82.7,
+      "complexity": 3.125
+    },
+    {
+      "module": "backend\\modules\\enkf_knowledge_integration.py",
+      "patterns": 2877,
+      "effort": 3955.9,
+      "impact": 11907.099999999944,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\eruption_forecaster_ml.py",
+      "patterns": 58,
+      "effort": 75.0,
+      "impact": 249.19999999999993,
+      "complexity": 2.925
+    },
+    {
+      "module": "backend\\modules\\federated_learning.py",
+      "patterns": 18,
+      "effort": 11.0,
+      "impact": 59.099999999999994,
+      "complexity": 3.7375
+    },
+    {
+      "module": "backend\\modules\\fwi_engine.py",
+      "patterns": 60,
+      "effort": 81.2,
+      "impact": 218.69999999999987,
+      "complexity": 3.525
+    },
+    {
+      "module": "backend\\modules\\geodynamo_simulator.py",
+      "patterns": 14,
+      "effort": 7.9,
+      "impact": 69.8,
+      "complexity": 2.6125
+    },
+    {
+      "module": "backend\\modules\\geological_anomaly_detection.py",
+      "patterns": 87,
+      "effort": 116.6,
+      "impact": 359.9,
+      "complexity": 3.4
+    },
+    {
+      "module": "backend\\modules\\geological_causal_discovery.py",
+      "patterns": 14,
+      "effort": 12.4,
+      "impact": 65.5,
+      "complexity": 3.275
+    },
+    {
+      "module": "backend\\modules\\geological_complexity_assessment.py",
+      "patterns": 70,
+      "effort": 92.8,
+      "impact": 242.49999999999991,
+      "complexity": 3.2624999999999997
+    },
+    {
+      "module": "backend\\modules\\geological_gnn.py",
+      "patterns": 16,
+      "effort": 9.2,
+      "impact": 77.5,
+      "complexity": 2.925
+    },
+    {
+      "module": "backend\\modules\\geological_physics_informed_neural_networks.py",
+      "patterns": 26,
+      "effort": 31.4,
+      "impact": 88.30000000000004,
+      "complexity": 3.4375
+    },
+    {
+      "module": "backend\\modules\\geological_statistics.py",
+      "patterns": 8,
+      "effort": 4.2,
+      "impact": 33.3,
+      "complexity": 2.4375
+    },
+    {
+      "module": "backend\\modules\\hazard_interactions.py",
+      "patterns": 143,
+      "effort": 192.9,
+      "impact": 650.3,
+      "complexity": 3.4875
+    },
+    {
+      "module": "backend\\modules\\helper_functions_complexity.py",
+      "patterns": 7,
+      "effort": 2.0,
+      "impact": 16.5,
+      "complexity": 2.605
+    },
+    {
+      "module": "backend\\modules\\high_resolution_visualization.py",
+      "patterns": 35,
+      "effort": 46.6,
+      "impact": 147.39999999999998,
+      "complexity": 3.3
+    },
+    {
+      "module": "backend\\modules\\hypothesis_generation_system.py",
+      "patterns": 41,
+      "effort": 56.4,
+      "impact": 121.80000000000007,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\hypothesis_testing_service.py",
+      "patterns": 105,
+      "effort": 92.9,
+      "impact": 233.30000000000004,
+      "complexity": 3.525
+    },
+    {
+      "module": "backend\\modules\\insar_processor_ml.py",
+      "patterns": 25,
+      "effort": 33.7,
+      "impact": 78.7,
+      "complexity": 3.475
+    },
+    {
+      "module": "backend\\modules\\integrated_caldera_monitoring.py",
+      "patterns": 39,
+      "effort": 41.7,
+      "impact": 78.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\isotope_modeler.py",
+      "patterns": 11,
+      "effort": 5.1,
+      "impact": 21.599999999999998,
+      "complexity": 2.775
+    },
+    {
+      "module": "backend\\modules\\joint_inversion_framework.py",
+      "patterns": 80,
+      "effort": 108.2,
+      "impact": 302.79999999999984,
+      "complexity": 3.525
+    },
+    {
+      "module": "backend\\modules\\large_scale_geological_graphsage.py",
+      "patterns": 34,
+      "effort": 24.0,
+      "impact": 157.4,
+      "complexity": 3.2624999999999997
+    },
+    {
+      "module": "backend\\modules\\magma_reservoir_monitoring.py",
+      "patterns": 21,
+      "effort": 28.0,
+      "impact": 121.0,
+      "complexity": 3.3375
+    },
+    {
+      "module": "backend\\modules\\mantle_convection_3d.py",
+      "patterns": 8,
+      "effort": 10.3,
+      "impact": 55.1,
+      "complexity": 2.875
+    },
+    {
+      "module": "backend\\modules\\mlops_pipeline.py",
+      "patterns": 27,
+      "effort": 20.7,
+      "impact": 73.80000000000001,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\model_manager.py",
+      "patterns": 93,
+      "effort": 127.9,
+      "impact": 390.99999999999994,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\moment_tensor_inversion.py",
+      "patterns": 7,
+      "effort": 5.6,
+      "impact": 28.7,
+      "complexity": 2.8625
+    },
+    {
+      "module": "backend\\modules\\monitoring_demonstration.py",
+      "patterns": 45,
+      "effort": 16.4,
+      "impact": 191.0,
+      "complexity": 1.975
+    },
+    {
+      "module": "backend\\modules\\multi_physics_coupling_engine.py",
+      "patterns": 38,
+      "effort": 51.8,
+      "impact": 208.5,
+      "complexity": 3.625
+    },
+    {
+      "module": "backend\\modules\\multi_scale_causal_inference.py",
+      "patterns": 35,
+      "effort": 28.0,
+      "impact": 168.3,
+      "complexity": 3.025
+    },
+    {
+      "module": "backend\\modules\\multi_sensor_fusion.py",
+      "patterns": 32,
+      "effort": 43.0,
+      "impact": 143.79999999999998,
+      "complexity": 3.4375
+    },
+    {
+      "module": "backend\\modules\\nasa_firms_thermal_integration.py",
+      "patterns": 19,
+      "effort": 25.8,
+      "impact": 89.0,
+      "complexity": 3.5875
+    },
+    {
+      "module": "backend\\modules\\network_helpers.py",
+      "patterns": 972,
+      "effort": 1458.0,
+      "impact": 1944.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\optimization_framework.py",
+      "patterns": 50,
+      "effort": 51.4,
+      "impact": 214.29999999999998,
+      "complexity": 3.225
+    },
+    {
+      "module": "backend\\modules\\paleomagnetic_database.py",
+      "patterns": 138,
+      "effort": 155.8,
+      "impact": 631.9,
+      "complexity": 3.1375
+    },
+    {
+      "module": "backend\\modules\\parallel_computing.py",
+      "patterns": 68,
+      "effort": 92.8,
+      "impact": 317.0,
+      "complexity": 3.65
+    },
+    {
+      "module": "backend\\modules\\performance_benchmarking_profiling.py",
+      "patterns": 21,
+      "effort": 28.9,
+      "impact": 87.39999999999999,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\plate_evolution_engine.py",
+      "patterns": 366,
+      "effort": 496.4,
+      "impact": 1544.800000000003,
+      "complexity": 3.5625
+    },
+    {
+      "module": "backend\\modules\\production_geochemical_analysis.py",
+      "patterns": 10,
+      "effort": 10.6,
+      "impact": 24.599999999999998,
+      "complexity": 3.5125
+    },
+    {
+      "module": "backend\\modules\\prospectivity_engine.py",
+      "patterns": 45,
+      "effort": 36.0,
+      "impact": 177.80000000000004,
+      "complexity": 3.275
+    },
+    {
+      "module": "backend\\modules\\quantum_computing_integration.py",
+      "patterns": 38,
+      "effort": 37.6,
+      "impact": 76.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\real_iris_data_connector.py",
+      "patterns": 12,
+      "effort": 4.0,
+      "impact": 35.400000000000006,
+      "complexity": 2.75
+    },
+    {
+      "module": "backend\\modules\\representation_learning_integration.py",
+      "patterns": 2,
+      "effort": 1.4,
+      "impact": 10.9,
+      "complexity": 3.225
+    },
+    {
+      "module": "backend\\modules\\resource_evaluator.py",
+      "patterns": 110,
+      "effort": 84.5,
+      "impact": 479.19999999999993,
+      "complexity": 3.4125
+    },
+    {
+      "module": "backend\\modules\\scenario_engine.py",
+      "patterns": 268,
+      "effort": 367.2,
+      "impact": 1113.3000000000013,
+      "complexity": 3.7
+    },
+    {
+      "module": "backend\\modules\\scientific_knowledge_graph.py",
+      "patterns": 46,
+      "effort": 63.2,
+      "impact": 200.9,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\security_framework.py",
+      "patterns": 20,
+      "effort": 22.0,
+      "impact": 95.30000000000001,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\seismic_transformer.py",
+      "patterns": 17,
+      "effort": 12.9,
+      "impact": 51.400000000000006,
+      "complexity": 2.975
+    },
+    {
+      "module": "backend\\modules\\seismic_validation_framework.py",
+      "patterns": 43,
+      "effort": 21.0,
+      "impact": 107.10000000000001,
+      "complexity": 2.51
+    },
+    {
+      "module": "backend\\modules\\signal_analysis_support.py",
+      "patterns": 4,
+      "effort": 1.6,
+      "impact": 17.7,
+      "complexity": 2.2125000000000004
+    },
+    {
+      "module": "backend\\modules\\source_characterization_ml.py",
+      "patterns": 64,
+      "effort": 85.4,
+      "impact": 292.09999999999997,
+      "complexity": 3.3375
+    },
+    {
+      "module": "backend\\modules\\stress_field_mapper.py",
+      "patterns": 61,
+      "effort": 83.9,
+      "impact": 282.20000000000005,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\supereruption_analysis.py",
+      "patterns": 184,
+      "effort": 253.0,
+      "impact": 690.0999999999997,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\target_generator.py",
+      "patterns": 16,
+      "effort": 15.0,
+      "impact": 76.2,
+      "complexity": 3.5875
+    },
+    {
+      "module": "backend\\modules\\tectonic_database_init.py",
+      "patterns": 6,
+      "effort": 1.8,
+      "impact": 11.599999999999998,
+      "complexity": 1.4625
+    },
+    {
+      "module": "backend\\modules\\temporal_lag_analysis.py",
+      "patterns": 29,
+      "effort": 28.7,
+      "impact": 130.39999999999998,
+      "complexity": 2.9499999999999997
+    },
+    {
+      "module": "backend\\modules\\thermodynamic_engine.py",
+      "patterns": 279,
+      "effort": 372.5,
+      "impact": 1111.7000000000014,
+      "complexity": 3.35
+    },
+    {
+      "module": "backend\\modules\\vizier_optimizer.py",
+      "patterns": 16,
+      "effort": 10.1,
+      "impact": 75.6,
+      "complexity": 3.175
+    },
+    {
+      "module": "backend\\modules\\volcanic_multi_chamber.py",
+      "patterns": 1274,
+      "effort": 1751.8,
+      "impact": 5410.799999999984,
+      "complexity": 3.75
+    }
+  ],
+  "high": [
+    {
+      "module": "backend\\comprehensive_simulated_data_auditor.py",
+      "patterns": 62,
+      "effort": 54.1,
+      "impact": 135.40000000000006,
+      "complexity": 3.0125
+    },
+    {
+      "module": "backend\\validate_database_implementation.py",
+      "patterns": 3,
+      "effort": 0.6,
+      "impact": 7.200000000000001,
+      "complexity": 1.205
+    },
+    {
+      "module": "backend\\validate_gis_syntax.py",
+      "patterns": 3,
+      "effort": 0.7,
+      "impact": 5.800000000000001,
+      "complexity": 1.73
+    },
+    {
+      "module": "backend\\validate_monitoring_network_registry.py",
+      "patterns": 2,
+      "effort": 0.2,
+      "impact": 5.800000000000001,
+      "complexity": 0.9
+    },
+    {
+      "module": "backend\\api\\hypothesis_testing_api.py",
+      "patterns": 7,
+      "effort": 3.1,
+      "impact": 5.7,
+      "complexity": 2.5275
+    },
+    {
+      "module": "backend\\core\\database_backup_monitor.py",
+      "patterns": 32,
+      "effort": 22.5,
+      "impact": 45.40000000000001,
+      "complexity": 3.475
+    },
+    {
+      "module": "backend\\core\\database_integration.py",
+      "patterns": 4,
+      "effort": 2.2,
+      "impact": 6.6,
+      "complexity": 3.5025
+    },
+    {
+      "module": "backend\\core\\database_optimization_engine.py",
+      "patterns": 1,
+      "effort": 0.7,
+      "impact": 5.1000000000000005,
+      "complexity": 3.325
+    },
+    {
+      "module": "backend\\core\\placeholder_audit_orchestrator.py",
+      "patterns": 2,
+      "effort": 0.6,
+      "impact": 6.4,
+      "complexity": 1.8599999999999999
+    },
+    {
+      "module": "backend\\core\\real_data_connectors.py",
+      "patterns": 3,
+      "effort": 1.4,
+      "impact": 7.600000000000001,
+      "complexity": 3.17
+    },
+    {
+      "module": "backend\\modules\\caldera_system_classifier.py",
+      "patterns": 5,
+      "effort": 4.2,
+      "impact": 9.3,
+      "complexity": 3.1625
+    },
+    {
+      "module": "backend\\modules\\collaborative_analysis_engine.py",
+      "patterns": 3,
+      "effort": 3.3,
+      "impact": 5.0,
+      "complexity": 3.2350000000000003
+    },
+    {
+      "module": "backend\\modules\\comprehensive_logging_monitoring.py",
+      "patterns": 3,
+      "effort": 2.4,
+      "impact": 11.4,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\comprehensive_volcanic_systems_database.py",
+      "patterns": 3,
+      "effort": 2.4,
+      "impact": 6.9,
+      "complexity": 3.5875
+    },
+    {
+      "module": "backend\\modules\\digital_twin_configuration.py",
+      "patterns": 4,
+      "effort": 3.2,
+      "impact": 10.0,
+      "complexity": 3.0125
+    },
+    {
+      "module": "backend\\modules\\enhanced_geological_modeling.py",
+      "patterns": 2,
+      "effort": 2.1,
+      "impact": 7.4,
+      "complexity": 3.2875
+    },
+    {
+      "module": "backend\\modules\\external_data_connectors.py",
+      "patterns": 3,
+      "effort": 2.0,
+      "impact": 8.5,
+      "complexity": 3.325
+    },
+    {
+      "module": "backend\\modules\\external_data_connectors_wrapper.py",
+      "patterns": 7,
+      "effort": 3.0,
+      "impact": 18.3,
+      "complexity": 3.01
+    },
+    {
+      "module": "backend\\modules\\genetic_model_integrator.py",
+      "patterns": 4,
+      "effort": 4.5,
+      "impact": 15.700000000000001,
+      "complexity": 3.0749999999999997
+    },
+    {
+      "module": "backend\\modules\\geochemical_ml.py",
+      "patterns": 8,
+      "effort": 4.2,
+      "impact": 13.999999999999998,
+      "complexity": 3.375
+    },
+    {
+      "module": "backend\\modules\\geological_network_representation_learning.py",
+      "patterns": 3,
+      "effort": 3.0,
+      "impact": 8.8,
+      "complexity": 3.1999999999999997
+    },
+    {
+      "module": "backend\\modules\\ground_motion_prediction.py",
+      "patterns": 4,
+      "effort": 2.1,
+      "impact": 11.8,
+      "complexity": 3.1
+    },
+    {
+      "module": "backend\\modules\\hidden_relationship_discovery.py",
+      "patterns": 5,
+      "effort": 5.0,
+      "impact": 11.700000000000001,
+      "complexity": 3.2750000000000004
+    },
+    {
+      "module": "backend\\modules\\model_database.py",
+      "patterns": 1,
+      "effort": 0.6,
+      "impact": 6.2,
+      "complexity": 3.55
+    },
+    {
+      "module": "backend\\modules\\real_geochemical_data_integration.py",
+      "patterns": 9,
+      "effort": 6.6,
+      "impact": 16.6,
+      "complexity": 3.1875
+    },
+    {
+      "module": "backend\\modules\\real_thermodynamic_calculations.py",
+      "patterns": 9,
+      "effort": 6.4,
+      "impact": 27.4,
+      "complexity": 3.175
+    },
+    {
+      "module": "backend\\modules\\real_time_process_monitor.py",
+      "patterns": 16,
+      "effort": 22.0,
+      "impact": 34.89999999999999,
+      "complexity": 3.7375
+    },
+    {
+      "module": "backend\\modules\\real_volcanic_data_connector.py",
+      "patterns": 2,
+      "effort": 0.6,
+      "impact": 6.2,
+      "complexity": 2.26
+    },
+    {
+      "module": "backend\\modules\\resurgent_caldera_monitoring.py",
+      "patterns": 5,
+      "effort": 6.3,
+      "impact": 10.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\modules\\system_performance_optimizer.py",
+      "patterns": 1,
+      "effort": 0.6,
+      "impact": 5.300000000000001,
+      "complexity": 3.5500000000000003
+    },
+    {
+      "module": "backend\\modules\\temporal_analysis_helpers.py",
+      "patterns": 2,
+      "effort": 0.7,
+      "impact": 5.500000000000001,
+      "complexity": 2.5575
+    },
+    {
+      "module": "backend\\modules\\thermodynamic_integration.py",
+      "patterns": 3,
+      "effort": 2.4,
+      "impact": 6.6,
+      "complexity": 2.2624999999999997
+    },
+    {
+      "module": "backend\\modules\\volcanic_systems_integration_service.py",
+      "patterns": 4,
+      "effort": 1.3,
+      "impact": 5.0,
+      "complexity": 2.6725000000000003
+    },
+    {
+      "module": "backend\\tests\\comprehensive_integration_tests.py",
+      "patterns": 17,
+      "effort": 10.0,
+      "impact": 19.800000000000004,
+      "complexity": 3.395
+    },
+    {
+      "module": "backend\\core\\data_transformation\\export_manager.py",
+      "patterns": 3,
+      "effort": 1.4,
+      "impact": 6.8,
+      "complexity": 2.5725
+    },
+    {
+      "module": "backend\\core\\data_transformation\\interpolation_engine.py",
+      "patterns": 1,
+      "effort": 0.4,
+      "impact": 5.300000000000001,
+      "complexity": 3.0925000000000002
+    },
+    {
+      "module": "backend\\core\\data_transformation\\metadata_harmonizer.py",
+      "patterns": 2,
+      "effort": 0.8,
+      "impact": 5.0,
+      "complexity": 2.0300000000000002
+    }
+  ],
+  "medium": [
+    {
+      "module": "backend\\demo_comprehensive_volcanic_systems.py",
+      "patterns": 2,
+      "effort": 0.5,
+      "impact": 3.0,
+      "complexity": 2.145
+    },
+    {
+      "module": "backend\\validate_implementation.py",
+      "patterns": 2,
+      "effort": 0.1,
+      "impact": 4.2,
+      "complexity": 0.5149999999999999
+    },
+    {
+      "module": "backend\\modules\\advanced_error_handling_validation.py",
+      "patterns": 1,
+      "effort": 0.7,
+      "impact": 4.8,
+      "complexity": 3.2
+    },
+    {
+      "module": "backend\\modules\\digital_twin_integration.py",
+      "patterns": 1,
+      "effort": 0.5,
+      "impact": 3.6,
+      "complexity": 3.2600000000000002
+    },
+    {
+      "module": "backend\\modules\\digital_twin_multiuser.py",
+      "patterns": 2,
+      "effort": 1.4,
+      "impact": 4.6,
+      "complexity": 3.5625
+    },
+    {
+      "module": "backend\\modules\\global_volcanism_program_integration.py",
+      "patterns": 1,
+      "effort": 1.0,
+      "impact": 3.1,
+      "complexity": 3.75
+    },
+    {
+      "module": "backend\\modules\\monitoring_network_registry.py",
+      "patterns": 1,
+      "effort": 1.2,
+      "impact": 4.300000000000001,
+      "complexity": 3.6375
+    },
+    {
+      "module": "backend\\modules\\production_phase_picker.py",
+      "patterns": 1,
+      "effort": 0.4,
+      "impact": 3.9000000000000004,
+      "complexity": 2.5999999999999996
+    },
+    {
+      "module": "backend\\modules\\stream_processing.py",
+      "patterns": 1,
+      "effort": 0.6,
+      "impact": 3.6000000000000005,
+      "complexity": 3.2525
+    },
+    {
+      "module": "backend\\core\\real_data_connectors\\geological_survey_connector.py",
+      "patterns": 1,
+      "effort": 0.3,
+      "impact": 3.4000000000000004,
+      "complexity": 2.4375
+    },
+    {
+      "module": "backend\\core\\real_data_connectors\\iris_connector.py",
+      "patterns": 2,
+      "effort": 0.4,
+      "impact": 3.4,
+      "complexity": 2.5925
+    }
+  ],
+  "low": [
+    {
+      "module": "backend\\demo_gvp_integration.py",
+      "patterns": 2,
+      "effort": 0.3,
+      "impact": 2.5,
+      "complexity": 1.165
+    },
+    {
+      "module": "backend\\simple_validation.py",
+      "patterns": 1,
+      "effort": 0.1,
+      "impact": 2.8000000000000003,
+      "complexity": 1.05
+    },
+    {
+      "module": "backend\\api\\database_performance_dashboard.py",
+      "patterns": 1,
+      "effort": 0.3,
+      "impact": 1.6,
+      "complexity": 2.1975
+    },
+    {
+      "module": "backend\\modules\\advanced_database_integration.py",
+      "patterns": 1,
+      "effort": 0.4,
+      "impact": 1.7999999999999998,
+      "complexity": 2.975
+    },
+    {
+      "module": "backend\\modules\\digital_twin_monitoring.py",
+      "patterns": 1,
+      "effort": 0.8,
+      "impact": 2.8,
+      "complexity": 3.65
+    },
+    {
+      "module": "backend\\modules\\simple_tectonic_demo.py",
+      "patterns": 1,
+      "effort": 0.3,
+      "impact": 2.6,
+      "complexity": 1.8975000000000002
+    },
+    {
+      "module": "backend\\modules\\tectonic_setting_database.py",
+      "patterns": 1,
+      "effort": 1.5,
+      "impact": 2.0,
+      "complexity": 5.0
+    },
+    {
+      "module": "backend\\scripts\\health_check.py",
+      "patterns": 2,
+      "effort": 0.4,
+      "impact": 2.6,
+      "complexity": 1.665
+    },
+    {
+      "module": "backend\\tests\\run_all_causal_tests.py",
+      "patterns": 4,
+      "effort": 0.5,
+      "impact": 2.7,
+      "complexity": 1.175
+    },
+    {
+      "module": "backend\\core\\real_data_connectors\\base_connector.py",
+      "patterns": 1,
+      "effort": 0.1,
+      "impact": 1.8,
+      "complexity": 1.5075
+    },
+    {
+      "module": "backend\\core\\real_data_connectors\\geochem_connector.py",
+      "patterns": 1,
+      "effort": 0.3,
+      "impact": 2.0,
+      "complexity": 2.4575
+    }
+  ]
+}

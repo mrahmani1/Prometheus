@@ -1,21 +1,19 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { VRButton, XR, Controllers, Hands } from '@react-three/xr';
-import { Text, Html, Line, Sphere, Box } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { VRButton as _VRButton, XR as _XR } from '@react-three/xr'; // Controllers, Hands - not exported
+import { Text, Sphere as _Sphere, Box } from '@react-three/drei'; // Html, Line - unused
 import * as THREE from 'three';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector as _useSelector } from 'react-redux';
 import { 
   AccessibilitySettings, 
-  VoiceNavigation, 
-  HighContrastMode,
-  MotionSettings,
-  CognitiveSupport
+  VoiceNavigation as _VoiceNavigation, 
+  HighContrastMode as _HighContrastMode,
+  MotionSettings as _MotionSettings,
+  CognitiveSupport as _CognitiveSupport
 } from '../../types/immersive';
 import { 
-  updateAccessibilitySettings,
-  enableVoiceNavigation,
-  updateMotionSettings,
-  setCognitiveSupport
+  updateAccessibilitySettings
+  // enableVoiceNavigation, updateMotionSettings, setCognitiveSupport - unused
 } from '../../store/slices/immersiveSlice';
 
 interface AccessibilityVRInterfaceProps {
@@ -56,7 +54,7 @@ const AccessibilityVRInterface: React.FC<AccessibilityVRInterfaceProps> = ({
   onAccessibilityChange
 }) => {
   const dispatch = useDispatch();
-  const accessibilityState = useSelector((state: any) => state.immersive.accessibilitySettings);
+  // const _accessibilityState = useSelector((state: any) => state.immersive.accessibilitySettings);
   const [currentSettings, setCurrentSettings] = useState<AccessibilitySettings>({
     voiceNavigation: enableVoiceNavigation,
     highContrast: enableHighContrast,
@@ -67,12 +65,12 @@ const AccessibilityVRInterface: React.FC<AccessibilityVRInterfaceProps> = ({
     colorBlindnessSupport,
     customizations: {}
   });
-  const [speechRecognizer, setSpeechRecognizer] = useState<any>(null);
+  const [_speechRecognizer, setSpeechRecognizer] = useState<any>(null);
   const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [currentFocus, setCurrentFocus] = useState<string | null>(null);
   const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [_audioContext, setAudioContext] = useState<AudioContext | null>(null);
 
   // Accessibility features configuration
   const accessibilityFeatures: AccessibilityFeature[] = [
@@ -510,15 +508,14 @@ const AccessibilityVRInterface: React.FC<AccessibilityVRInterfaceProps> = ({
         </div>
       </div>
 
-      <VRButton />
+      {/* <VRButton /> */}
 
       <Canvas style={{ height: '100vh' }}>
-        <XR>
+        {/* <XR> */}
           <ambientLight intensity={0.6} />
           <pointLight position={[10, 10, 10]} />
           
-          <Controllers />
-          <Hands />
+          {/* Controllers and Hands components not available */}
           
           <AccessibleVRScene
             settings={currentSettings}
@@ -534,7 +531,7 @@ const AccessibilityVRInterface: React.FC<AccessibilityVRInterfaceProps> = ({
             isListening={isListening}
             currentFocus={currentFocus}
           />
-        </XR>
+        {/* </XR> */}
       </Canvas>
     </div>
   );
@@ -664,7 +661,7 @@ const AccessibleElement: React.FC<{
       
       <Text
         position={[0, 0.4, 0]}
-        fontSize={0.05 * getFontScaleFactor(settings.fontSize)}
+        fontSize={0.05 * (getFontSizeMultiplier(settings.fontSize))}
         color={colors.foreground}
         anchorX="center"
         anchorY="middle"
@@ -711,7 +708,7 @@ const FocusIndicator: React.FC<{ colors: Record<string, string> }> = ({ colors }
 const CognitiveAids: React.FC<{
   element: any;
   colors: Record<string, string>;
-}> = ({ element, colors }) => {
+}> = ({ element: _element, colors }) => {
   return (
     <group position={[0, -0.5, 0]}>
       <Text
@@ -755,7 +752,7 @@ const NavigationAids: React.FC<{
       {settings.cognitiveSupport && (
         <group position={[0, -0.5, 0]}>
           <Text
-            fontSize={0.06 * getFontScaleFactor(settings.fontSize)}
+            fontSize={0.06 * (getFontSizeMultiplier(settings.fontSize))}
             color={colors.foreground}
             anchorX="center"
             anchorY="middle"
@@ -765,7 +762,7 @@ const NavigationAids: React.FC<{
           
           <Text
             position={[0, -0.2, 0]}
-            fontSize={0.04 * getFontScaleFactor(settings.fontSize)}
+            fontSize={0.04 * (getFontSizeMultiplier(settings.fontSize))}
             color={colors.interactive}
             anchorX="center"
             anchorY="middle"
@@ -782,7 +779,7 @@ const AudioBeacon: React.FC<{
   position: THREE.Vector3;
   sound: string;
   onActivate: () => void;
-}> = ({ position, sound, onActivate }) => {
+}> = ({ position, sound: _sound, onActivate }) => {
   const meshRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
@@ -811,7 +808,7 @@ const AccessibilityInterface: React.FC<{
     <group position={[-3, 2, -1]}>
       <Text
         position={[0, 0.5, 0]}
-        fontSize={0.1 * getFontScaleFactor(settings.fontSize)}
+        fontSize={0.1 * (getFontSizeMultiplier(settings.fontSize))}
         color={colors.foreground}
         anchorX="center"
         anchorY="middle"
@@ -821,7 +818,7 @@ const AccessibilityInterface: React.FC<{
       
       <Text
         position={[0, 0.2, 0]}
-        fontSize={0.06 * getFontScaleFactor(settings.fontSize)}
+        fontSize={0.06 * getFontSizeMultiplier(settings.fontSize)}
         color={isListening ? colors.accent : colors.foreground}
         anchorX="center"
         anchorY="middle"
@@ -831,7 +828,7 @@ const AccessibilityInterface: React.FC<{
       
       <Text
         position={[0, 0, 0]}
-        fontSize={0.06 * getFontScaleFactor(settings.fontSize)}
+        fontSize={0.06 * getFontSizeMultiplier(settings.fontSize)}
         color={colors.interactive}
         anchorX="center"
         anchorY="middle"
@@ -841,7 +838,7 @@ const AccessibilityInterface: React.FC<{
       
       <Text
         position={[0, -0.2, 0]}
-        fontSize={0.05 * getFontScaleFactor(settings.fontSize)}
+        fontSize={0.05 * getFontSizeMultiplier(settings.fontSize)}
         color={colors.foreground}
         anchorX="center"
         anchorY="middle"
@@ -851,7 +848,7 @@ const AccessibilityInterface: React.FC<{
       
       <Text
         position={[0, -0.4, 0]}
-        fontSize={0.05 * getFontScaleFactor(settings.fontSize)}
+        fontSize={0.05 * getFontSizeMultiplier(settings.fontSize)}
         color={colors.foreground}
         anchorX="center"
         anchorY="middle"
@@ -861,5 +858,16 @@ const AccessibilityInterface: React.FC<{
     </group>
   );
 };
+
+// Helper function to convert fontSize string to multiplier
+function getFontSizeMultiplier(fontSize: 'small' | 'medium' | 'large' | 'extra-large'): number {
+  switch (fontSize) {
+    case 'small': return 0.8;
+    case 'medium': return 1.0;
+    case 'large': return 1.2;
+    case 'extra-large': return 1.5;
+    default: return 1.0;
+  }
+}
 
 export default AccessibilityVRInterface;

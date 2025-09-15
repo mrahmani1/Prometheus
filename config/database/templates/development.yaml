@@ -1,0 +1,174 @@
+# Development Environment Database Configuration Template
+
+postgresql:
+  host: "${POSTGRES_HOST:localhost}"
+  port: "${POSTGRES_PORT:5432}"
+  database: "${POSTGRES_DB:prometheus_dev}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  pool_config:
+    min_connections: 2
+    max_connections: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+    pool_pre_ping: true
+    retry_attempts: 3
+    retry_delay: 1.0
+    health_check_interval: 300
+  tags:
+    environment: development
+    purpose: primary_database
+  metadata:
+    description: "Primary PostgreSQL database for development"
+    maintainer: "prometheus-dev-team"
+
+influxdb:
+  host: "${INFLUXDB_HOST:localhost}"
+  port: "${INFLUXDB_PORT:8086}"
+  database: "${INFLUXDB_BUCKET:geological_data_dev}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  tags:
+    environment: development
+    purpose: time_series_data
+  metadata:
+    description: "InfluxDB for time-series geological data in development"
+    retention_policy: "30d"
+    org: "${INFLUXDB_ORG:prometheus_dev}"
+
+neo4j:
+  host: "${NEO4J_HOST:localhost}"
+  port: "${NEO4J_PORT:7687}"
+  database: "${NEO4J_DATABASE:neo4j}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  pool_config:
+    min_connections: 2
+    max_connections: 10
+    max_overflow: 15
+    pool_timeout: 30
+    pool_recycle: 3600
+    pool_pre_ping: true
+    retry_attempts: 3
+    retry_delay: 1.0
+    health_check_interval: 300
+  tags:
+    environment: development
+    purpose: graph_database
+  metadata:
+    description: "Neo4j graph database for causal relationships in development"
+
+redis:
+  host: "${REDIS_HOST:localhost}"
+  port: "${REDIS_PORT:6379}"
+  database: "${REDIS_DB:0}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  pool_config:
+    min_connections: 2
+    max_connections: 10
+    max_overflow: 15
+    pool_timeout: 30
+    pool_recycle: 3600
+    pool_pre_ping: true
+    retry_attempts: 3
+    retry_delay: 1.0
+    health_check_interval: 300
+  tags:
+    environment: development
+    purpose: cache_session_store
+  metadata:
+    description: "Redis cache and session store for development"
+
+timescaledb:
+  host: "${TIMESCALEDB_HOST:localhost}"
+  port: "${TIMESCALEDB_PORT:5432}"
+  database: "${TIMESCALEDB_DB:prometheus_timeseries_dev}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  pool_config:
+    min_connections: 2
+    max_connections: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+    pool_pre_ping: true
+    retry_attempts: 3
+    retry_delay: 1.0
+    health_check_interval: 300
+  tags:
+    environment: development
+    purpose: time_series_relational
+  metadata:
+    description: "TimescaleDB for high-performance time-series data in development"
+
+mongodb:
+  host: "${MONGODB_HOST:localhost}"
+  port: "${MONGODB_PORT:27017}"
+  database: "${MONGODB_DB:prometheus_documents_dev}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  pool_config:
+    min_connections: 2
+    max_connections: 10
+    max_overflow: 15
+    pool_timeout: 30
+    pool_recycle: 3600
+    pool_pre_ping: true
+    retry_attempts: 3
+    retry_delay: 1.0
+    health_check_interval: 300
+  tags:
+    environment: development
+    purpose: document_store
+  metadata:
+    description: "MongoDB document store for flexible data in development"
+
+elasticsearch:
+  host: "${ELASTICSEARCH_HOST:localhost}"
+  port: "${ELASTICSEARCH_PORT:9200}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  tags:
+    environment: development
+    purpose: search_analytics
+  metadata:
+    description: "Elasticsearch for search and analytics in development"
+    index_prefix: "prometheus_dev"
+
+kafka:
+  host: "${KAFKA_HOST:localhost}"
+  port: "${KAFKA_PORT:9092}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  tags:
+    environment: development
+    purpose: message_streaming
+  metadata:
+    description: "Kafka for real-time data streaming in development"
+    topic_prefix: "prometheus_dev"

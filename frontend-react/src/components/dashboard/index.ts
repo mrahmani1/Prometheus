@@ -1,7 +1,7 @@
 // Dashboard Components
 export { DashboardLayout } from './DashboardLayout';
 export { AlertManager } from './AlertManager';
-export { UserPreferencesComponent as UserPreferences } from './UserPreferences';
+export { UserPreferencesComponent } from './UserPreferences';
 export { default as ComprehensiveCausalDashboard } from './ComprehensiveCausalDashboard';
 
 // Re-export dashboard types

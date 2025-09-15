@@ -1,0 +1,210 @@
+# Staging Environment Database Configuration Template
+
+postgresql:
+  host: "${POSTGRES_HOST}"
+  port: "${POSTGRES_PORT:5432}"
+  database: "${POSTGRES_DB:prometheus_staging}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${POSTGRES_SSL_CA_PATH:/etc/ssl/certs/postgres-ca.crt}"
+  timeout: 30
+  read_timeout: 90
+  write_timeout: 90
+  pool_config:
+    min_connections: 5
+    max_connections: 25
+    max_overflow: 50
+    pool_timeout: 45
+    pool_recycle: 2700
+    pool_pre_ping: true
+    retry_attempts: 4
+    retry_delay: 1.5
+    health_check_interval: 120
+  tags:
+    environment: staging
+    purpose: primary_database
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Primary PostgreSQL database for staging"
+    maintainer: "prometheus-staging-team"
+    backup_schedule: "0 3 * * *"
+
+influxdb:
+  host: "${INFLUXDB_HOST}"
+  port: "${INFLUXDB_PORT:8086}"
+  database: "${INFLUXDB_BUCKET:geological_data_staging}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${INFLUXDB_SSL_CA_PATH:/etc/ssl/certs/influxdb-ca.crt}"
+  timeout: 45
+  read_timeout: 120
+  write_timeout: 120
+  tags:
+    environment: staging
+    purpose: time_series_data
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "InfluxDB for time-series geological data in staging"
+    retention_policy: "90d"
+    org: "${INFLUXDB_ORG:prometheus_staging}"
+    backup_schedule: "0 4 * * *"
+
+neo4j:
+  host: "${NEO4J_HOST}"
+  port: "${NEO4J_PORT:7687}"
+  database: "${NEO4J_DATABASE:neo4j}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${NEO4J_SSL_CA_PATH:/etc/ssl/certs/neo4j-ca.crt}"
+  timeout: 45
+  read_timeout: 120
+  write_timeout: 120
+  pool_config:
+    min_connections: 5
+    max_connections: 25
+    max_overflow: 40
+    pool_timeout: 45
+    pool_recycle: 2700
+    pool_pre_ping: true
+    retry_attempts: 4
+    retry_delay: 1.5
+    health_check_interval: 120
+  tags:
+    environment: staging
+    purpose: graph_database
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Neo4j graph database for causal relationships in staging"
+    backup_schedule: "0 5 * * *"
+
+redis:
+  host: "${REDIS_HOST}"
+  port: "${REDIS_PORT:6379}"
+  database: "${REDIS_DB:0}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${REDIS_SSL_CA_PATH:/etc/ssl/certs/redis-ca.crt}"
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  pool_config:
+    min_connections: 5
+    max_connections: 25
+    max_overflow: 40
+    pool_timeout: 45
+    pool_recycle: 2700
+    pool_pre_ping: true
+    retry_attempts: 4
+    retry_delay: 1.5
+    health_check_interval: 120
+  tags:
+    environment: staging
+    purpose: cache_session_store
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Redis cache and session store for staging"
+    persistence_enabled: true
+    backup_schedule: "0 2 * * *"
+
+timescaledb:
+  host: "${TIMESCALEDB_HOST}"
+  port: "${TIMESCALEDB_PORT:5432}"
+  database: "${TIMESCALEDB_DB:prometheus_timeseries_staging}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${TIMESCALEDB_SSL_CA_PATH:/etc/ssl/certs/timescaledb-ca.crt}"
+  timeout: 45
+  read_timeout: 120
+  write_timeout: 120
+  pool_config:
+    min_connections: 8
+    max_connections: 35
+    max_overflow: 70
+    pool_timeout: 45
+    pool_recycle: 2700
+    pool_pre_ping: true
+    retry_attempts: 4
+    retry_delay: 1.5
+    health_check_interval: 120
+  tags:
+    environment: staging
+    purpose: time_series_relational
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "TimescaleDB for high-performance time-series data in staging"
+    compression_enabled: true
+    backup_schedule: "0 3 * * *"
+
+mongodb:
+  host: "${MONGODB_HOST}"
+  port: "${MONGODB_PORT:27017}"
+  database: "${MONGODB_DB:prometheus_documents_staging}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${MONGODB_SSL_CA_PATH:/etc/ssl/certs/mongodb-ca.crt}"
+  timeout: 45
+  read_timeout: 120
+  write_timeout: 120
+  pool_config:
+    min_connections: 5
+    max_connections: 25
+    max_overflow: 40
+    pool_timeout: 45
+    pool_recycle: 2700
+    pool_pre_ping: true
+    retry_attempts: 4
+    retry_delay: 1.5
+    health_check_interval: 120
+  tags:
+    environment: staging
+    purpose: document_store
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "MongoDB document store for flexible data in staging"
+    replica_set: "${MONGODB_REPLICA_SET:prometheus-staging-rs}"
+    backup_schedule: "0 4 * * *"
+
+elasticsearch:
+  host: "${ELASTICSEARCH_HOST}"
+  port: "${ELASTICSEARCH_PORT:9200}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${ELASTICSEARCH_SSL_CA_PATH:/etc/ssl/certs/elasticsearch-ca.crt}"
+  timeout: 45
+  read_timeout: 120
+  write_timeout: 120
+  tags:
+    environment: staging
+    purpose: search_analytics
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Elasticsearch for search and analytics in staging"
+    index_prefix: "prometheus_staging"
+    cluster_name: "${ELASTICSEARCH_CLUSTER:prometheus-staging-cluster}"
+    backup_schedule: "0 5 * * *"
+
+kafka:
+  host: "${KAFKA_HOST}"
+  port: "${KAFKA_PORT:9092}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${KAFKA_SSL_CA_PATH:/etc/ssl/certs/kafka-ca.crt}"
+  timeout: 45
+  read_timeout: 120
+  write_timeout: 120
+  tags:
+    environment: staging
+    purpose: message_streaming
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Kafka for real-time data streaming in staging"
+    topic_prefix: "prometheus_staging"
+    replication_factor: 2

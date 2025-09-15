@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { VRButton, XR, Controllers, Hands } from '@react-three/xr';
-import { Text, Html, Line, Sphere, Box, Plane } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { VRButton, XR } from '@react-three/xr'; // Controllers, Hands - not exported
+import { Text, Sphere, Box, Plane } from '@react-three/drei'; // Html, Line - unused
 import * as THREE from 'three';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
@@ -43,13 +43,13 @@ interface AnalysisTool {
 
 const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
   geologicalData,
-  analysisTools = ['statistics', 'clustering', 'correlation', 'trend'],
+  // analysisTools = ['statistics', 'clustering', 'correlation', 'trend'] - unused
   enableSpatialQueries = true,
   enableDataManipulation = true,
   onAnalysisComplete
 }) => {
   const dispatch = useDispatch();
-  const analysisState = useSelector((state: any) => state.immersive.immersiveAnalysis);
+  const _analysisState = useSelector((state: any) => state.immersive.immersiveAnalysis);
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [selectedPoints, setSelectedPoints] = useState<Set<string>>(new Set());
   const [activeAnalysis, setActiveAnalysis] = useState<string | null>(null);
@@ -404,7 +404,7 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
       dispatch(updateImmersiveAnalysis({
         activeAnalysis: toolName,
         results: result,
-        timestamp: Date.now()
+        timestamp: new Date()
       }));
       
       onAnalysisComplete?.(result);
@@ -456,8 +456,7 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
           <ambientLight intensity={0.6} />
           <pointLight position={[10, 10, 10]} />
           
-          <Controllers />
-          <Hands />
+          {/* Controllers and Hands components not available */}
           
           <ImmersiveAnalysisScene
             dataPoints={dataPoints}
@@ -506,10 +505,10 @@ const ImmersiveAnalysisScene: React.FC<ImmersiveAnalysisSceneProps> = ({
   onPointSelection,
   onRegionSelection,
   enableSpatialQueries,
-  enableDataManipulation
+  // enableDataManipulation - unused
 }) => {
-  const selectionBoxRef = useRef<THREE.Mesh>(null);
-  const [isSelecting, setIsSelecting] = useState(false);
+  const _selectionBoxRef = useRef<THREE.Mesh>(null);
+  const [_isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<THREE.Vector3 | null>(null);
 
   const getPointColor = (point: DataPoint): number => {

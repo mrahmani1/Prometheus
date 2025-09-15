@@ -599,7 +599,7 @@ export const UserPreferencesComponent: React.FC<UserPreferencesProps> = ({
               </Typography>
               <Slider
                 value={localPreferences.performance.maxDataPoints}
-                onChange={(_, value) => handlePreferenceChange('performance.maxDataPoints', value)}
+                onChange={(_: Event, value: number | number[]) => handlePreferenceChange('performance.maxDataPoints', value)}
                 min={100}
                 max={100000}
                 step={100}
@@ -632,7 +632,7 @@ export const UserPreferencesComponent: React.FC<UserPreferencesProps> = ({
               </Typography>
               <Slider
                 value={localPreferences.performance.cacheSize}
-                onChange={(_, value) => handlePreferenceChange('performance.cacheSize', value)}
+                onChange={(_: Event, value: number | number[]) => handlePreferenceChange('performance.cacheSize', value)}
                 min={10}
                 max={1000}
                 step={10}
@@ -731,11 +731,9 @@ export const UserPreferencesComponent: React.FC<UserPreferencesProps> = ({
         autoHideDuration={3000}
         onClose={() => setNotification(null)}
       >
-        {notification && (
-          <Alert severity={notification.severity} onClose={() => setNotification(null)}>
-            {notification.message}
-          </Alert>
-        )}
+        <Alert severity={notification?.severity || 'info'} onClose={() => setNotification(null)}>
+          {notification?.message || ''}
+        </Alert>
       </Snackbar>
     </Box>
   );

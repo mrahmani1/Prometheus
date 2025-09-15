@@ -1,0 +1,232 @@
+# Production Environment Database Configuration Template
+
+postgresql:
+  host: "${POSTGRES_HOST}"
+  port: "${POSTGRES_PORT:5432}"
+  database: "${POSTGRES_DB:prometheus_prod}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${POSTGRES_SSL_CA_PATH:/etc/ssl/certs/postgres-ca.crt}"
+  ssl_cert_path: "${POSTGRES_SSL_CERT_PATH:/etc/ssl/certs/postgres-client.crt}"
+  ssl_key_path: "${POSTGRES_SSL_KEY_PATH:/etc/ssl/private/postgres-client.key}"
+  timeout: 30
+  read_timeout: 120
+  write_timeout: 120
+  pool_config:
+    min_connections: 10
+    max_connections: 50
+    max_overflow: 100
+    pool_timeout: 60
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 5
+    retry_delay: 2.0
+    health_check_interval: 60
+  tags:
+    environment: production
+    purpose: primary_database
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Primary PostgreSQL database for production"
+    maintainer: "prometheus-ops-team"
+    backup_schedule: "0 2 * * *"
+    monitoring_alerts: true
+
+influxdb:
+  host: "${INFLUXDB_HOST}"
+  port: "${INFLUXDB_PORT:8086}"
+  database: "${INFLUXDB_BUCKET:geological_data_prod}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${INFLUXDB_SSL_CA_PATH:/etc/ssl/certs/influxdb-ca.crt}"
+  timeout: 60
+  read_timeout: 180
+  write_timeout: 180
+  tags:
+    environment: production
+    purpose: time_series_data
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "InfluxDB for time-series geological data in production"
+    retention_policy: "1y"
+    org: "${INFLUXDB_ORG:prometheus_prod}"
+    backup_schedule: "0 3 * * *"
+    monitoring_alerts: true
+
+neo4j:
+  host: "${NEO4J_HOST}"
+  port: "${NEO4J_PORT:7687}"
+  database: "${NEO4J_DATABASE:neo4j}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${NEO4J_SSL_CA_PATH:/etc/ssl/certs/neo4j-ca.crt}"
+  ssl_cert_path: "${NEO4J_SSL_CERT_PATH:/etc/ssl/certs/neo4j-client.crt}"
+  ssl_key_path: "${NEO4J_SSL_KEY_PATH:/etc/ssl/private/neo4j-client.key}"
+  timeout: 60
+  read_timeout: 180
+  write_timeout: 180
+  pool_config:
+    min_connections: 10
+    max_connections: 50
+    max_overflow: 75
+    pool_timeout: 60
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 5
+    retry_delay: 2.0
+    health_check_interval: 60
+  tags:
+    environment: production
+    purpose: graph_database
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Neo4j graph database for causal relationships in production"
+    backup_schedule: "0 4 * * *"
+    monitoring_alerts: true
+
+redis:
+  host: "${REDIS_HOST}"
+  port: "${REDIS_PORT:6379}"
+  database: "${REDIS_DB:0}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${REDIS_SSL_CA_PATH:/etc/ssl/certs/redis-ca.crt}"
+  ssl_cert_path: "${REDIS_SSL_CERT_PATH:/etc/ssl/certs/redis-client.crt}"
+  ssl_key_path: "${REDIS_SSL_KEY_PATH:/etc/ssl/private/redis-client.key}"
+  timeout: 30
+  read_timeout: 60
+  write_timeout: 60
+  pool_config:
+    min_connections: 10
+    max_connections: 50
+    max_overflow: 75
+    pool_timeout: 60
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 5
+    retry_delay: 2.0
+    health_check_interval: 60
+  tags:
+    environment: production
+    purpose: cache_session_store
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Redis cache and session store for production"
+    persistence_enabled: true
+    backup_schedule: "0 1 * * *"
+    monitoring_alerts: true
+
+timescaledb:
+  host: "${TIMESCALEDB_HOST}"
+  port: "${TIMESCALEDB_PORT:5432}"
+  database: "${TIMESCALEDB_DB:prometheus_timeseries_prod}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${TIMESCALEDB_SSL_CA_PATH:/etc/ssl/certs/timescaledb-ca.crt}"
+  ssl_cert_path: "${TIMESCALEDB_SSL_CERT_PATH:/etc/ssl/certs/timescaledb-client.crt}"
+  ssl_key_path: "${TIMESCALEDB_SSL_KEY_PATH:/etc/ssl/private/timescaledb-client.key}"
+  timeout: 60
+  read_timeout: 180
+  write_timeout: 180
+  pool_config:
+    min_connections: 15
+    max_connections: 75
+    max_overflow: 150
+    pool_timeout: 60
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 5
+    retry_delay: 2.0
+    health_check_interval: 60
+  tags:
+    environment: production
+    purpose: time_series_relational
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "TimescaleDB for high-performance time-series data in production"
+    compression_enabled: true
+    backup_schedule: "0 2 * * *"
+    monitoring_alerts: true
+
+mongodb:
+  host: "${MONGODB_HOST}"
+  port: "${MONGODB_PORT:27017}"
+  database: "${MONGODB_DB:prometheus_documents_prod}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${MONGODB_SSL_CA_PATH:/etc/ssl/certs/mongodb-ca.crt}"
+  ssl_cert_path: "${MONGODB_SSL_CERT_PATH:/etc/ssl/certs/mongodb-client.crt}"
+  ssl_key_path: "${MONGODB_SSL_KEY_PATH:/etc/ssl/private/mongodb-client.key}"
+  timeout: 60
+  read_timeout: 180
+  write_timeout: 180
+  pool_config:
+    min_connections: 10
+    max_connections: 50
+    max_overflow: 75
+    pool_timeout: 60
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 5
+    retry_delay: 2.0
+    health_check_interval: 60
+  tags:
+    environment: production
+    purpose: document_store
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "MongoDB document store for flexible data in production"
+    replica_set: "${MONGODB_REPLICA_SET:prometheus-rs}"
+    backup_schedule: "0 3 * * *"
+    monitoring_alerts: true
+
+elasticsearch:
+  host: "${ELASTICSEARCH_HOST}"
+  port: "${ELASTICSEARCH_PORT:9200}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${ELASTICSEARCH_SSL_CA_PATH:/etc/ssl/certs/elasticsearch-ca.crt}"
+  ssl_cert_path: "${ELASTICSEARCH_SSL_CERT_PATH:/etc/ssl/certs/elasticsearch-client.crt}"
+  ssl_key_path: "${ELASTICSEARCH_SSL_KEY_PATH:/etc/ssl/private/elasticsearch-client.key}"
+  timeout: 60
+  read_timeout: 180
+  write_timeout: 180
+  tags:
+    environment: production
+    purpose: search_analytics
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Elasticsearch for search and analytics in production"
+    index_prefix: "prometheus_prod"
+    cluster_name: "${ELASTICSEARCH_CLUSTER:prometheus-cluster}"
+    backup_schedule: "0 4 * * *"
+    monitoring_alerts: true
+
+kafka:
+  host: "${KAFKA_HOST}"
+  port: "${KAFKA_PORT:9092}"
+  ssl_enabled: true
+  ssl_verify: true
+  ssl_ca_path: "${KAFKA_SSL_CA_PATH:/etc/ssl/certs/kafka-ca.crt}"
+  ssl_cert_path: "${KAFKA_SSL_CERT_PATH:/etc/ssl/certs/kafka-client.crt}"
+  ssl_key_path: "${KAFKA_SSL_KEY_PATH:/etc/ssl/private/kafka-client.key}"
+  timeout: 60
+  read_timeout: 180
+  write_timeout: 180
+  tags:
+    environment: production
+    purpose: message_streaming
+    backup_enabled: true
+    monitoring_enabled: true
+  metadata:
+    description: "Kafka for real-time data streaming in production"
+    topic_prefix: "prometheus_prod"
+    replication_factor: 3
+    monitoring_alerts: true

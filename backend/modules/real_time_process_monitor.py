@@ -4,12 +4,15 @@ Real-Time Process Monitor for Geological Systems
 This module implements a comprehensive real-time monitoring system for geological processes
 with causal context, streaming data visualization, alert generation, and anomaly detection.
 Designed for production-grade volcanic and seismic monitoring with advanced causal analysis.
+
+All simulated data has been replaced with real geological data sources.
+Requirements: 6.1, 6.2, 6.4, 8.3
 """
 
 import asyncio
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any, AsyncIterator, Tuple, Set
 from dataclasses import dataclass, field
 from enum import Enum
@@ -24,12 +27,14 @@ from sklearn.preprocessing import StandardScaler
 import threading
 from scipy import stats
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
-import redis
-import asyncpg
-from influxdb_client import InfluxDBClient
-from influxdb_client.client.write_api import SYNCHRONOUS
-import aiohttp
+import os
+import sys
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from core.database_manager import get_database_manager, DatabaseType
+from core.real_data_connectors import get_real_data_connector_manager, GeologicalObservation, DataSourceType
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +53,7 @@ class ProcessType(Enum):
     VOLCANIC = "volcanic"
     DEFORMATION = "deformation"
     GEOCHEMICAL = "geochemical"
+    THERMAL = "thermal"
     THERMAL = "thermal"
     ELECTROMAGNETIC = "electromagnetic"
 
@@ -268,39 +274,56 @@ class RealTimeProcessMonitor:
         data_points = []
         
         try:
-            # Initialize data connectors if not already done
-            if not hasattr(self, '_data_connectors'):
-                await self._initialize_data_connectors()
+            # Get real data connector manager
+            connector_manager = await get_real_data_connector_manager()
             
-            # Fetch from all active data sources concurrently
-            tasks = []
+            # Get database manager for caching
+            db_manager = await get_database_manager()
             
-            # IRIS/EarthScope seismic data
-            if 'iris' in self._data_connectors:
-                tasks.append(self._fetch_iris_data())
+            # Define time window for real-time data (last 10 minutes)
+            end_time = datetime.now(timezone.utc)
+            start_time = end_time - timedelta(minutes=10)
             
-            # USGS Volcano Hazards Program
-            if 'usgs_volcano' in self._data_connectors:
-                tasks.append(self._fetch_usgs_volcanic_data())
+            # Fetch from all available real data sources
+            all_data = await connector_manager.fetch_all_data(
+                start_time=start_time,
+                end_time=end_time,
+                latitude=self.config.get('monitoring_center_lat', 40.0),
+                longitude=self.config.get('monitoring_center_lon', -120.0),
+                radius_km=self.config.get('monitoring_radius_km', 500)
+            )
             
-            # USGS Earthquake data
-            if 'usgs_earthquake' in self._data_connectors:
-                tasks.append(self._fetch_usgs_earthquake_data())
+            # Convert observations to data points
+            for data_type, observations in all_data.items():
+                for observation in observations:
+                    data_point = self._convert_observation_to_datapoint(observation)
+                    if data_point:
+                        data_points.append(data_point)
+                        
+                        # Cache data point in Redis for fast access
+                        cache_key = f"realtime_data:{data_point.station_id}:{data_point.timestamp.isoformat()}"
+                        await db_manager.cache_set('redis', cache_key, {
+                            'timestamp': data_point.timestamp.isoformat(),
+                            'process_type': data_point.process_type.value,
+                            'parameters': data_point.parameters,
+                            'location': data_point.location,
+                            'quality_score': data_point.quality_score
+                        }, ttl=3600)  # Cache for 1 hour
+                        
+                        # Store in InfluxDB for time-series analysis
+                        await db_manager.write_time_series(
+                            'influxdb',
+                            measurement='geological_observation',
+                            tags={
+                                'station_id': data_point.station_id,
+                                'process_type': data_point.process_type.value,
+                                'source_id': data_point.source_id
+                            },
+                            fields=data_point.parameters,
+                            timestamp=data_point.timestamp
+                        )
             
-            # GeoNet (New Zealand) data
-            if 'geonet' in self._data_connectors:
-                tasks.append(self._fetch_geonet_data())
-            
-            # Execute all data fetching tasks concurrently
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # Process results and collect data points
-            for result in results:
-                if isinstance(result, Exception):
-                    logger.error(f"Data fetch error: {result}")
-                elif isinstance(result, list):
-                    data_points.extend(result)
-            
+            logger.info(f"Fetched {len(data_points)} real-time data points from {len(all_data)} sources")
             return data_points
             
         except Exception as e:
@@ -519,37 +542,53 @@ class RealTimeProcessMonitor:
         
         return data_points
     
-    def _convert_observation_to_datapoint(self, observation, process_type: ProcessType) -> Optional[GeologicalDataPoint]:
+    def _convert_observation_to_datapoint(self, observation: GeologicalObservation) -> Optional[GeologicalDataPoint]:
         """Convert GeologicalObservation to GeologicalDataPoint format"""
         try:
-            # Extract processing latency from metadata or estimate
-            processing_latency = observation.metadata.get('processing_latency', 0.5)
+            # Map data source type to process type
+            process_type_mapping = {
+                DataSourceType.SEISMIC: ProcessType.SEISMIC,
+                DataSourceType.VOLCANIC: ProcessType.VOLCANIC,
+                DataSourceType.DEFORMATION: ProcessType.DEFORMATION,
+                DataSourceType.GEOCHEMICAL: ProcessType.GEOCHEMICAL,
+                DataSourceType.THERMAL: ProcessType.THERMAL,
+                DataSourceType.SATELLITE: ProcessType.THERMAL
+            }
+            
+            process_type = process_type_mapping.get(observation.data_type, ProcessType.SEISMIC)
+            
+            # Extract processing latency from metadata or estimate based on source
+            processing_latency = 0.5  # Default
+            if observation.metadata:
+                processing_latency = observation.metadata.get('processing_latency', 0.5)
             
             # Calculate quality score based on uncertainty and quality flags
             quality_score = 1.0
             if observation.uncertainty:
-                quality_score *= max(0.1, 1.0 - observation.uncertainty)
+                # Average uncertainty across all parameters
+                avg_uncertainty = sum(observation.uncertainty.values()) / len(observation.uncertainty)
+                quality_score *= max(0.1, 1.0 - avg_uncertainty)
+            
             if observation.quality_flags:
                 quality_score *= max(0.1, 1.0 - len(observation.quality_flags) * 0.1)
             
             # Extract uncertainty information
-            uncertainty = {}
-            if observation.uncertainty:
-                # Map uncertainty to relevant parameters
-                if process_type == ProcessType.SEISMIC:
-                    uncertainty['magnitude'] = observation.uncertainty
-                elif process_type == ProcessType.VOLCANIC:
-                    uncertainty['measurement'] = observation.uncertainty
+            uncertainty = observation.uncertainty or {}
+            
+            # Generate station ID from observation
+            station_id = observation.observation_id
+            if observation.metadata and 'station_id' in observation.metadata:
+                station_id = observation.metadata['station_id']
             
             data_point = GeologicalDataPoint(
                 timestamp=observation.timestamp,
                 process_type=process_type,
-                station_id=observation.metadata.get('station_id', observation.observation_id),
+                station_id=station_id,
                 location=(observation.latitude, observation.longitude, observation.elevation or 0),
-                parameters=observation.value,
+                parameters=observation.parameters,
                 quality_score=quality_score,
                 uncertainty=uncertainty,
-                source_id=observation.data_source.lower().replace(' ', '_'),
+                source_id=observation.source.lower().replace(' ', '_').replace('/', '_'),
                 processing_latency=processing_latency
             )
             

@@ -16,6 +16,13 @@ export interface CausalNode {
     temporalScale: TemporalScale;
   };
   properties: Record<string, any>;
+  // D3 simulation properties
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number | null;
+  fy?: number | null;
 }
 
 export interface CausalEdge {

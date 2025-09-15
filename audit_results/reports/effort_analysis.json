@@ -1,0 +1,1089 @@
+{
+  "total_effort_hours": 15351.7,
+  "effort_by_priority": {
+    "immediate": {
+      "modules": 117,
+      "total_hours": 15152.0,
+      "average_hours": 129.5042735042735
+    },
+    "high": {
+      "modules": 37,
+      "total_hours": 187.6,
+      "average_hours": 5.07027027027027
+    },
+    "medium": {
+      "modules": 11,
+      "total_hours": 7.1,
+      "average_hours": 0.6454545454545454
+    },
+    "low": {
+      "modules": 11,
+      "total_hours": 5.0,
+      "average_hours": 0.45454545454545453
+    }
+  },
+  "effort_by_severity": {
+    "critical": 11858.650908838292,
+    "high": 1672.938432064785,
+    "medium": 1820.110659097211,
+    "low": 0
+  },
+  "effort_distribution": [
+    {
+      "module": "api.py",
+      "effort_hours": 25.3,
+      "patterns_count": 48,
+      "effort_per_pattern": 0.5270833333333333
+    },
+    {
+      "module": "comprehensive_simulated_data_auditor.py",
+      "effort_hours": 54.1,
+      "patterns_count": 62,
+      "effort_per_pattern": 0.8725806451612903
+    },
+    {
+      "module": "debug_bilinear_methods.py",
+      "effort_hours": 0.2,
+      "patterns_count": 5,
+      "effort_per_pattern": 0.04
+    },
+    {
+      "module": "demo_comprehensive_volcanic_systems.py",
+      "effort_hours": 0.5,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.25
+    },
+    {
+      "module": "demo_gvp_integration.py",
+      "effort_hours": 0.3,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.15
+    },
+    {
+      "module": "run_comprehensive_audit.py",
+      "effort_hours": 7.9,
+      "patterns_count": 18,
+      "effort_per_pattern": 0.4388888888888889
+    },
+    {
+      "module": "simple_validation.py",
+      "effort_hours": 0.1,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.1
+    },
+    {
+      "module": "test_comprehensive_auditor.py",
+      "effort_hours": 9.2,
+      "patterns_count": 46,
+      "effort_per_pattern": 0.19999999999999998
+    },
+    {
+      "module": "validate_database_implementation.py",
+      "effort_hours": 0.6,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.19999999999999998
+    },
+    {
+      "module": "validate_enhanced_coupling_performance.py",
+      "effort_hours": 3.8,
+      "patterns_count": 11,
+      "effort_per_pattern": 0.34545454545454546
+    },
+    {
+      "module": "validate_gis_syntax.py",
+      "effort_hours": 0.7,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.2333333333333333
+    },
+    {
+      "module": "validate_implementation.py",
+      "effort_hours": 0.1,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.05
+    },
+    {
+      "module": "validate_monitoring_network_registry.py",
+      "effort_hours": 0.2,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.1
+    },
+    {
+      "module": "validate_monitor_implementation.py",
+      "effort_hours": 1.6,
+      "patterns_count": 6,
+      "effort_per_pattern": 0.26666666666666666
+    },
+    {
+      "module": "validate_seismic_enhancement.py",
+      "effort_hours": 2.1,
+      "patterns_count": 12,
+      "effort_per_pattern": 0.17500000000000002
+    },
+    {
+      "module": "database_performance_dashboard.py",
+      "effort_hours": 0.3,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.3
+    },
+    {
+      "module": "hypothesis_testing_api.py",
+      "effort_hours": 3.1,
+      "patterns_count": 7,
+      "effort_per_pattern": 0.4428571428571429
+    },
+    {
+      "module": "database_backup_monitor.py",
+      "effort_hours": 22.5,
+      "patterns_count": 32,
+      "effort_per_pattern": 0.703125
+    },
+    {
+      "module": "database_config_manager.py",
+      "effort_hours": 4.3,
+      "patterns_count": 10,
+      "effort_per_pattern": 0.43
+    },
+    {
+      "module": "database_integration.py",
+      "effort_hours": 2.2,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.55
+    },
+    {
+      "module": "database_optimization_engine.py",
+      "effort_hours": 0.7,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.7
+    },
+    {
+      "module": "distributed_query_executor.py",
+      "effort_hours": 3.0,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.75
+    },
+    {
+      "module": "placeholder_audit_orchestrator.py",
+      "effort_hours": 0.6,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.3
+    },
+    {
+      "module": "placeholder_detection_engine.py",
+      "effort_hours": 33.3,
+      "patterns_count": 59,
+      "effort_per_pattern": 0.5644067796610169
+    },
+    {
+      "module": "real_data_connectors.py",
+      "effort_hours": 1.4,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.4666666666666666
+    },
+    {
+      "module": "replacement_tracking_system.py",
+      "effort_hours": 3.6,
+      "patterns_count": 9,
+      "effort_per_pattern": 0.4
+    },
+    {
+      "module": "3d_geological_modeler.py",
+      "effort_hours": 19.5,
+      "patterns_count": 22,
+      "effort_per_pattern": 0.8863636363636364
+    },
+    {
+      "module": "3d_magmatic_system_modeler.py",
+      "effort_hours": 235.1,
+      "patterns_count": 171,
+      "effort_per_pattern": 1.3748538011695906
+    },
+    {
+      "module": "adaptive_integration_support.py",
+      "effort_hours": 0.7,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.2333333333333333
+    },
+    {
+      "module": "adaptive_model_selection.py",
+      "effort_hours": 40.6,
+      "patterns_count": 30,
+      "effort_per_pattern": 1.3533333333333333
+    },
+    {
+      "module": "advanced_causal_discovery_suite.py",
+      "effort_hours": 25.1,
+      "patterns_count": 24,
+      "effort_per_pattern": 1.0458333333333334
+    },
+    {
+      "module": "advanced_changepoint_detection.py",
+      "effort_hours": 0.7,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.35
+    },
+    {
+      "module": "advanced_crystallographic_methods.py",
+      "effort_hours": 2.8,
+      "patterns_count": 6,
+      "effort_per_pattern": 0.4666666666666666
+    },
+    {
+      "module": "advanced_database_integration.py",
+      "effort_hours": 0.4,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.4
+    },
+    {
+      "module": "advanced_dimensionality_reduction.py",
+      "effort_hours": 54.2,
+      "patterns_count": 43,
+      "effort_per_pattern": 1.2604651162790699
+    },
+    {
+      "module": "advanced_dimensionality_reduction_helpers.py",
+      "effort_hours": 143.9,
+      "patterns_count": 106,
+      "effort_per_pattern": 1.3575471698113208
+    },
+    {
+      "module": "advanced_error_handling_validation.py",
+      "effort_hours": 0.7,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.7
+    },
+    {
+      "module": "advanced_geological_gat.py",
+      "effort_hours": 25.2,
+      "patterns_count": 37,
+      "effort_per_pattern": 0.681081081081081
+    },
+    {
+      "module": "advanced_magma_source_analysis.py",
+      "effort_hours": 162.2,
+      "patterns_count": 118,
+      "effort_per_pattern": 1.3745762711864407
+    },
+    {
+      "module": "advanced_methods.py",
+      "effort_hours": 17.4,
+      "patterns_count": 16,
+      "effort_per_pattern": 1.0875
+    },
+    {
+      "module": "advanced_ml_model_management.py",
+      "effort_hours": 72.1,
+      "patterns_count": 75,
+      "effort_per_pattern": 0.9613333333333333
+    },
+    {
+      "module": "advanced_ml_pipeline.py",
+      "effort_hours": 43.6,
+      "patterns_count": 34,
+      "effort_per_pattern": 1.2823529411764707
+    },
+    {
+      "module": "advanced_property_predictor.py",
+      "effort_hours": 37.5,
+      "patterns_count": 96,
+      "effort_per_pattern": 0.390625
+    },
+    {
+      "module": "advanced_testing_framework.py",
+      "effort_hours": 138.2,
+      "patterns_count": 102,
+      "effort_per_pattern": 1.3549019607843136
+    },
+    {
+      "module": "advanced_trace_element_analysis.py",
+      "effort_hours": 57.5,
+      "patterns_count": 43,
+      "effort_per_pattern": 1.3372093023255813
+    },
+    {
+      "module": "advanced_uncertainty_methods.py",
+      "effort_hours": 84.8,
+      "patterns_count": 83,
+      "effort_per_pattern": 1.0216867469879518
+    },
+    {
+      "module": "advanced_wavelet_analysis.py",
+      "effort_hours": 1.3,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.325
+    },
+    {
+      "module": "alteration_mapper_ml.py",
+      "effort_hours": 35.4,
+      "patterns_count": 29,
+      "effort_per_pattern": 1.2206896551724138
+    },
+    {
+      "module": "ambient_noise_engine.py",
+      "effort_hours": 154.5,
+      "patterns_count": 103,
+      "effort_per_pattern": 1.5
+    },
+    {
+      "module": "array_processor_ml.py",
+      "effort_hours": 574.8,
+      "patterns_count": 418,
+      "effort_per_pattern": 1.3751196172248803
+    },
+    {
+      "module": "autonomous_geoscience.py",
+      "effort_hours": 20.5,
+      "patterns_count": 18,
+      "effort_per_pattern": 1.1388888888888888
+    },
+    {
+      "module": "autonomous_geoscience_integration.py",
+      "effort_hours": 2.2,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.7333333333333334
+    },
+    {
+      "module": "caldera_system_classifier.py",
+      "effort_hours": 4.2,
+      "patterns_count": 5,
+      "effort_per_pattern": 0.8400000000000001
+    },
+    {
+      "module": "cap_rock_stability_analyzer.py",
+      "effort_hours": 141.0,
+      "patterns_count": 94,
+      "effort_per_pattern": 1.5
+    },
+    {
+      "module": "causal_analysis_helpers.py",
+      "effort_hours": 2.9,
+      "patterns_count": 11,
+      "effort_per_pattern": 0.2636363636363636
+    },
+    {
+      "module": "causal_inference_engine.py",
+      "effort_hours": 44.9,
+      "patterns_count": 35,
+      "effort_per_pattern": 1.282857142857143
+    },
+    {
+      "module": "causal_temporal_helpers.py",
+      "effort_hours": 2.5,
+      "patterns_count": 11,
+      "effort_per_pattern": 0.22727272727272727
+    },
+    {
+      "module": "causal_uncertainty_quantification.py",
+      "effort_hours": 24.4,
+      "patterns_count": 26,
+      "effort_per_pattern": 0.9384615384615385
+    },
+    {
+      "module": "causal_uncertainty_simple.py",
+      "effort_hours": 3.1,
+      "patterns_count": 19,
+      "effort_per_pattern": 0.1631578947368421
+    },
+    {
+      "module": "collaborative_analysis_engine.py",
+      "effort_hours": 3.3,
+      "patterns_count": 3,
+      "effort_per_pattern": 1.0999999999999999
+    },
+    {
+      "module": "comprehensive_logging_monitoring.py",
+      "effort_hours": 2.4,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.7999999999999999
+    },
+    {
+      "module": "comprehensive_volcanic_systems_database.py",
+      "effort_hours": 2.4,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.7999999999999999
+    },
+    {
+      "module": "coulomb_stress_modeler.py",
+      "effort_hours": 13.0,
+      "patterns_count": 12,
+      "effort_per_pattern": 1.0833333333333333
+    },
+    {
+      "module": "database_integration.py",
+      "effort_hours": 12.2,
+      "patterns_count": 10,
+      "effort_per_pattern": 1.22
+    },
+    {
+      "module": "data_integration_pipeline.py",
+      "effort_hours": 450.7,
+      "patterns_count": 347,
+      "effort_per_pattern": 1.2988472622478386
+    },
+    {
+      "module": "data_integration_pipeline_simple.py",
+      "effort_hours": 252.9,
+      "patterns_count": 224,
+      "effort_per_pattern": 1.129017857142857
+    },
+    {
+      "module": "deep_earth_ml.py",
+      "effort_hours": 36.8,
+      "patterns_count": 27,
+      "effort_per_pattern": 1.362962962962963
+    },
+    {
+      "module": "deformation_analyzer.py",
+      "effort_hours": 34.4,
+      "patterns_count": 26,
+      "effort_per_pattern": 1.323076923076923
+    },
+    {
+      "module": "demo_modular_system.py",
+      "effort_hours": 2.1,
+      "patterns_count": 13,
+      "effort_per_pattern": 0.16153846153846155
+    },
+    {
+      "module": "digital_twin_api.py",
+      "effort_hours": 60.0,
+      "patterns_count": 40,
+      "effort_per_pattern": 1.5
+    },
+    {
+      "module": "digital_twin_configuration.py",
+      "effort_hours": 3.2,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.8
+    },
+    {
+      "module": "digital_twin_data_management.py",
+      "effort_hours": 27.6,
+      "patterns_count": 38,
+      "effort_per_pattern": 0.7263157894736842
+    },
+    {
+      "module": "digital_twin_earth.py",
+      "effort_hours": 53.2,
+      "patterns_count": 40,
+      "effort_per_pattern": 1.33
+    },
+    {
+      "module": "digital_twin_integration.py",
+      "effort_hours": 0.5,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.5
+    },
+    {
+      "module": "digital_twin_monitoring.py",
+      "effort_hours": 0.8,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.8
+    },
+    {
+      "module": "digital_twin_multiuser.py",
+      "effort_hours": 1.4,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.7
+    },
+    {
+      "module": "digital_twin_performance_optimization.py",
+      "effort_hours": 8.7,
+      "patterns_count": 9,
+      "effort_per_pattern": 0.9666666666666666
+    },
+    {
+      "module": "digital_twin_visualization.py",
+      "effort_hours": 14.8,
+      "patterns_count": 19,
+      "effort_per_pattern": 0.7789473684210527
+    },
+    {
+      "module": "economic_optimizer.py",
+      "effort_hours": 25.5,
+      "patterns_count": 19,
+      "effort_per_pattern": 1.3421052631578947
+    },
+    {
+      "module": "edge_computing.py",
+      "effort_hours": 178.8,
+      "patterns_count": 130,
+      "effort_per_pattern": 1.3753846153846154
+    },
+    {
+      "module": "elastic_inversion_models.py",
+      "effort_hours": 708.1,
+      "patterns_count": 515,
+      "effort_per_pattern": 1.3749514563106797
+    },
+    {
+      "module": "enhanced_geological_modeling.py",
+      "effort_hours": 2.1,
+      "patterns_count": 2,
+      "effort_per_pattern": 1.05
+    },
+    {
+      "module": "enhanced_kalman_filter.py",
+      "effort_hours": 78.4,
+      "patterns_count": 57,
+      "effort_per_pattern": 1.3754385964912281
+    },
+    {
+      "module": "enhanced_trace_element_analysis.py",
+      "effort_hours": 9.0,
+      "patterns_count": 7,
+      "effort_per_pattern": 1.2857142857142858
+    },
+    {
+      "module": "enhanced_volcanic_monitoring.py",
+      "effort_hours": 16.8,
+      "patterns_count": 18,
+      "effort_per_pattern": 0.9333333333333333
+    },
+    {
+      "module": "enkf_knowledge_integration.py",
+      "effort_hours": 3955.9,
+      "patterns_count": 2877,
+      "effort_per_pattern": 1.3750086896072298
+    },
+    {
+      "module": "eruption_forecaster_ml.py",
+      "effort_hours": 75.0,
+      "patterns_count": 58,
+      "effort_per_pattern": 1.293103448275862
+    },
+    {
+      "module": "external_data_connectors.py",
+      "effort_hours": 2.0,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.6666666666666666
+    },
+    {
+      "module": "external_data_connectors_wrapper.py",
+      "effort_hours": 3.0,
+      "patterns_count": 7,
+      "effort_per_pattern": 0.42857142857142855
+    },
+    {
+      "module": "federated_learning.py",
+      "effort_hours": 11.0,
+      "patterns_count": 18,
+      "effort_per_pattern": 0.6111111111111112
+    },
+    {
+      "module": "fwi_engine.py",
+      "effort_hours": 81.2,
+      "patterns_count": 60,
+      "effort_per_pattern": 1.3533333333333333
+    },
+    {
+      "module": "genetic_model_integrator.py",
+      "effort_hours": 4.5,
+      "patterns_count": 4,
+      "effort_per_pattern": 1.125
+    },
+    {
+      "module": "geochemical_ml.py",
+      "effort_hours": 4.2,
+      "patterns_count": 8,
+      "effort_per_pattern": 0.525
+    },
+    {
+      "module": "geodynamo_simulator.py",
+      "effort_hours": 7.9,
+      "patterns_count": 14,
+      "effort_per_pattern": 0.5642857142857143
+    },
+    {
+      "module": "geological_anomaly_detection.py",
+      "effort_hours": 116.6,
+      "patterns_count": 87,
+      "effort_per_pattern": 1.3402298850574712
+    },
+    {
+      "module": "geological_causal_discovery.py",
+      "effort_hours": 12.4,
+      "patterns_count": 14,
+      "effort_per_pattern": 0.8857142857142858
+    },
+    {
+      "module": "geological_complexity_assessment.py",
+      "effort_hours": 92.8,
+      "patterns_count": 70,
+      "effort_per_pattern": 1.3257142857142856
+    },
+    {
+      "module": "geological_gnn.py",
+      "effort_hours": 9.2,
+      "patterns_count": 16,
+      "effort_per_pattern": 0.575
+    },
+    {
+      "module": "geological_network_representation_learning.py",
+      "effort_hours": 3.0,
+      "patterns_count": 3,
+      "effort_per_pattern": 1.0
+    },
+    {
+      "module": "geological_physics_informed_neural_networks.py",
+      "effort_hours": 31.4,
+      "patterns_count": 26,
+      "effort_per_pattern": 1.2076923076923076
+    },
+    {
+      "module": "geological_statistics.py",
+      "effort_hours": 4.2,
+      "patterns_count": 8,
+      "effort_per_pattern": 0.525
+    },
+    {
+      "module": "global_volcanism_program_integration.py",
+      "effort_hours": 1.0,
+      "patterns_count": 1,
+      "effort_per_pattern": 1.0
+    },
+    {
+      "module": "ground_motion_prediction.py",
+      "effort_hours": 2.1,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.525
+    },
+    {
+      "module": "hazard_interactions.py",
+      "effort_hours": 192.9,
+      "patterns_count": 143,
+      "effort_per_pattern": 1.348951048951049
+    },
+    {
+      "module": "helper_functions_complexity.py",
+      "effort_hours": 2.0,
+      "patterns_count": 7,
+      "effort_per_pattern": 0.2857142857142857
+    },
+    {
+      "module": "hidden_relationship_discovery.py",
+      "effort_hours": 5.0,
+      "patterns_count": 5,
+      "effort_per_pattern": 1.0
+    },
+    {
+      "module": "high_resolution_visualization.py",
+      "effort_hours": 46.6,
+      "patterns_count": 35,
+      "effort_per_pattern": 1.3314285714285714
+    },
+    {
+      "module": "hypothesis_generation_system.py",
+      "effort_hours": 56.4,
+      "patterns_count": 41,
+      "effort_per_pattern": 1.3756097560975609
+    },
+    {
+      "module": "hypothesis_testing_service.py",
+      "effort_hours": 92.9,
+      "patterns_count": 105,
+      "effort_per_pattern": 0.8847619047619049
+    },
+    {
+      "module": "insar_processor_ml.py",
+      "effort_hours": 33.7,
+      "patterns_count": 25,
+      "effort_per_pattern": 1.348
+    },
+    {
+      "module": "integrated_caldera_monitoring.py",
+      "effort_hours": 41.7,
+      "patterns_count": 39,
+      "effort_per_pattern": 1.0692307692307692
+    },
+    {
+      "module": "isotope_modeler.py",
+      "effort_hours": 5.1,
+      "patterns_count": 11,
+      "effort_per_pattern": 0.4636363636363636
+    },
+    {
+      "module": "joint_inversion_framework.py",
+      "effort_hours": 108.2,
+      "patterns_count": 80,
+      "effort_per_pattern": 1.3525
+    },
+    {
+      "module": "large_scale_geological_graphsage.py",
+      "effort_hours": 24.0,
+      "patterns_count": 34,
+      "effort_per_pattern": 0.7058823529411765
+    },
+    {
+      "module": "magma_reservoir_monitoring.py",
+      "effort_hours": 28.0,
+      "patterns_count": 21,
+      "effort_per_pattern": 1.3333333333333333
+    },
+    {
+      "module": "mantle_convection_3d.py",
+      "effort_hours": 10.3,
+      "patterns_count": 8,
+      "effort_per_pattern": 1.2875
+    },
+    {
+      "module": "mlops_pipeline.py",
+      "effort_hours": 20.7,
+      "patterns_count": 27,
+      "effort_per_pattern": 0.7666666666666666
+    },
+    {
+      "module": "model_database.py",
+      "effort_hours": 0.6,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.6
+    },
+    {
+      "module": "model_manager.py",
+      "effort_hours": 127.9,
+      "patterns_count": 93,
+      "effort_per_pattern": 1.375268817204301
+    },
+    {
+      "module": "moment_tensor_inversion.py",
+      "effort_hours": 5.6,
+      "patterns_count": 7,
+      "effort_per_pattern": 0.7999999999999999
+    },
+    {
+      "module": "monitoring_demonstration.py",
+      "effort_hours": 16.4,
+      "patterns_count": 45,
+      "effort_per_pattern": 0.3644444444444444
+    },
+    {
+      "module": "monitoring_network_registry.py",
+      "effort_hours": 1.2,
+      "patterns_count": 1,
+      "effort_per_pattern": 1.2
+    },
+    {
+      "module": "multi_physics_coupling_engine.py",
+      "effort_hours": 51.8,
+      "patterns_count": 38,
+      "effort_per_pattern": 1.3631578947368421
+    },
+    {
+      "module": "multi_scale_causal_inference.py",
+      "effort_hours": 28.0,
+      "patterns_count": 35,
+      "effort_per_pattern": 0.8
+    },
+    {
+      "module": "multi_sensor_fusion.py",
+      "effort_hours": 43.0,
+      "patterns_count": 32,
+      "effort_per_pattern": 1.34375
+    },
+    {
+      "module": "nasa_firms_thermal_integration.py",
+      "effort_hours": 25.8,
+      "patterns_count": 19,
+      "effort_per_pattern": 1.3578947368421053
+    },
+    {
+      "module": "network_helpers.py",
+      "effort_hours": 1458.0,
+      "patterns_count": 972,
+      "effort_per_pattern": 1.5
+    },
+    {
+      "module": "optimization_framework.py",
+      "effort_hours": 51.4,
+      "patterns_count": 50,
+      "effort_per_pattern": 1.028
+    },
+    {
+      "module": "paleomagnetic_database.py",
+      "effort_hours": 155.8,
+      "patterns_count": 138,
+      "effort_per_pattern": 1.1289855072463768
+    },
+    {
+      "module": "parallel_computing.py",
+      "effort_hours": 92.8,
+      "patterns_count": 68,
+      "effort_per_pattern": 1.3647058823529412
+    },
+    {
+      "module": "performance_benchmarking_profiling.py",
+      "effort_hours": 28.9,
+      "patterns_count": 21,
+      "effort_per_pattern": 1.3761904761904762
+    },
+    {
+      "module": "plate_evolution_engine.py",
+      "effort_hours": 496.4,
+      "patterns_count": 366,
+      "effort_per_pattern": 1.3562841530054643
+    },
+    {
+      "module": "production_geochemical_analysis.py",
+      "effort_hours": 10.6,
+      "patterns_count": 10,
+      "effort_per_pattern": 1.06
+    },
+    {
+      "module": "production_phase_picker.py",
+      "effort_hours": 0.4,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.4
+    },
+    {
+      "module": "prospectivity_engine.py",
+      "effort_hours": 36.0,
+      "patterns_count": 45,
+      "effort_per_pattern": 0.8
+    },
+    {
+      "module": "quantum_computing_integration.py",
+      "effort_hours": 37.6,
+      "patterns_count": 38,
+      "effort_per_pattern": 0.9894736842105264
+    },
+    {
+      "module": "real_geochemical_data_integration.py",
+      "effort_hours": 6.6,
+      "patterns_count": 9,
+      "effort_per_pattern": 0.7333333333333333
+    },
+    {
+      "module": "real_iris_data_connector.py",
+      "effort_hours": 4.0,
+      "patterns_count": 12,
+      "effort_per_pattern": 0.3333333333333333
+    },
+    {
+      "module": "real_thermodynamic_calculations.py",
+      "effort_hours": 6.4,
+      "patterns_count": 9,
+      "effort_per_pattern": 0.7111111111111111
+    },
+    {
+      "module": "real_time_process_monitor.py",
+      "effort_hours": 22.0,
+      "patterns_count": 16,
+      "effort_per_pattern": 1.375
+    },
+    {
+      "module": "real_volcanic_data_connector.py",
+      "effort_hours": 0.6,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.3
+    },
+    {
+      "module": "representation_learning_integration.py",
+      "effort_hours": 1.4,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.7
+    },
+    {
+      "module": "resource_evaluator.py",
+      "effort_hours": 84.5,
+      "patterns_count": 110,
+      "effort_per_pattern": 0.7681818181818182
+    },
+    {
+      "module": "resurgent_caldera_monitoring.py",
+      "effort_hours": 6.3,
+      "patterns_count": 5,
+      "effort_per_pattern": 1.26
+    },
+    {
+      "module": "scenario_engine.py",
+      "effort_hours": 367.2,
+      "patterns_count": 268,
+      "effort_per_pattern": 1.3701492537313433
+    },
+    {
+      "module": "scientific_knowledge_graph.py",
+      "effort_hours": 63.2,
+      "patterns_count": 46,
+      "effort_per_pattern": 1.373913043478261
+    },
+    {
+      "module": "security_framework.py",
+      "effort_hours": 22.0,
+      "patterns_count": 20,
+      "effort_per_pattern": 1.1
+    },
+    {
+      "module": "seismic_transformer.py",
+      "effort_hours": 12.9,
+      "patterns_count": 17,
+      "effort_per_pattern": 0.7588235294117647
+    },
+    {
+      "module": "seismic_validation_framework.py",
+      "effort_hours": 21.0,
+      "patterns_count": 43,
+      "effort_per_pattern": 0.4883720930232558
+    },
+    {
+      "module": "signal_analysis_support.py",
+      "effort_hours": 1.6,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.4
+    },
+    {
+      "module": "simple_tectonic_demo.py",
+      "effort_hours": 0.3,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.3
+    },
+    {
+      "module": "source_characterization_ml.py",
+      "effort_hours": 85.4,
+      "patterns_count": 64,
+      "effort_per_pattern": 1.334375
+    },
+    {
+      "module": "stream_processing.py",
+      "effort_hours": 0.6,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.6
+    },
+    {
+      "module": "stress_field_mapper.py",
+      "effort_hours": 83.9,
+      "patterns_count": 61,
+      "effort_per_pattern": 1.3754098360655738
+    },
+    {
+      "module": "supereruption_analysis.py",
+      "effort_hours": 253.0,
+      "patterns_count": 184,
+      "effort_per_pattern": 1.375
+    },
+    {
+      "module": "system_performance_optimizer.py",
+      "effort_hours": 0.6,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.6
+    },
+    {
+      "module": "target_generator.py",
+      "effort_hours": 15.0,
+      "patterns_count": 16,
+      "effort_per_pattern": 0.9375
+    },
+    {
+      "module": "tectonic_database_init.py",
+      "effort_hours": 1.8,
+      "patterns_count": 6,
+      "effort_per_pattern": 0.3
+    },
+    {
+      "module": "tectonic_setting_database.py",
+      "effort_hours": 1.5,
+      "patterns_count": 1,
+      "effort_per_pattern": 1.5
+    },
+    {
+      "module": "temporal_analysis_helpers.py",
+      "effort_hours": 0.7,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.35
+    },
+    {
+      "module": "temporal_lag_analysis.py",
+      "effort_hours": 28.7,
+      "patterns_count": 29,
+      "effort_per_pattern": 0.9896551724137931
+    },
+    {
+      "module": "thermodynamic_engine.py",
+      "effort_hours": 372.5,
+      "patterns_count": 279,
+      "effort_per_pattern": 1.3351254480286738
+    },
+    {
+      "module": "thermodynamic_integration.py",
+      "effort_hours": 2.4,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.7999999999999999
+    },
+    {
+      "module": "vizier_optimizer.py",
+      "effort_hours": 10.1,
+      "patterns_count": 16,
+      "effort_per_pattern": 0.63125
+    },
+    {
+      "module": "volcanic_multi_chamber.py",
+      "effort_hours": 1751.8,
+      "patterns_count": 1274,
+      "effort_per_pattern": 1.3750392464678178
+    },
+    {
+      "module": "volcanic_systems_integration_service.py",
+      "effort_hours": 1.3,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.325
+    },
+    {
+      "module": "health_check.py",
+      "effort_hours": 0.4,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.2
+    },
+    {
+      "module": "comprehensive_integration_tests.py",
+      "effort_hours": 10.0,
+      "patterns_count": 17,
+      "effort_per_pattern": 0.5882352941176471
+    },
+    {
+      "module": "run_all_causal_tests.py",
+      "effort_hours": 0.5,
+      "patterns_count": 4,
+      "effort_per_pattern": 0.125
+    },
+    {
+      "module": "export_manager.py",
+      "effort_hours": 1.4,
+      "patterns_count": 3,
+      "effort_per_pattern": 0.4666666666666666
+    },
+    {
+      "module": "interpolation_engine.py",
+      "effort_hours": 0.4,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.4
+    },
+    {
+      "module": "metadata_harmonizer.py",
+      "effort_hours": 0.8,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.4
+    },
+    {
+      "module": "base_connector.py",
+      "effort_hours": 0.1,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.1
+    },
+    {
+      "module": "geochem_connector.py",
+      "effort_hours": 0.3,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.3
+    },
+    {
+      "module": "geological_survey_connector.py",
+      "effort_hours": 0.3,
+      "patterns_count": 1,
+      "effort_per_pattern": 0.3
+    },
+    {
+      "module": "iris_connector.py",
+      "effort_hours": 0.4,
+      "patterns_count": 2,
+      "effort_per_pattern": 0.2
+    }
+  ]
+}

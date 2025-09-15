@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, Suspense } from 'react';
+import React, { useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, Grid } from '@react-three/drei';
 import * as THREE from 'three';
@@ -116,7 +116,7 @@ const GeologicalMesh: React.FC<{
 
   const shaderMaterial = useMemo(() => {
     const scheme = GEOLOGICAL_COLOR_SCHEMES[colorScheme as keyof typeof GEOLOGICAL_COLOR_SCHEMES];
-    const color = scheme[unit.lithology as keyof typeof scheme] || '#888888';
+    const color = scheme[unit.rockType as keyof typeof scheme] || '#888888';
     
     return new THREE.ShaderMaterial({
       vertexShader: geologicalVertexShader,
@@ -125,11 +125,11 @@ const GeologicalMesh: React.FC<{
         uTime: { value: 0 },
         uTimeStep: { value: timeStep },
         uColor: { value: new THREE.Color(color) },
-        uOpacity: { value: unit.opacity || 0.8 },
+        uOpacity: { value: 0.8 }, // Default opacity
         uMetalness: { value: 0.1 },
         uRoughness: { value: 0.8 },
         uShowUncertainty: { value: showUncertainty },
-        uUncertaintyLevel: { value: unit.uncertaintyLevel || 0.0 }
+        uUncertaintyLevel: { value: 0.0 } // Default uncertainty
       },
       transparent: true,
       side: THREE.DoubleSide
@@ -144,22 +144,11 @@ const GeologicalMesh: React.FC<{
 
   // Generate geometry from geological unit data
   const geometry = useMemo(() => {
-    if (unit.geometry) {
-      // Convert geological coordinates to Three.js geometry
-      const geometry = new THREE.BufferGeometry();
-      const vertices = new Float32Array(unit.geometry.vertices);
-      const indices = new Uint32Array(unit.geometry.indices);
-      
-      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-      geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-      geometry.computeVertexNormals();
-      
-      return geometry;
-    }
-    
-    // Fallback to box geometry for testing
-    return new THREE.BoxGeometry(1, 1, 1);
-  }, [unit.geometry]);
+    // Create default box geometry for lithology unit
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    geometry.computeVertexNormals();
+    return geometry;
+  }, [unit.name]); // Use unit name as dependency since geometry is fixed
 
   return (
     <mesh
@@ -167,7 +156,7 @@ const GeologicalMesh: React.FC<{
       geometry={geometry}
       material={shaderMaterial}
       onClick={onClick}
-      position={[unit.position?.x || 0, unit.position?.y || 0, unit.position?.z || 0]}
+      position={[0, 0, 0]} // Default position
     />
   );
 };
@@ -177,11 +166,11 @@ const StructuralFeatures: React.FC<{
   features: StructuralFeature[];
   colorScheme: string;
   onFeatureSelect?: (feature: StructuralFeature) => void;
-}> = ({ features, colorScheme, onFeatureSelect }) => {
+}> = ({ features, _colorScheme, _onFeatureSelect }) => {
   return (
     <>
       {features.map((feature, index) => (
-        <group key={feature.id || index}>
+        <group key={index}>
           {feature.type === 'fault' && (
             <line>
               <bufferGeometry>

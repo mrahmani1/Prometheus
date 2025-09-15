@@ -1,0 +1,91 @@
+{
+  "total_files": 337,
+  "files_with_errors": 17,
+  "errors": [
+    {
+      "file": "backend\\api.py",
+      "line": 337,
+      "error": "invalid decimal literal (<unknown>, line 337)"
+    },
+    {
+      "file": "backend\\examples\\advanced_ml_pipeline_demo.py",
+      "line": 241,
+      "error": "unindent does not match any outer indentation level (<unknown>, line 241)"
+    },
+    {
+      "file": "backend\\examples\\quantum_computing_examples.py",
+      "line": 403,
+      "error": "bytes can only contain ASCII literal characters (<unknown>, line 403)"
+    },
+    {
+      "file": "backend\\modules\\advanced_ml_pipeline.py",
+      "line": 1011,
+      "error": "unindent does not match any outer indentation level (<unknown>, line 1011)"
+    },
+    {
+      "file": "backend\\modules\\ambient_noise_engine.py",
+      "line": 9950,
+      "error": "unexpected character after line continuation character (<unknown>, line 9950)"
+    },
+    {
+      "file": "backend\\modules\\automated_scientific_discovery.py",
+      "line": 69,
+      "error": "invalid syntax (<unknown>, line 69)"
+    },
+    {
+      "file": "backend\\modules\\cap_rock_stability_analyzer.py",
+      "line": 41917,
+      "error": "unexpected character after line continuation character (<unknown>, line 41917)"
+    },
+    {
+      "file": "backend\\modules\\causal_uncertainty_quantification.py",
+      "line": 562,
+      "error": "unindent does not match any outer indentation level (<unknown>, line 562)"
+    },
+    {
+      "file": "backend\\modules\\digital_twin_api.py",
+      "line": 53,
+      "error": "expected 'except' or 'finally' block (<unknown>, line 53)"
+    },
+    {
+      "file": "backend\\modules\\integrated_caldera_monitoring.py",
+      "line": 34,
+      "error": "invalid decimal literal (<unknown>, line 34)"
+    },
+    {
+      "file": "backend\\modules\\network_helpers.py",
+      "line": 21532,
+      "error": "leading zeros in decimal integer literals are not permitted; use an 0o prefix for octal integers (<unknown>, line 21532)"
+    },
+    {
+      "file": "backend\\modules\\quantum_computing_integration.py",
+      "line": 317,
+      "error": "invalid decimal literal (<unknown>, line 317)"
+    },
+    {
+      "file": "backend\\modules\\resurgent_caldera_monitoring.py",
+      "line": 43,
+      "error": "invalid decimal literal (<unknown>, line 43)"
+    },
+    {
+      "file": "backend\\modules\\tectonic_setting_database.py",
+      "line": 1175,
+      "error": "unterminated string literal (detected at line 1175) (<unknown>, line 1175)"
+    },
+    {
+      "file": "backend\\tests\\test_advanced_ml_pipeline.py",
+      "line": 356,
+      "error": "invalid decimal literal (<unknown>, line 356)"
+    },
+    {
+      "file": "backend\\core\\data_quality\\completeness_analyzer.py",
+      "line": 444,
+      "error": "unindent does not match any outer indentation level (<unknown>, line 444)"
+    },
+    {
+      "file": "backend\\core\\data_quality\\validation_framework.py",
+      "line": 248,
+      "error": "invalid syntax (<unknown>, line 248)"
+    }
+  ]
+}

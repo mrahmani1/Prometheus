@@ -1,0 +1,192 @@
+# Testing Environment Database Configuration Template
+
+postgresql:
+  host: "${POSTGRES_HOST:localhost}"
+  port: "${POSTGRES_PORT:5432}"
+  database: "${POSTGRES_DB:prometheus_test}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  pool_config:
+    min_connections: 1
+    max_connections: 5
+    max_overflow: 10
+    pool_timeout: 15
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 2
+    retry_delay: 0.5
+    health_check_interval: 600
+  tags:
+    environment: testing
+    purpose: primary_database
+    ephemeral: true
+  metadata:
+    description: "Primary PostgreSQL database for testing"
+    maintainer: "prometheus-test-team"
+    auto_cleanup: true
+
+influxdb:
+  host: "${INFLUXDB_HOST:localhost}"
+  port: "${INFLUXDB_PORT:8086}"
+  database: "${INFLUXDB_BUCKET:geological_data_test}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  tags:
+    environment: testing
+    purpose: time_series_data
+    ephemeral: true
+  metadata:
+    description: "InfluxDB for time-series geological data in testing"
+    retention_policy: "1d"
+    org: "${INFLUXDB_ORG:prometheus_test}"
+    auto_cleanup: true
+
+neo4j:
+  host: "${NEO4J_HOST:localhost}"
+  port: "${NEO4J_PORT:7687}"
+  database: "${NEO4J_DATABASE:neo4j}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  pool_config:
+    min_connections: 1
+    max_connections: 5
+    max_overflow: 8
+    pool_timeout: 15
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 2
+    retry_delay: 0.5
+    health_check_interval: 600
+  tags:
+    environment: testing
+    purpose: graph_database
+    ephemeral: true
+  metadata:
+    description: "Neo4j graph database for causal relationships in testing"
+    auto_cleanup: true
+
+redis:
+  host: "${REDIS_HOST:localhost}"
+  port: "${REDIS_PORT:6379}"
+  database: "${REDIS_DB:1}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  pool_config:
+    min_connections: 1
+    max_connections: 5
+    max_overflow: 8
+    pool_timeout: 15
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 2
+    retry_delay: 0.5
+    health_check_interval: 600
+  tags:
+    environment: testing
+    purpose: cache_session_store
+    ephemeral: true
+  metadata:
+    description: "Redis cache and session store for testing"
+    persistence_enabled: false
+    auto_cleanup: true
+
+timescaledb:
+  host: "${TIMESCALEDB_HOST:localhost}"
+  port: "${TIMESCALEDB_PORT:5432}"
+  database: "${TIMESCALEDB_DB:prometheus_timeseries_test}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  pool_config:
+    min_connections: 1
+    max_connections: 5
+    max_overflow: 10
+    pool_timeout: 15
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 2
+    retry_delay: 0.5
+    health_check_interval: 600
+  tags:
+    environment: testing
+    purpose: time_series_relational
+    ephemeral: true
+  metadata:
+    description: "TimescaleDB for high-performance time-series data in testing"
+    compression_enabled: false
+    auto_cleanup: true
+
+mongodb:
+  host: "${MONGODB_HOST:localhost}"
+  port: "${MONGODB_PORT:27017}"
+  database: "${MONGODB_DB:prometheus_documents_test}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  pool_config:
+    min_connections: 1
+    max_connections: 5
+    max_overflow: 8
+    pool_timeout: 15
+    pool_recycle: 1800
+    pool_pre_ping: true
+    retry_attempts: 2
+    retry_delay: 0.5
+    health_check_interval: 600
+  tags:
+    environment: testing
+    purpose: document_store
+    ephemeral: true
+  metadata:
+    description: "MongoDB document store for flexible data in testing"
+    auto_cleanup: true
+
+elasticsearch:
+  host: "${ELASTICSEARCH_HOST:localhost}"
+  port: "${ELASTICSEARCH_PORT:9200}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  tags:
+    environment: testing
+    purpose: search_analytics
+    ephemeral: true
+  metadata:
+    description: "Elasticsearch for search and analytics in testing"
+    index_prefix: "prometheus_test"
+    auto_cleanup: true
+
+kafka:
+  host: "${KAFKA_HOST:localhost}"
+  port: "${KAFKA_PORT:9092}"
+  ssl_enabled: false
+  ssl_verify: false
+  timeout: 15
+  read_timeout: 30
+  write_timeout: 30
+  tags:
+    environment: testing
+    purpose: message_streaming
+    ephemeral: true
+  metadata:
+    description: "Kafka for real-time data streaming in testing"
+    topic_prefix: "prometheus_test"
+    auto_cleanup: true

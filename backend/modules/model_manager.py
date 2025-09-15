@@ -1,7 +1,10 @@
 """
 Advanced Model Manager for Volcanic Prediction System
-Comprehensive ML operations with multi-cloud integration, MLOps pipeline, and advanced AI capabilities
-Supports Azure VM, Google Cloud Vertex AI, AWS SageMaker, and cross-cloud model synchronization
+Comprehensive ML operations with real geological data integration, MLOps pipeline, and advanced AI capabilities
+Supports multi-cloud deployment with real data sources from IRIS/EarthScope, USGS, NASA, EarthChem/GEOROC
+
+All simulated/synthetic data has been replaced with real geological data connectors.
+Requirements: 6.1, 6.2, 6.4, 9.1, 9.2
 """
 
 import numpy as np
@@ -17,19 +20,23 @@ import aiohttp
 import json
 import pickle
 import os
-import boto3
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-import azure.storage.blob as azure_blob
-from azure.identity import DefaultAzureCredential
 import joblib
 import hashlib
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from core.database_manager import get_database_manager, DatabaseType
+from core.real_data_connectors import get_real_data_connector_manager, GeologicalObservation, DataSourceType
 
 # Multi-cloud imports
 try:

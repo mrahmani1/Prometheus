@@ -1,0 +1,204 @@
+# Comprehensive Simulated Data Auditor Configuration
+
+# Detection patterns configuration
+detection_patterns:
+  random_generation:
+    severity: critical
+    confidence_base: 0.9
+    patterns:
+      - 'np\.random\.'
+      - 'random\.random\('
+      - 'random\.uniform\('
+      - 'random\.normal\('
+      - 'random\.choice\('
+      - 'random\.randint\('
+      - 'torch\.rand\('
+      - 'torch\.randn\('
+      - 'np\.random\.rand\('
+      - 'np\.random\.randn\('
+      - 'np\.random\.uniform\('
+      - 'np\.random\.normal\('
+      - 'np\.random\.choice\('
+      - 'np\.random\.randint\('
+    replacement_suggestion: "Connect to real geological data sources (IRIS, USGS, NASA)"
+
+  mock_data:
+    severity: high
+    confidence_base: 0.8
+    patterns:
+      - 'mock_.*data'
+      - 'fake_.*data'
+      - 'dummy_.*data'
+      - 'test_.*data'
+      - 'sample_.*data'
+      - 'synthetic_.*data'
+      - 'simulated_.*data'
+      - 'placeholder_.*data'
+      - '_mock_'
+      - '_fake_'
+      - '_dummy_'
+      - '_synthetic_'
+      - '_simulated_'
+      - 'generate_.*_data\('
+      - 'create_.*_data\('
+      - 'simulate_.*\('
+    replacement_suggestion: "Replace with authenticated real data connectors"
+
+  hardcoded_values:
+    severity: medium
+    confidence_base: 0.7
+    patterns:
+      - 'localhost:5432'
+      - 'localhost:6379'
+      - 'localhost:8086'
+      - 'localhost:7687'
+      - '127\.0\.0\.1'
+      - 'test_database'
+      - 'mock_database'
+      - 'dummy_db'
+      - 'sample_db'
+    replacement_suggestion: "Use environment variables and production database configurations"
+
+  simplified_algorithms:
+    severity: high
+    confidence_base: 0.8
+    patterns:
+      - '# TODO:.*implement'
+      - '# FIXME:.*placeholder'
+      - '# HACK:.*temporary'
+      - 'pass\s*#.*placeholder'
+      - 'raise NotImplementedError'
+      - 'return None\s*#.*placeholder'
+      - 'simplified.*implementation'
+      - 'basic.*implementation'
+      - 'temporary.*implementation'
+    replacement_suggestion: "Implement production-grade algorithms with real data"
+
+  test_constants:
+    severity: medium
+    confidence_base: 0.6
+    patterns:
+      - 'TEST_.*='
+      - 'MOCK_.*='
+      - 'FAKE_.*='
+      - 'DUMMY_.*='
+      - 'SAMPLE_.*='
+      - 'PLACEHOLDER_.*='
+    replacement_suggestion: "Replace with production configuration values"
+
+# Priority thresholds
+priority_thresholds:
+  immediate:
+    impact: 8.0
+    complexity: 3.0
+  high:
+    impact: 5.0
+    complexity: 5.0
+  medium:
+    impact: 3.0
+    complexity: 7.0
+  low:
+    impact: 1.0
+    complexity: 10.0
+
+# Effort estimation parameters
+effort_estimation:
+  base_effort_per_pattern: 0.5  # hours
+  complexity_multiplier_max: 2.0
+  size_factor_max: 2.0
+  lines_per_size_unit: 1000
+
+# File exclusions
+exclusions:
+  directories:
+    - '__pycache__'
+    - '.git'
+    - '.pytest_cache'
+    - 'node_modules'
+    - '.venv'
+    - 'venv'
+  file_patterns:
+    - '*.pyc'
+    - '*.pyo'
+    - '*.pyd'
+    - '.DS_Store'
+    - '*.log'
+
+# Real data source mappings
+real_data_sources:
+  seismic:
+    primary: "IRIS/EarthScope"
+    secondary: "USGS Earthquake Hazards Program"
+    api_endpoints:
+      - "https://service.iris.edu/fdsnws/"
+      - "https://earthquake.usgs.gov/fdsnws/"
+  
+  volcanic:
+    primary: "USGS Volcano Hazards Program"
+    secondary: "Global Volcanism Program"
+    api_endpoints:
+      - "https://volcanoes.usgs.gov/vsc-api/"
+      - "https://volcano.si.edu/api/"
+  
+  geochemical:
+    primary: "EarthChem"
+    secondary: "GEOROC"
+    api_endpoints:
+      - "https://www.earthchem.org/portal/"
+      - "http://georoc.mpch-mainz.gwdg.de/"
+  
+  satellite:
+    primary: "NASA EarthData"
+    secondary: "Copernicus"
+    api_endpoints:
+      - "https://earthdata.nasa.gov/eosdis/daacs"
+      - "https://scihub.copernicus.eu/"
+
+# Validation framework configuration
+validation:
+  test_types:
+    - authenticity
+    - quality
+    - performance
+    - integration
+  
+  quality_thresholds:
+    authenticity_score: 0.85
+    quality_score: 0.80
+    performance_threshold: 2.0  # seconds
+    integration_success_rate: 0.95
+  
+  test_generation:
+    enabled: true
+    output_directory: "tests/validation"
+    template_directory: "templates/validation"
+
+# Monitoring configuration
+monitoring:
+  database_path: "simulated_data_audit.db"
+  progress_update_interval: 3600  # seconds
+  alert_thresholds:
+    critical_patterns: 5
+    high_priority_modules: 10
+    total_effort_hours: 100
+
+# Reporting configuration
+reporting:
+  formats:
+    - json
+    - markdown
+    - html
+  
+  output_directory: "audit_results"
+  
+  include_sections:
+    - executive_summary
+    - severity_breakdown
+    - priority_breakdown
+    - top_modules
+    - replacement_roadmap
+    - recommendations
+    - next_steps
+  
+  roadmap_display_limit: 20
+  top_modules_limit: 15

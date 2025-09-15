@@ -15,41 +15,23 @@
  * - Real-time geological data rendering
  */
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { 
   VRButton, 
   ARButton, 
-  XR, 
-  Controllers, 
-  Hands, 
-  useXR,
-  useController,
-  useHitTest,
-  Interactive
+  XR
+  // useXR, useController, useHitTest, Interactive - unused or not exported
 } from '@react-three/xr';
-import {
-  OrbitControls,
-  PerspectiveCamera,
-  Environment,
-  Sky,
-  Stats,
-  Grid,
-  Text,
-  Html,
-  useGLTF,
-  useTexture,
-  Sphere,
-  Box,
-  Plane
-} from '@react-three/drei';
-import * as THREE from 'three';
-import { useDispatch, useSelector } from 'react-redux';
+// import {
+//   OrbitControls, PerspectiveCamera, Environment - unused
+// } from '@react-three/drei';
+// import * as THREE from 'three'; // unused
+// import { useDispatch, useSelector } from 'react-redux'; // unused
 import { 
   Box as MuiBox,
   Typography,
-  Button,
-  Slider,
+  // Button, Slider - unused
   Switch,
   FormControlLabel,
   Card,
@@ -57,23 +39,16 @@ import {
   Grid as MuiGrid,
   Alert,
   Chip,
-  IconButton,
-  Tooltip
+  // IconButton, Tooltip - unused
 } from '@mui/material';
 import {
-  Headset as VrHeadset,
-  CameraAlt,
+  // Headset as VrHeadset, CameraAlt, ThreeDRotation, School, Settings, Fullscreen - unused
   Mic,
   MicOff,
   Vibration,
-  ThreeDRotation,
   Accessibility,
-  School,
   Group,
-  Settings,
-  Fullscreen,
-  VolumeUp,
-  VolumeOff
+  // VolumeUp, VolumeOff - unused
 } from '@mui/icons-material';
 
 // Types for VR/AR system
@@ -216,12 +191,12 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
   const [currentScene, setCurrentScene] = useState<GeologicalVRScene | null>(null);
   const [isXRSupported, setIsXRSupported] = useState(false);
   const [hapticDevice, setHapticDevice] = useState<any>(null);
-  const [voiceRecognition, setVoiceRecognition] = useState<SpeechRecognition | null>(null);
+  const [voiceRecognition, setVoiceRecognition] = useState<any>(null);
   const [collaborativeSession, setCollaborativeSession] = useState<CollaborativeSpace | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sceneRef = useRef<THREE.Scene>(null);
-  const hapticRef = useRef<any>(null);
+  const _sceneRef = useRef<any>(null);
+  const _hapticRef = useRef<any>(null);
 
   // Initialize XR capabilities
   useEffect(() => {
@@ -356,7 +331,8 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
 
     switch (feedback.pattern) {
       case 'pulse':
-        hapticDevice.vibrate([feedback.intensity * 100, 50].repeat(feedback.duration / 150));
+        const pattern = Array(Math.floor(feedback.duration / 150)).fill([feedback.intensity * 100, 50]).flat();
+        hapticDevice.vibrate(pattern);
         break;
       case 'continuous':
         hapticDevice.vibrate(feedback.duration);
@@ -422,11 +398,11 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
   }, [config.gestureEnabled]);
 
   // Utility functions
-  const handleZoom = useCallback((factor: number) => {
+  const handleZoom = useCallback((_factor: number) => {
     // Implementation for zoom functionality
   }, []);
 
-  const handleRotation = useCallback((axis: string, angle: number) => {
+  const handleRotation = useCallback((_axis: string, _angle: number) => {
     // Implementation for rotation functionality
   }, []);
 
@@ -458,7 +434,7 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
     // Implementation for view rotation
   }, []);
 
-  const scaleObject = useCallback((position: THREE.Vector3, factor: number) => {
+  const scaleObject = useCallback((_position: any, _factor: number) => {
     // Implementation for object scaling
   }, []);
 

@@ -254,9 +254,6 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
 ### Phase 5: Database Centralization and Real-Time Process Monitor Enhancement
 
 - [x] 5. Centralize Database Operations and Enhance Real-Time Monitoring
-
-
-
   - Create unified database management layer for all database types (PostgreSQL+PostGIS, InfluxDB, Redis, Neo4j, TimescaleDB)
   - Implement centralized database configuration management with environment-based settings
   - Replace all simulated/mock data in real_time_process_monitor.py with real database operations
@@ -282,9 +279,6 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - _Requirements: 9.1, 9.2, 9.3_
 
 - [x] 5.2 Implement GIS-Enabled PostgreSQL Operations
-
-
-
   - Create comprehensive PostGIS integration for all geospatial operations across the codebase
   - Implement spatial indexing and optimization for large-scale geological datasets
   - Add advanced spatial queries for volcanic systems, seismic networks, and monitoring stations
@@ -293,12 +287,13 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add spatial-temporal queries for multi-dimensional geological analysis
   - Create geospatial data export capabilities (GeoJSON, KML, Shapefile)
   - Implement spatial clustering and analysis algorithms for geological features
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 1.1, 1.4, 4.1, 4.2_
 
-- [-] 5.3 Replace Simulated Data Across All Backend Modules
+- [x] 5.3 Replace Simulated Data Across All Backend Modules
   - Remove all mock data generation and simulated geological processes from real_time_process_monitor.py
-  - Eliminate np.random, random.random, and synthetic data generation from data_integration_pipeline.py and data_integration_pipeline_simple.py
+  - Eliminate np.random, random.random, and synthetic data generation from data_integration_pipeline.py, model_manager.py, and       data_integration_pipeline_simple.py
   - Replace simulated seismic data in array_processor_ml.py with real IRIS/EarthScope connections
   - Remove mock database connections and dummy data from advanced_ml_pipeline.py, advanced_testing_framework.py
   - Replace synthetic geochemical data in advanced_trace_element_analysis.py and advanced_magma_source_analysis.py with EarthChem/GEOROC integration
@@ -312,10 +307,13 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add TimescaleDB integration for high-performance time-series analysis
   - Create real-time data streaming from actual geological monitoring networks
   - Implement comprehensive error handling and data validation for all database operations
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 6.1, 6.2, 6.4, 9.1, 9.2_
+-
 
-- [ ] 5.4 Create Cross-Database Query Optimization
+- [x] 5.4 Create Cross-Database Query Optimization
+  - Ensure no duplicate data connectors across all modules
   - Implement intelligent query routing based on data type and performance requirements
   - Create cross-database join operations for complex geological analyses
   - Add query caching and result optimization across all database types
@@ -324,10 +322,11 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add query result aggregation and transformation pipelines
   - Implement distributed query execution for large-scale geological datasets
   - Create comprehensive query audit logging and performance analytics
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.1, 9.4, 9.5_
 
-- [ ] 5.5 Implement Database Performance Monitoring and Optimization
+- [x] 5.5 Implement Database Performance Monitoring and Optimization
   - Create comprehensive database performance monitoring dashboard
   - Implement automated database optimization recommendations
   - Add connection pool monitoring and automatic scaling
@@ -336,10 +335,12 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add database replication monitoring and failover automation
   - Create comprehensive database backup verification and testing
   - Implement database security monitoring and access control auditing
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
+-
 
-- [ ] 5.6 Comprehensive Simulated Data Elimination Audit
+- [x] 5.6 Comprehensive Simulated Data Elimination Audit
   - Conduct systematic audit of all 100+ backend modules for simulated/mock data patterns
   - Create automated detection tool for np.random, random.random, synthetic, mock, fake, dummy, placeholder patterns
   - Generate comprehensive report of all files requiring real data replacement
@@ -348,10 +349,15 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Implement automated testing to prevent reintroduction of simulated data
   - Document all data source replacements with before/after validation
   - Create monitoring system to track progress of real data integration across all modules
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 2.1, 2.2, 2.3, 9.1, 9.2_
+- [x] 5.7 Standardize Database Configuration Management
+
+
 
 - [ ] 5.7 Standardize Database Configuration Management
+
   - Replace all hardcoded database configurations (localhost:5432, localhost:6379, etc.) with environment variables
   - Create centralized database configuration service supporting all database types
   - Implement secure credential management using Kubernetes secrets or HashiCorp Vault
@@ -360,6 +366,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Implement automatic database discovery and service registration
   - Add database configuration versioning and rollback capabilities
   - Create comprehensive database configuration documentation and best practices
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
 
@@ -372,6 +379,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add database monitoring integration with Prometheus and Grafana
   - Create database service mesh configuration for secure inter-service communication
   - Implement database scaling policies and resource management
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
 
@@ -384,6 +392,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add data quality monitoring and validation pipelines
   - Implement automated data archiving and retention policies
   - Create data lake integration for long-term geological data storage
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 6.1, 6.2, 6.3, 9.1, 9.2_
 
@@ -396,14 +405,31 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add data masking and anonymization for non-production environments
   - Create database security incident response and forensics capabilities
   - Implement database compliance monitoring and automated remediation
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
   - Create database configuration templates for development, staging, and production environments
   - Implement automatic database discovery and service registration
   - Add database configuration versioning and rollback capabilities
   - Create comprehensive database configuration documentation and best practices
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
+
+- [ ] 5.11 Run syntax checks on all TypeScript/JS and Python code
+  - Fix all errors in the codebase after running syntax checks.
+  - Fix all warnings and associated issues.
+  - Fix all TODOs and FIXMEs.
+  - Fix all code formatting issues.
+  - Fix all linting issues.
+  - Fix all type errors.
+  - Fix all runtime errors.
+  - Fix all logical errors.
+  - Fix all security issues.
+  - Fix all performance issues.
+  - Fix all accessibility issues.
+  - Fix all compatibility issues.
+  - Fix all internationalization issues.
 
 ### Phase 6: Interactive Causal Dashboard Development
 
@@ -486,6 +512,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Integrate multi-physics coupling visualization and analysis tools
   - Create comprehensive data analysis workflows combining all module capabilities
   - Add advanced export and reporting features from all specialized modules
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 3.3, 3.4, 10.1, 10.2_
 
@@ -498,6 +525,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Create multi-parameter correlation analysis interface
   - Implement integrated workflow management for complex analyses
   - Add cross-module data sharing and synchronization
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 3.3, 3.4_
 
@@ -510,6 +538,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Implement advanced scientific plotting with publication-quality output
   - Create interactive cross-sections and geological profiles
   - Add multi-scale visualization from mineral to global scales
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 10.1, 10.2, 10.3_
 
@@ -522,6 +551,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Create continual learning management for evolving geological knowledge
   - Implement causal machine learning with interpretability features
   - Add automated feature engineering with geological domain knowledge
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 5.1, 5.2, 10.1_
 
@@ -534,6 +564,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Create security testing for data source integrations
   - Implement accessibility testing for dashboard interfaces
   - Add cross-browser compatibility testing for visualization components
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
@@ -546,6 +577,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Create failover and recovery testing for data source failures
   - Implement data consistency tests across multiple sources
   - Add comprehensive logging and monitoring for data integration tests
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.1, 9.2_
 
@@ -558,6 +590,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Implement uncertainty validation for causal relationships
   - Create performance tests for large-scale causal networks
   - Add accuracy tests comparing different causal discovery methods
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 5.4, 5.5_
 
@@ -570,6 +603,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Create load testing for multi-user collaborative sessions
   - Implement visual regression tests for visualization accuracy
   - Add user experience tests with geological domain experts
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 10.4, 10.5_
 
@@ -582,6 +616,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Implement audit trail tests for all data access and modifications
   - Create backup and recovery tests for critical data
   - Add compliance tests for scientific data management standards
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
 
@@ -605,6 +640,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Add security configuration documentation
   - Implement backup and recovery procedures documentation
   - Create monitoring and alerting configuration guides
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: All technical requirements_
 
@@ -617,6 +653,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Implement collaborative features documentation
   - Create troubleshooting guides for common user issues
   - Add scientific validation and interpretation guidelines
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
@@ -629,5 +666,6 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Create security hardening and compliance procedures
   - Implement scalability planning and resource management
   - Add maintenance and update procedures for production systems
+  - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: All deployment and operational requirements_

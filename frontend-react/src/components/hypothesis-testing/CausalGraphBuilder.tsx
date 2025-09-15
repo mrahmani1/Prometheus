@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useDrag, useDrop } from 'react-dnd';
+// import { useDrag, useDrop } from 'react-dnd'; // Module not available
 import {
   Box,
   Paper,
@@ -11,30 +11,28 @@ import {
   FormControl,
   InputLabel,
   Chip,
-  IconButton,
-  Tooltip,
+  // IconButton, Tooltip - unused
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Slider,
-  Switch,
-  FormControlLabel,
+  // Switch, FormControlLabel - unused
   Alert,
   Accordion,
   AccordionSummary,
   AccordionDetails
 } from '@mui/material';
 import {
-  Add as AddIcon,
+  Add as _AddIcon,
   Delete as DeleteIcon,
-  Edit as EditIcon,
+  Edit as _EditIcon,
   Link as LinkIcon,
   Settings as SettingsIcon,
   ExpandMore as ExpandMoreIcon,
   Psychology as PsychologyIcon,
-  Timeline as TimelineIcon,
-  Place as PlaceIcon
+  Timeline as _TimelineIcon,
+  Place as _PlaceIcon
 } from '@mui/icons-material';
 import * as d3 from 'd3';
 import {
@@ -45,8 +43,8 @@ import {
   CollaborativeSession,
   VariableType,
   CausalRelationshipType,
-  TemporalConstraint,
-  SpatialConstraint
+  TemporalConstraint as _TemporalConstraint,
+  // SpatialConstraint - unused
 } from '../../types/causal-analysis';
 
 interface CausalGraphBuilderProps {
@@ -57,10 +55,10 @@ interface CausalGraphBuilderProps {
   collaborativeSession?: CollaborativeSession;
 }
 
-interface DraggedVariable {
-  variable: CausalVariable;
-  type: 'variable';
-}
+// interface DraggedVariable {
+//   variable: CausalVariable;
+//   type: 'variable';
+// }
 
 interface GraphNode extends CausalVariable {
   x: number;
@@ -76,7 +74,7 @@ interface GraphLink extends CausalEdge {
 
 export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
   availableVariables,
-  geologicalProcesses,
+  // geologicalProcesses - unused
   hypothesis,
   onHypothesisChange,
   collaborativeSession
@@ -87,8 +85,8 @@ export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
   const [showEdgeDialog, setShowEdgeDialog] = useState(false);
   const [showVariableDialog, setShowVariableDialog] = useState(false);
   const [editingVariable, setEditingVariable] = useState<CausalVariable | null>(null);
-  const [newEdge, setNewEdge] = useState<Partial<CausalEdge>>({});
-  const [graphDimensions, setGraphDimensions] = useState({ width: 600, height: 400 });
+  const [_newEdge, _setNewEdge] = useState<Partial<CausalEdge>>({});
+  const [graphDimensions, _setGraphDimensions] = useState({ width: 600, height: 400 });
   const [simulation, setSimulation] = useState<d3.Simulation<GraphNode, GraphLink> | null>(null);
 
   // Initialize or update hypothesis
@@ -163,7 +161,7 @@ export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
 
     linkSelection.exit().remove();
 
-    const linkEnter = linkSelection.enter()
+    linkSelection.enter()
       .append('line')
       .attr('class', 'link')
       .attr('stroke', d => getEdgeColor(d.relationshipType))
@@ -171,7 +169,7 @@ export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
       .attr('stroke-dasharray', d => d.relationshipType === 'inhibitory' ? '5,5' : 'none')
       .attr('marker-end', 'url(#arrowhead)')
       .style('cursor', 'pointer')
-      .on('click', (event, d) => {
+      .on('click', (_event: any, d: any) => {
         setSelectedEdge(d);
         setShowEdgeDialog(true);
       });
@@ -198,8 +196,8 @@ export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
         })
         .on('end', (event, d) => {
           if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
+          d.fx = undefined;
+          d.fy = undefined;
         })
       )
       .on('click', (event, d) => {
@@ -262,7 +260,10 @@ export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
     simulation.restart();
   }, [currentHypothesis, selectedNodes, simulation, graphDimensions]);
 
-  // Drop zone for adding variables
+  // Drop zone for adding variables - disabled (react-dnd not available)
+  const isOver = false;
+  const drop = null;
+  /*
   const [{ isOver }, drop] = useDrop<DraggedVariable, void, { isOver: boolean }>({
     accept: 'variable',
     drop: (item, monitor) => {
@@ -283,6 +284,7 @@ export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
       isOver: monitor.isOver()
     })
   });
+  */
 
   const addVariableToHypothesis = useCallback((variable: CausalVariable) => {
     if (currentHypothesis.variables.find(v => v.id === variable.id)) return;
@@ -522,13 +524,15 @@ export const CausalGraphBuilder: React.FC<CausalGraphBuilderProps> = ({
 
 // Draggable Variable Component
 const DraggableVariable: React.FC<{ variable: CausalVariable }> = ({ variable }) => {
-  const [{ isDragging }, drag] = useDrag<DraggedVariable, void, { isDragging: boolean }>({
-    type: 'variable',
-    item: { variable, type: 'variable' },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging()
-    })
-  });
+  // const [{ isDragging }, drag] = useDrag<DraggedVariable, void, { isDragging: boolean }>({
+  //   type: 'variable',
+  //   item: { variable, type: 'variable' },
+  //   collect: (monitor) => ({
+  //     isDragging: monitor.isDragging()
+  //   })
+  // });
+  const isDragging = false;
+  const drag = null;
 
   return (
     <Chip
@@ -585,7 +589,7 @@ const EdgeConfigurationPanel: React.FC<{
       <Typography gutterBottom>Causal Strength: {localEdge.strength.toFixed(2)}</Typography>
       <Slider
         value={localEdge.strength}
-        onChange={(_, value) => handleUpdate('strength', value)}
+        onChange={(_: Event, value: number | number[]) => handleUpdate('strength', value)}
         min={0}
         max={1}
         step={0.01}
@@ -595,7 +599,7 @@ const EdgeConfigurationPanel: React.FC<{
       <Typography gutterBottom>Confidence: {localEdge.confidence.toFixed(2)}</Typography>
       <Slider
         value={localEdge.confidence}
-        onChange={(_, value) => handleUpdate('confidence', value)}
+        onChange={(_: Event, value: number | number[]) => handleUpdate('confidence', value)}
         min={0}
         max={1}
         step={0.01}

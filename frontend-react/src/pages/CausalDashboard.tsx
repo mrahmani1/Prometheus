@@ -13,7 +13,15 @@ import {
 } from '../store/slices/dashboardSlice';
 
 import ComprehensiveCausalDashboard from '../components/dashboard/ComprehensiveCausalDashboard';
-import { CausalGraph, CausalNode, CausalEdge } from '../types/causal';
+import { 
+  CausalGraph, 
+  CausalNode, 
+  CausalEdge, 
+  GeologicalProcessType, 
+  SpatialScale, 
+  TemporalScale, 
+  CausalDiscoveryMethod 
+} from '../types/causal';
 
 // Mock data service - in production this would be replaced with real API calls
 class CausalDataService {
@@ -39,9 +47,9 @@ class CausalDataService {
       {
         id: 'seismic-activity',
         label: 'Seismic Activity',
-        processType: 'SEISMIC',
-        spatialScale: 'REGIONAL',
-        temporalScale: 'SECONDS',
+        processType: GeologicalProcessType.SEISMIC,
+        spatialScale: SpatialScale.REGIONAL,
+        temporalScale: TemporalScale.SECONDS,
         dataSource: 'IRIS/EarthScope',
         metadata: {
           description: 'Real-time seismic monitoring from IRIS network',
@@ -57,7 +65,7 @@ class CausalDataService {
       {
         id: 'ground-deformation',
         label: 'Ground Deformation',
-        processType: 'deformation',
+        processType: GeologicalProcessType.DEFORMATION,
         size: 18,
         color: '#4ECDC4',
         metadata: {
@@ -77,7 +85,7 @@ class CausalDataService {
       {
         id: 'gas-emissions',
         label: 'Gas Emissions',
-        processType: 'geochemical',
+        processType: GeologicalProcessType.GEOCHEMICAL,
         size: 16,
         color: '#45B7D1',
         metadata: {
@@ -87,8 +95,6 @@ class CausalDataService {
           confidence: 0.82,
           spatialScale: 'local',
           temporalScale: 'hour',
-        },
-        properties: {
           so2_flux: 150,
           co2_ratio: 0.25,
           temperature: 85.2,
@@ -97,7 +103,7 @@ class CausalDataService {
       {
         id: 'thermal-anomalies',
         label: 'Thermal Anomalies',
-        processType: 'thermal',
+        processType: GeologicalProcessType.THERMAL,
         size: 14,
         color: '#F7DC6F',
         metadata: {
@@ -107,8 +113,6 @@ class CausalDataService {
           confidence: 0.76,
           spatialScale: 'regional',
           temporalScale: 'day',
-        },
-        properties: {
           temperature: 45.8,
           area: 1250,
           intensity: 0.65,
@@ -117,7 +121,7 @@ class CausalDataService {
       {
         id: 'magma-intrusion',
         label: 'Magma Intrusion',
-        processType: 'magmatic',
+        processType: GeologicalProcessType.MAGMATIC,
         size: 22,
         color: '#E74C3C',
         metadata: {
@@ -141,7 +145,7 @@ class CausalDataService {
         id: 'magma-seismic',
         source: 'magma-intrusion',
         target: 'seismic-activity',
-        strength: 0.85,
+        causalStrength: 0.85,
         confidence: [0.78, 0.92],
         temporalLag: 3600000, // 1 hour in milliseconds
         edgeType: 'direct',
@@ -160,7 +164,7 @@ class CausalDataService {
         id: 'magma-deformation',
         source: 'magma-intrusion',
         target: 'ground-deformation',
-        strength: 0.92,
+        causalStrength: 0.92,
         confidence: [0.87, 0.97],
         temporalLag: 7200000, // 2 hours
         edgeType: 'direct',
@@ -179,7 +183,7 @@ class CausalDataService {
         id: 'seismic-gas',
         source: 'seismic-activity',
         target: 'gas-emissions',
-        strength: 0.67,
+        causalStrength: 0.67,
         confidence: [0.58, 0.76],
         temporalLag: 1800000, // 30 minutes
         edgeType: 'indirect',
@@ -198,7 +202,7 @@ class CausalDataService {
         id: 'gas-thermal',
         source: 'gas-emissions',
         target: 'thermal-anomalies',
-        strength: 0.73,
+        causalStrength: 0.73,
         confidence: [0.65, 0.81],
         temporalLag: 10800000, // 3 hours
         edgeType: 'direct',
@@ -220,7 +224,7 @@ class CausalDataService {
       nodes,
       edges,
       metadata: {
-        algorithmsUsed: ['pc', 'ges', 'lingam'],
+        algorithmsUsed: [CausalDiscoveryMethod.PC, CausalDiscoveryMethod.GES, CausalDiscoveryMethod.LINGAM],
         confidenceThreshold: 0.8,
         totalNodes: nodes.length,
         totalEdges: edges.length,

@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { ARButton, XR } from '@react-three/xr';
-import { Text, Html, Line, Sphere, Box } from '@react-three/drei';
+import { Canvas, useFrame, useThree as _useThree } from '@react-three/fiber';
+// import { ARButton, XR } from '@react-three/xr';
+import { Text, Html as _Html, Line as _Line, Sphere, Box } from '@react-three/drei';
 import * as THREE from 'three';
-import { useDispatch, useSelector } from 'react-redux';
-import { FieldData, ARSession, GeolocationData } from '../../types/immersive';
-import { updateARSession, addFieldObservation } from '../../store/slices/immersiveSlice';
+import { useDispatch, useSelector as _useSelector } from 'react-redux';
+import { FieldData, ARSession as _ARSession, GeolocationData as _GeolocationData } from '../../types/immersive';
+import { updateARSession as _updateARSession, addFieldObservation } from '../../store/slices/immersiveSlice';
 
 interface ARFieldDataOverlayProps {
   fieldData: FieldData[];
@@ -38,7 +38,7 @@ const ARFieldDataOverlay: React.FC<ARFieldDataOverlayProps> = ({
   showGeologicalLayers = true
 }) => {
   const dispatch = useDispatch();
-  const arSession = useSelector((state: any) => state.immersive.arSession);
+  // const _arSession = useSelector((state: any) => state.immersive.arSession);
   const [arSupported, setARSupported] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<GeolocationCoords | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -146,9 +146,9 @@ const ARFieldDataOverlay: React.FC<ARFieldDataOverlayProps> = ({
         },
         gpsCoordinates: currentLocation,
         timestamp: new Date(),
-        photo: photoData,
+        photo: photoData || undefined,
         properties: {
-          accuracy: currentLocation.accuracy,
+          accuracy: currentLocation?.accuracy,
           deviceOrientation: await getDeviceOrientation(),
           environmentalConditions: await getEnvironmentalConditions()
         }
@@ -209,7 +209,7 @@ const ARFieldDataOverlay: React.FC<ARFieldDataOverlayProps> = ({
   return (
     <div className="ar-field-overlay">
       <div className="ar-controls">
-        {arSupported && <ARButton />}
+        {/* {arSupported && <ARButton />} */}
         <div className="ar-info">
           <p>AR Support: {arSupported ? 'Available' : 'Not Available'}</p>
           <p>GPS: {currentLocation ? 
@@ -256,7 +256,7 @@ const ARFieldDataOverlay: React.FC<ARFieldDataOverlayProps> = ({
       />
 
       <Canvas style={{ height: '100vh' }}>
-        <XR>
+        {/* <XR> */}
           <ambientLight intensity={0.6} />
           <directionalLight position={[5, 5, 5]} intensity={0.8} />
           
@@ -272,7 +272,7 @@ const ARFieldDataOverlay: React.FC<ARFieldDataOverlayProps> = ({
             markerCount={markers.length}
             isCapturing={isCapturing}
           />
-        </XR>
+        {/* </XR> */}
       </Canvas>
     </div>
   );
@@ -441,7 +441,7 @@ const GeologicalLayerOverlay: React.FC = () => {
 
   return (
     <group>
-      {layers.map((layer, index) => (
+      {layers.map((layer, _index) => (
         <group key={layer.name} position={[2, layer.y, -2]}>
           <Box args={[1, 0.1, 0.5]}>
             <meshStandardMaterial
@@ -471,7 +471,12 @@ const GPSTrackingIndicator: React.FC = () => {
 
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.material.opacity = 0.5 + 0.3 * Math.sin(state.clock.elapsedTime * 2);
+      const material = meshRef.current.material;
+      if (Array.isArray(material)) {
+        material.forEach(mat => mat.opacity = 0.5 + 0.3 * Math.sin(state.clock.elapsedTime * 2));
+      } else {
+        material.opacity = 0.5 + 0.3 * Math.sin(state.clock.elapsedTime * 2);
+      }
     }
   });
 

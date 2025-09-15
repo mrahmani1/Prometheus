@@ -17,16 +17,14 @@ import {
   InputLabel,
   Button,
   Slider,
-  TextField,
+  // TextField - unused
   Tabs,
   Tab,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
-  Alert,
-  LinearProgress,
+  // Divider, Alert, LinearProgress - unused
   Dialog,
   DialogTitle,
   DialogContent,
@@ -35,7 +33,7 @@ import {
 import {
   Timeline,
   ShowChart,
-  FilterList,
+  // FilterList - unused
   PlayArrow,
   Pause,
   Stop,
@@ -43,23 +41,16 @@ import {
   ZoomOut,
   Refresh,
   Download,
-  Settings,
-  Waves,
-  Speed,
+  // Settings, Waves, Speed, Schedule, Warning, Info - unused
   LocationOn,
-  Schedule,
-  TrendingUp,
-  Warning,
-  Info
+  TrendingUp
 } from '@mui/icons-material';
-import { format, subHours, subDays } from 'date-fns';
+import { format, subHours } from 'date-fns';
 import * as d3 from 'd3';
 import {
   SeismicEvent,
-  SeismicEventType,
-  MomentTensorSolution,
-  SourceMechanism,
-  Point3D
+  SeismicEventType
+  // MomentTensorSolution, SourceMechanism, Point3D - unused
 } from '../../types/geological';
 
 interface SeismicAnalysisInterfaceProps {
@@ -147,7 +138,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
   onEventSelect,
   onFilterChange,
   realTimeMode = false,
-  selectedStation,
+  // selectedStation - unused
   timeWindow = {
     start: subHours(new Date(), 24),
     end: new Date()
@@ -155,7 +146,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
 }) => {
   const [currentTab, setCurrentTab] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [_playbackSpeed, _setPlaybackSpeed] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState<SeismicEvent | null>(null);
   const [waveformDialog, setWaveformDialog] = useState(false);
@@ -168,7 +159,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
   });
 
   const waveformCanvasRef = useRef<HTMLCanvasElement>(null);
-  const spectrogramCanvasRef = useRef<HTMLCanvasElement>(null);
+  // const _spectrogramCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Filter seismic events based on current filters
   const filteredEvents = useMemo(() => {
@@ -286,9 +277,10 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
 
     ctx.stroke();
 
-    // Draw P and S wave arrivals if available
-    if (event.p_arrival_time) {
-      const pX = xScale(event.p_arrival_time * 100); // Assuming 100 Hz sampling
+    // Draw P and S wave arrivals if available (using timestamp as fallback)
+    const pArrivalTime = event.timestamp.getTime() / 1000; // Convert to seconds
+    if (pArrivalTime) {
+      const pX = xScale(pArrivalTime * 100); // Assuming 100 Hz sampling
       ctx.strokeStyle = '#FF5722';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -302,20 +294,21 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
       ctx.fillText('P', pX + 5, 15);
     }
 
-    if (event.s_arrival_time) {
-      const sX = xScale(event.s_arrival_time * 100);
-      ctx.strokeStyle = '#4CAF50';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(sX, 0);
-      ctx.lineTo(sX, height);
-      ctx.stroke();
+    // S-wave arrival time not available in current SeismicEvent interface
+    // if (event.s_arrival_time) {
+    //   const sX = xScale(event.s_arrival_time * 100);
+    //   ctx.strokeStyle = '#4CAF50';
+    //   ctx.lineWidth = 2;
+    //   ctx.beginPath();
+    //   ctx.moveTo(sX, 0);
+    //   ctx.lineTo(sX, height);
+    //   ctx.stroke();
 
-      // Label
-      ctx.fillStyle = '#4CAF50';
-      ctx.font = '12px Arial';
-      ctx.fillText('S', sX + 5, 15);
-    }
+    //   // Label
+    //   ctx.fillStyle = '#4CAF50';
+    //   ctx.font = '12px Arial';
+    //   ctx.fillText('S', sX + 5, 15);
+    // }
   }, []);
 
   // Render event timeline
@@ -327,7 +320,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
     return (
       <Box sx={{ height: 300, overflow: 'auto' }}>
         <List>
-          {timelineEvents.map((event, index) => {
+          {timelineEvents.map((event, _index) => {
             const config = EVENT_TYPE_CONFIG[event.eventType];
             return (
               <ListItem
@@ -454,7 +447,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
               control={
                 <Switch
                   checked={realTimeMode}
-                  onChange={(e) => {
+                  onChange={(_e) => {
                     // Handle real-time mode toggle
                   }}
                 />
@@ -560,7 +553,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
             </Typography>
             <Slider
               value={filters.magnitudeRange}
-              onChange={(_, value) => handleFilterChange({ magnitudeRange: value as [number, number] })}
+              onChange={(_: Event, value: number | number[]) => handleFilterChange({ magnitudeRange: value as [number, number] })}
               min={0}
               max={10}
               step={0.1}
@@ -574,7 +567,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
             </Typography>
             <Slider
               value={filters.depthRange}
-              onChange={(_, value) => handleFilterChange({ depthRange: value as [number, number] })}
+              onChange={(_: Event, value: number | number[]) => handleFilterChange({ depthRange: value as [number, number] })}
               min={0}
               max={700}
               step={1}
@@ -588,12 +581,12 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
             </Typography>
             <Slider
               value={filters.confidenceThreshold}
-              onChange={(_, value) => handleFilterChange({ confidenceThreshold: value as number })}
+              onChange={(_: Event, value: number | number[]) => handleFilterChange({ confidenceThreshold: value as number })}
               min={0}
               max={1}
               step={0.01}
               valueLabelDisplay="auto"
-              valueLabelFormat={(value) => `${(value * 100).toFixed(0)}%`}
+              valueLabelFormat={(value: number) => `${(value * 100).toFixed(0)}%`}
             />
           </Grid>
           
@@ -621,7 +614,7 @@ export const SeismicAnalysisInterface: React.FC<SeismicAnalysisInterfaceProps> =
       {/* Main Content */}
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <Paper sx={{ height: '100%' }}>
-          <Tabs value={currentTab} onChange={(_, value) => setCurrentTab(value)}>
+          <Tabs value={currentTab} onChange={(_: React.SyntheticEvent, value: number) => setCurrentTab(value)}>
             <Tab label="Timeline" icon={<Timeline />} />
             <Tab label="Waveforms" icon={<ShowChart />} />
             <Tab label="Statistics" icon={<TrendingUp />} />

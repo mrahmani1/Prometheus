@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, Grid } from '@react-three/drei'; // Text, Box as ThreeBox - unused
+import { OrbitControls, PerspectiveCamera, Environment, Grid as ThreeGrid } from '@react-three/drei'; // Text, Box as ThreeBox - unused
 import * as THREE from 'three';
+import * as d3 from 'd3';
 import {
   Box,
   Paper,
@@ -22,26 +23,20 @@ import {
   AccordionDetails,
   LinearProgress,
   Chip,
+  Divider,
   // Alert - unused
 } from '@mui/material';
 import {
   PlayArrow,
   Pause,
   Stop,
-  Refresh,
-  Settings,
+  // Refresh, Settings, Fullscreen - unused
   Download,
-  Fullscreen,
   ExpandMore,
-  Layers,
-  Speed,
-  Thermostat,
-  Timeline,
-  RotateLeft,
-  ZoomIn,
-  ZoomOut
+  // Layers, Speed, Thermostat, Timeline, ZoomIn, ZoomOut - unused
+  RotateLeft
 } from '@mui/icons-material';
-import { format } from 'date-fns';
+// import { format } from 'date-fns'; // unused
 
 interface MantleDynamics3DProps {
   mantleData?: MantleConvectionData;
@@ -130,9 +125,9 @@ const MantleConvectionVisualization: React.FC<{
   showPressure: boolean;
   timeStep: number;
   colorScheme: string;
-}> = ({ data, showTemperature, showVelocity, showPressure, timeStep, colorScheme }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const { scene } = useThree();
+}> = ({ data, showTemperature, showVelocity, showPressure: _showPressure, timeStep: _timeStep, colorScheme }) => {
+  // const _meshRef = useRef<THREE.Mesh>(null);
+  const { scene: _scene } = useThree();
 
   // Create temperature field visualization
   const temperatureGeometry = useMemo(() => {
@@ -200,7 +195,7 @@ const MantleConvectionVisualization: React.FC<{
           const y = (j / resY - 0.5) * height;
           const z = (k / resZ - 0.5) * depth;
 
-          const direction = new THREE.Vector3(vx, vy, vz).normalize();
+          // const _direction = new THREE.Vector3(vx, vy, vz).normalize();
           const length = Math.min(magnitude * 10, 2); // Scale arrow length
 
           arrows.push(
@@ -278,7 +273,7 @@ const PlateVisualization: React.FC<{
 }> = ({ data, showPlates, showBoundaries, showHotspots, animationSpeed }) => {
   const groupRef = useRef<THREE.Group>(null);
 
-  useFrame((state) => {
+  useFrame((_state) => {
     if (groupRef.current && animationSpeed > 0) {
       // Animate plate motion
       groupRef.current.rotation.y += animationSpeed * 0.001;
@@ -400,7 +395,7 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
   const [currentTab, setCurrentTab] = useState(0);
   const [timeStep, setTimeStep] = useState(0);
   const [animationSpeed, setAnimationSpeed] = useState(1);
-  const [cameraPosition, setCameraPosition] = useState([10, 10, 10]);
+  const [cameraPosition, _setCameraPosition] = useState([10, 10, 10]);
   
   // Visualization controls
   const [showTemperature, setShowTemperature] = useState(true);
@@ -594,7 +589,7 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
             </Typography>
             <Slider
               value={animationSpeed}
-              onChange={(_, value) => setAnimationSpeed(value as number)}
+              onChange={(_: Event, value: number | number[]) => setAnimationSpeed(value as number)}
               min={0}
               max={5}
               step={0.1}
@@ -612,7 +607,7 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
             </Typography>
             <Slider
               value={Math.log10(rayleighNumber)}
-              onChange={(_, value) => handleParameterChange('rayleighNumber', Math.pow(10, value as number))}
+              onChange={(_: Event, value: number | number[]) => handleParameterChange('rayleighNumber', Math.pow(10, value as number))}
               min={4}
               max={8}
               step={0.1}
@@ -630,7 +625,7 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
             </Typography>
             <Slider
               value={Math.log10(viscosityContrast)}
-              onChange={(_, value) => handleParameterChange('viscosityContrast', Math.pow(10, value as number))}
+              onChange={(_: Event, value: number | number[]) => handleParameterChange('viscosityContrast', Math.pow(10, value as number))}
               min={1}
               max={6}
               step={0.1}
@@ -678,7 +673,7 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
               <Environment preset="sunset" />
 
               {/* Grid */}
-              <Grid
+              <ThreeGrid
                 args={[20, 20]}
                 cellSize={1}
                 cellThickness={0.5}
@@ -723,7 +718,7 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
             <Paper sx={{ p: 1 }}>
               <Tabs
                 value={currentTab}
-                onChange={(_, value) => setCurrentTab(value)}
+                onChange={(_: React.SyntheticEvent, value: number) => setCurrentTab(value)}
                 orientation="vertical"
               >
                 <Tab label="Mantle" />
@@ -829,7 +824,7 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
                 </Typography>
                 <Slider
                   value={Math.log10(thermalExpansion * 1e5)}
-                  onChange={(_, value) => handleParameterChange('thermalExpansion', Math.pow(10, value as number) / 1e5)}
+                  onChange={(_: Event, value: number | number[]) => handleParameterChange('thermalExpansion', Math.pow(10, value as number) / 1e5)}
                   min={0}
                   max={2}
                   step={0.1}

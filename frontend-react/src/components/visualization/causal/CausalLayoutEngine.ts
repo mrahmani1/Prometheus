@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import { CausalNode, CausalEdge, CausalGraph, CausalLayoutConfig, LayoutAlgorithm } from './types';
+import { CausalNode, CausalEdge, CausalGraph, CausalLayoutConfig } from './types';
 
 export class CausalLayoutEngine {
   private simulation: d3.Simulation<CausalNode, CausalEdge> | null = null;
