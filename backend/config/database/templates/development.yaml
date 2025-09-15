@@ -1,0 +1,218 @@
+# Development Environment Database Configuration Template
+# This template provides default configurations for development environment
+# All values can be overridden by environment variables
+
+environment: development
+version: "1.0.0"
+updated_at: "2025-01-14T00:00:00Z"
+
+# Database configurations
+databases:
+  prometheus_postgres:
+    name: prometheus_postgres
+    type: postgresql
+    host: "${POSTGRES_HOST:localhost}"
+    port: "${POSTGRES_PORT:5432}"
+    database: "${POSTGRES_DB:prometheus_geo}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 2
+      max_connections: 10
+      max_overflow: 20
+      pool_timeout: 30
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 1.0
+      health_check_interval: 300
+    timeout: 30
+    read_timeout: 60
+    write_timeout: 60
+    tags:
+      environment: development
+      service: prometheus-ai
+      component: database
+    metadata:
+      description: "Main PostgreSQL database for geological data"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: true
+
+  prometheus_redis:
+    name: prometheus_redis
+    type: redis
+    host: "${REDIS_HOST:localhost}"
+    port: "${REDIS_PORT:6379}"
+    database: "${REDIS_DB:0}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 2
+      max_connections: 20
+      max_overflow: 30
+      pool_timeout: 10
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 0.5
+      health_check_interval: 60
+    timeout: 10
+    read_timeout: 30
+    write_timeout: 30
+    tags:
+      environment: development
+      service: prometheus-ai
+      component: cache
+    metadata:
+      description: "Redis cache for session management and temporary data"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: true
+
+  prometheus_influxdb:
+    name: prometheus_influxdb
+    type: influxdb
+    host: "${INFLUXDB_HOST:localhost}"
+    port: "${INFLUXDB_PORT:8086}"
+    ssl_enabled: false
+    ssl_verify: false
+    timeout: 30
+    read_timeout: 60
+    write_timeout: 60
+    tags:
+      environment: development
+      service: prometheus-ai
+      component: timeseries
+    metadata:
+      description: "InfluxDB for time-series geological monitoring data"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: true
+      org: "${INFLUXDB_ORG:prometheus}"
+      bucket: "${INFLUXDB_BUCKET:geological_data}"
+
+  prometheus_neo4j:
+    name: prometheus_neo4j
+    type: neo4j
+    host: "${NEO4J_HOST:localhost}"
+    port: "${NEO4J_PORT:7687}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 1
+      max_connections: 10
+      max_overflow: 15
+      pool_timeout: 30
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 1.0
+      health_check_interval: 300
+    timeout: 30
+    read_timeout: 60
+    write_timeout: 60
+    tags:
+      environment: development
+      service: prometheus-ai
+      component: graph
+    metadata:
+      description: "Neo4j graph database for geological process relationships"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: true
+
+  prometheus_timescaledb:
+    name: prometheus_timescaledb
+    type: timescaledb
+    host: "${TIMESCALEDB_HOST:localhost}"
+    port: "${TIMESCALEDB_PORT:5432}"
+    database: "${TIMESCALEDB_DB:prometheus_timeseries}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 2
+      max_connections: 15
+      max_overflow: 25
+      pool_timeout: 30
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 1.0
+      health_check_interval: 300
+    timeout: 30
+    read_timeout: 60
+    write_timeout: 60
+    tags:
+      environment: development
+      service: prometheus-ai
+      component: timeseries
+    metadata:
+      description: "TimescaleDB for high-performance time-series analysis"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: true
+
+# Service discovery configuration
+service_discovery:
+  enabled: false
+  consul_host: "${CONSUL_HOST:localhost}"
+  consul_port: "${CONSUL_PORT:8500}"
+  consul_token: "${CONSUL_TOKEN:}"
+  service_name_prefix: "prometheus-db"
+  health_check_interval: 30
+  deregister_critical_after: 300
+
+# Credential management configuration
+credential_management:
+  encryption_enabled: true
+  encryption_key_source: environment  # environment, kubernetes_secret, vault
+  vault_enabled: false
+  vault_url: "${VAULT_URL:}"
+  vault_token: "${VAULT_TOKEN:}"
+  kubernetes_secrets_enabled: false
+  kubernetes_namespace: "${KUBERNETES_NAMESPACE:default}"
+
+# Monitoring and logging configuration
+monitoring:
+  enabled: true
+  metrics_collection: true
+  health_checks: true
+  performance_monitoring: true
+  slow_query_logging: true
+  slow_query_threshold_ms: 1000
+  connection_pool_monitoring: true
+  error_tracking: true
+
+# Backup and recovery configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 7
+  compression: true
+  encryption: false
+  storage_backend: local
+  storage_path: "./backups"
+
+# Security configuration
+security:
+  ssl_enforcement: false
+  certificate_validation: false
+  connection_encryption: false
+  audit_logging: true
+  access_control: basic
+  ip_whitelist: []
+  connection_limits:
+    max_connections_per_ip: 100
+    max_connections_per_user: 50
+    rate_limiting: false
+
+# Performance tuning
+performance:
+  connection_pooling: true
+  query_caching: true
+  prepared_statements: true
+  batch_operations: true
+  async_operations: true
+  connection_multiplexing: false
+  read_replicas: false

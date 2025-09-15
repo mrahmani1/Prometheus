@@ -1,0 +1,301 @@
+# Staging Environment Database Configuration Template
+# This template provides staging configurations that mirror production
+# but with reduced resources and enhanced logging for testing
+
+environment: staging
+version: "1.0.0"
+updated_at: "2025-01-14T00:00:00Z"
+
+# Database configurations
+databases:
+  prometheus_postgres_staging:
+    name: prometheus_postgres_staging
+    type: postgresql
+    host: "${POSTGRES_STAGING_HOST}"
+    port: "${POSTGRES_STAGING_PORT:5432}"
+    database: "${POSTGRES_DB:prometheus_geo_staging}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${POSTGRES_SSL_CA_PATH:/etc/ssl/certs/postgres-ca.crt}"
+    ssl_cert_path: "${POSTGRES_SSL_CERT_PATH:/etc/ssl/certs/postgres-client.crt}"
+    ssl_key_path: "${POSTGRES_SSL_KEY_PATH:/etc/ssl/private/postgres-client.key}"
+    pool_config:
+      min_connections: 5
+      max_connections: 25
+      max_overflow: 50
+      pool_timeout: 30
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 1.0
+      health_check_interval: 120
+    timeout: 30
+    read_timeout: 90
+    write_timeout: 90
+    tags:
+      environment: staging
+      service: prometheus-ai
+      component: database
+      tier: testing
+    metadata:
+      description: "Staging PostgreSQL database for integration testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      data_refresh_enabled: true
+
+  prometheus_redis_staging:
+    name: prometheus_redis_staging
+    type: redis
+    host: "${REDIS_STAGING_HOST}"
+    port: "${REDIS_STAGING_PORT:6379}"
+    database: "${REDIS_DB:0}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${REDIS_SSL_CA_PATH:/etc/ssl/certs/redis-ca.crt}"
+    ssl_cert_path: "${REDIS_SSL_CERT_PATH:/etc/ssl/certs/redis-client.crt}"
+    ssl_key_path: "${REDIS_SSL_KEY_PATH:/etc/ssl/private/redis-client.key}"
+    pool_config:
+      min_connections: 5
+      max_connections: 50
+      max_overflow: 100
+      pool_timeout: 15
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 1.0
+      health_check_interval: 60
+    timeout: 15
+    read_timeout: 30
+    write_timeout: 30
+    tags:
+      environment: staging
+      service: prometheus-ai
+      component: cache
+      tier: testing
+    metadata:
+      description: "Staging Redis for cache testing and session management"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: true
+      flush_on_deploy: true
+
+  prometheus_influxdb_staging:
+    name: prometheus_influxdb_staging
+    type: influxdb
+    host: "${INFLUXDB_STAGING_HOST}"
+    port: "${INFLUXDB_STAGING_PORT:8086}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${INFLUXDB_SSL_CA_PATH:/etc/ssl/certs/influxdb-ca.crt}"
+    ssl_cert_path: "${INFLUXDB_SSL_CERT_PATH:/etc/ssl/certs/influxdb-client.crt}"
+    ssl_key_path: "${INFLUXDB_SSL_KEY_PATH:/etc/ssl/private/influxdb-client.key}"
+    timeout: 30
+    read_timeout: 90
+    write_timeout: 90
+    tags:
+      environment: staging
+      service: prometheus-ai
+      component: timeseries
+      tier: testing
+    metadata:
+      description: "Staging InfluxDB for time-series data testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      org: "${INFLUXDB_ORG:prometheus_staging}"
+      bucket: "${INFLUXDB_BUCKET:geological_data_staging}"
+      retention_policy: "${INFLUXDB_RETENTION:7d}"
+
+  prometheus_neo4j_staging:
+    name: prometheus_neo4j_staging
+    type: neo4j
+    host: "${NEO4J_STAGING_HOST}"
+    port: "${NEO4J_STAGING_PORT:7687}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${NEO4J_SSL_CA_PATH:/etc/ssl/certs/neo4j-ca.crt}"
+    ssl_cert_path: "${NEO4J_SSL_CERT_PATH:/etc/ssl/certs/neo4j-client.crt}"
+    ssl_key_path: "${NEO4J_SSL_KEY_PATH:/etc/ssl/private/neo4j-client.key}"
+    pool_config:
+      min_connections: 2
+      max_connections: 15
+      max_overflow: 25
+      pool_timeout: 30
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 1.0
+      health_check_interval: 180
+    timeout: 30
+    read_timeout: 90
+    write_timeout: 90
+    tags:
+      environment: staging
+      service: prometheus-ai
+      component: graph
+      tier: testing
+    metadata:
+      description: "Staging Neo4j for graph relationship testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      test_data_enabled: true
+
+  prometheus_timescaledb_staging:
+    name: prometheus_timescaledb_staging
+    type: timescaledb
+    host: "${TIMESCALEDB_STAGING_HOST}"
+    port: "${TIMESCALEDB_STAGING_PORT:5432}"
+    database: "${TIMESCALEDB_DB:prometheus_timeseries_staging}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${TIMESCALEDB_SSL_CA_PATH:/etc/ssl/certs/timescaledb-ca.crt}"
+    ssl_cert_path: "${TIMESCALEDB_SSL_CERT_PATH:/etc/ssl/certs/timescaledb-client.crt}"
+    ssl_key_path: "${TIMESCALEDB_SSL_KEY_PATH:/etc/ssl/private/timescaledb-client.key}"
+    pool_config:
+      min_connections: 3
+      max_connections: 20
+      max_overflow: 40
+      pool_timeout: 30
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 3
+      retry_delay: 1.0
+      health_check_interval: 120
+    timeout: 30
+    read_timeout: 90
+    write_timeout: 90
+    tags:
+      environment: staging
+      service: prometheus-ai
+      component: timeseries
+      tier: testing
+    metadata:
+      description: "Staging TimescaleDB for time-series analysis testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      compression_enabled: false
+      test_data_enabled: true
+
+# Service discovery configuration
+service_discovery:
+  enabled: true
+  consul_host: "${CONSUL_STAGING_HOST}"
+  consul_port: "${CONSUL_STAGING_PORT:8500}"
+  consul_token: "${CONSUL_STAGING_TOKEN}"
+  service_name_prefix: "prometheus-db-staging"
+  health_check_interval: 30
+  deregister_critical_after: 180
+  datacenter: "${CONSUL_DATACENTER:staging}"
+  encryption_enabled: true
+  acl_enabled: false
+
+# Credential management configuration
+credential_management:
+  encryption_enabled: true
+  encryption_key_source: kubernetes_secret  # kubernetes_secret, vault, environment
+  vault_enabled: false
+  vault_url: "${VAULT_STAGING_URL:}"
+  vault_token: "${VAULT_STAGING_TOKEN:}"
+  vault_namespace: "${VAULT_NAMESPACE:prometheus-staging}"
+  kubernetes_secrets_enabled: true
+  kubernetes_namespace: "${KUBERNETES_NAMESPACE:prometheus-ai-staging}"
+  secret_rotation_enabled: false
+  secret_rotation_interval: "168h"  # Weekly
+
+# Monitoring and logging configuration
+monitoring:
+  enabled: true
+  metrics_collection: true
+  metrics_endpoint: "${METRICS_ENDPOINT:/metrics}"
+  health_checks: true
+  health_check_endpoint: "${HEALTH_CHECK_ENDPOINT:/health}"
+  performance_monitoring: true
+  slow_query_logging: true
+  slow_query_threshold_ms: 2000
+  connection_pool_monitoring: true
+  error_tracking: true
+  distributed_tracing: true
+  log_level: "DEBUG"
+  structured_logging: true
+  log_retention_days: 14
+  alerting_enabled: true
+  alert_manager_url: "${ALERT_MANAGER_STAGING_URL}"
+  test_monitoring: true
+
+# Backup and recovery configuration
+backup:
+  enabled: true
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  retention_days: 7
+  compression: true
+  encryption: false
+  storage_backend: local  # local, s3, gcs
+  storage_path: "${BACKUP_STORAGE_PATH:./backups/staging}"
+  cross_region_replication: false
+  point_in_time_recovery: false
+  backup_verification: true
+  disaster_recovery_testing: false
+
+# Security configuration
+security:
+  ssl_enforcement: true
+  certificate_validation: true
+  connection_encryption: true
+  audit_logging: true
+  audit_log_retention_days: 30
+  access_control: basic  # basic, rbac
+  authentication_required: true
+  authorization_required: false
+  ip_whitelist: "${DATABASE_IP_WHITELIST:}"
+  connection_limits:
+    max_connections_per_ip: 100
+    max_connections_per_user: 50
+    rate_limiting: false
+    rate_limit_requests_per_minute: 2000
+  vulnerability_scanning: false
+  security_patches: manual
+  compliance_standards: []
+
+# Performance tuning
+performance:
+  connection_pooling: true
+  query_caching: true
+  prepared_statements: true
+  batch_operations: true
+  async_operations: true
+  connection_multiplexing: false
+  read_replicas: false
+  load_balancing: false
+  auto_scaling: false
+  performance_insights: true
+  query_optimization: false
+  index_optimization: false
+  partition_management: false
+
+# Testing configuration
+testing:
+  enabled: true
+  test_data_refresh: true
+  test_data_refresh_schedule: "0 1 * * 1"  # Weekly on Monday at 1 AM
+  synthetic_data_generation: true
+  load_testing: true
+  chaos_engineering: false
+  integration_testing: true
+  performance_testing: true
+  security_testing: true
+  data_migration_testing: true
+  rollback_testing: true
+
+# Development support
+development_support:
+  debug_mode: true
+  query_logging: true
+  performance_profiling: true
+  schema_migration_testing: true
+  seed_data_loading: true
+  test_fixtures: true
+  mock_data_generation: false
+  development_tools_access: true

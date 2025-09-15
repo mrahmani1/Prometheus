@@ -1,0 +1,366 @@
+# Testing Environment Database Configuration Template
+# This template provides configurations optimized for automated testing
+# with fast setup/teardown, isolation, and comprehensive test data management
+
+environment: testing
+version: "1.0.0"
+updated_at: "2025-01-14T00:00:00Z"
+
+# Database configurations
+databases:
+  prometheus_postgres_test:
+    name: prometheus_postgres_test
+    type: postgresql
+    host: "${POSTGRES_TEST_HOST:localhost}"
+    port: "${POSTGRES_TEST_PORT:5433}"
+    database: "${POSTGRES_TEST_DB:prometheus_geo_test}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 1
+      max_connections: 5
+      max_overflow: 10
+      pool_timeout: 10
+      pool_recycle: 300  # 5 minutes
+      pool_pre_ping: true
+      retry_attempts: 2
+      retry_delay: 0.5
+      health_check_interval: 60
+    timeout: 10
+    read_timeout: 30
+    write_timeout: 30
+    tags:
+      environment: testing
+      service: prometheus-ai
+      component: database
+      tier: test
+      isolation: true
+    metadata:
+      description: "Test PostgreSQL database for unit and integration tests"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: false
+      auto_cleanup: true
+      test_isolation: true
+
+  prometheus_redis_test:
+    name: prometheus_redis_test
+    type: redis
+    host: "${REDIS_TEST_HOST:localhost}"
+    port: "${REDIS_TEST_PORT:6380}"
+    database: "${REDIS_TEST_DB:1}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 1
+      max_connections: 10
+      max_overflow: 20
+      pool_timeout: 5
+      pool_recycle: 300
+      pool_pre_ping: true
+      retry_attempts: 2
+      retry_delay: 0.5
+      health_check_interval: 30
+    timeout: 5
+    read_timeout: 15
+    write_timeout: 15
+    tags:
+      environment: testing
+      service: prometheus-ai
+      component: cache
+      tier: test
+      isolation: true
+    metadata:
+      description: "Test Redis for cache and session testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: false
+      auto_cleanup: true
+      flush_between_tests: true
+
+  prometheus_influxdb_test:
+    name: prometheus_influxdb_test
+    type: influxdb
+    host: "${INFLUXDB_TEST_HOST:localhost}"
+    port: "${INFLUXDB_TEST_PORT:8087}"
+    ssl_enabled: false
+    ssl_verify: false
+    timeout: 10
+    read_timeout: 30
+    write_timeout: 30
+    tags:
+      environment: testing
+      service: prometheus-ai
+      component: timeseries
+      tier: test
+      isolation: true
+    metadata:
+      description: "Test InfluxDB for time-series data testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: false
+      auto_cleanup: true
+      org: "${INFLUXDB_TEST_ORG:prometheus_test}"
+      bucket: "${INFLUXDB_TEST_BUCKET:test_data}"
+      retention_policy: "${INFLUXDB_TEST_RETENTION:1h}"
+
+  prometheus_neo4j_test:
+    name: prometheus_neo4j_test
+    type: neo4j
+    host: "${NEO4J_TEST_HOST:localhost}"
+    port: "${NEO4J_TEST_PORT:7688}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 1
+      max_connections: 5
+      max_overflow: 10
+      pool_timeout: 10
+      pool_recycle: 300
+      pool_pre_ping: true
+      retry_attempts: 2
+      retry_delay: 0.5
+      health_check_interval: 60
+    timeout: 10
+    read_timeout: 30
+    write_timeout: 30
+    tags:
+      environment: testing
+      service: prometheus-ai
+      component: graph
+      tier: test
+      isolation: true
+    metadata:
+      description: "Test Neo4j for graph relationship testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: false
+      auto_cleanup: true
+      clear_between_tests: true
+
+  prometheus_timescaledb_test:
+    name: prometheus_timescaledb_test
+    type: timescaledb
+    host: "${TIMESCALEDB_TEST_HOST:localhost}"
+    port: "${TIMESCALEDB_TEST_PORT:5434}"
+    database: "${TIMESCALEDB_TEST_DB:prometheus_timeseries_test}"
+    ssl_enabled: false
+    ssl_verify: false
+    pool_config:
+      min_connections: 1
+      max_connections: 5
+      max_overflow: 10
+      pool_timeout: 10
+      pool_recycle: 300
+      pool_pre_ping: true
+      retry_attempts: 2
+      retry_delay: 0.5
+      health_check_interval: 60
+    timeout: 10
+    read_timeout: 30
+    write_timeout: 30
+    tags:
+      environment: testing
+      service: prometheus-ai
+      component: timeseries
+      tier: test
+      isolation: true
+    metadata:
+      description: "Test TimescaleDB for time-series analysis testing"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: false
+      auto_cleanup: true
+      compression_enabled: false
+
+# Service discovery configuration
+service_discovery:
+  enabled: false
+  consul_host: "${CONSUL_TEST_HOST:localhost}"
+  consul_port: "${CONSUL_TEST_PORT:8501}"
+  consul_token: "${CONSUL_TEST_TOKEN:}"
+  service_name_prefix: "prometheus-db-test"
+  health_check_interval: 60
+  deregister_critical_after: 300
+  datacenter: "test"
+  encryption_enabled: false
+  acl_enabled: false
+
+# Credential management configuration
+credential_management:
+  encryption_enabled: false
+  encryption_key_source: environment
+  vault_enabled: false
+  vault_url: ""
+  vault_token: ""
+  kubernetes_secrets_enabled: false
+  kubernetes_namespace: "default"
+  secret_rotation_enabled: false
+
+# Monitoring and logging configuration
+monitoring:
+  enabled: false
+  metrics_collection: false
+  health_checks: true
+  health_check_endpoint: "/health"
+  performance_monitoring: false
+  slow_query_logging: false
+  connection_pool_monitoring: false
+  error_tracking: true
+  distributed_tracing: false
+  log_level: "ERROR"
+  structured_logging: false
+  log_retention_days: 1
+  alerting_enabled: false
+
+# Backup and recovery configuration
+backup:
+  enabled: false
+  schedule: ""
+  retention_days: 0
+  compression: false
+  encryption: false
+  storage_backend: none
+  cross_region_replication: false
+  point_in_time_recovery: false
+  backup_verification: false
+  disaster_recovery_testing: false
+
+# Security configuration
+security:
+  ssl_enforcement: false
+  certificate_validation: false
+  connection_encryption: false
+  audit_logging: false
+  access_control: none
+  authentication_required: false
+  authorization_required: false
+  ip_whitelist: []
+  connection_limits:
+    max_connections_per_ip: 1000
+    max_connections_per_user: 100
+    rate_limiting: false
+  vulnerability_scanning: false
+  security_patches: none
+  compliance_standards: []
+
+# Performance tuning
+performance:
+  connection_pooling: true
+  query_caching: false
+  prepared_statements: false
+  batch_operations: false
+  async_operations: false
+  connection_multiplexing: false
+  read_replicas: false
+  load_balancing: false
+  auto_scaling: false
+  performance_insights: false
+  query_optimization: false
+  index_optimization: false
+  partition_management: false
+
+# Testing configuration
+testing:
+  enabled: true
+  test_isolation: true
+  parallel_testing: true
+  test_database_per_worker: true
+  auto_rollback: true
+  transaction_isolation: true
+  test_data_fixtures: true
+  mock_external_services: true
+  fast_setup_teardown: true
+  in_memory_databases: false
+  test_data_generation: true
+  schema_validation: true
+  constraint_checking: true
+  foreign_key_checks: true
+  
+  # Test lifecycle management
+  lifecycle:
+    setup_timeout: 30
+    teardown_timeout: 15
+    cleanup_between_tests: true
+    cleanup_between_suites: true
+    reset_sequences: true
+    truncate_tables: true
+    drop_temp_objects: true
+    
+  # Test data management
+  data_management:
+    fixtures_enabled: true
+    fixtures_path: "${TEST_FIXTURES_PATH:./tests/fixtures}"
+    seed_data_enabled: true
+    seed_data_path: "${TEST_SEED_DATA_PATH:./tests/seed_data}"
+    factory_enabled: true
+    synthetic_data_enabled: true
+    data_anonymization: false
+    
+  # Test execution
+  execution:
+    parallel_workers: "${TEST_PARALLEL_WORKERS:4}"
+    timeout_per_test: 30
+    timeout_per_suite: 300
+    retry_failed_tests: false
+    fail_fast: false
+    verbose_output: true
+    coverage_enabled: true
+    
+  # Database-specific test settings
+  database_settings:
+    postgresql:
+      use_test_database: true
+      create_test_schema: true
+      enable_extensions: ["postgis", "uuid-ossp"]
+      test_tablespace: false
+      
+    redis:
+      use_separate_db: true
+      flush_on_setup: true
+      flush_on_teardown: true
+      
+    influxdb:
+      use_test_bucket: true
+      retention_policy: "1h"
+      delete_on_teardown: true
+      
+    neo4j:
+      use_test_database: true
+      clear_on_setup: true
+      clear_on_teardown: true
+      
+    timescaledb:
+      use_test_database: true
+      disable_compression: true
+      disable_continuous_aggregates: true
+
+# Development and debugging
+development:
+  debug_mode: true
+  verbose_logging: true
+  query_debugging: false
+  connection_debugging: false
+  performance_debugging: false
+  memory_debugging: false
+  
+# CI/CD integration
+ci_cd:
+  enabled: true
+  database_setup_script: "${CI_DB_SETUP_SCRIPT:./scripts/setup_test_databases.sh}"
+  database_teardown_script: "${CI_DB_TEARDOWN_SCRIPT:./scripts/teardown_test_databases.sh}"
+  migration_testing: true
+  schema_validation: true
+  data_migration_testing: false
+  performance_regression_testing: false
+  
+# Container and orchestration settings
+containers:
+  use_containers: true
+  container_runtime: "docker"
+  network_isolation: true
+  resource_limits:
+    memory: "512Mi"
+    cpu: "0.5"
+  ephemeral_storage: true
+  auto_remove: true

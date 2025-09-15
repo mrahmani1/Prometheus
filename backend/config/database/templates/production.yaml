@@ -1,0 +1,352 @@
+# Production Environment Database Configuration Template
+# This template provides production-ready configurations with high availability,
+# security, monitoring, and performance optimizations
+
+environment: production
+version: "1.0.0"
+updated_at: "2025-01-14T00:00:00Z"
+
+# Database configurations
+databases:
+  prometheus_postgres_primary:
+    name: prometheus_postgres_primary
+    type: postgresql
+    host: "${POSTGRES_PRIMARY_HOST}"
+    port: "${POSTGRES_PRIMARY_PORT:5432}"
+    database: "${POSTGRES_DB:prometheus_geo}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${POSTGRES_SSL_CA_PATH:/etc/ssl/certs/postgres-ca.crt}"
+    ssl_cert_path: "${POSTGRES_SSL_CERT_PATH:/etc/ssl/certs/postgres-client.crt}"
+    ssl_key_path: "${POSTGRES_SSL_KEY_PATH:/etc/ssl/private/postgres-client.key}"
+    pool_config:
+      min_connections: 10
+      max_connections: 50
+      max_overflow: 100
+      pool_timeout: 30
+      pool_recycle: 1800  # 30 minutes
+      pool_pre_ping: true
+      retry_attempts: 5
+      retry_delay: 2.0
+      health_check_interval: 60
+    timeout: 30
+    read_timeout: 120
+    write_timeout: 120
+    tags:
+      environment: production
+      service: prometheus-ai
+      component: database
+      role: primary
+      tier: critical
+    metadata:
+      description: "Primary PostgreSQL database for geological data"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      high_availability: true
+      disaster_recovery: true
+
+  prometheus_postgres_replica:
+    name: prometheus_postgres_replica
+    type: postgresql
+    host: "${POSTGRES_REPLICA_HOST}"
+    port: "${POSTGRES_REPLICA_PORT:5432}"
+    database: "${POSTGRES_DB:prometheus_geo}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${POSTGRES_SSL_CA_PATH:/etc/ssl/certs/postgres-ca.crt}"
+    ssl_cert_path: "${POSTGRES_SSL_CERT_PATH:/etc/ssl/certs/postgres-client.crt}"
+    ssl_key_path: "${POSTGRES_SSL_KEY_PATH:/etc/ssl/private/postgres-client.key}"
+    pool_config:
+      min_connections: 5
+      max_connections: 30
+      max_overflow: 50
+      pool_timeout: 30
+      pool_recycle: 1800
+      pool_pre_ping: true
+      retry_attempts: 5
+      retry_delay: 2.0
+      health_check_interval: 60
+    timeout: 30
+    read_timeout: 120
+    write_timeout: 120
+    tags:
+      environment: production
+      service: prometheus-ai
+      component: database
+      role: replica
+      tier: critical
+    metadata:
+      description: "Read replica PostgreSQL database for read-heavy operations"
+      owner: "prometheus-ai-team"
+      backup_enabled: false
+      monitoring_enabled: true
+      read_only: true
+
+  prometheus_redis_cluster:
+    name: prometheus_redis_cluster
+    type: redis
+    host: "${REDIS_CLUSTER_HOST}"
+    port: "${REDIS_CLUSTER_PORT:6379}"
+    database: "${REDIS_DB:0}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${REDIS_SSL_CA_PATH:/etc/ssl/certs/redis-ca.crt}"
+    ssl_cert_path: "${REDIS_SSL_CERT_PATH:/etc/ssl/certs/redis-client.crt}"
+    ssl_key_path: "${REDIS_SSL_KEY_PATH:/etc/ssl/private/redis-client.key}"
+    pool_config:
+      min_connections: 10
+      max_connections: 100
+      max_overflow: 200
+      pool_timeout: 10
+      pool_recycle: 3600
+      pool_pre_ping: true
+      retry_attempts: 5
+      retry_delay: 1.0
+      health_check_interval: 30
+    timeout: 10
+    read_timeout: 30
+    write_timeout: 30
+    tags:
+      environment: production
+      service: prometheus-ai
+      component: cache
+      tier: critical
+      cluster_mode: true
+    metadata:
+      description: "Redis cluster for high-availability caching and session management"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      high_availability: true
+      cluster_nodes: "${REDIS_CLUSTER_NODES:3}"
+
+  prometheus_influxdb_cluster:
+    name: prometheus_influxdb_cluster
+    type: influxdb
+    host: "${INFLUXDB_CLUSTER_HOST}"
+    port: "${INFLUXDB_CLUSTER_PORT:8086}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${INFLUXDB_SSL_CA_PATH:/etc/ssl/certs/influxdb-ca.crt}"
+    ssl_cert_path: "${INFLUXDB_SSL_CERT_PATH:/etc/ssl/certs/influxdb-client.crt}"
+    ssl_key_path: "${INFLUXDB_SSL_KEY_PATH:/etc/ssl/private/influxdb-client.key}"
+    timeout: 30
+    read_timeout: 120
+    write_timeout: 120
+    tags:
+      environment: production
+      service: prometheus-ai
+      component: timeseries
+      tier: critical
+      cluster_mode: true
+    metadata:
+      description: "InfluxDB cluster for high-performance time-series geological monitoring"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      high_availability: true
+      org: "${INFLUXDB_ORG:prometheus}"
+      bucket: "${INFLUXDB_BUCKET:geological_data}"
+      retention_policy: "${INFLUXDB_RETENTION:30d}"
+
+  prometheus_neo4j_cluster:
+    name: prometheus_neo4j_cluster
+    type: neo4j
+    host: "${NEO4J_CLUSTER_HOST}"
+    port: "${NEO4J_CLUSTER_PORT:7687}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${NEO4J_SSL_CA_PATH:/etc/ssl/certs/neo4j-ca.crt}"
+    ssl_cert_path: "${NEO4J_SSL_CERT_PATH:/etc/ssl/certs/neo4j-client.crt}"
+    ssl_key_path: "${NEO4J_SSL_KEY_PATH:/etc/ssl/private/neo4j-client.key}"
+    pool_config:
+      min_connections: 5
+      max_connections: 25
+      max_overflow: 50
+      pool_timeout: 30
+      pool_recycle: 1800
+      pool_pre_ping: true
+      retry_attempts: 5
+      retry_delay: 2.0
+      health_check_interval: 120
+    timeout: 30
+    read_timeout: 120
+    write_timeout: 120
+    tags:
+      environment: production
+      service: prometheus-ai
+      component: graph
+      tier: critical
+      cluster_mode: true
+    metadata:
+      description: "Neo4j cluster for geological process relationship graphs"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      high_availability: true
+      cluster_nodes: "${NEO4J_CLUSTER_NODES:3}"
+
+  prometheus_timescaledb_cluster:
+    name: prometheus_timescaledb_cluster
+    type: timescaledb
+    host: "${TIMESCALEDB_CLUSTER_HOST}"
+    port: "${TIMESCALEDB_CLUSTER_PORT:5432}"
+    database: "${TIMESCALEDB_DB:prometheus_timeseries}"
+    ssl_enabled: true
+    ssl_verify: true
+    ssl_ca_path: "${TIMESCALEDB_SSL_CA_PATH:/etc/ssl/certs/timescaledb-ca.crt}"
+    ssl_cert_path: "${TIMESCALEDB_SSL_CERT_PATH:/etc/ssl/certs/timescaledb-client.crt}"
+    ssl_key_path: "${TIMESCALEDB_SSL_KEY_PATH:/etc/ssl/private/timescaledb-client.key}"
+    pool_config:
+      min_connections: 10
+      max_connections: 40
+      max_overflow: 80
+      pool_timeout: 30
+      pool_recycle: 1800
+      pool_pre_ping: true
+      retry_attempts: 5
+      retry_delay: 2.0
+      health_check_interval: 60
+    timeout: 30
+    read_timeout: 120
+    write_timeout: 120
+    tags:
+      environment: production
+      service: prometheus-ai
+      component: timeseries
+      tier: critical
+      cluster_mode: true
+    metadata:
+      description: "TimescaleDB cluster for high-performance time-series analysis"
+      owner: "prometheus-ai-team"
+      backup_enabled: true
+      monitoring_enabled: true
+      high_availability: true
+      compression_enabled: true
+      continuous_aggregates: true
+
+# Service discovery configuration
+service_discovery:
+  enabled: true
+  consul_host: "${CONSUL_HOST}"
+  consul_port: "${CONSUL_PORT:8500}"
+  consul_token: "${CONSUL_TOKEN}"
+  service_name_prefix: "prometheus-db"
+  health_check_interval: 10
+  deregister_critical_after: 60
+  datacenter: "${CONSUL_DATACENTER:dc1}"
+  encryption_enabled: true
+  acl_enabled: true
+
+# Credential management configuration
+credential_management:
+  encryption_enabled: true
+  encryption_key_source: vault  # vault, kubernetes_secret, environment
+  vault_enabled: true
+  vault_url: "${VAULT_URL}"
+  vault_token: "${VAULT_TOKEN}"
+  vault_namespace: "${VAULT_NAMESPACE:prometheus}"
+  vault_mount_path: "${VAULT_MOUNT_PATH:database}"
+  kubernetes_secrets_enabled: true
+  kubernetes_namespace: "${KUBERNETES_NAMESPACE:prometheus-ai}"
+  secret_rotation_enabled: true
+  secret_rotation_interval: "24h"
+
+# Monitoring and logging configuration
+monitoring:
+  enabled: true
+  metrics_collection: true
+  metrics_endpoint: "${METRICS_ENDPOINT:/metrics}"
+  health_checks: true
+  health_check_endpoint: "${HEALTH_CHECK_ENDPOINT:/health}"
+  performance_monitoring: true
+  slow_query_logging: true
+  slow_query_threshold_ms: 5000
+  connection_pool_monitoring: true
+  error_tracking: true
+  distributed_tracing: true
+  log_level: "INFO"
+  structured_logging: true
+  log_retention_days: 30
+  alerting_enabled: true
+  alert_manager_url: "${ALERT_MANAGER_URL}"
+
+# Backup and recovery configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+  compression: true
+  encryption: true
+  encryption_key: "${BACKUP_ENCRYPTION_KEY}"
+  storage_backend: s3  # s3, gcs, azure, local
+  storage_bucket: "${BACKUP_STORAGE_BUCKET}"
+  storage_region: "${BACKUP_STORAGE_REGION}"
+  cross_region_replication: true
+  point_in_time_recovery: true
+  backup_verification: true
+  disaster_recovery_testing: true
+
+# Security configuration
+security:
+  ssl_enforcement: true
+  certificate_validation: true
+  connection_encryption: true
+  audit_logging: true
+  audit_log_retention_days: 90
+  access_control: rbac  # rbac, basic, none
+  authentication_required: true
+  authorization_required: true
+  ip_whitelist: "${DATABASE_IP_WHITELIST:}"
+  connection_limits:
+    max_connections_per_ip: 50
+    max_connections_per_user: 25
+    rate_limiting: true
+    rate_limit_requests_per_minute: 1000
+  vulnerability_scanning: true
+  security_patches: auto
+  compliance_standards: ["SOC2", "GDPR", "HIPAA"]
+
+# Performance tuning
+performance:
+  connection_pooling: true
+  query_caching: true
+  prepared_statements: true
+  batch_operations: true
+  async_operations: true
+  connection_multiplexing: true
+  read_replicas: true
+  load_balancing: true
+  auto_scaling: true
+  performance_insights: true
+  query_optimization: true
+  index_optimization: true
+  partition_management: true
+
+# High availability configuration
+high_availability:
+  enabled: true
+  replication_mode: "streaming"  # streaming, logical, synchronous
+  failover_mode: "automatic"  # automatic, manual
+  failover_timeout: 30
+  health_check_interval: 10
+  cluster_management: "patroni"  # patroni, repmgr, manual
+  load_balancer: "haproxy"  # haproxy, pgbouncer, manual
+  split_brain_protection: true
+  quorum_based_decisions: true
+  disaster_recovery_site: "${DR_SITE_ENABLED:false}"
+
+# Compliance and governance
+compliance:
+  data_classification: "sensitive"
+  data_residency: "${DATA_RESIDENCY_REGION}"
+  encryption_at_rest: true
+  encryption_in_transit: true
+  key_management: "vault"  # vault, kms, manual
+  audit_requirements: true
+  retention_policies: true
+  data_purging: true
+  privacy_controls: true
+  access_reviews: true
+  compliance_reporting: true

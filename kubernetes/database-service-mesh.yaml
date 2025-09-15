@@ -1,0 +1,324 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-database-config
+  namespace: prometheus-ai
+  labels:
+    app: istio
+    component: service-mesh
+data:
+  mesh-config.yaml: |
+    defaultConfig:
+      proxyStatsMatcher:
+        inclusionRegexps:
+        - ".*circuit_breakers.*"
+        - ".*upstream_rq_retry.*"
+        - ".*upstream_rq_pending.*"
+        - ".*_cx_.*"
+      concurrency: 2
+    extensionProviders:
+    - name: prometheus
+      prometheus:
+        configOverride:
+          metric_relabeling_configs:
+          - source_labels: [__name__]
+            regex: 'istio_.*'
+            target_label: __tmp_istio_metric
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: database-mtls
+  namespace: prometheus-ai
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: database-access-policy
+  namespace: prometheus-ai
+spec:
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/prometheus-ai/sa/helios-core"]
+        namespaces: ["prometheus-ai"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+    when:
+    - key: source.labels[app]
+      values: ["helios-core", "data-ingestion", "volcano-watchtower"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/prometheus-ai/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+    when:
+    - key: destination.labels[component]
+      values: ["database"]
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: postgres-destination-rule
+  namespace: prometheus-ai
+spec:
+  host: postgres.prometheus-ai.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 50
+        maxRequestsPerConnection: 10
+    circuitBreaker:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: redis-destination-rule
+  namespace: prometheus-ai
+spec:
+  host: redis.prometheus-ai.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 200
+        connectTimeout: 10s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+    circuitBreaker:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 10s
+      maxEjectionPercent: 30
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: influxdb-destination-rule
+  namespace: prometheus-ai
+spec:
+  host: influxdb.prometheus-ai.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 50
+        connectTimeout: 30s
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 5
+        h2MaxRequests: 1000
+    circuitBreaker:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: neo4j-destination-rule
+  namespace: prometheus-ai
+spec:
+  host: neo4j.prometheus-ai.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 30
+        connectTimeout: 30s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+    circuitBreaker:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: timescaledb-destination-rule
+  namespace: prometheus-ai
+spec:
+  host: timescaledb.prometheus-ai.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+    circuitBreaker:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: database-routing
+  namespace: prometheus-ai
+spec:
+  hosts:
+  - postgres.prometheus-ai.svc.cluster.local
+  - redis.prometheus-ai.svc.cluster.local
+  - influxdb.prometheus-ai.svc.cluster.local
+  - neo4j.prometheus-ai.svc.cluster.local
+  - timescaledb.prometheus-ai.svc.cluster.local
+  tcp:
+  - match:
+    - port: 5432
+    route:
+    - destination:
+        host: postgres.prometheus-ai.svc.cluster.local
+        port:
+          number: 5432
+    timeout: 30s
+  - match:
+    - port: 6379
+    route:
+    - destination:
+        host: redis.prometheus-ai.svc.cluster.local
+        port:
+          number: 6379
+    timeout: 10s
+  http:
+  - match:
+    - port: 8086
+    route:
+    - destination:
+        host: influxdb.prometheus-ai.svc.cluster.local
+        port:
+          number: 8086
+    timeout: 60s
+    retries:
+      attempts: 3
+      perTryTimeout: 20s
+  - match:
+    - port: 7474
+    route:
+    - destination:
+        host: neo4j.prometheus-ai.svc.cluster.local
+        port:
+          number: 7474
+    timeout: 30s
+    retries:
+      attempts: 2
+      perTryTimeout: 15s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-database-services
+  namespace: prometheus-ai
+spec:
+  hosts:
+  - iris.earthquake.usgs.gov
+  - earthquake.usgs.gov
+  - firms.modaps.eosdis.nasa.gov
+  - scihub.copernicus.eu
+  - asf.alaska.edu
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  - number: 80
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: database-metrics
+  namespace: prometheus-ai
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        destination_service_name:
+          value: "%{destination_service_name | 'unknown'}"
+        source_app:
+          value: "%{source_labels['app'] | 'unknown'}"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: database-service-account
+  namespace: prometheus-ai
+  labels:
+    app: prometheus-ai
+    component: database
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: prometheus-ai
+  name: database-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.istio.io"]
+  resources: ["destinationrules", "virtualservices"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: database-role-binding
+  namespace: prometheus-ai
+subjects:
+- kind: ServiceAccount
+  name: database-service-account
+  namespace: prometheus-ai
+roleRef:
+  kind: Role
+  name: database-role
+  apiGroup: rbac.authorization.k8s.io

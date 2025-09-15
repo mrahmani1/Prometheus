@@ -1,0 +1,350 @@
+# Docker Compose configuration for secure database deployment
+# Includes encryption, authentication, and monitoring for all database types
+
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS and security hardening
+  postgresql-secure:
+    image: postgis/postgis:15-3.3
+    container_name: prometheus-postgresql-secure
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-prometheus}
+      POSTGRES_USER: ${POSTGRES_USER:-prometheus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - postgresql_data_secure:/var/lib/postgresql/data
+      - ./database/postgres/init-security.sql:/docker-entrypoint-initdb.d/01-init-security.sql
+      - ./database/postgres/ssl:/var/lib/postgresql/ssl
+      - ./backend/config/postgresql-secure.conf:/etc/postgresql/postgresql.conf
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    command: >
+      postgres
+      -c ssl=on
+      -c ssl_cert_file=/var/lib/postgresql/ssl/server.crt
+      -c ssl_key_file=/var/lib/postgresql/ssl/server.key
+      -c ssl_ca_file=/var/lib/postgresql/ssl/ca.crt
+      -c ssl_ciphers='ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256'
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_statement=all
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+      -c shared_preload_libraries=pg_stat_statements
+      -c track_activities=on
+      -c track_counts=on
+      -c track_io_timing=on
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prometheus} -d ${POSTGRES_DB:-prometheus}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+  # InfluxDB with authentication and SSL
+  influxdb-secure:
+    image: influxdb:2.7
+    container_name: prometheus-influxdb-secure
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USER:-prometheus}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-prometheus}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-geological_data}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXD_TLS_CERT: /etc/ssl/influxdb.crt
+      INFLUXD_TLS_KEY: /etc/ssl/influxdb.key
+    volumes:
+      - influxdb_data_secure:/var/lib/influxdb2
+      - influxdb_config_secure:/etc/influxdb2
+      - ./database/influxdb/ssl:/etc/ssl
+      - ./backend/config/influxdb-secure.conf:/etc/influxdb2/config.yml
+    ports:
+      - "${INFLUXDB_PORT:-8086}:8086"
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  # Redis with authentication and SSL
+  redis-secure:
+    image: redis:7.2-alpine
+    container_name: prometheus-redis-secure
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --tls-port 6380
+      --port 0
+      --tls-cert-file /etc/ssl/redis.crt
+      --tls-key-file /etc/ssl/redis.key
+      --tls-ca-cert-file /etc/ssl/ca.crt
+      --tls-protocols "TLSv1.2 TLSv1.3"
+      --tls-ciphers "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256"
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis_data_secure:/data
+      - ./database/redis/ssl:/etc/ssl
+      - ./backend/config/redis-secure.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "${REDIS_PORT:-6380}:6380"
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--tls", "--cert", "/etc/ssl/redis.crt", "--key", "/etc/ssl/redis.key", "--cacert", "/etc/ssl/ca.crt", "-p", "6380", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  # Neo4j with authentication and encryption
+  neo4j-secure:
+    image: neo4j:5.12-enterprise
+    container_name: prometheus-neo4j-secure
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+      NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+      NEO4J_dbms_connector_bolt_enabled: "true"
+      NEO4J_dbms_connector_bolt_tls__level: REQUIRED
+      NEO4J_dbms_ssl_policy_bolt_enabled: "true"
+      NEO4J_dbms_ssl_policy_bolt_base__directory: /var/lib/neo4j/certificates/bolt
+      NEO4J_dbms_ssl_policy_bolt_private__key: private.key
+      NEO4J_dbms_ssl_policy_bolt_public__certificate: public.crt
+      NEO4J_dbms_connector_https_enabled: "true"
+      NEO4J_dbms_connector_https_listen__address: ":7473"
+      NEO4J_dbms_ssl_policy_https_enabled: "true"
+      NEO4J_dbms_ssl_policy_https_base__directory: /var/lib/neo4j/certificates/https
+      NEO4J_dbms_ssl_policy_https_private__key: private.key
+      NEO4J_dbms_ssl_policy_https_public__certificate: public.crt
+      NEO4J_dbms_security_auth__minimum__password__length: 12
+      NEO4J_dbms_logs_security_level: INFO
+      NEO4J_dbms_security_log__successful__authentication: "true"
+    volumes:
+      - neo4j_data_secure:/data
+      - neo4j_logs_secure:/logs
+      - neo4j_import_secure:/var/lib/neo4j/import
+      - neo4j_plugins_secure:/plugins
+      - ./database/neo4j/ssl/bolt:/var/lib/neo4j/certificates/bolt
+      - ./database/neo4j/ssl/https:/var/lib/neo4j/certificates/https
+    ports:
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+      - "${NEO4J_HTTP_PORT:-7474}:7474"
+      - "${NEO4J_HTTPS_PORT:-7473}:7473"
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # TimescaleDB with security hardening
+  timescaledb-secure:
+    image: timescale/timescaledb:latest-pg15
+    container_name: prometheus-timescaledb-secure
+    environment:
+      POSTGRES_DB: ${TIMESCALEDB_DB:-prometheus_timeseries}
+      POSTGRES_USER: ${TIMESCALEDB_USER:-prometheus}
+      POSTGRES_PASSWORD: ${TIMESCALEDB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - timescaledb_data_secure:/var/lib/postgresql/data
+      - ./database/timescaledb/init-security.sql:/docker-entrypoint-initdb.d/01-init-security.sql
+      - ./database/timescaledb/ssl:/var/lib/postgresql/ssl
+      - ./backend/config/timescaledb-secure.conf:/etc/postgresql/postgresql.conf
+    ports:
+      - "${TIMESCALEDB_PORT:-5433}:5432"
+    command: >
+      postgres
+      -c ssl=on
+      -c ssl_cert_file=/var/lib/postgresql/ssl/server.crt
+      -c ssl_key_file=/var/lib/postgresql/ssl/server.key
+      -c ssl_ca_file=/var/lib/postgresql/ssl/ca.crt
+      -c shared_preload_libraries=timescaledb
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_statement=all
+      -c track_activities=on
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALEDB_USER:-prometheus} -d ${TIMESCALEDB_DB:-prometheus_timeseries}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # Security monitoring and logging
+  security-monitor:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.security-monitor
+    container_name: prometheus-security-monitor
+    environment:
+      POSTGRES_HOST: postgresql-secure
+      INFLUXDB_HOST: influxdb-secure
+      REDIS_HOST: redis-secure
+      NEO4J_HOST: neo4j-secure
+      TIMESCALEDB_HOST: timescaledb-secure
+      SECURITY_CONFIG_PATH: /app/config/security_config.yaml
+      LOG_LEVEL: INFO
+    volumes:
+      - ./backend/config/security_config.yaml:/app/config/security_config.yaml
+      - security_logs:/var/log/prometheus
+      - ./backend/core:/app/core
+    depends_on:
+      - postgresql-secure
+      - influxdb-secure
+      - redis-secure
+      - neo4j-secure
+      - timescaledb-secure
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # Backup service with encryption
+  backup-service:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.backup-service
+    container_name: prometheus-backup-service
+    environment:
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY}
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+      BACKUP_RETENTION_DAYS: 90
+      S3_BUCKET: ${BACKUP_S3_BUCKET}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - backup_data:/backups
+      - postgresql_data_secure:/source/postgresql:ro
+      - influxdb_data_secure:/source/influxdb:ro
+      - redis_data_secure:/source/redis:ro
+      - neo4j_data_secure:/source/neo4j:ro
+      - timescaledb_data_secure:/source/timescaledb:ro
+    depends_on:
+      - postgresql-secure
+      - influxdb-secure
+      - redis-secure
+      - neo4j-secure
+      - timescaledb-secure
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # Certificate management service
+  cert-manager:
+    image: certbot/certbot:latest
+    container_name: prometheus-cert-manager
+    volumes:
+      - cert_data:/etc/letsencrypt
+      - cert_www:/var/www/certbot
+      - ./scripts/cert-renewal.sh:/scripts/cert-renewal.sh
+    environment:
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL:-admin@prometheus-ai.com}
+      DOMAIN_NAME: ${DOMAIN_NAME:-prometheus-ai.com}
+    command: >
+      sh -c "
+      while :; do
+        sleep 12h & wait $!;
+        /scripts/cert-renewal.sh;
+      done"
+    networks:
+      - prometheus-secure-network
+    restart: unless-stopped
+
+volumes:
+  postgresql_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/postgresql-secure
+  influxdb_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/influxdb-secure
+  influxdb_config_secure:
+    driver: local
+  redis_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/redis-secure
+  neo4j_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/neo4j-secure
+  neo4j_logs_secure:
+    driver: local
+  neo4j_import_secure:
+    driver: local
+  neo4j_plugins_secure:
+    driver: local
+  timescaledb_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/timescaledb-secure
+  security_logs:
+    driver: local
+  backup_data:
+    driver: local
+  cert_data:
+    driver: local
+  cert_www:
+    driver: local
+
+networks:
+  prometheus-secure-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: prometheus-secure
+      com.docker.network.bridge.enable_icc: "false"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

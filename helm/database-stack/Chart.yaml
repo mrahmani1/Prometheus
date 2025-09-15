@@ -1,0 +1,38 @@
+apiVersion: v2
+name: prometheus-database-stack
+description: A comprehensive Helm chart for Prometheus AI Platform database stack
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - database
+  - postgresql
+  - influxdb
+  - neo4j
+  - redis
+  - timescaledb
+  - kafka
+  - prometheus
+  - monitoring
+home: https://github.com/prometheus-ai/platform
+sources:
+  - https://github.com/prometheus-ai/platform
+maintainers:
+  - name: Prometheus AI Team
+    email: team@prometheus-ai.com
+dependencies:
+  - name: postgresql
+    version: "12.12.10"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: "18.1.5"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+  - name: kafka
+    version: "25.3.5"
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled
+annotations:
+  category: Database
+  licenses: Apache-2.0

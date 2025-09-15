@@ -1,0 +1,257 @@
+# Database Security and Compliance Framework Configuration
+
+# Encryption Configuration
+encryption:
+  type: "aes_256_gcm"  # aes_256_gcm, aes_256_cbc, chacha20_poly1305
+  key_rotation_days: 90
+  key_derivation_iterations: 100000
+  salt_length: 32
+  iv_length: 16
+  enable_compression: true
+  backup_encryption: true
+
+# RBAC Configuration
+rbac:
+  session_timeout_minutes: 480  # 8 hours
+  max_failed_login_attempts: 5
+  account_lockout_duration_minutes: 30
+  password_expiry_days: 90
+  require_mfa_for_admin: true
+  ip_whitelist_enabled: true
+  time_based_access_enabled: true
+
+# Audit Logging Configuration
+audit_logging:
+  enabled: true
+  log_file_path: "/var/log/prometheus/security_audit.log"
+  encrypt_audit_logs: true
+  retention_days: 365
+  high_risk_operations:
+    - "DROP"
+    - "DELETE"
+    - "TRUNCATE"
+    - "ALTER"
+    - "GRANT"
+    - "REVOKE"
+    - "CREATE USER"
+    - "DROP USER"
+  sensitive_tables:
+    - "users"
+    - "passwords"
+    - "credentials"
+    - "tokens"
+    - "personal_data"
+    - "financial_data"
+    - "geological_samples"
+    - "seismic_data"
+  compliance_tags:
+    - "SOC2"
+    - "GDPR"
+    - "HIPAA"
+
+# Vulnerability Scanning Configuration
+vulnerability_scanning:
+  enabled: true
+  scan_interval_hours: 24
+  auto_remediation: false
+  severity_thresholds:
+    critical: 0.9
+    high: 0.7
+    medium: 0.5
+    low: 0.3
+  scan_rules:
+    - "weak_passwords"
+    - "excessive_privileges"
+    - "unencrypted_connections"
+    - "outdated_certificates"
+    - "default_credentials"
+    - "open_ports"
+    - "missing_patches"
+    - "insecure_configurations"
+
+# Compliance Configuration
+compliance:
+  enabled_standards:
+    - "SOC2"
+    - "GDPR"
+    - "ISO_27001"
+  audit_frequency_days: 90
+  auto_reporting: true
+  certification_requirements:
+    SOC2:
+      minimum_score: 0.95
+      critical_findings_allowed: 0
+      required_controls:
+        - "CC6.1"  # Access controls
+        - "CC6.7"  # Data transmission
+        - "CC6.8"  # System monitoring
+    GDPR:
+      minimum_score: 0.90
+      data_protection_by_design: true
+      required_controls:
+        - "Art25"  # Data protection by design
+        - "Art30"  # Records of processing
+        - "Art32"  # Security of processing
+    ISO_27001:
+      minimum_score: 0.92
+      required_controls:
+        - "A.9.1"   # Access control policy
+        - "A.12.4"  # Logging and monitoring
+        - "A.18.1"  # Compliance requirements
+
+# Data Masking Configuration
+data_masking:
+  enabled: true
+  environments:
+    - "development"
+    - "testing"
+    - "staging"
+  masking_rules:
+    users:
+      email: "email_mask"
+      phone: "phone_mask"
+      ssn: "ssn_mask"
+      credit_card: "credit_card_mask"
+    personal_data:
+      name: "name_mask"
+      address: "address_mask"
+      date_of_birth: "date_mask"
+    geological_data:
+      sample_location: "coordinate_mask"
+      researcher_notes: "text_mask"
+      proprietary_data: "full_mask"
+  preserve_referential_integrity: true
+  consistent_masking: true
+
+# Security Incident Response Configuration
+incident_response:
+  enabled: true
+  auto_response: true
+  notification_channels:
+    slack_webhook: "${SECURITY_SLACK_WEBHOOK}"
+    email_webhook: "${SECURITY_EMAIL_WEBHOOK}"
+    sms_webhook: "${SECURITY_SMS_WEBHOOK}"
+  response_teams:
+    security_team: "security@prometheus-ai.com"
+    compliance_team: "compliance@prometheus-ai.com"
+    legal_team: "legal@prometheus-ai.com"
+  escalation_matrix:
+    LOW:
+      notify: ["security_team"]
+      auto_block: false
+      escalation_time_minutes: 60
+    MEDIUM:
+      notify: ["security_team", "compliance_team"]
+      auto_block: true
+      escalation_time_minutes: 30
+    HIGH:
+      notify: ["security_team", "compliance_team", "management"]
+      auto_block: true
+      escalation_time_minutes: 15
+    CRITICAL:
+      notify: ["security_team", "compliance_team", "legal_team", "management"]
+      auto_block: true
+      escalation_time_minutes: 5
+  automated_responses:
+    UNAUTHORIZED_ACCESS:
+      - "block_ip"
+      - "revoke_sessions"
+      - "increase_monitoring"
+    DATA_BREACH:
+      - "isolate_systems"
+      - "collect_forensics"
+      - "notify_compliance"
+    BRUTE_FORCE_ATTACK:
+      - "block_ip"
+      - "lock_accounts"
+      - "increase_auth_monitoring"
+    MALICIOUS_QUERY:
+      - "block_query_patterns"
+      - "analyze_query"
+      - "update_detection_rules"
+
+# Monitoring and Alerting Configuration
+monitoring:
+  enabled: true
+  real_time_monitoring: true
+  alert_thresholds:
+    failed_login_rate: 10  # per minute
+    suspicious_query_rate: 5  # per minute
+    data_access_volume: 1000  # MB per minute
+    privilege_escalation_attempts: 1  # per hour
+  metrics_retention_days: 30
+  dashboard_refresh_seconds: 30
+
+# Database-Specific Security Settings
+database_security:
+  postgresql:
+    ssl_mode: "require"
+    ssl_cert_verification: true
+    connection_encryption: true
+    audit_all_queries: true
+    log_connections: true
+    log_disconnections: true
+  influxdb:
+    https_enabled: true
+    token_authentication: true
+    audit_logging: true
+  redis:
+    auth_required: true
+    ssl_enabled: true
+    acl_enabled: true
+  neo4j:
+    bolt_encryption: true
+    auth_enabled: true
+    audit_logging: true
+  timescaledb:
+    ssl_mode: "require"
+    row_level_security: true
+    audit_logging: true
+
+# Backup and Recovery Security
+backup_security:
+  encrypt_backups: true
+  backup_retention_days: 90
+  offsite_backup: true
+  backup_verification: true
+  recovery_testing_frequency_days: 30
+
+# Network Security
+network_security:
+  firewall_enabled: true
+  allowed_ip_ranges:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+  blocked_countries: []
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_limit: 100
+  ddos_protection: true
+
+# Certificate Management
+certificate_management:
+  auto_renewal: true
+  renewal_threshold_days: 30
+  certificate_monitoring: true
+  mutual_tls_enabled: true
+  certificate_validation: true
+
+# Security Policies
+security_policies:
+  password_policy:
+    min_length: 12
+    require_uppercase: true
+    require_lowercase: true
+    require_numbers: true
+    require_special_chars: true
+    prevent_reuse_count: 5
+  session_policy:
+    idle_timeout_minutes: 30
+    absolute_timeout_minutes: 480
+    concurrent_sessions_limit: 3
+  access_policy:
+    principle_of_least_privilege: true
+    regular_access_review: true
+    access_review_frequency_days: 90

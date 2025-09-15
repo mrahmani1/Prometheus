@@ -1,497 +1,532 @@
 """
-Database Configuration Service
-Integrates the DatabaseConfigManager with the existing database integration layer
-Provides centralized database access with standardized configuration management
+Enhanced Database Service with Standardized Configuration Management
+Provides centralized database operations with automatic configuration discovery,
+connection pooling, health monitoring, and production-grade features.
 """
 
 import os
 import asyncio
 import logging
-from typing import Dict, List, Optional, Any, Union, Type
+from typing import Dict, List, Optional, Any, Union, AsyncIterator, Tuple
 from contextlib import asynccontextmanager
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+import json
+import yaml
+from pathlib import Path
 
-# Import existing database integration
-from backend.core.database_integration import EnhancedDatabaseIntegrator, QueryResult
+# Database clients
+import asyncpg
+import redis.asyncio as redis
+from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
+from neo4j import AsyncGraphDatabase
+import motor.motor_asyncio
+
 from backend.core.database_config_manager import (
     DatabaseConfigManager, DatabaseConfig, DatabaseType, Environment,
-    create_config_manager, validate_db_config
+    ConnectionPoolConfig, DatabaseCredentials
 )
 
-# Import database clients
-try:
-    import asyncpg
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-    POSTGRESQL_AVAILABLE = True
-except ImportError:
-    POSTGRESQL_AVAILABLE = False
 
-try:
-    from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
-    INFLUXDB_AVAILABLE = True
-except ImportError:
-    INFLUXDB_AVAILABLE = False
+@dataclass
+class ConnectionMetrics:
+    """Connection pool metrics"""
+    active_connections: int = 0
+    idle_connections: int = 0
+    total_connections: int = 0
+    failed_connections: int = 0
+    connection_errors: int = 0
+    avg_connection_time: float = 0.0
+    last_health_check: Optional[datetime] = None
+    health_status: str = "unknown"
 
-try:
-    from neo4j import AsyncGraphDatabase
-    NEO4J_AVAILABLE = True
-except ImportError:
-    NEO4J_AVAILABLE = False
 
-try:
-    import redis.asyncio as redis
-    REDIS_AVAILABLE = True
-except ImportError:
-    REDIS_AVAILABLE = False
-
-try:
-    from motor.motor_asyncio import AsyncIOMotorClient
-    MONGODB_AVAILABLE = True
-except ImportError:
-    MONGODB_AVAILABLE = False
+@dataclass
+class QueryMetrics:
+    """Query execution metrics"""
+    total_queries: int = 0
+    successful_queries: int = 0
+    failed_queries: int = 0
+    avg_query_time: float = 0.0
+    slow_queries: int = 0
+    last_query_time: Optional[datetime] = None
 
 
 class DatabaseConnectionPool:
-    """Manages database connection pools with configuration-based setup"""
+    """
+    Enhanced database connection pool with health monitoring,
+    automatic failover, and performance metrics.
+    """
     
     def __init__(self, config: DatabaseConfig):
         self.config = config
         self.logger = logging.getLogger(__name__ + f".ConnectionPool.{config.name}")
-        self.connection_pool = None
+        
+        # Connection pool
+        self.pool = None
         self.is_initialized = False
-        self.health_status = "unknown"
+        self.is_healthy = False
+        
+        # Metrics
+        self.connection_metrics = ConnectionMetrics()
+        self.query_metrics = QueryMetrics()
+        
+        # Health monitoring
         self.last_health_check = None
+        self.health_check_interval = timedelta(seconds=config.pool_config.health_check_interval)
+        
+        # Failover and retry
+        self.retry_count = 0
+        self.max_retries = config.pool_config.retry_attempts
+        self.retry_delay = config.pool_config.retry_delay
         
     async def initialize(self) -> bool:
-        """Initialize connection pool based on database type"""
+        """Initialize connection pool"""
         try:
+            self.logger.info(f"Initializing connection pool for {self.config.name}")
+            
             if self.config.type == DatabaseType.POSTGRESQL:
                 await self._initialize_postgresql_pool()
+            elif self.config.type == DatabaseType.REDIS:
+                await self._initialize_redis_pool()
             elif self.config.type == DatabaseType.INFLUXDB:
                 await self._initialize_influxdb_pool()
             elif self.config.type == DatabaseType.NEO4J:
                 await self._initialize_neo4j_pool()
-            elif self.config.type == DatabaseType.REDIS:
-                await self._initialize_redis_pool()
-            elif self.config.type == DatabaseType.MONGODB:
-                await self._initialize_mongodb_pool()
+            elif self.config.type == DatabaseType.TIMESCALEDB:
+                await self._initialize_timescaledb_pool()
             else:
                 raise ValueError(f"Unsupported database type: {self.config.type}")
             
             self.is_initialized = True
-            self.health_status = "healthy"
-            self.logger.info(f"Connection pool initialized for {self.config.name}")
+            await self.health_check()
+            
+            self.logger.info(f"Connection pool initialized successfully for {self.config.name}")
             return True
             
         except Exception as e:
             self.logger.error(f"Failed to initialize connection pool for {self.config.name}: {e}")
-            self.health_status = "error"
+            self.is_initialized = False
             return False
     
     async def _initialize_postgresql_pool(self):
         """Initialize PostgreSQL connection pool"""
-        if not POSTGRESQL_AVAILABLE:
-            raise ImportError("PostgreSQL dependencies not available")
+        connection_kwargs = {
+            'host': self.config.host,
+            'port': self.config.port,
+            'database': self.config.database,
+            'min_size': self.config.pool_config.min_connections,
+            'max_size': self.config.pool_config.max_connections,
+            'command_timeout': self.config.timeout,
+        }
         
-        # Create SQLAlchemy async engine
-        connection_string = self.config.get_connection_string()
+        if self.config.credentials:
+            connection_kwargs.update({
+                'user': self.config.credentials.username,
+                'password': self.config.credentials.password,
+            })
         
-        # Add SSL parameters if enabled
-        connect_args = {}
         if self.config.ssl_enabled:
-            connect_args['ssl'] = 'require' if self.config.ssl_verify else 'prefer'
+            ssl_context = self._create_ssl_context()
+            connection_kwargs['ssl'] = ssl_context
+        
+        self.pool = await asyncpg.create_pool(**connection_kwargs)
+    
+    async def _initialize_redis_pool(self):
+        """Initialize Redis connection pool"""
+        connection_kwargs = {
+            'host': self.config.host,
+            'port': self.config.port,
+            'db': int(self.config.database) if self.config.database else 0,
+            'max_connections': self.config.pool_config.max_connections,
+            'socket_timeout': self.config.timeout,
+            'socket_connect_timeout': self.config.timeout,
+            'retry_on_timeout': True,
+            'health_check_interval': self.config.pool_config.health_check_interval,
+        }
+        
+        if self.config.credentials and self.config.credentials.password:
+            connection_kwargs['password'] = self.config.credentials.password
+        
+        if self.config.ssl_enabled:
+            connection_kwargs['ssl'] = True
             if self.config.ssl_ca_path:
-                connect_args['sslrootcert'] = self.config.ssl_ca_path
-            if self.config.ssl_cert_path:
-                connect_args['sslcert'] = self.config.ssl_cert_path
-            if self.config.ssl_key_path:
-                connect_args['sslkey'] = self.config.ssl_key_path
+                connection_kwargs['ssl_ca_certs'] = self.config.ssl_ca_path
         
-        self.connection_pool = create_async_engine(
-            connection_string,
-            pool_size=self.config.pool_config.min_connections,
-            max_overflow=self.config.pool_config.max_overflow,
-            pool_timeout=self.config.pool_config.pool_timeout,
-            pool_recycle=self.config.pool_config.pool_recycle,
-            pool_pre_ping=self.config.pool_config.pool_pre_ping,
-            connect_args=connect_args,
-            echo=False
-        )
-        
-        # Create session factory
-        self.session_factory = async_sessionmaker(
-            self.connection_pool,
-            class_=AsyncSession,
-            expire_on_commit=False
-        )
+        self.pool = redis.ConnectionPool(**connection_kwargs)
     
     async def _initialize_influxdb_pool(self):
         """Initialize InfluxDB connection pool"""
-        if not INFLUXDB_AVAILABLE:
-            raise ImportError("InfluxDB dependencies not available")
+        url = self.config.get_connection_string(include_credentials=False)
+        token = self.config.credentials.token if self.config.credentials else None
         
-        self.connection_pool = InfluxDBClientAsync(
-            url=self.config.get_connection_string(include_credentials=False),
-            token=self.config.credentials.token if self.config.credentials else None,
-            org=self.config.metadata.get('org', 'prometheus'),
-            timeout=self.config.timeout * 1000,
-            verify_ssl=self.config.ssl_verify if self.config.ssl_enabled else True
+        self.pool = InfluxDBClientAsync(
+            url=url,
+            token=token,
+            timeout=self.config.timeout * 1000,  # Convert to milliseconds
+            enable_gzip=True
         )
     
     async def _initialize_neo4j_pool(self):
         """Initialize Neo4j connection pool"""
-        if not NEO4J_AVAILABLE:
-            raise ImportError("Neo4j dependencies not available")
+        uri = self.config.get_connection_string(include_credentials=False)
         
         auth = None
         if self.config.credentials:
             auth = (self.config.credentials.username, self.config.credentials.password)
         
-        self.connection_pool = AsyncGraphDatabase.driver(
-            self.config.get_connection_string(include_credentials=False),
+        self.pool = AsyncGraphDatabase.driver(
+            uri,
             auth=auth,
             max_connection_lifetime=self.config.pool_config.pool_recycle,
             max_connection_pool_size=self.config.pool_config.max_connections,
             connection_timeout=self.config.timeout,
-            encrypted=self.config.ssl_enabled,
-            trust=self.config.ssl_verify if self.config.ssl_enabled else True
+            encrypted=self.config.ssl_enabled
         )
     
-    async def _initialize_redis_pool(self):
-        """Initialize Redis connection pool"""
-        if not REDIS_AVAILABLE:
-            raise ImportError("Redis dependencies not available")
-        
-        connection_kwargs = {
-            'host': self.config.host,
-            'port': self.config.port,
-            'db': int(self.config.database) if self.config.database else 0,
-            'password': self.config.credentials.password if self.config.credentials else None,
-            'socket_timeout': self.config.timeout,
-            'socket_connect_timeout': self.config.timeout,
-            'decode_responses': True,
-            'max_connections': self.config.pool_config.max_connections
-        }
-        
-        if self.config.ssl_enabled:
-            connection_kwargs['ssl'] = True
-            connection_kwargs['ssl_check_hostname'] = self.config.ssl_verify
-            if self.config.ssl_ca_path:
-                connection_kwargs['ssl_ca_certs'] = self.config.ssl_ca_path
-            if self.config.ssl_cert_path:
-                connection_kwargs['ssl_certfile'] = self.config.ssl_cert_path
-            if self.config.ssl_key_path:
-                connection_kwargs['ssl_keyfile'] = self.config.ssl_key_path
-        
-        self.connection_pool = redis.ConnectionPool(**connection_kwargs)
+    async def _initialize_timescaledb_pool(self):
+        """Initialize TimescaleDB connection pool (same as PostgreSQL)"""
+        await self._initialize_postgresql_pool()
     
-    async def _initialize_mongodb_pool(self):
-        """Initialize MongoDB connection pool"""
-        if not MONGODB_AVAILABLE:
-            raise ImportError("MongoDB dependencies not available")
+    def _create_ssl_context(self):
+        """Create SSL context for secure connections"""
+        import ssl
         
-        connection_string = self.config.get_connection_string()
+        context = ssl.create_default_context()
         
-        # Add connection options
-        options = {
-            'maxPoolSize': self.config.pool_config.max_connections,
-            'minPoolSize': self.config.pool_config.min_connections,
-            'maxIdleTimeMS': self.config.pool_config.pool_recycle * 1000,
-            'connectTimeoutMS': self.config.timeout * 1000,
-            'serverSelectionTimeoutMS': self.config.timeout * 1000
-        }
+        if not self.config.ssl_verify:
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
         
-        if self.config.ssl_enabled:
-            options['ssl'] = True
-            options['ssl_cert_reqs'] = 'CERT_REQUIRED' if self.config.ssl_verify else 'CERT_NONE'
-            if self.config.ssl_ca_path:
-                options['ssl_ca_certs'] = self.config.ssl_ca_path
-            if self.config.ssl_cert_path:
-                options['ssl_certfile'] = self.config.ssl_cert_path
-            if self.config.ssl_key_path:
-                options['ssl_keyfile'] = self.config.ssl_key_path
+        if self.config.ssl_ca_path:
+            context.load_verify_locations(self.config.ssl_ca_path)
         
-        self.connection_pool = AsyncIOMotorClient(connection_string, **options)
+        if self.config.ssl_cert_path and self.config.ssl_key_path:
+            context.load_cert_chain(self.config.ssl_cert_path, self.config.ssl_key_path)
+        
+        return context
     
     @asynccontextmanager
     async def get_connection(self):
-        """Get database connection from pool"""
-        if not self.is_initialized:
-            raise RuntimeError(f"Connection pool not initialized for {self.config.name}")
+        """Get connection from pool with automatic cleanup"""
+        connection = None
+        start_time = datetime.utcnow()
         
-        if self.config.type == DatabaseType.POSTGRESQL:
-            async with self.session_factory() as session:
+        try:
+            if not self.is_initialized:
+                raise RuntimeError(f"Connection pool not initialized for {self.config.name}")
+            
+            if self.config.type == DatabaseType.POSTGRESQL or self.config.type == DatabaseType.TIMESCALEDB:
+                connection = await self.pool.acquire()
+            elif self.config.type == DatabaseType.REDIS:
+                connection = redis.Redis(connection_pool=self.pool)
+            elif self.config.type == DatabaseType.INFLUXDB:
+                connection = self.pool
+            elif self.config.type == DatabaseType.NEO4J:
+                connection = self.pool.session()
+            
+            # Update metrics
+            connection_time = (datetime.utcnow() - start_time).total_seconds()
+            self.connection_metrics.active_connections += 1
+            self.connection_metrics.total_connections += 1
+            self.connection_metrics.avg_connection_time = (
+                (self.connection_metrics.avg_connection_time * (self.connection_metrics.total_connections - 1) + connection_time) /
+                self.connection_metrics.total_connections
+            )
+            
+            yield connection
+            
+        except Exception as e:
+            self.connection_metrics.connection_errors += 1
+            self.connection_metrics.failed_connections += 1
+            self.logger.error(f"Connection error for {self.config.name}: {e}")
+            raise
+            
+        finally:
+            if connection:
                 try:
-                    yield session
-                except Exception:
-                    await session.rollback()
-                    raise
-                finally:
-                    await session.close()
+                    if self.config.type == DatabaseType.POSTGRESQL or self.config.type == DatabaseType.TIMESCALEDB:
+                        await self.pool.release(connection)
+                    elif self.config.type == DatabaseType.REDIS:
+                        await connection.close()
+                    elif self.config.type == DatabaseType.NEO4J:
+                        await connection.close()
+                    # InfluxDB connections are managed by the client
+                    
+                    self.connection_metrics.active_connections -= 1
+                    
+                except Exception as e:
+                    self.logger.error(f"Error releasing connection for {self.config.name}: {e}")
+    
+    async def execute_query(self, query: str, params: Optional[Dict] = None) -> Any:
+        """Execute query with metrics tracking"""
+        start_time = datetime.utcnow()
         
-        elif self.config.type == DatabaseType.REDIS:
-            client = redis.Redis(connection_pool=self.connection_pool)
-            try:
-                yield client
-            finally:
-                await client.close()
-        
-        elif self.config.type == DatabaseType.NEO4J:
-            async with self.connection_pool.session() as session:
-                yield session
-        
-        elif self.config.type == DatabaseType.INFLUXDB:
-            yield self.connection_pool
-        
-        elif self.config.type == DatabaseType.MONGODB:
-            yield self.connection_pool[self.config.database]
-        
-        else:
-            yield self.connection_pool
+        try:
+            async with self.get_connection() as conn:
+                if self.config.type == DatabaseType.POSTGRESQL or self.config.type == DatabaseType.TIMESCALEDB:
+                    if params:
+                        result = await conn.fetch(query, *params.values())
+                    else:
+                        result = await conn.fetch(query)
+                elif self.config.type == DatabaseType.REDIS:
+                    # Redis commands are different
+                    result = await conn.execute_command(*query.split())
+                elif self.config.type == DatabaseType.NEO4J:
+                    result = await conn.run(query, params or {})
+                    result = await result.data()
+                else:
+                    raise ValueError(f"Query execution not implemented for {self.config.type}")
+                
+                # Update metrics
+                query_time = (datetime.utcnow() - start_time).total_seconds()
+                self.query_metrics.total_queries += 1
+                self.query_metrics.successful_queries += 1
+                self.query_metrics.avg_query_time = (
+                    (self.query_metrics.avg_query_time * (self.query_metrics.total_queries - 1) + query_time) /
+                    self.query_metrics.total_queries
+                )
+                self.query_metrics.last_query_time = datetime.utcnow()
+                
+                # Track slow queries
+                if query_time > 1.0:  # Queries taking more than 1 second
+                    self.query_metrics.slow_queries += 1
+                
+                return result
+                
+        except Exception as e:
+            self.query_metrics.total_queries += 1
+            self.query_metrics.failed_queries += 1
+            self.logger.error(f"Query execution error for {self.config.name}: {e}")
+            raise
     
     async def health_check(self) -> bool:
-        """Perform health check on connection pool"""
+        """Perform health check on the connection pool"""
         try:
-            if self.config.type == DatabaseType.POSTGRESQL:
-                async with self.get_connection() as conn:
-                    result = await conn.execute("SELECT 1")
-                    
+            if self.config.type == DatabaseType.POSTGRESQL or self.config.type == DatabaseType.TIMESCALEDB:
+                result = await self.execute_query("SELECT 1")
+                self.is_healthy = len(result) > 0
             elif self.config.type == DatabaseType.REDIS:
                 async with self.get_connection() as conn:
                     await conn.ping()
-                    
-            elif self.config.type == DatabaseType.NEO4J:
-                async with self.get_connection() as conn:
-                    await conn.run("RETURN 1")
-                    
+                self.is_healthy = True
             elif self.config.type == DatabaseType.INFLUXDB:
-                async with self.get_connection() as conn:
-                    health = await conn.health()
-                    if health.status != 'pass':
-                        return False
-                        
-            elif self.config.type == DatabaseType.MONGODB:
-                async with self.get_connection() as conn:
-                    await conn.admin.command('ping')
+                health = await self.pool.health()
+                self.is_healthy = health.status == 'pass'
+            elif self.config.type == DatabaseType.NEO4J:
+                async with self.get_connection() as session:
+                    result = await session.run("RETURN 1")
+                    await result.consume()
+                self.is_healthy = True
             
-            self.health_status = "healthy"
-            self.last_health_check = datetime.utcnow()
-            return True
+            self.connection_metrics.last_health_check = datetime.utcnow()
+            self.connection_metrics.health_status = "healthy" if self.is_healthy else "unhealthy"
+            
+            if self.is_healthy:
+                self.retry_count = 0
+            
+            return self.is_healthy
             
         except Exception as e:
-            self.logger.warning(f"Health check failed for {self.config.name}: {e}")
-            self.health_status = "unhealthy"
-            self.last_health_check = datetime.utcnow()
+            self.is_healthy = False
+            self.connection_metrics.health_status = f"unhealthy: {str(e)}"
+            self.logger.error(f"Health check failed for {self.config.name}: {e}")
             return False
     
-    async def cleanup(self):
-        """Cleanup connection pool"""
-        if self.connection_pool:
-            if self.config.type == DatabaseType.POSTGRESQL:
-                await self.connection_pool.dispose()
-            elif self.config.type == DatabaseType.INFLUXDB:
-                await self.connection_pool.close()
-            elif self.config.type == DatabaseType.NEO4J:
-                await self.connection_pool.close()
-            elif self.config.type == DatabaseType.REDIS:
-                await self.connection_pool.disconnect()
-            elif self.config.type == DatabaseType.MONGODB:
-                self.connection_pool.close()
-        
-        self.is_initialized = False
-        self.logger.info(f"Connection pool cleaned up for {self.config.name}")
+    async def close(self):
+        """Close connection pool"""
+        try:
+            if self.pool:
+                if self.config.type == DatabaseType.POSTGRESQL or self.config.type == DatabaseType.TIMESCALEDB:
+                    await self.pool.close()
+                elif self.config.type == DatabaseType.REDIS:
+                    await self.pool.disconnect()
+                elif self.config.type == DatabaseType.INFLUXDB:
+                    await self.pool.close()
+                elif self.config.type == DatabaseType.NEO4J:
+                    await self.pool.close()
+                
+                self.is_initialized = False
+                self.is_healthy = False
+                self.logger.info(f"Connection pool closed for {self.config.name}")
+                
+        except Exception as e:
+            self.logger.error(f"Error closing connection pool for {self.config.name}: {e}")
+    
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get connection and query metrics"""
+        return {
+            'connection_metrics': {
+                'active_connections': self.connection_metrics.active_connections,
+                'idle_connections': self.connection_metrics.idle_connections,
+                'total_connections': self.connection_metrics.total_connections,
+                'failed_connections': self.connection_metrics.failed_connections,
+                'connection_errors': self.connection_metrics.connection_errors,
+                'avg_connection_time': self.connection_metrics.avg_connection_time,
+                'last_health_check': self.connection_metrics.last_health_check.isoformat() if self.connection_metrics.last_health_check else None,
+                'health_status': self.connection_metrics.health_status,
+            },
+            'query_metrics': {
+                'total_queries': self.query_metrics.total_queries,
+                'successful_queries': self.query_metrics.successful_queries,
+                'failed_queries': self.query_metrics.failed_queries,
+                'avg_query_time': self.query_metrics.avg_query_time,
+                'slow_queries': self.query_metrics.slow_queries,
+                'last_query_time': self.query_metrics.last_query_time.isoformat() if self.query_metrics.last_query_time else None,
+            },
+            'pool_status': {
+                'is_initialized': self.is_initialized,
+                'is_healthy': self.is_healthy,
+                'retry_count': self.retry_count,
+                'max_retries': self.max_retries,
+            }
+        }
 
 
 class DatabaseService:
     """
-    Centralized Database Service
-    Provides unified database access with configuration management integration
+    Centralized Database Service with standardized configuration management,
+    automatic service discovery, connection pooling, and health monitoring.
     """
     
-    def __init__(self, environment: str = None):
-        self.environment = Environment(environment or os.getenv('ENVIRONMENT', 'development'))
+    def __init__(self, 
+                 config_manager: Optional[DatabaseConfigManager] = None,
+                 environment: Environment = Environment.DEVELOPMENT):
+        self.config_manager = config_manager
+        self.environment = environment
         self.logger = logging.getLogger(__name__ + ".DatabaseService")
         
-        # Configuration manager
-        self.config_manager: Optional[DatabaseConfigManager] = None
-        
         # Connection pools
-        self.connection_pools: Dict[str, DatabaseConnectionPool] = {}
-        
-        # Legacy integrator for backward compatibility
-        self.legacy_integrator: Optional[EnhancedDatabaseIntegrator] = None
+        self.pools: Dict[str, DatabaseConnectionPool] = {}
         
         # Service status
         self.is_initialized = False
-        self.health_monitor_task = None
+        self.health_check_task = None
         
-        self.logger.info(f"Database Service initialized for {self.environment.value} environment")
+        # Metrics aggregation
+        self.service_metrics = {
+            'total_databases': 0,
+            'healthy_databases': 0,
+            'unhealthy_databases': 0,
+            'total_connections': 0,
+            'total_queries': 0,
+            'last_health_check': None
+        }
     
     async def initialize(self) -> bool:
         """Initialize database service"""
         try:
             self.logger.info("Initializing Database Service")
             
-            # Initialize configuration manager
-            self.config_manager = await create_config_manager(self.environment.value)
+            # Initialize config manager if not provided
+            if not self.config_manager:
+                from backend.core.database_config_manager import create_config_manager
+                self.config_manager = await create_config_manager(self.environment.value)
             
-            # Initialize connection pools for all configured databases
-            await self._initialize_connection_pools()
+            # Load database configurations
+            configs = self.config_manager.list_database_configs()
             
-            # Initialize legacy integrator for backward compatibility
-            await self._initialize_legacy_integrator()
+            # Initialize connection pools
+            for config in configs:
+                pool = DatabaseConnectionPool(config)
+                success = await pool.initialize()
+                
+                if success:
+                    self.pools[config.name] = pool
+                    self.logger.info(f"Initialized connection pool for {config.name}")
+                else:
+                    self.logger.error(f"Failed to initialize connection pool for {config.name}")
+            
+            self.service_metrics['total_databases'] = len(self.pools)
             
             # Start health monitoring
             await self._start_health_monitoring()
             
             self.is_initialized = True
-            self.logger.info("Database Service initialization complete")
+            self.logger.info(f"Database Service initialized with {len(self.pools)} databases")
+            
             return True
             
         except Exception as e:
             self.logger.error(f"Database Service initialization failed: {e}")
             return False
     
-    async def _initialize_connection_pools(self):
-        """Initialize connection pools for all configured databases"""
-        configs = self.config_manager.list_database_configs()
-        
-        for config in configs:
-            if config.environment == self.environment:
-                pool = DatabaseConnectionPool(config)
-                success = await pool.initialize()
-                
-                if success:
-                    self.connection_pools[config.name] = pool
-                    self.logger.info(f"Initialized connection pool for {config.name}")
-                else:
-                    self.logger.warning(f"Failed to initialize connection pool for {config.name}")
-    
-    async def _initialize_legacy_integrator(self):
-        """Initialize legacy database integrator for backward compatibility"""
-        try:
-            # Convert new configurations to legacy format
-            legacy_config = {}
-            
-            for name, pool in self.connection_pools.items():
-                config = pool.config
-                
-                if config.type == DatabaseType.POSTGRESQL:
-                    legacy_config['postgresql'] = {
-                        'host': config.host,
-                        'port': config.port,
-                        'database': config.database,
-                        'username': config.credentials.username if config.credentials else None,
-                        'password': config.credentials.password if config.credentials else None,
-                        'pool_size': config.pool_config.max_connections,
-                        'max_overflow': config.pool_config.max_overflow
-                    }
-                
-                elif config.type == DatabaseType.INFLUXDB:
-                    legacy_config['influxdb'] = {
-                        'url': config.get_connection_string(include_credentials=False),
-                        'token': config.credentials.token if config.credentials else None,
-                        'org': config.metadata.get('org', 'prometheus'),
-                        'bucket': config.database or 'geological_data'
-                    }
-                
-                elif config.type == DatabaseType.NEO4J:
-                    legacy_config['neo4j'] = {
-                        'uri': config.get_connection_string(include_credentials=False),
-                        'username': config.credentials.username if config.credentials else None,
-                        'password': config.credentials.password if config.credentials else None
-                    }
-                
-                elif config.type == DatabaseType.REDIS:
-                    legacy_config['redis'] = {
-                        'host': config.host,
-                        'port': config.port,
-                        'password': config.credentials.password if config.credentials else None,
-                        'db': int(config.database) if config.database else 0
-                    }
-            
-            # Initialize legacy integrator
-            self.legacy_integrator = EnhancedDatabaseIntegrator(legacy_config)
-            await self.legacy_integrator.initialize()
-            
-            self.logger.info("Legacy database integrator initialized")
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to initialize legacy integrator: {e}")
-    
     async def _start_health_monitoring(self):
-        """Start health monitoring for all connection pools"""
+        """Start background health monitoring task"""
         async def health_monitor():
             while self.is_initialized:
                 try:
-                    await asyncio.sleep(300)  # Check every 5 minutes
-                    
-                    for name, pool in self.connection_pools.items():
-                        await pool.health_check()
-                    
-                    # Log unhealthy pools
-                    unhealthy_pools = [
-                        name for name, pool in self.connection_pools.items()
-                        if pool.health_status != "healthy"
-                    ]
-                    
-                    if unhealthy_pools:
-                        self.logger.warning(f"Unhealthy database pools: {unhealthy_pools}")
-                    
+                    await self.perform_health_checks()
+                    await asyncio.sleep(60)  # Check every minute
                 except Exception as e:
                     self.logger.error(f"Health monitoring error: {e}")
+                    await asyncio.sleep(60)
         
-        self.health_monitor_task = asyncio.create_task(health_monitor())
+        self.health_check_task = asyncio.create_task(health_monitor())
     
-    def get_database_config(self, name: str) -> Optional[DatabaseConfig]:
-        """Get database configuration by name"""
-        return self.config_manager.get_database_config(name) if self.config_manager else None
+    async def perform_health_checks(self):
+        """Perform health checks on all database connections"""
+        healthy_count = 0
+        unhealthy_count = 0
+        
+        for name, pool in self.pools.items():
+            try:
+                is_healthy = await pool.health_check()
+                if is_healthy:
+                    healthy_count += 1
+                else:
+                    unhealthy_count += 1
+                    self.logger.warning(f"Database {name} is unhealthy")
+                    
+            except Exception as e:
+                unhealthy_count += 1
+                self.logger.error(f"Health check failed for {name}: {e}")
+        
+        self.service_metrics.update({
+            'healthy_databases': healthy_count,
+            'unhealthy_databases': unhealthy_count,
+            'last_health_check': datetime.utcnow().isoformat()
+        })
     
-    def get_connection_pool(self, name: str) -> Optional[DatabaseConnectionPool]:
-        """Get connection pool by database name"""
-        return self.connection_pools.get(name)
+    def get_database_pool(self, name: str) -> Optional[DatabaseConnectionPool]:
+        """Get database connection pool by name"""
+        return self.pools.get(name)
+    
+    def get_database_pools_by_type(self, db_type: DatabaseType) -> List[DatabaseConnectionPool]:
+        """Get database connection pools by type"""
+        return [
+            pool for pool in self.pools.values()
+            if pool.config.type == db_type
+        ]
+    
+    async def execute_query(self, database_name: str, query: str, params: Optional[Dict] = None) -> Any:
+        """Execute query on specified database"""
+        pool = self.get_database_pool(database_name)
+        if not pool:
+            raise ValueError(f"Database {database_name} not found")
+        
+        return await pool.execute_query(query, params)
     
     @asynccontextmanager
-    async def get_database_connection(self, name: str):
-        """Get database connection by name"""
-        pool = self.get_connection_pool(name)
+    async def get_connection(self, database_name: str):
+        """Get connection from specified database pool"""
+        pool = self.get_database_pool(database_name)
         if not pool:
-            raise ValueError(f"Database connection pool not found: {name}")
+            raise ValueError(f"Database {database_name} not found")
         
         async with pool.get_connection() as conn:
             yield conn
     
-    async def execute_query(self, database_name: str, query_type: str, **kwargs) -> QueryResult:
-        """Execute query using unified interface"""
-        if self.legacy_integrator:
-            return await self.legacy_integrator.execute_unified_query(query_type, **kwargs)
-        else:
-            raise RuntimeError("Legacy integrator not available")
-    
-    async def test_all_connections(self) -> Dict[str, bool]:
-        """Test all database connections"""
-        results = {}
-        
-        for name, pool in self.connection_pools.items():
-            results[name] = await pool.health_check()
-        
-        return results
-    
-    async def add_database(self, 
-                          name: str,
-                          db_type: DatabaseType,
-                          host: str,
-                          port: int,
-                          **kwargs) -> bool:
-        """Add new database configuration and connection pool"""
+    async def add_database(self, config: DatabaseConfig) -> bool:
+        """Add new database configuration and initialize connection pool"""
         try:
-            # Create configuration
-            config = await self.config_manager.create_database_config(
-                name=name,
-                db_type=db_type,
-                host=host,
-                port=port,
-                **kwargs
+            # Add to config manager
+            await self.config_manager.create_database_config(
+                name=config.name,
+                db_type=config.type,
+                host=config.host,
+                port=config.port,
+                database=config.database
             )
             
             # Initialize connection pool
@@ -499,104 +534,134 @@ class DatabaseService:
             success = await pool.initialize()
             
             if success:
-                self.connection_pools[name] = pool
-                self.logger.info(f"Added database: {name}")
+                self.pools[config.name] = pool
+                self.service_metrics['total_databases'] = len(self.pools)
+                self.logger.info(f"Added database {config.name}")
                 return True
             else:
-                self.logger.error(f"Failed to initialize connection pool for new database: {name}")
+                self.logger.error(f"Failed to initialize pool for {config.name}")
                 return False
                 
         except Exception as e:
-            self.logger.error(f"Failed to add database {name}: {e}")
+            self.logger.error(f"Error adding database {config.name}: {e}")
             return False
     
     async def remove_database(self, name: str) -> bool:
-        """Remove database configuration and connection pool"""
+        """Remove database configuration and close connection pool"""
         try:
-            # Cleanup connection pool
-            if name in self.connection_pools:
-                await self.connection_pools[name].cleanup()
-                del self.connection_pools[name]
-            
-            # Remove configuration (implementation depends on config manager)
-            # This would need to be implemented in DatabaseConfigManager
-            
-            self.logger.info(f"Removed database: {name}")
-            return True
-            
+            if name in self.pools:
+                await self.pools[name].close()
+                del self.pools[name]
+                self.service_metrics['total_databases'] = len(self.pools)
+                self.logger.info(f"Removed database {name}")
+                return True
+            else:
+                self.logger.warning(f"Database {name} not found")
+                return False
+                
         except Exception as e:
-            self.logger.error(f"Failed to remove database {name}: {e}")
+            self.logger.error(f"Error removing database {name}: {e}")
             return False
     
-    def get_service_status(self) -> Dict[str, Any]:
-        """Get service status and health information"""
+    def get_service_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive service metrics"""
+        # Aggregate metrics from all pools
+        total_connections = sum(pool.connection_metrics.total_connections for pool in self.pools.values())
+        total_queries = sum(pool.query_metrics.total_queries for pool in self.pools.values())
+        
+        self.service_metrics.update({
+            'total_connections': total_connections,
+            'total_queries': total_queries
+        })
+        
+        # Include individual pool metrics
+        pool_metrics = {}
+        for name, pool in self.pools.items():
+            pool_metrics[name] = pool.get_metrics()
+        
         return {
-            'initialized': self.is_initialized,
-            'environment': self.environment.value,
-            'total_databases': len(self.connection_pools),
-            'healthy_databases': len([
-                pool for pool in self.connection_pools.values()
-                if pool.health_status == "healthy"
-            ]),
-            'database_status': {
-                name: {
-                    'health': pool.health_status,
-                    'last_check': pool.last_health_check.isoformat() if pool.last_health_check else None,
-                    'type': pool.config.type.value,
-                    'host': pool.config.host,
-                    'port': pool.config.port
-                }
-                for name, pool in self.connection_pools.items()
+            'service_metrics': self.service_metrics,
+            'pool_metrics': pool_metrics,
+            'service_status': {
+                'is_initialized': self.is_initialized,
+                'environment': self.environment.value,
+                'total_pools': len(self.pools)
             }
         }
     
-    async def reload_configurations(self) -> bool:
-        """Reload database configurations from files"""
-        try:
-            # Cleanup existing pools
-            for pool in self.connection_pools.values():
-                await pool.cleanup()
-            self.connection_pools.clear()
-            
-            # Reinitialize configuration manager
-            self.config_manager = await create_config_manager(self.environment.value)
-            
-            # Reinitialize connection pools
-            await self._initialize_connection_pools()
-            
-            self.logger.info("Database configurations reloaded")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Failed to reload configurations: {e}")
-            return False
+    async def get_database_info(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get comprehensive information about a database"""
+        pool = self.get_database_pool(name)
+        if not pool:
+            return None
+        
+        config = pool.config
+        metrics = pool.get_metrics()
+        
+        return {
+            'name': config.name,
+            'type': config.type.value,
+            'host': config.host,
+            'port': config.port,
+            'database': config.database,
+            'ssl_enabled': config.ssl_enabled,
+            'environment': config.environment.value,
+            'tags': config.tags,
+            'metadata': config.metadata,
+            'connection_string': config.get_connection_string(include_credentials=False),
+            'metrics': metrics,
+            'created_at': config.created_at.isoformat(),
+            'updated_at': config.updated_at.isoformat(),
+            'version': config.version
+        }
+    
+    async def list_databases(self) -> List[Dict[str, Any]]:
+        """List all configured databases with their information"""
+        databases = []
+        for name in self.pools.keys():
+            db_info = await self.get_database_info(name)
+            if db_info:
+                databases.append(db_info)
+        return databases
+    
+    async def test_all_connections(self) -> Dict[str, Tuple[bool, Optional[str]]]:
+        """Test all database connections"""
+        results = {}
+        for name, pool in self.pools.items():
+            try:
+                is_healthy = await pool.health_check()
+                results[name] = (is_healthy, None)
+            except Exception as e:
+                results[name] = (False, str(e))
+        return results
     
     async def cleanup(self):
-        """Cleanup database service"""
+        """Cleanup database service resources"""
         self.logger.info("Cleaning up Database Service")
         
         # Stop health monitoring
-        if self.health_monitor_task:
-            self.health_monitor_task.cancel()
+        if self.health_check_task:
+            self.health_check_task.cancel()
             try:
-                await self.health_monitor_task
+                await self.health_check_task
             except asyncio.CancelledError:
                 pass
         
-        # Cleanup connection pools
-        for pool in self.connection_pools.values():
-            await pool.cleanup()
-        self.connection_pools.clear()
+        # Close all connection pools
+        for name, pool in self.pools.items():
+            try:
+                await pool.close()
+                self.logger.info(f"Closed connection pool for {name}")
+            except Exception as e:
+                self.logger.error(f"Error closing pool for {name}: {e}")
         
-        # Cleanup legacy integrator
-        if self.legacy_integrator:
-            await self.legacy_integrator.cleanup()
+        self.pools.clear()
+        self.is_initialized = False
         
-        # Cleanup configuration manager
+        # Cleanup config manager
         if self.config_manager:
             await self.config_manager.cleanup()
         
-        self.is_initialized = False
         self.logger.info("Database Service cleanup complete")
 
 
@@ -605,11 +670,12 @@ _database_service: Optional[DatabaseService] = None
 
 
 async def get_database_service(environment: str = None) -> DatabaseService:
-    """Get global database service instance"""
+    """Get or create global database service instance"""
     global _database_service
     
-    if _database_service is None:
-        _database_service = DatabaseService(environment)
+    if _database_service is None or not _database_service.is_initialized:
+        env = Environment(environment or os.getenv('ENVIRONMENT', 'development'))
+        _database_service = DatabaseService(environment=env)
         await _database_service.initialize()
     
     return _database_service
@@ -625,33 +691,61 @@ async def cleanup_database_service():
 
 
 # Convenience functions for common database operations
-@validate_db_config("postgresql")
-async def get_postgresql_connection(database_name: str = "postgresql"):
+async def get_postgres_connection(database_name: str = None):
     """Get PostgreSQL connection"""
     service = await get_database_service()
-    async with service.get_database_connection(database_name) as conn:
-        yield conn
+    
+    if database_name:
+        return service.get_connection(database_name)
+    else:
+        # Get first PostgreSQL database
+        pools = service.get_database_pools_by_type(DatabaseType.POSTGRESQL)
+        if pools:
+            return service.get_connection(pools[0].config.name)
+        else:
+            raise ValueError("No PostgreSQL databases configured")
 
 
-@validate_db_config("redis")
-async def get_redis_connection(database_name: str = "redis"):
+async def get_redis_connection(database_name: str = None):
     """Get Redis connection"""
     service = await get_database_service()
-    async with service.get_database_connection(database_name) as conn:
-        yield conn
+    
+    if database_name:
+        return service.get_connection(database_name)
+    else:
+        # Get first Redis database
+        pools = service.get_database_pools_by_type(DatabaseType.REDIS)
+        if pools:
+            return service.get_connection(pools[0].config.name)
+        else:
+            raise ValueError("No Redis databases configured")
 
 
-@validate_db_config("influxdb")
-async def get_influxdb_connection(database_name: str = "influxdb"):
+async def get_influxdb_connection(database_name: str = None):
     """Get InfluxDB connection"""
     service = await get_database_service()
-    async with service.get_database_connection(database_name) as conn:
-        yield conn
+    
+    if database_name:
+        return service.get_connection(database_name)
+    else:
+        # Get first InfluxDB database
+        pools = service.get_database_pools_by_type(DatabaseType.INFLUXDB)
+        if pools:
+            return service.get_connection(pools[0].config.name)
+        else:
+            raise ValueError("No InfluxDB databases configured")
 
 
-@validate_db_config("neo4j")
-async def get_neo4j_connection(database_name: str = "neo4j"):
+async def get_neo4j_connection(database_name: str = None):
     """Get Neo4j connection"""
     service = await get_database_service()
-    async with service.get_database_connection(database_name) as conn:
-        yield conn
+    
+    if database_name:
+        return service.get_connection(database_name)
+    else:
+        # Get first Neo4j database
+        pools = service.get_database_pools_by_type(DatabaseType.NEO4J)
+        if pools:
+            return service.get_connection(pools[0].config.name)
+        else:
+            raise ValueError("No Neo4j databases configured")

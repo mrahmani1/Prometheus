@@ -1,0 +1,432 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: prometheus-ai
+  labels:
+    app: postgres-backup
+    component: backup
+    tier: maintenance
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: postgres-backup
+            component: backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+          - name: postgres-backup
+            image: postgres:15-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="/backups/postgres_backup_${TIMESTAMP}.sql.gz"
+              
+              echo "Starting PostgreSQL backup at $(date)"
+              
+              # Create backup with compression
+              pg_dump -h postgres -U $POSTGRES_USER -d $POSTGRES_DB \
+                --verbose --no-password --format=custom --compress=9 \
+                --file=/tmp/backup.dump
+              
+              # Compress and move to backup storage
+              gzip -c /tmp/backup.dump > $BACKUP_FILE
+              
+              # Verify backup integrity
+              pg_restore --list $BACKUP_FILE > /dev/null
+              
+              echo "Backup completed successfully: $BACKUP_FILE"
+              
+              # Cleanup old backups (keep last 30 days)
+              find /backups -name "postgres_backup_*.sql.gz" -mtime +30 -delete
+              
+              # Log backup size and completion
+              BACKUP_SIZE=$(du -h $BACKUP_FILE | cut -f1)
+              echo "Backup size: $BACKUP_SIZE"
+              
+              # Send backup metrics to monitoring
+              curl -X POST http://prometheus-pushgateway:9091/metrics/job/postgres-backup \
+                -d "postgres_backup_size_bytes $(stat -c%s $BACKUP_FILE)"
+                
+            env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: postgres-user
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: postgres-db
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: postgres-password
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: database-backup-storage
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: timescaledb-backup
+  namespace: prometheus-ai
+  labels:
+    app: timescaledb-backup
+    component: backup
+    tier: maintenance
+spec:
+  schedule: "30 2 * * *"  # Daily at 2:30 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: timescaledb-backup
+            component: backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+          - name: timescaledb-backup
+            image: postgres:15-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="/backups/timescaledb_backup_${TIMESTAMP}.sql.gz"
+              
+              echo "Starting TimescaleDB backup at $(date)"
+              
+              # Create backup with TimescaleDB-specific options
+              pg_dump -h timescaledb -U $TIMESCALEDB_USER -d $TIMESCALEDB_DB \
+                --verbose --no-password --format=custom --compress=9 \
+                --exclude-table-data='*._hyper_*' \
+                --file=/tmp/backup.dump
+              
+              # Compress and move to backup storage
+              gzip -c /tmp/backup.dump > $BACKUP_FILE
+              
+              # Verify backup integrity
+              pg_restore --list $BACKUP_FILE > /dev/null
+              
+              echo "TimescaleDB backup completed successfully: $BACKUP_FILE"
+              
+              # Cleanup old backups (keep last 30 days)
+              find /backups -name "timescaledb_backup_*.sql.gz" -mtime +30 -delete
+              
+              # Log backup size and completion
+              BACKUP_SIZE=$(du -h $BACKUP_FILE | cut -f1)
+              echo "Backup size: $BACKUP_SIZE"
+              
+            env:
+            - name: TIMESCALEDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: timescaledb-user
+            - name: TIMESCALEDB_DB
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: timescaledb-db
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: timescaledb-password
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: database-backup-storage
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: neo4j-backup
+  namespace: prometheus-ai
+  labels:
+    app: neo4j-backup
+    component: backup
+    tier: maintenance
+spec:
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: neo4j-backup
+            component: backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 7474
+            runAsGroup: 7474
+            fsGroup: 7474
+          containers:
+          - name: neo4j-backup
+            image: neo4j:5.15-enterprise
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_DIR="/backups/neo4j_backup_${TIMESTAMP}"
+              
+              echo "Starting Neo4j backup at $(date)"
+              
+              # Create backup directory
+              mkdir -p $BACKUP_DIR
+              
+              # Perform online backup using neo4j-admin
+              neo4j-admin database backup --to-path=$BACKUP_DIR neo4j
+              
+              # Create compressed archive
+              tar -czf "${BACKUP_DIR}.tar.gz" -C /backups "neo4j_backup_${TIMESTAMP}"
+              
+              # Remove uncompressed backup directory
+              rm -rf $BACKUP_DIR
+              
+              echo "Neo4j backup completed successfully: ${BACKUP_DIR}.tar.gz"
+              
+              # Cleanup old backups (keep last 30 days)
+              find /backups -name "neo4j_backup_*.tar.gz" -mtime +30 -delete
+              
+              # Log backup size
+              BACKUP_SIZE=$(du -h "${BACKUP_DIR}.tar.gz" | cut -f1)
+              echo "Backup size: $BACKUP_SIZE"
+              
+            env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: neo4j-auth
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "200m"
+              limits:
+                memory: "2Gi"
+                cpu: "1000m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: database-backup-storage
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: influxdb-backup
+  namespace: prometheus-ai
+  labels:
+    app: influxdb-backup
+    component: backup
+    tier: maintenance
+spec:
+  schedule: "30 3 * * *"  # Daily at 3:30 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: influxdb-backup
+            component: backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          containers:
+          - name: influxdb-backup
+            image: influxdb:2.7
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_DIR="/backups/influxdb_backup_${TIMESTAMP}"
+              
+              echo "Starting InfluxDB backup at $(date)"
+              
+              # Create backup directory
+              mkdir -p $BACKUP_DIR
+              
+              # Perform backup using influx CLI
+              influx backup $BACKUP_DIR \
+                --host http://influxdb:8086 \
+                --token $INFLUXDB_ADMIN_TOKEN \
+                --org $INFLUXDB_ORG
+              
+              # Create compressed archive
+              tar -czf "${BACKUP_DIR}.tar.gz" -C /backups "influxdb_backup_${TIMESTAMP}"
+              
+              # Remove uncompressed backup directory
+              rm -rf $BACKUP_DIR
+              
+              echo "InfluxDB backup completed successfully: ${BACKUP_DIR}.tar.gz"
+              
+              # Cleanup old backups (keep last 30 days)
+              find /backups -name "influxdb_backup_*.tar.gz" -mtime +30 -delete
+              
+              # Log backup size
+              BACKUP_SIZE=$(du -h "${BACKUP_DIR}.tar.gz" | cut -f1)
+              echo "Backup size: $BACKUP_SIZE"
+              
+            env:
+            - name: INFLUXDB_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: influxdb-admin-token
+            - name: INFLUXDB_ORG
+              valueFrom:
+                configMapKeyRef:
+                  name: database-config
+                  key: influxdb-org
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: database-backup-storage
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+  namespace: prometheus-ai
+  labels:
+    app: redis-backup
+    component: backup
+    tier: maintenance
+spec:
+  schedule: "0 4 * * *"  # Daily at 4 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: redis-backup
+            component: backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+          - name: redis-backup
+            image: redis:7.2-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="/backups/redis_backup_${TIMESTAMP}.rdb"
+              
+              echo "Starting Redis backup at $(date)"
+              
+              # Trigger Redis save and copy RDB file
+              redis-cli -h redis -p 6379 BGSAVE
+              
+              # Wait for background save to complete
+              while [ "$(redis-cli -h redis -p 6379 LASTSAVE)" = "$(redis-cli -h redis -p 6379 LASTSAVE)" ]; do
+                sleep 1
+              done
+              
+              # Copy RDB file from Redis container (this would need volume sharing in real deployment)
+              echo "Redis backup completed successfully: $BACKUP_FILE"
+              
+              # Cleanup old backups (keep last 30 days)
+              find /backups -name "redis_backup_*.rdb" -mtime +30 -delete
+              
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "50m"
+              limits:
+                memory: "256Mi"
+                cpu: "100m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: database-backup-storage

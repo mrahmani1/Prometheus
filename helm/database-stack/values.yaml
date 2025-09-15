@@ -1,0 +1,353 @@
+# Default values for prometheus-database-stack
+# This is a YAML-formatted file.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: "fast-ssd"
+  postgresql:
+    auth:
+      existingSecret: "database-secrets"
+      secretKeys:
+        adminPasswordKey: "postgres-password"
+        userPasswordKey: "postgres-password"
+        replicationPasswordKey: "postgres-replication-password"
+
+# Environment configuration
+environment: development
+
+# Namespace configuration
+namespace:
+  create: true
+  name: prometheus-ai
+
+# PostgreSQL with PostGIS configuration
+postgresql:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: postgis/postgis
+    tag: "15-3.4"
+  auth:
+    enablePostgresUser: true
+    postgresPassword: ""
+    username: "prometheus"
+    password: ""
+    database: "prometheus"
+    existingSecret: "database-secrets"
+  architecture: standalone
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "fast-ssd"
+      size: 100Gi
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+    configuration: |
+      shared_preload_libraries = 'pg_stat_statements'
+      log_statement = 'all'
+      log_duration = on
+      log_min_duration_statement = 0
+      max_connections = 200
+      shared_buffers = 256MB
+      effective_cache_size = 1GB
+    initdb:
+      scripts:
+        01-extensions.sql: |
+          CREATE EXTENSION IF NOT EXISTS postgis;
+          CREATE EXTENSION IF NOT EXISTS postgis_topology;
+          CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+          CREATE EXTENSION IF NOT EXISTS btree_gist;
+          CREATE EXTENSION IF NOT EXISTS uuid-ossp;
+  metrics:
+    enabled: true
+    image:
+      registry: docker.io
+      repository: prometheuscommunity/postgres-exporter
+      tag: "v0.15.0"
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+
+# InfluxDB configuration
+influxdb:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: influxdb
+    tag: "2.7"
+  auth:
+    admin:
+      username: "admin"
+      password: ""
+      token: ""
+      org: "prometheus"
+      bucket: "geological_data"
+    existingSecret: "database-secrets"
+  persistence:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 200Gi
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+  config: |
+    [http]
+      enabled = true
+      bind-address = ":8086"
+      log-enabled = true
+    [logging]
+      level = "info"
+
+# Neo4j configuration
+neo4j:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: neo4j
+    tag: "5.15-enterprise"
+  auth:
+    username: "neo4j"
+    password: ""
+    existingSecret: "database-secrets"
+    existingPasswordKey: "neo4j-password"
+  acceptLicenseAgreement: "yes"
+  plugins:
+    - apoc
+    - graph-data-science
+    - n10s
+  persistence:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 100Gi
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "8Gi"
+      cpu: "4000m"
+  config:
+    dbms.security.procedures.unrestricted: "apoc.*,gds.*,n10s.*"
+    dbms.security.procedures.allowlist: "apoc.*,gds.*,n10s.*"
+    dbms.memory.heap.initial_size: "1G"
+    dbms.memory.heap.max_size: "2G"
+    dbms.memory.pagecache.size: "1G"
+    metrics.enabled: "true"
+    metrics.prometheus.enabled: "true"
+    metrics.prometheus.endpoint: "0.0.0.0:2004"
+
+# Redis configuration
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""
+    existingSecret: "database-secrets"
+    existingSecretPasswordKey: "redis-password"
+  master:
+    persistence:
+      enabled: true
+      storageClass: "fast-ssd"
+      size: 20Gi
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+    configuration: |
+      appendonly yes
+      appendfsync everysec
+      maxmemory 1gb
+      maxmemory-policy allkeys-lru
+      save 900 1
+      save 300 10
+      save 60 10000
+  metrics:
+    enabled: true
+    image:
+      registry: docker.io
+      repository: oliver006/redis_exporter
+      tag: "v1.55.0"
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+
+# TimescaleDB configuration
+timescaledb:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: timescale/timescaledb
+    tag: "2.13.0-pg15"
+  auth:
+    username: "timescale"
+    password: ""
+    database: "timescale"
+    existingSecret: "database-secrets"
+  persistence:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 500Gi
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+  config:
+    shared_preload_libraries: "timescaledb"
+    max_connections: 200
+    shared_buffers: "256MB"
+    effective_cache_size: "1GB"
+    maintenance_work_mem: "64MB"
+    checkpoint_completion_target: 0.9
+    wal_buffers: "16MB"
+    default_statistics_target: 100
+
+# Kafka configuration
+kafka:
+  enabled: true
+  replicaCount: 1
+  auth:
+    clientProtocol: plaintext
+  persistence:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 100Gi
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+  zookeeper:
+    enabled: true
+    persistence:
+      enabled: true
+      storageClass: "fast-ssd"
+      size: 20Gi
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  metrics:
+    kafka:
+      enabled: true
+      image:
+        registry: docker.io
+        repository: danielqsj/kafka-exporter
+        tag: "v1.7.0"
+    jmx:
+      enabled: true
+
+# Database backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention:
+    days: 30
+  storage:
+    storageClass: "backup-storage"
+    size: 1Ti
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    scrapeInterval: "30s"
+    evaluationInterval: "30s"
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+  alerting:
+    enabled: true
+    rules:
+      enabled: true
+
+# Service mesh configuration
+serviceMesh:
+  enabled: true
+  istio:
+    enabled: true
+    mtls:
+      mode: STRICT
+  consul:
+    enabled: false
+
+# Security configuration
+security:
+  networkPolicies:
+    enabled: true
+  podSecurityPolicies:
+    enabled: true
+  rbac:
+    enabled: true
+  encryption:
+    atRest: true
+    inTransit: true
+
+# Scaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Resource quotas
+resourceQuotas:
+  enabled: true
+  requests:
+    cpu: "10"
+    memory: "20Gi"
+    storage: "2Ti"
+  limits:
+    cpu: "20"
+    memory: "40Gi"
+
+# Node affinity and tolerations
+nodeAffinity:
+  enabled: false
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+
+# Pod disruption budgets
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
