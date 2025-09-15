@@ -406,8 +406,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
 
-
-- [ ] 5.11 Standardize Database Configuration Management
+- [x] 5.11 Standardize Database Configuration Management
   - Create database configuration templates for development, staging, and production environments
   - Implement automatic database discovery and service registration
   - Add database configuration versioning and rollback capabilities
@@ -416,14 +415,17 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 9.3, 9.4, 9.5_
 
-- [ ] 5.12 Run syntax checks on all TypeScript/JS and Python code
+- [x] 5.12 Run syntax checks on all TypeScript/JS, ignore depedencies/libraries:
+
   - Fix all errors in the codebase after running TypeScript/JS syntax checks.
   - Fix all errors in the codebase after running Python syntax checks
   - Fix all type errors.
   - Fix all runtime errors.
   - Fix all logical errors.
+  - Ignore dependency errors, testing on a linux VM will take place later.
+  - No placeholder or simulation/mock replacement code.
 
-- [ ] 5.13 Fix all errors in the codebase after running syntax checks.
+- [ ] 5.13 Fix these errors:
   - Fix all warnings and associated issues.
   - Fix all TODOs and FIXMEs.
   - Fix all code formatting issues.

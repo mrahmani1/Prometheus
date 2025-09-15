@@ -339,7 +339,7 @@ const Node4DVisualization: React.FC<{
   isSelected: boolean;
   onSelect: () => void;
 }> = ({ node, temporalIndex, config, isSelected, onSelect }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Object3D>(null!);
   // const trailRef = useRef<THREE.Group>(null); // Unused
 
   // Animate node based on temporal position
@@ -376,7 +376,7 @@ const Node4DVisualization: React.FC<{
     <group>
       {/* Main node sphere */}
       <mesh
-        ref={meshRef}
+        ref={meshRef as any}
         position={node.position3D}
         onClick={onSelect}
         onPointerOver={(e) => {
@@ -646,7 +646,7 @@ const ConfidenceVisualization: React.FC<{
 const PatternHighlights: React.FC<{
   snapshots: TemporalCausalSnapshot[];
   temporalIndex: number;
-}> = ({ snapshots, temporalIndex }) => {
+}> = () => {
   // This would integrate with the pattern detection system
   // For now, showing a placeholder visualization
   return (
@@ -704,7 +704,7 @@ function calculateLagVisualization(
   sourcePos: THREE.Vector3,
   targetPos: THREE.Vector3,
   lag: number,
-  temporalPosition: number
+  _temporalPosition: number
 ): THREE.Vector3 {
   const midPoint = sourcePos.clone().lerp(targetPos, 0.5);
   const lagOffset = new THREE.Vector3(0, 0, lag * 0.001); // Scale lag to visualization

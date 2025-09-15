@@ -40,7 +40,7 @@ try:
     from .stress_field_mapper import StressFieldMapper
     from .satellite_scheduler import SatelliteScheduler, AcquisitionPlan
     from .data_integration_pipeline import DataIntegrationPipeline
-    from .3d_geological_modeler import ImplicitSurfaceModeler
+    from .geological_modeler_3d import ImplicitSurfaceModeler
     from .high_resolution_visualization import HighResolutionVisualization
     from .caldera_system_classifier import CalderaSystemClassifier
     PROMETHEUS_MODULES_AVAILABLE = True

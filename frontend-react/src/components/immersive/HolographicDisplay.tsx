@@ -1,13 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Text, Html, Line, Sphere, Box, Plane, Cylinder } from '@react-three/drei';
+import { Text, Line, Sphere } from '@react-three/drei';
 import * as THREE from 'three';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
-  HolographicProjection, 
-  SpatialComputing, 
-  MixedRealityInterface,
-  HologramData
+  HolographicProjection
 } from '../../types/immersive';
 import { 
   updateHolographicDisplay,
@@ -67,6 +64,29 @@ const HolographicDisplay: React.FC<HolographicDisplayProps> = ({
   const [eyeTrackingData, setEyeTrackingData] = useState<any>(null);
   const [spatialMesh, setSpatialMesh] = useState<THREE.Mesh[]>([]);
   const projectionVolumeRef = useRef<THREE.Group>(null);
+  
+  // Use holographic state for display configuration
+  const displayEnabled = holographicState?.enabled ?? (enableSpatialComputing || enableMixedReality);
+  
+  // Use eye tracking data for gaze-based interactions
+  const handleEyeTracking = useCallback((data: any) => {
+    setEyeTrackingData(data);
+    // Process eye tracking for hologram focus
+  }, []);
+  
+  // Use projection volume for spatial calculations
+  const updateProjectionVolume = useCallback(() => {
+    if (projectionVolumeRef.current && activeProjection) {
+      // Update projection volume based on active projection
+      // Update projection volume based on active projection bounds
+      const center = {
+        x: (activeProjection.bounds.min.x + activeProjection.bounds.max.x) / 2,
+        y: (activeProjection.bounds.min.y + activeProjection.bounds.max.y) / 2,
+        z: (activeProjection.bounds.min.z + activeProjection.bounds.max.z) / 2
+      };
+      projectionVolumeRef.current.position.set(center.x, center.y, center.z);
+    }
+  }, [activeProjection]);
   const hologramShaderRef = useRef<THREE.ShaderMaterial | null>(null);
 
   // Holographic shader for realistic hologram effects
@@ -125,6 +145,19 @@ const HolographicDisplay: React.FC<HolographicDisplayProps> = ({
       initializeMixedReality();
     }
     
+    // Initialize display based on configuration
+    if (displayEnabled) {
+      console.log('Holographic display enabled');
+    }
+    
+    // Set up eye tracking if available
+    if (eyeTrackingData) {
+      handleEyeTracking(eyeTrackingData);
+    }
+    
+    // Update projection volume
+    updateProjectionVolume();
+    
     // Create holograms from geological data
     createGeologicalHolograms();
   }, [geologicalData, enableSpatialComputing, enableMixedReality]);
@@ -175,7 +208,9 @@ const HolographicDisplay: React.FC<HolographicDisplayProps> = ({
         dispatch(updateSpatialComputing({
           enabled: true,
           trackingActive: true,
-          anchorsCount: 0
+          anchors: [],
+          meshDetection: true,
+          planeDetection: true
         }));
       }
     } catch (error) {
@@ -338,7 +373,9 @@ const HolographicDisplay: React.FC<HolographicDisplayProps> = ({
       case 'rotate':
         const axis = animation.parameters.axis || 'y';
         const speed = animation.parameters.speed || 1;
-        hologram.rotation[axis as keyof THREE.Euler] = progress * Math.PI * 2 * speed;
+        if (axis === 'x') hologram.rotation.x = progress * Math.PI * 2 * speed;
+        else if (axis === 'y') hologram.rotation.y = progress * Math.PI * 2 * speed;
+        else if (axis === 'z') hologram.rotation.z = progress * Math.PI * 2 * speed;
         break;
         
       case 'pulse':
@@ -484,8 +521,16 @@ const ProjectionVolume: React.FC<{
   projection: HolographicProjection;
   projectionType: string;
 }> = ({ projection, projectionType }) => {
-  const size = projection.bounds.getSize(new THREE.Vector3());
-  const center = projection.bounds.getCenter(new THREE.Vector3());
+  const size = new THREE.Vector3(
+    projection.bounds.max.x - projection.bounds.min.x,
+    projection.bounds.max.y - projection.bounds.min.y,
+    projection.bounds.max.z - projection.bounds.min.z
+  );
+  const center = new THREE.Vector3(
+    (projection.bounds.min.x + projection.bounds.max.x) / 2,
+    (projection.bounds.min.y + projection.bounds.max.y) / 2,
+    (projection.bounds.min.z + projection.bounds.max.z) / 2
+  );
 
   const getProjectionGeometry = () => {
     switch (projectionType) {
@@ -645,7 +690,7 @@ const HologramVisualization: React.FC<{
         scale={hologram.scale}
       >
         {getHologramGeometry()}
-        {getHologramMaterial()}
+        <meshStandardMaterial {...(getHologramMaterial() as any)} />
       </mesh>
       
       {hologram.type === 'geological_model' && (

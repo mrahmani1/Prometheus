@@ -177,7 +177,9 @@ class TestEnhancedMethods:
                         try:
                             corr, p_value = pearsonr(scale_vectors[scale1], scale_vectors[scale2])
                             correlations[f'{scale1}_{scale2}'] = {'correlation': float(corr), 'p_value': float(p_value)}
-                        except:
+                        except (ValueError, TypeError, RuntimeError) as e:
+                            import logging
+                            logging.warning(f"Error calculating correlation between {scale1} and {scale2}: {e}")
                             correlations[f'{scale1}_{scale2}'] = {'correlation': 0.0, 'p_value': 1.0}
             
             # Calculate coupling strength

@@ -102,12 +102,13 @@ class CSDIntegrationTester:
     async def _initialize_enkf_system(self):
         """Initialize the EnKF Knowledge Integration system"""
         try:
-            # Initialize database configuration
+            # Initialize database configuration using environment variables
+            import os
             db_config = DatabaseConfig(
-                host="localhost",
-                database="prometheus_csd_test",
-                username="postgres",
-                password="password"
+                host=os.getenv("DB_HOST", "localhost"),
+                database=os.getenv("DB_NAME", "prometheus_csd_test"),
+                username=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", "password")
             )
             
             # Initialize database manager

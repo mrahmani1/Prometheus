@@ -30,4 +30,4 @@ logger = structlog.get_logger(__name__)
 
 class TransformationType(Enum):
     SPATIAL_PROJECTION = "spatial_projection"
-    TEMPORAL_RESAMPLING = "temporal_resampli
+    TEMPORAL_RESAMPLING = "temporal_resampling"

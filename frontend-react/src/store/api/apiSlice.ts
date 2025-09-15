@@ -68,9 +68,8 @@ const baseQueryWithReauth: BaseQueryFn<
     if (refreshResult.data) {
       // Store new token and retry original request
       api.dispatch(
-        apiSlice.util.updateQueryData('auth', undefined, draft => {
-          Object.assign(draft, refreshResult.data);
-        })
+        // Update auth state with new token data
+        { type: 'auth/setCredentials', payload: refreshResult.data }
       );
       result = await baseQuery(args, api, extraOptions);
     } else {
@@ -181,7 +180,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: { timeWindow },
       }),
-      invalidatesTags: (result, error, { volcanoId }) => [{ type: 'VolcanicMonitoring', id: volcanoId }],
+      invalidatesTags: (_result, _error, { volcanoId }) => [{ type: 'VolcanicMonitoring', id: volcanoId }],
     }),
 
     // Deformation analysis endpoints
@@ -237,7 +236,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: parameters,
       }),
-      invalidatesTags: (result, error, { prospectId }) => [{ type: 'ResourceAssessment', id: prospectId }],
+      invalidatesTags: (_result, _error, { prospectId }) => [{ type: 'ResourceAssessment', id: prospectId }],
     }),
 
     // Model management endpoints
@@ -251,7 +250,7 @@ export const apiSlice = createApi({
 
     getModel: builder.query<ApiResponse<ModelResponse>, string>({
       query: modelId => `/models/${modelId}`,
-      providesTags: (result, error, modelId) => [{ type: 'Model', id: modelId }],
+      providesTags: (_result, _error, modelId) => [{ type: 'Model', id: modelId }],
     }),
 
     trainModel: builder.mutation<ApiResponse<ModelResponse>, ModelRequest>({
@@ -269,7 +268,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: deploymentConfig,
       }),
-      invalidatesTags: (result, error, { modelId }) => [{ type: 'Model', id: modelId }],
+      invalidatesTags: (_result, _error, { modelId }) => [{ type: 'Model', id: modelId }],
     }),
 
     makePrediction: builder.mutation<ApiResponse<any>, { modelId: string; input: any }>({
@@ -292,7 +291,7 @@ export const apiSlice = createApi({
 
     getExportStatus: builder.query<ExportResponse, string>({
       query: exportId => `/data/export/${exportId}`,
-      providesTags: (result, error, exportId) => [{ type: 'Export', id: exportId }],
+      providesTags: (_result, _error, exportId) => [{ type: 'Export', id: exportId }],
     }),
 
     importData: builder.mutation<ImportResponse, ImportRequest>({
@@ -306,7 +305,7 @@ export const apiSlice = createApi({
 
     getImportStatus: builder.query<ImportResponse, string>({
       query: importId => `/data/import/${importId}`,
-      providesTags: (result, error, importId) => [{ type: 'Import', id: importId }],
+      providesTags: (_result, _error, importId) => [{ type: 'Import', id: importId }],
     }),
 
     // System health and monitoring endpoints

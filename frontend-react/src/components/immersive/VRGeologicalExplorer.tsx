@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { VRButton, XR, Controllers, Hands } from '@react-three/xr';
-import { OrbitControls, Text, Box, Sphere, Line } from '@react-three/drei';
+import { VRButton, XR, createXRStore } from '@react-three/xr';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { useDispatch, useSelector } from 'react-redux';
-import { GeologicalLayer, VRSession, HapticFeedback } from '../../types/immersive';
-import { updateVRSession, setHapticFeedback } from '../../store/slices/immersiveSlice';
+
+import { GeologicalLayer } from '../../types/immersive';
 
 interface VRGeologicalExplorerProps {
   geologicalData: GeologicalLayer[];
@@ -35,11 +34,12 @@ const VRGeologicalExplorer: React.FC<VRGeologicalExplorerProps> = ({
   enableHaptics = true,
   collaborativeMode = false
 }) => {
-  const dispatch = useDispatch();
-  const vrSession = useSelector((state: any) => state.immersive.vrSession);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [vrSupported, setVRSupported] = useState(false);
   const hapticDeviceRef = useRef<any>(null);
+  
+  // Create XR store
+  const xrStore = createXRStore();
 
   useEffect(() => {
     // Check VR support
@@ -77,13 +77,9 @@ const VRGeologicalExplorer: React.FC<VRGeologicalExplorerProps> = ({
     if (hapticDeviceRef.current && hapticDeviceRef.current.hapticActuators.length > 0) {
       hapticDeviceRef.current.hapticActuators[0].pulse(intensity, duration);
       
-      dispatch(setHapticFeedback({
-        intensity,
-        duration,
-        timestamp: Date.now()
-      }));
+      console.log('Haptic feedback triggered:', { intensity, duration, timestamp: Date.now() });
     }
-  }, [dispatch]);
+  }, []);
 
   const handleLayerInteraction = useCallback((layerId: string, position: THREE.Vector3, type: string) => {
     setSelectedLayer(layerId);
@@ -108,7 +104,7 @@ const VRGeologicalExplorer: React.FC<VRGeologicalExplorerProps> = ({
   return (
     <div className="vr-geological-explorer">
       <div className="vr-controls">
-        {vrSupported && <VRButton />}
+        {vrSupported && <VRButton store={xrStore} />}
         <div className="vr-info">
           <p>VR Support: {vrSupported ? 'Available' : 'Not Available'}</p>
           <p>Selected Layer: {selectedLayer || 'None'}</p>
@@ -117,12 +113,9 @@ const VRGeologicalExplorer: React.FC<VRGeologicalExplorerProps> = ({
       </div>
 
       <Canvas style={{ height: '100vh' }}>
-        <XR>
+        <XR store={xrStore}>
           <ambientLight intensity={0.5} />
           <pointLight position={[10, 10, 10]} />
-          
-          <Controllers />
-          <Hands />
           
           <GeologicalScene
             geologicalData={geologicalData}
@@ -177,7 +170,14 @@ const GeologicalScene: React.FC<GeologicalSceneProps> = ({
   }, [geologicalData, scene]);
 
   const createGeologicalModel = (layer: GeologicalLayer): GeologicalModel => {
-    const group = new THREE.Group() as GeologicalModel;
+    const group = new THREE.Group();
+    
+    // Set up userData to match GeologicalModel interface
+    group.userData = {
+      layerId: layer.id,
+      properties: layer.properties,
+      interactive: true
+    };
     
     // Create geometry based on layer type
     let geometry: THREE.BufferGeometry;
@@ -240,7 +240,6 @@ const GeologicalScene: React.FC<GeologicalSceneProps> = ({
     };
 
     group.add(mesh);
-    group.userData = mesh.userData;
 
     // Add geological features
     if (layer.features) {
@@ -250,7 +249,7 @@ const GeologicalScene: React.FC<GeologicalSceneProps> = ({
       });
     }
 
-    return group;
+    return group as unknown as GeologicalModel;
   };
 
   const createGeologicalFeature = (feature: any): THREE.Mesh => {
@@ -323,7 +322,7 @@ const VRInteractionHandler: React.FC<VRInteractionHandlerProps> = ({
   selectedLayer
 }) => {
   const raycaster = useRef(new THREE.Raycaster());
-  const { camera, gl } = useThree();
+  const { gl } = useThree();
 
   useFrame(() => {
     // Handle controller interactions
@@ -345,6 +344,9 @@ const VRInteractionHandler: React.FC<VRInteractionHandlerProps> = ({
     
     // Check for trigger press (selection)
     if (gamepad.buttons[0] && gamepad.buttons[0].pressed) {
+      // Filter interactions based on selected layer
+      const layerFilter = selectedLayer || null;
+      console.log('Layer filter applied:', layerFilter);
       performRaycast(controllerIndex, 'select');
     }
     

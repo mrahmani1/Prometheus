@@ -132,6 +132,7 @@ export const CausalEdgeRenderer: React.FC<CausalEdgeRendererProps> = ({
 
     const lagText = formatTemporalLag(edge.temporalLag);
     const { midX, midY, angle } = edgeGeometry;
+    const rotationAngle = angle * 180 / Math.PI; // Convert to degrees for potential use
 
     return (
       <g>
@@ -152,6 +153,7 @@ export const CausalEdgeRenderer: React.FC<CausalEdgeRendererProps> = ({
           textAnchor="middle"
           fontSize={10}
           fill="#333"
+          transform={`rotate(${rotationAngle > 90 ? rotationAngle - 180 : rotationAngle}, ${midX}, ${midY})`}
           fontWeight="bold"
         >
           {lagText}

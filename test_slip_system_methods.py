@@ -11,9 +11,12 @@ import logging
 # Add backend modules to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend', 'modules'))
 
-def test_slip_system_methods():
+def test_slip_system_methods() -> bool:
     """Test the slip system methods directly"""
-    print("Testing Advanced Slip System Methods...")
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.info("Testing Advanced Slip System Methods...")
     
     try:
         # Create a mock class with just the slip system methods we need
@@ -29,7 +32,9 @@ def test_slip_system_methods():
                     else:
                         magnitude = np.linalg.norm(tensor)
                     return magnitude
-                except Exception:
+                except (ValueError, TypeError, np.linalg.LinAlgError) as e:
+                    import logging
+                    logging.warning(f"Error calculating tensor magnitude: {e}")
                     return 1.0
             
             def _get_crystallographic_correction_factor(self, slip_system, stress_tensor):

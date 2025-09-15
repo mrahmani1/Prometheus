@@ -212,7 +212,7 @@ def initialize_caldera_monitoring(caldera_id: str):
                 )
                 
                 # Initialize with real geological and geophysical data
-                initialization_result = await monitoring_system.initialize_monitoring()
+                initialization_result = monitoring_system.initialize_monitoring()
                 
                 return jsonify({
                     "session_id": session_id,
@@ -256,9 +256,9 @@ def get_monitoring_status(session_id: str):
                 return jsonify({"error": "Session not found or expired"}), 404
             
             # Get current real-time data
-            current_status = await monitoring_system.get_current_status()
-            real_metrics = await monitoring_system.get_latest_metrics()
-            predictions = await monitoring_system.get_eruption_forecasts()
+            current_status = monitoring_system.get_current_status()
+            real_metrics = monitoring_system.get_latest_metrics()
+            predictions = monitoring_system.get_eruption_forecasts()
             
             return jsonify({
                 "session_id": session_id,
@@ -334,21 +334,21 @@ def get_3d_visualization_data(session_id: str):
         # Get real 3D geological model data from digital twin system
         try:
             from modules.digital_twin_earth import DigitalTwinEarth
-            from modules.3d_magmatic_system_modeler import AdvancedMagmaticSystemModeler
+            from modules.magmatic_system_modeler_3d import AdvancedMagmaticSystemModeler
             
             # Initialize digital twin for this caldera
             digital_twin = DigitalTwinEarth()
             magmatic_modeler = AdvancedMagmaticSystemModeler()
             
             # Get real 3D model data
-            model_bounds = await digital_twin.get_caldera_bounds(session_id)
+            model_bounds = digital_twin.get_caldera_bounds(session_id)
             
             x = np.linspace(model_bounds['x_min'], model_bounds['x_max'], 30)
             y = np.linspace(model_bounds['y_min'], model_bounds['y_max'], 30) 
             z = np.linspace(model_bounds['z_min'], model_bounds['z_max'], 20)
             
             # Get real stress field from physics-informed models
-            stress_field_data = await magmatic_modeler.calculate_3d_stress_field(
+            stress_field_data = magmatic_modeler.calculate_3d_stress_field(
                 x_coords=x, y_coords=y, z_coords=z, session_id=session_id
             )
             

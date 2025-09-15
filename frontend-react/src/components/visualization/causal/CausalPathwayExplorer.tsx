@@ -266,7 +266,7 @@ export const CausalPathwayExplorer: React.FC<CausalPathwayExplorerProps> = ({
               </Typography>
               <Slider
                 value={pathOptions.maxPathLength}
-                onChange={(_, value) => setPathOptions(prev => ({ ...prev, maxPathLength: value as number }))}
+                onChange={(_event: Event, value: number | number[]) => setPathOptions(prev => ({ ...prev, maxPathLength: value as number }))}
                 min={2}
                 max={10}
                 step={1}
@@ -282,7 +282,7 @@ export const CausalPathwayExplorer: React.FC<CausalPathwayExplorerProps> = ({
               </Typography>
               <Slider
                 value={pathOptions.minStrength}
-                onChange={(_, value) => setPathOptions(prev => ({ ...prev, minStrength: value as number }))}
+                onChange={(_event: Event, value: number | number[]) => setPathOptions(prev => ({ ...prev, minStrength: value as number }))}
                 min={0}
                 max={1}
                 step={0.05}
@@ -558,20 +558,20 @@ function findPathsFromNode(
   return paths;
 }
 
-function calculatePathStatistics(nodes: CausalNode[], edges: CausalEdge[]) {
+function calculatePathStatistics(_nodes: CausalNode[], edges: CausalEdge[]) {
   const averageStrength = edges.reduce((sum, edge) => sum + edge.strength, 0) / edges.length;
   const totalLag = edges.reduce((sum, edge) => sum + (edge.temporalLag || 0), 0);
   const confidenceScore = edges.reduce((sum, edge) => {
     const [lower, upper] = edge.confidence;
     return sum + (upper - lower); // Narrower confidence interval = higher score
   }, 0) / edges.length;
-  const significanceScore = edges.reduce((sum, edge) => sum + edge.metadata.statisticalSignificance, 0) / edges.length;
+  const significenceScore = edges.reduce((sum, edge) => sum + edge.metadata.statisticalSignificance, 0) / edges.length;
   
   return {
     averageStrength,
     totalLag,
     confidenceScore: 1 - confidenceScore, // Invert so higher is better
-    significanceScore
+    significanceScore: significenceScore
   };
 }
 

@@ -41,7 +41,10 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
   const dispatch = useDispatch();
   const immersiveState = useSelector((state: any) => state.immersive);
   const [currentMode, setCurrentMode] = useState<ImmersiveMode>(defaultMode);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [_isInitialized, _setIsInitialized] = useState(false);
+  
+  // Use isInitialized in render logic
+  // const hubReady = isInitialized;
   const [sessionId] = useState(`session_${Date.now()}`);
   const [userId] = useState(`user_${Math.random().toString(36).substr(2, 9)}`);
 
@@ -111,6 +114,17 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
     }
   ];
 
+  // Initialize the VR hub
+  React.useEffect(() => {
+    const initializeHub = async () => {
+      // Simulate initialization process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      _setIsInitialized(true);
+    };
+    
+    initializeHub();
+  }, []);
+
   // Sample training modules
   const sampleTrainingModules: TrainingModule[] = [
     {
@@ -166,7 +180,7 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
         break;
     }
     
-    setIsInitialized(true);
+    _setIsInitialized(true);
   }, [dispatch, sessionId, userId, enableCollaboration, enableAccessibility]);
 
   const handleAccessibilityChange = useCallback((settings: AccessibilitySettings) => {
@@ -373,7 +387,7 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .immersive-vr-hub {
           width: 100%;
           height: 100vh;

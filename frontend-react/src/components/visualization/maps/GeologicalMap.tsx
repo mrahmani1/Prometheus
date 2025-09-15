@@ -4,7 +4,6 @@ import Map, {
   Layer, 
   MapRef, 
   ViewState, 
-  MapboxEvent,
   LayerProps 
 } from 'react-map-gl';
 import mapboxgl from 'mapbox-gl';

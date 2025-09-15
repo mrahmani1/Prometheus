@@ -89,12 +89,12 @@ export const CausalFilterPanel: React.FC<CausalFilterPanelProps> = ({
     }
   );
 
-  const handleStrengthRangeChange = (event: Event, newValue: number | number[]) => {
+  const handleStrengthRangeChange = (_event: Event, newValue: number | number[]) => {
     const range = newValue as [number, number];
     setLocalConfig(prev => ({ ...prev, strengthRange: range }));
   };
 
-  const handleConfidenceThresholdChange = (event: Event, newValue: number | number[]) => {
+  const handleConfidenceThresholdChange = (_event: Event, newValue: number | number[]) => {
     const threshold = newValue as number;
     setLocalConfig(prev => ({ ...prev, confidenceThreshold: threshold }));
   };

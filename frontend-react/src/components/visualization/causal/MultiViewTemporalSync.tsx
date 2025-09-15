@@ -55,7 +55,7 @@ import {
   CausalNode,
   CausalEdge
 } from './types';
-import { TemporalCausalMetricsCalculator } from './temporalAnalysis';
+// import { TemporalCausalMetricsCalculator } from './temporalAnalysis';
 
 export interface MultiViewTemporalSyncProps {
   snapshots: TemporalCausalSnapshot[];
@@ -703,25 +703,25 @@ function isPatternRelevantForScale(pattern: DetectedPattern, scale: TemporalScal
 }
 
 // Individual view components (simplified implementations)
-const NetworkView: React.FC<any> = ({ width, height }) => (
+const NetworkView: React.FC<any> = ({ width, height, scale }) => (
   <Box sx={{ width, height, bgcolor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Network View ({scale})</Typography>
   </Box>
 );
 
-const TimelineView: React.FC<any> = ({ width, height }) => (
+const TimelineView: React.FC<any> = ({ width, height, scale }) => (
   <Box sx={{ width, height, bgcolor: '#f0f8ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Timeline View ({scale})</Typography>
   </Box>
 );
 
-const MetricsView: React.FC<any> = ({ width, height }) => (
+const MetricsView: React.FC<any> = ({ width, height, scale }) => (
   <Box sx={{ width, height, bgcolor: '#f0fff0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Metrics View ({scale})</Typography>
   </Box>
 );
 
-const PatternsView: React.FC<any> = ({ width, height }) => (
+const PatternsView: React.FC<any> = ({ width, height, scale }) => (
   <Box sx={{ width, height, bgcolor: '#fff8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <Typography variant="body2">Patterns View ({scale})</Typography>
   </Box>

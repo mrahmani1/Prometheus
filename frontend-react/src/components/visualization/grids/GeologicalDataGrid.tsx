@@ -306,7 +306,7 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<any>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, Record<string, string>>>({});
 
   const gridRef = useRef<any>(null);
 
@@ -488,9 +488,9 @@ export const GeologicalDataGrid: React.FC<GeologicalDataGridProps> = ({
           rows={rows}
           columns={columns}
           checkboxSelection
-          disableSelectionOnClick
-          selectionModel={selectionModel}
-          onSelectionModelChange={handleSelectionChange}
+          disableRowSelectionOnClick
+          rowSelectionModel={selectionModel}
+          onRowSelectionModelChange={handleSelectionChange}
           filterModel={filterModel}
           onFilterModelChange={setFilterModel}
           sortModel={sortModel}

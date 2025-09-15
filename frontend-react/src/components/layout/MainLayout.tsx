@@ -67,7 +67,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: theme => theme.zIndex.drawer + 1 }}>
+      <AppBar position="fixed" sx={{ zIndex: (theme: any) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
             color="inherit"
@@ -130,7 +130,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           flexGrow: 1,
           p: 0,
           marginLeft: sidebarOpen ? 0 : '-280px',
-          transition: theme => theme.transitions.create('margin', {
+          transition: (theme: any) => theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),

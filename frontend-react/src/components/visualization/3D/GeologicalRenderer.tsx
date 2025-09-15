@@ -166,7 +166,7 @@ const StructuralFeatures: React.FC<{
   features: StructuralFeature[];
   colorScheme: string;
   onFeatureSelect?: (feature: StructuralFeature) => void;
-}> = ({ features, _colorScheme, _onFeatureSelect }) => {
+}> = ({ features }) => {
   return (
     <>
       {features.map((feature, index) => (
@@ -176,8 +176,13 @@ const StructuralFeatures: React.FC<{
               <bufferGeometry>
                 <bufferAttribute
                   attach="attributes-position"
-                  count={feature.geometry.length / 3}
-                  array={new Float32Array(feature.geometry)}
+                  count={2}
+                  array={new Float32Array([
+                    0, 0, 0,
+                    feature.length * Math.cos(feature.orientation.strike * Math.PI / 180),
+                    0,
+                    feature.length * Math.sin(feature.orientation.strike * Math.PI / 180)
+                  ])}
                   itemSize={3}
                 />
               </bufferGeometry>
@@ -189,8 +194,13 @@ const StructuralFeatures: React.FC<{
               <bufferGeometry>
                 <bufferAttribute
                   attach="attributes-position"
-                  count={feature.geometry.length / 3}
-                  array={new Float32Array(feature.geometry)}
+                  count={2}
+                  array={new Float32Array([
+                    0, 0, 0,
+                    feature.length * Math.cos(feature.orientation.strike * Math.PI / 180) * 0.5,
+                    0,
+                    feature.length * Math.sin(feature.orientation.strike * Math.PI / 180) * 0.5
+                  ])}
                   itemSize={3}
                 />
               </bufferGeometry>
@@ -213,7 +223,7 @@ export const GeologicalRenderer: React.FC<GeologicalRendererProps> = ({
 }) => {
   const [currentTimeStep, setCurrentTimeStep] = React.useState(timeStep);
   const [currentColorScheme, setCurrentColorScheme] = React.useState(colorScheme);
-  const [showControls, setShowControls] = React.useState(true);
+  const [_showControls, _setShowControls] = React.useState(true);
 
   return (
     <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -261,7 +271,7 @@ export const GeologicalRenderer: React.FC<GeologicalRendererProps> = ({
           />
           
           {/* Geological units */}
-          {model.lithology_units?.map((unit, index) => (
+          {model.layers?.map((unit: any, index: number) => (
             <GeologicalMesh
               key={unit.id || index}
               unit={unit}
@@ -273,9 +283,9 @@ export const GeologicalRenderer: React.FC<GeologicalRendererProps> = ({
           ))}
           
           {/* Structural features */}
-          {model.structural_features && (
+          {model.structures && (
             <StructuralFeatures
-              features={model.structural_features}
+              features={model.structures}
               colorScheme={currentColorScheme}
               onFeatureSelect={onFeatureSelect}
             />
@@ -284,7 +294,7 @@ export const GeologicalRenderer: React.FC<GeologicalRendererProps> = ({
       </Canvas>
       
       {/* Control Panel */}
-      {showControls && (
+      {_showControls && (
         <Paper
           sx={{
             position: 'absolute',
@@ -305,7 +315,7 @@ export const GeologicalRenderer: React.FC<GeologicalRendererProps> = ({
             <InputLabel>Color Scheme</InputLabel>
             <Select
               value={currentColorScheme}
-              onChange={(e) => setCurrentColorScheme(e.target.value)}
+              onChange={(e) => setCurrentColorScheme(e.target.value as 'geological' | 'geophysical' | 'structural')}
             >
               <MenuItem value="geological">Geological</MenuItem>
               <MenuItem value="geophysical">Geophysical</MenuItem>
@@ -317,7 +327,7 @@ export const GeologicalRenderer: React.FC<GeologicalRendererProps> = ({
           <Typography gutterBottom>Time Step: {currentTimeStep}</Typography>
           <Slider
             value={currentTimeStep}
-            onChange={(_, value) => setCurrentTimeStep(value as number)}
+            onChange={(_: Event, value: number | number[]) => setCurrentTimeStep(value as number)}
             min={0}
             max={100}
             step={1}
@@ -326,10 +336,10 @@ export const GeologicalRenderer: React.FC<GeologicalRendererProps> = ({
           
           {/* Model Information */}
           <Typography variant="body2" color="textSecondary">
-            Units: {model.lithology_units?.length || 0}
+            Units: {model.layers?.length || 0}
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            Features: {model.structural_features?.length || 0}
+            Features: {model.structures?.length || 0}
           </Typography>
         </Paper>
       )}

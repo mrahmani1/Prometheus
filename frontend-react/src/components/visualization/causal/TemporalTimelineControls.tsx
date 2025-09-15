@@ -144,7 +144,7 @@ export const TemporalTimelineControls: React.FC<TemporalTimelineControlsProps> =
       : [new Date(), new Date()],
     resolution: 1000,
   });
-  const [selectedTimeRange, setSelectedTimeRange] = useState<[Date, Date] | null>(null);
+  const [_selectedTimeRange, _setSelectedTimeRange] = useState<[Date, Date] | null>(null);
   const [showPatternDetails, setShowPatternDetails] = useState(false);
   const [patternAnchorEl, setPatternAnchorEl] = useState<HTMLElement | null>(null);
   const [selectedPattern, setSelectedPattern] = useState<DetectedPattern | null>(null);
@@ -266,7 +266,7 @@ export const TemporalTimelineControls: React.FC<TemporalTimelineControlsProps> =
       .extent([[50, 0], [width - 50, height - 50]])
       .on('end', (event) => {
         if (!event.selection) {
-          setSelectedTimeRange(null);
+          _setSelectedTimeRange(null);
           return;
         }
         
@@ -276,7 +276,7 @@ export const TemporalTimelineControls: React.FC<TemporalTimelineControlsProps> =
           timelineScale.invert(x1)
         ];
         
-        setSelectedTimeRange(range);
+        _setSelectedTimeRange(range);
       });
 
     const brushGroup = svg.append('g')
@@ -597,14 +597,14 @@ export const TemporalTimelineControls: React.FC<TemporalTimelineControlsProps> =
                 Patterns Detected
               </Typography>
               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                {visiblePatterns.slice(0, 3).map((pattern, index) => (
+                {visiblePatterns.slice(0, 3).map((pattern, _index) => (
                   <Chip
                     key={pattern.id}
                     label={pattern.type}
                     size="small"
                     color={pattern.type === 'anomaly' ? 'error' : 'primary'}
                     variant="outlined"
-                    onClick={(e) => handlePatternClick(pattern, e)}
+                    onClick={(e: React.MouseEvent) => handlePatternClick(pattern, e)}
                   />
                 ))}
                 {visiblePatterns.length > 3 && (
@@ -627,7 +627,7 @@ export const TemporalTimelineControls: React.FC<TemporalTimelineControlsProps> =
             Bookmarks
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {bookmarks.map((bookmark, index) => (
+            {bookmarks.map((bookmark, _index) => (
               <Chip
                 key={bookmark.id}
                 label={bookmark.label}

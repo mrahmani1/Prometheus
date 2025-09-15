@@ -77,7 +77,7 @@ export interface HapticFeedback {
   intensity: number;
   duration: number;
   pattern?: string;
-  timestamp: number;
+  timestamp?: number;
 }
 
 export interface HapticPattern {
@@ -340,9 +340,11 @@ export interface VoiceCommand {
   type: 'voice';
   phrase: string;
   action: string;
+  intent?: string;
   confidence: number;
   timestamp: number;
   transcript: string;
+  entities?: Array<{ type: string; value: string }>;
 }
 
 export interface HandTracking {

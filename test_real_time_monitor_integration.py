@@ -28,14 +28,15 @@ logger = logging.getLogger(__name__)
 async def test_real_data_integration():
     """Test real data integration with the process monitor"""
     
-    # Configuration for the monitor
+    # Configuration for the monitor using environment variables
+    import os
     config = {
-        'redis_host': 'localhost',
-        'redis_port': 6379,
-        'influxdb_url': 'http://localhost:8086',
-        'influxdb_token': 'your_influx_token',
-        'influxdb_org': 'prometheus',
-        'max_workers': 4,
+        'redis_host': os.getenv('REDIS_HOST', 'localhost'),
+        'redis_port': int(os.getenv('REDIS_PORT', '6379')),
+        'influxdb_url': os.getenv('INFLUXDB_URL', 'http://localhost:8086'),
+        'influxdb_token': os.getenv('INFLUXDB_TOKEN', 'your_influx_token'),
+        'influxdb_org': os.getenv('INFLUXDB_ORG', 'prometheus'),
+        'max_workers': int(os.getenv('MAX_WORKERS', '4')),
         
         # API keys (would be loaded from environment in production)
         'iris_api_key': None,  # IRIS is generally open access

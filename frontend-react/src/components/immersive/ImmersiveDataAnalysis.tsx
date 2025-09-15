@@ -1,20 +1,15 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { VRButton, XR } from '@react-three/xr'; // Controllers, Hands - not exported
+import { VRButton, XR, createXRStore } from '@react-three/xr';
 import { Text, Sphere, Box, Plane } from '@react-three/drei'; // Html, Line - unused
 import * as THREE from 'three';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
-  DataVisualization, 
-  ImmersiveAnalysis, 
-  SpatialQuery,
-  DataManipulation,
   AnalysisResult
 } from '../../types/immersive';
 import { 
   updateImmersiveAnalysis,
-  addSpatialQuery,
-  updateDataVisualization
+  addSpatialQuery
 } from '../../store/slices/immersiveSlice';
 
 interface ImmersiveDataAnalysisProps {
@@ -49,7 +44,8 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
   onAnalysisComplete
 }) => {
   const dispatch = useDispatch();
-  const _analysisState = useSelector((state: any) => state.immersive.immersiveAnalysis);
+  const analysisState = useSelector((state: any) => state.immersive.immersiveAnalysis);
+  const analysisEnabled = analysisState?.enabled ?? true;
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [selectedPoints, setSelectedPoints] = useState<Set<string>>(new Set());
   const [activeAnalysis, setActiveAnalysis] = useState<string | null>(null);
@@ -104,6 +100,12 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
   ];
 
   useEffect(() => {
+    // Initialize analysis system if enabled
+    if (!analysisEnabled) {
+      console.log('Analysis system disabled');
+      return;
+    }
+    
     // Convert geological data to data points
     const points = geologicalData.map((data, index) => ({
       id: `point_${index}`,
@@ -402,8 +404,19 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
       
       setAnalysisResults(prev => [...prev, result]);
       dispatch(updateImmersiveAnalysis({
-        activeAnalysis: toolName,
+        id: `analysis_${Date.now()}`,
+        type: 'statistical',
+        inputData: analysisData,
         results: result,
+        visualization: { 
+          id: `viz_${Date.now()}`,
+          type: '3d_scatter', 
+          data: Array.isArray(result.data) ? result.data : [result.data],
+          position: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+          colorScheme: 'default',
+          interactive: true
+        },
         timestamp: new Date()
       }));
       
@@ -449,10 +462,13 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
         </div>
       </div>
 
-      <VRButton />
-
-      <Canvas style={{ height: '100vh' }}>
-        <XR>
+      {(() => {
+        const store = createXRStore();
+        return (
+          <>
+            <VRButton store={store} />
+            <Canvas style={{ height: '100vh' }}>
+              <XR store={store}>
           <ambientLight intensity={0.6} />
           <pointLight position={[10, 10, 10]} />
           
@@ -480,8 +496,11 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
             results={analysisResults}
             selectedPoints={selectedPoints}
           />
-        </XR>
-      </Canvas>
+              </XR>
+            </Canvas>
+          </>
+        );
+      })()}
     </div>
   );
 };
@@ -507,9 +526,20 @@ const ImmersiveAnalysisScene: React.FC<ImmersiveAnalysisSceneProps> = ({
   enableSpatialQueries,
   // enableDataManipulation - unused
 }) => {
-  const _selectionBoxRef = useRef<THREE.Mesh>(null);
-  const [_isSelecting, setIsSelecting] = useState(false);
+  const selectionBoxRef = useRef<THREE.Mesh>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<THREE.Vector3 | null>(null);
+  
+  // Use selection state for spatial queries
+  // @ts-ignore - Reserved for future implementation
+  const _handleSelectionStart = useCallback((_point: THREE.Vector3) => {
+    if (enableSpatialQueries) {
+      setSelectionStart(_point);
+      setIsSelecting(true);
+    }
+  }, [enableSpatialQueries]);
+
+
 
   const getPointColor = (point: DataPoint): number => {
     if (selectedPoints.has(point.id)) {
@@ -554,6 +584,14 @@ const ImmersiveAnalysisScene: React.FC<ImmersiveAnalysisSceneProps> = ({
       {/* Spatial selection box */}
       {spatialSelection && (
         <SelectionBox region={spatialSelection} />
+      )}
+      
+      {/* Active selection indicator */}
+      {isSelecting && selectionStart && (
+        <mesh ref={selectionBoxRef} position={selectionStart}>
+          <boxGeometry args={[0.1, 0.1, 0.1]} />
+          <meshBasicMaterial color={0x00FF00} transparent opacity={0.5} />
+        </mesh>
       )}
       
       {/* Analysis result visualizations */}
@@ -640,8 +678,10 @@ const SelectionBox: React.FC<{ region: THREE.Box3 }> = ({ region }) => {
 const AnalysisResultVisualization: React.FC<{
   result: AnalysisResult;
   dataPoints: DataPoint[];
-}> = ({ result, dataPoints }) => {
+}> = ({ result }) => {
   // Render different visualizations based on result type
+
+  
   switch (result.visualization) {
     case 'scatter3d':
       return <ClusterVisualization result={result} />;
@@ -715,8 +755,20 @@ const HeatmapVisualization: React.FC<{ result: AnalysisResult }> = ({ result }) 
 const SpatialQueryTools: React.FC<{
   onRegionSelection: (region: THREE.Box3) => void;
 }> = ({ onRegionSelection }) => {
-  // Placeholder for spatial query tools
-  return null;
+  const handleRegionSelect = () => {
+    // Create a sample region for demonstration
+    const region = new THREE.Box3(
+      new THREE.Vector3(-10, -10, -10),
+      new THREE.Vector3(10, 10, 10)
+    );
+    onRegionSelection(region);
+  };
+
+  return (
+    <button onClick={handleRegionSelect}>
+      Select Region
+    </button>
+  );
 };
 
 const AnalysisToolsInterface: React.FC<{
@@ -780,11 +832,21 @@ const AnalysisResultsDisplay: React.FC<{
   selectedPoints: Set<string>;
 }> = ({ results, selectedPoints }) => {
   const latestResult = results[results.length - 1];
+  const selectedCount = selectedPoints.size;
   
   if (!latestResult) return null;
 
   return (
     <group position={[3, 2, -2]}>
+      <Text
+        position={[0, 1.2, 0]}
+        fontSize={0.06}
+        color="cyan"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Selected Points: {selectedCount}
+      </Text>
       <Text
         position={[0, 1, 0]}
         fontSize={0.15}

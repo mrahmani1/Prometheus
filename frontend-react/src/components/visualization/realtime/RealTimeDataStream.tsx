@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { ProcessingStatus } from '../../../types/causal';
+import { ProcessingStatus } from '../../../types/geological';
 import { 
   Box, 
   Paper, 
@@ -298,7 +298,7 @@ export const RealTimeDataStream: React.FC<RealTimeDataStreamProps> = ({
         bufferSize: bufferRef.current.getBufferInfo()[type]?.count || 0,
         dataRate: bufferRef.current.getDataRate(type)
       },
-      processingStatus: 'RECEIVED' as ProcessingStatus
+      processingStatus: ProcessingStatus.RECEIVED
     };
 
     onDataReceived?.(streamEvent);

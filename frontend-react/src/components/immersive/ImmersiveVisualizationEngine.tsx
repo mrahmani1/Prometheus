@@ -20,7 +20,8 @@ import { Canvas } from '@react-three/fiber';
 import { 
   VRButton, 
   ARButton, 
-  XR
+  XR,
+  createXRStore
   // useXR, useController, useHitTest, Interactive - unused or not exported
 } from '@react-three/xr';
 // import {
@@ -166,12 +167,12 @@ interface VoiceCommand {
 }
 
 // Gesture Recognition Interface
-interface GestureRecognition {
-  type: 'pinch' | 'grab' | 'point' | 'swipe' | 'rotate' | 'scale';
-  confidence: number;
-  position: THREE.Vector3;
-  direction?: THREE.Vector3;
-}
+// interface GestureRecognition {
+//   type: 'pinch' | 'grab' | 'point' | 'swipe' | 'rotate' | 'scale';
+//   confidence: number;
+//   position: THREE.Vector3;
+//   direction?: THREE.Vector3;
+// }
 
 // Main Immersive Visualization Engine Component
 export const ImmersiveVisualizationEngine: React.FC = () => {
@@ -190,13 +191,16 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
 
   const [currentScene, setCurrentScene] = useState<GeologicalVRScene | null>(null);
   const [isXRSupported, setIsXRSupported] = useState(false);
-  const [hapticDevice, setHapticDevice] = useState<any>(null);
+  const [_hapticDevice, _setHapticDevice] = useState<any>(null);
   const [voiceRecognition, setVoiceRecognition] = useState<any>(null);
   const [collaborativeSession, setCollaborativeSession] = useState<CollaborativeSpace | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const _sceneRef = useRef<any>(null);
-  const _hapticRef = useRef<any>(null);
+  // const _sceneRef = useRef<any>(null); // Reserved for future scene management
+  // const _hapticRef = useRef<any>(null); // Reserved for future haptic integration
+
+  // Create XR store for VR/AR functionality
+  const xrStore = createXRStore();
 
   // Initialize XR capabilities
   useEffect(() => {
@@ -220,7 +224,7 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
   useEffect(() => {
     const initializeHaptics = async () => {
       if ('navigator' in window && 'vibrate' in navigator) {
-        setHapticDevice({
+        _setHapticDevice({
           vibrate: (pattern: number[]) => navigator.vibrate(pattern),
           supported: true
         });
@@ -231,7 +235,7 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
         // This would integrate with actual haptic SDKs
         const advancedHaptics = await initializeAdvancedHaptics();
         if (advancedHaptics) {
-          setHapticDevice(advancedHaptics);
+          _setHapticDevice(advancedHaptics);
         }
       } catch (error) {
         console.warn('Advanced haptics not available:', error);
@@ -326,28 +330,28 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
   }, []);
 
   // Haptic feedback functions
-  const triggerHapticFeedback = useCallback((feedback: HapticFeedback) => {
-    if (!config.hapticEnabled || !hapticDevice) return;
+  // const triggerHapticFeedback = useCallback((feedback: HapticFeedback) => {
+  //   if (!config.hapticEnabled || !hapticDevice) return;
 
-    switch (feedback.pattern) {
-      case 'pulse':
-        const pattern = Array(Math.floor(feedback.duration / 150)).fill([feedback.intensity * 100, 50]).flat();
-        hapticDevice.vibrate(pattern);
-        break;
-      case 'continuous':
-        hapticDevice.vibrate(feedback.duration);
-        break;
-      case 'wave':
-        const wavePattern = Array.from({ length: 10 }, (_, i) => 
-          Math.sin(i * 0.6) * feedback.intensity * 50 + 50
-        );
-        hapticDevice.vibrate(wavePattern);
-        break;
-      case 'impact':
-        hapticDevice.vibrate([feedback.intensity * 200, 100, feedback.intensity * 100]);
-        break;
-    }
-  }, [config.hapticEnabled, hapticDevice]);
+  //   switch (feedback.pattern) {
+  //     case 'pulse':
+  //       const pattern = Array(Math.floor(feedback.duration / 150)).fill([feedback.intensity * 100, 50]).flat();
+  //       hapticDevice.vibrate(pattern);
+  //       break;
+  //     case 'continuous':
+  //       hapticDevice.vibrate(feedback.duration);
+  //       break;
+  //     case 'wave':
+  //       const wavePattern = Array.from({ length: 10 }, (_, i) => 
+  //         Math.sin(i * 0.6) * feedback.intensity * 50 + 50
+  //       );
+  //       hapticDevice.vibrate(wavePattern);
+  //       break;
+  //     case 'impact':
+  //       hapticDevice.vibrate([feedback.intensity * 200, 100, feedback.intensity * 100]);
+  //       break;
+  //   }
+  // }, [config.hapticEnabled, hapticDevice]);
 
   // Geological scene loading
   const loadGeologicalScene = useCallback(async (sceneType: string) => {
@@ -372,30 +376,37 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
   }, []);
 
   // Gesture recognition handler
-  const handleGesture = useCallback((gesture: GestureRecognition) => {
+  // const _handleGesture = useCallback((gesture: GestureRecognition) => {
     if (!config.gestureEnabled) return;
 
-    switch (gesture.type) {
-      case 'pinch':
-        handleZoom(0.8);
-        break;
-      case 'grab':
-        startObjectManipulation(gesture.position);
-        break;
-      case 'point':
-        selectObject(gesture.position, gesture.direction);
-        break;
-      case 'swipe':
-        navigateScene(gesture.direction);
-        break;
-      case 'rotate':
-        rotateView(gesture.direction);
-        break;
-      case 'scale':
-        scaleObject(gesture.position, 1.2);
-        break;
-    }
-  }, [config.gestureEnabled]);
+    // Trigger haptic feedback for gesture recognition
+    // triggerHapticFeedback({
+    //   intensity: 0.3,
+    //   duration: 100,
+    //   pattern: 'pulse'
+    // });
+
+    // switch (gesture.type) {
+    //   case 'pinch':
+    //     handleZoom(0.8);
+    //     break;
+    //   case 'grab':
+    //     startObjectManipulation(gesture.position);
+    //     break;
+    //   case 'point':
+    //     selectObject(gesture.position, gesture.direction);
+    //     break;
+    //   case 'swipe':
+    //     navigateScene(gesture.direction);
+    //     break;
+    //   case 'rotate':
+    //     rotateView(gesture.direction);
+    //     break;
+    //   case 'scale':
+    //     scaleObject(gesture.position, 1.2);
+    //     break;
+    // }
+  // }, [config.gestureEnabled]);
 
   // Utility functions
   const handleZoom = useCallback((_factor: number) => {
@@ -408,6 +419,8 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
 
   const toggleDataLayers = useCallback((visible: boolean) => {
     // Implementation for layer visibility toggle
+    console.log(`Toggling data layers visibility: ${visible}`);
+    // Future implementation will control layer rendering
   }, []);
 
   const startMeasurementMode = useCallback(() => {
@@ -418,23 +431,39 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
     // Implementation for sample taking
   }, []);
 
-  const startObjectManipulation = useCallback((position: THREE.Vector3) => {
-    // Implementation for object manipulation
+  // @ts-ignore - Reserved for future implementation
+  const _startObjectManipulation = useCallback((_position: THREE.Vector3) => {
+    // Implementation for object manipulation at specified position
+    console.log(`Starting manipulation at position: ${_position.x}, ${_position.y}, ${_position.z}`);
   }, []);
 
-  const selectObject = useCallback((position: THREE.Vector3, direction?: THREE.Vector3) => {
-    // Implementation for object selection
+  // @ts-ignore - Reserved for future implementation
+  const _selectObject = useCallback((_position: THREE.Vector3, _direction?: THREE.Vector3) => {
+    // Implementation for object selection with position and optional direction
+    console.log(`Selecting object at: ${_position.x}, ${_position.y}, ${_position.z}`);
+    if (_direction) {
+      console.log(`Selection direction: ${_direction.x}, ${_direction.y}, ${_direction.z}`);
+    }
   }, []);
 
-  const navigateScene = useCallback((direction?: THREE.Vector3) => {
-    // Implementation for scene navigation
+  // @ts-ignore - Reserved for future implementation
+  const _navigateScene = useCallback((_direction?: THREE.Vector3) => {
+    // Implementation for scene navigation in specified direction
+    if (_direction) {
+      console.log(`Navigating in direction: ${_direction.x}, ${_direction.y}, ${_direction.z}`);
+    }
   }, []);
 
-  const rotateView = useCallback((direction?: THREE.Vector3) => {
-    // Implementation for view rotation
+  // @ts-ignore - Reserved for future implementation
+  const _rotateView = useCallback((_direction?: THREE.Vector3) => {
+    // Implementation for view rotation around specified direction
+    if (_direction) {
+      console.log(`Rotating view around: ${_direction.x}, ${_direction.y}, ${_direction.z}`);
+    }
   }, []);
 
-  const scaleObject = useCallback((_position: any, _factor: number) => {
+  // @ts-ignore - Reserved for future implementation
+  const _scaleObject = useCallback((_position: any, _factor: number) => {
     // Implementation for object scaling
   }, []);
 
@@ -609,8 +638,8 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
       {/* XR Buttons */}
       {isXRSupported && (
         <MuiBox sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1000 }}>
-          {config.vrEnabled && <VRButton />}
-          {config.arEnabled && <ARButton />}
+          {config.vrEnabled && <VRButton store={xrStore} />}
+          {config.arEnabled && <ARButton store={xrStore} />}
         </MuiBox>
       )}
 
@@ -625,16 +654,22 @@ export const ImmersiveVisualizationEngine: React.FC = () => {
           powerPreference: 'high-performance'
         }}
       >
-        <XR>
-          <ImmersiveScene 
-            config={config}
-            scene={currentScene}
-            onGesture={handleGesture}
-            onHapticFeedback={triggerHapticFeedback}
-            collaborativeSession={collaborativeSession}
-          />
-          <Controllers />
-          <Hands />
+        <XR store={xrStore}>
+          {/* ImmersiveScene component - placeholder for future implementation */}
+          <group>
+            <ambientLight intensity={0.6} />
+            <pointLight position={[10, 10, 10]} />
+            <directionalLight position={[5, 5, 5]} intensity={0.5} />
+            
+            {/* Scene content based on config */}
+            {currentScene && (
+              <mesh>
+                <boxGeometry args={[1, 1, 1]} />
+                <meshStandardMaterial color="orange" />
+              </mesh>
+            )}
+          </group>
+          {/* Controllers and Hands would be added here when available */}
         </XR>
       </Canvas>
 

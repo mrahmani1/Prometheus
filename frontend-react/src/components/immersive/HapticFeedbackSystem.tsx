@@ -18,7 +18,14 @@ interface HapticEvent {
   timestamp: number;
 }
 
-interface GamepadHaptic extends Gamepad {
+interface GamepadHaptic {
+  id: string;
+  index: number;
+  connected: boolean;
+  timestamp: number;
+  mapping: GamepadMappingType;
+  axes: readonly number[];
+  buttons: readonly GamepadButton[];
   hapticActuators?: GamepadHapticActuator[];
 }
 
@@ -34,6 +41,7 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
 }) => {
   const dispatch = useDispatch();
   const hapticState = useSelector((state: any) => state.immersive.hapticFeedback);
+  const hapticEnabled = hapticState?.enabled ?? enabled;
   const [connectedDevices, setConnectedDevices] = useState<HapticDevice[]>([]);
   const [isCalibrating, setIsCalibrating] = useState(false);
   const gamepadRef = useRef<GamepadHaptic | null>(null);
@@ -41,7 +49,7 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
   const oscillatorRef = useRef<OscillatorNode | null>(null);
 
   useEffect(() => {
-    if (enabled) {
+    if (hapticEnabled) {
       initializeHapticDevices();
       initializeAudioHaptics();
     }
@@ -49,7 +57,7 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
     return () => {
       cleanup();
     };
-  }, [enabled]);
+  }, [hapticEnabled]);
 
   const initializeHapticDevices = useCallback(() => {
     // Initialize gamepad haptics
@@ -58,14 +66,26 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
       const hapticDevices: HapticDevice[] = [];
 
       for (let i = 0; i < gamepads.length; i++) {
-        const gamepad = gamepads[i] as GamepadHaptic;
-        if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
-          gamepadRef.current = gamepad;
+        const gamepad = gamepads[i];
+        if (!gamepad) continue;
+        
+        const hapticGamepad: GamepadHaptic = {
+          id: gamepad.id,
+          index: gamepad.index,
+          connected: gamepad.connected,
+          timestamp: gamepad.timestamp,
+          mapping: gamepad.mapping,
+          axes: gamepad.axes,
+          buttons: gamepad.buttons,
+          hapticActuators: (gamepad as any).hapticActuators
+        };
+        if (hapticGamepad && hapticGamepad.hapticActuators && hapticGamepad.hapticActuators.length > 0) {
+          gamepadRef.current = hapticGamepad;
           
           const device: HapticDevice = {
             id: `gamepad_${i}`,
             type: 'gamepad',
-            name: gamepad.id,
+            name: hapticGamepad.id,
             capabilities: {
               supportsVibration: true,
               supportsForce: false,
@@ -283,13 +303,16 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
   }, [getGeologicalHapticPattern, triggerHapticFeedback]);
 
   const simulateToolResistance = useCallback(async (hardness: number, toolType: string) => {
+    // Adjust pattern based on tool type
+    const toolMultiplier = toolType === 'hammer' ? 1.5 : toolType === 'drill' ? 2.0 : 1.0;
+    
     const resistancePattern: HapticPattern = {
-      name: 'tool_resistance',
+      name: `${toolType}_resistance`,
       type: 'resistance',
-      intensity: Math.min(1.0, hardness * 0.1),
-      frequency: 50 + hardness * 10,
+      intensity: Math.min(1.0, hardness * 0.1 * toolMultiplier),
+      frequency: (50 + hardness * 10) * toolMultiplier,
       duration: 500,
-      waveform: 'sawtooth'
+      waveform: toolType === 'hammer' ? 'square' : 'sawtooth'
     };
 
     await triggerHapticFeedback(resistancePattern.intensity, resistancePattern.duration, resistancePattern);
@@ -385,7 +408,7 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .haptic-feedback-system {
           padding: 20px;
           background: rgba(0, 0, 0, 0.8);

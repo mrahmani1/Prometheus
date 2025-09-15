@@ -66,17 +66,15 @@ class CausalDataService {
         id: 'ground-deformation',
         label: 'Ground Deformation',
         processType: GeologicalProcessType.DEFORMATION,
+        spatialScale: 'local' as SpatialScale,
+        temporalScale: 'day' as TemporalScale,
+        dataSource: 'ASF-Hyp3/Copernicus',
         size: 18,
         color: '#4ECDC4',
+        confidence: 0.88,
         metadata: {
           description: 'MT-SAR interferometry from Sentinel-1',
-          dataSource: 'ASF-Hyp3/Copernicus',
           lastUpdated: new Date(),
-          confidence: 0.88,
-          spatialScale: 'local',
-          temporalScale: 'day',
-        },
-        properties: {
           displacement: 2.3,
           coherence: 0.85,
           velocity: 0.5,
@@ -86,15 +84,15 @@ class CausalDataService {
         id: 'gas-emissions',
         label: 'Gas Emissions',
         processType: GeologicalProcessType.GEOCHEMICAL,
+        spatialScale: 'local' as SpatialScale,
+        temporalScale: 'hour' as TemporalScale,
+        dataSource: 'USGS Volcano Hazards Program',
         size: 16,
         color: '#45B7D1',
+        confidence: 0.82,
         metadata: {
           description: 'Volcanic gas composition from observatory',
-          dataSource: 'USGS Volcano Hazards Program',
           lastUpdated: new Date(),
-          confidence: 0.82,
-          spatialScale: 'local',
-          temporalScale: 'hour',
           so2_flux: 150,
           co2_ratio: 0.25,
           temperature: 85.2,
@@ -104,15 +102,15 @@ class CausalDataService {
         id: 'thermal-anomalies',
         label: 'Thermal Anomalies',
         processType: GeologicalProcessType.THERMAL,
+        spatialScale: 'regional' as SpatialScale,
+        temporalScale: 'day' as TemporalScale,
+        dataSource: 'NASA EarthData/MODIS',
         size: 14,
         color: '#F7DC6F',
+        confidence: 0.76,
         metadata: {
           description: 'Thermal infrared from NASA FIRMS',
-          dataSource: 'NASA EarthData/MODIS',
           lastUpdated: new Date(),
-          confidence: 0.76,
-          spatialScale: 'regional',
-          temporalScale: 'day',
           temperature: 45.8,
           area: 1250,
           intensity: 0.65,
@@ -122,17 +120,15 @@ class CausalDataService {
         id: 'magma-intrusion',
         label: 'Magma Intrusion',
         processType: GeologicalProcessType.MAGMATIC,
+        spatialScale: 'local' as SpatialScale,
+        temporalScale: 'day' as TemporalScale,
+        dataSource: 'Integrated Analysis',
         size: 22,
         color: '#E74C3C',
+        confidence: 0.71,
         metadata: {
           description: 'Inferred from multi-parameter analysis',
-          dataSource: 'Integrated Analysis',
           lastUpdated: new Date(),
-          confidence: 0.71,
-          spatialScale: 'local',
-          temporalScale: 'day',
-        },
-        properties: {
           volume: 0.05,
           depth: 8.2,
           pressure: 150,
@@ -146,16 +142,13 @@ class CausalDataService {
         source: 'magma-intrusion',
         target: 'seismic-activity',
         causalStrength: 0.85,
-        confidence: [0.78, 0.92],
+        confidenceInterval: [0.78, 0.92],
         temporalLag: 3600000, // 1 hour in milliseconds
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'Granger Causality',
-          statisticalSignificance: 0.001,
-          validationStatus: 'validated',
-          geologicalContext: 'Magma intrusion causes stress changes leading to seismic activity',
-        },
-        properties: {
+        statisticalSignificance: 0.001,
+        discoveryMethod: 'Granger Causality' as CausalDiscoveryMethod,
+        validationStatus: 'validated' as any,
+        geologicalContext: {
+          description: 'Magma intrusion causes stress changes leading to seismic activity',
           correlation: 0.82,
           pValue: 0.001,
         },
@@ -165,16 +158,13 @@ class CausalDataService {
         source: 'magma-intrusion',
         target: 'ground-deformation',
         causalStrength: 0.92,
-        confidence: [0.87, 0.97],
+        confidenceInterval: [0.87, 0.97],
         temporalLag: 7200000, // 2 hours
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'Cross-correlation Analysis',
-          statisticalSignificance: 0.0001,
-          validationStatus: 'validated',
-          geologicalContext: 'Magma intrusion causes surface deformation',
-        },
-        properties: {
+        statisticalSignificance: 0.0001,
+        discoveryMethod: 'Cross-correlation Analysis' as CausalDiscoveryMethod,
+        validationStatus: 'validated' as any,
+        geologicalContext: {
+          description: 'Magma intrusion causes surface deformation',
           correlation: 0.89,
           pValue: 0.0001,
         },
@@ -184,16 +174,13 @@ class CausalDataService {
         source: 'seismic-activity',
         target: 'gas-emissions',
         causalStrength: 0.67,
-        confidence: [0.58, 0.76],
+        confidenceInterval: [0.58, 0.76],
         temporalLag: 1800000, // 30 minutes
-        edgeType: 'indirect',
-        metadata: {
-          discoveryMethod: 'Transfer Entropy',
-          statisticalSignificance: 0.01,
-          validationStatus: 'pending',
-          geologicalContext: 'Seismic activity may enhance gas pathways',
-        },
-        properties: {
+        statisticalSignificance: 0.01,
+        discoveryMethod: 'Transfer Entropy' as CausalDiscoveryMethod,
+        validationStatus: 'pending' as any,
+        geologicalContext: {
+          description: 'Seismic activity may enhance gas pathways',
           correlation: 0.64,
           pValue: 0.01,
         },
@@ -203,16 +190,13 @@ class CausalDataService {
         source: 'gas-emissions',
         target: 'thermal-anomalies',
         causalStrength: 0.73,
-        confidence: [0.65, 0.81],
+        confidenceInterval: [0.65, 0.81],
         temporalLag: 10800000, // 3 hours
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'Causal Forest',
-          statisticalSignificance: 0.005,
-          validationStatus: 'validated',
-          geologicalContext: 'Gas emissions indicate thermal processes',
-        },
-        properties: {
+        statisticalSignificance: 0.005,
+        discoveryMethod: 'Causal Forest' as CausalDiscoveryMethod,
+        validationStatus: 'validated' as any,
+        geologicalContext: {
+          description: 'Gas emissions indicate thermal processes',
           correlation: 0.71,
           pValue: 0.005,
         },
@@ -409,7 +393,7 @@ const CausalDashboardPage: React.FC = () => {
           if (!prev) return prev;
           const updatedNodes = prev.nodes.map(node => 
             node.id === data.data.nodeId 
-              ? { ...node, properties: { ...node.properties, ...data.data.properties } }
+              ? { ...node, metadata: { ...node.metadata, ...data.data.properties } }
               : node
           );
           return { ...prev, nodes: updatedNodes };
@@ -464,7 +448,7 @@ const CausalDashboardPage: React.FC = () => {
           const csvRows = [
             'Source,Target,Strength,Confidence_Lower,Confidence_Upper,Temporal_Lag,Edge_Type,Discovery_Method',
             ...data.graph.edges.map((edge: CausalEdge) => 
-              `${edge.source},${edge.target},${edge.strength},${edge.confidence[0]},${edge.confidence[1]},${edge.temporalLag || ''},${edge.edgeType},${edge.metadata.discoveryMethod}`
+              `${edge.source},${edge.target},${edge.causalStrength},${edge.confidenceInterval[0]},${edge.confidenceInterval[1]},${edge.temporalLag || ''},${edge.discoveryMethod},${edge.discoveryMethod}`
             )
           ];
           exportData = csvRows.join('\n');

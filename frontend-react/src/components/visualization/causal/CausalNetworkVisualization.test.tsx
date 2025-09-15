@@ -295,7 +295,7 @@ describe('CausalNetworkVisualization', () => {
       spatialScales: [],
       temporalScales: [],
       edgeTypes: [],
-      validationStatus: ['validated'],
+      validationStatus: ['validated' as any], // Using ValidationStatus.VALIDATED
       discoveryMethods: []
     };
 

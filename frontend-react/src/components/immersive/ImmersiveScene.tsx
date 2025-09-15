@@ -9,8 +9,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { 
   useXR, 
-  useController, 
-  // useHitTest - unused, 
+  // useController - not available in current version
   Interactive,
   useXREvent
 } from '@react-three/xr';
@@ -74,12 +73,18 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
   collaborativeSession
 }) => {
   const { gl, camera, scene: threeScene } = useThree();
-  const { isPresenting, player } = useXR();
+  const xrState = useXR();
+  
+  // Use the Three.js context for scene management
+  const sceneReady = gl && camera && threeScene;
+  const vrActive = xrState.session !== undefined;
   
   const [geologicalLayers, setGeologicalLayers] = useState<GeologicalLayer[]>([]);
   const [interactiveElements, setInteractiveElements] = useState<InteractiveElement[]>([]);
   const [collaborativeAvatars, setCollaborativeAvatars] = useState<CollaborativeAvatar[]>([]);
-  // const [selectedObject] = useState<THREE.Object3D | null>(null); // Unused
+  const [_selectedObject, _setSelectedObject] = useState<THREE.Object3D | null>(null);
+  
+
   const [measurementMode] = useState(false);
   const [measurementPoints, setMeasurementPoints] = useState<THREE.Vector3[]>([]);
 
@@ -89,17 +94,17 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
   const interactionsRef = useRef<THREE.Group>(null);
   const collaborativeRef = useRef<THREE.Group>(null);
 
-  // Hand tracking and gesture recognition
-  const leftController = useController('left');
-  const rightController = useController('right');
-  // const hitTest = useHitTest(); // Unused
+  // Hand tracking and gesture recognition (placeholder for future implementation)
+  const leftController: THREE.Object3D | null = null; // useController not available in current version
+  const rightController: THREE.Object3D | null = null; // useController not available in current version
 
   // Initialize geological scene
   useEffect(() => {
-    if (scene) {
+    if (scene && sceneReady) {
       initializeGeologicalScene();
+      console.log('Scene initialized', { vrActive, sceneReady });
     }
-  }, [scene]);
+  }, [scene, sceneReady, vrActive]);
 
   // Initialize collaborative features
   useEffect(() => {
@@ -404,23 +409,29 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
 
   // Handle controller interactions
   useXREvent('selectstart', (event) => {
-    if (event.target === leftController || event.target === rightController) {
+    if (event.data === leftController || event.data === rightController) {
       handleControllerSelect(event);
     }
   });
 
   useXREvent('selectend', (event) => {
-    if (event.target === leftController || event.target === rightController) {
+    if (event.data === leftController || event.data === rightController) {
       handleControllerRelease(event);
     }
   });
 
   const handleControllerSelect = useCallback((event: any) => {
-    const controller = event.target;
+    const controller = event.data;
     const raycaster = new THREE.Raycaster();
     
-    // Cast ray from controller
-    raycaster.setFromXRController(controller);
+    // Cast ray from controller position and direction
+    if (controller && controller.inputSource) {
+      // Use controller position and direction for raycasting
+      raycaster.set(
+        new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld),
+        new THREE.Vector3(0, 0, -1).transformDirection(controller.matrixWorld)
+      );
+    }
     
     // Check intersections with geological objects
     const intersects = raycaster.intersectObjects(
@@ -436,11 +447,11 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
 
   const handleControllerRelease = useCallback((_event: any) => {
     // Handle controller release
-    setSelectedObject(null);
+    _setSelectedObject(null);
   }, []);
 
   const handleObjectInteraction = useCallback((object: THREE.Object3D, point: THREE.Vector3) => {
-    setSelectedObject(object);
+    _setSelectedObject(object);
     
     // Trigger haptic feedback
     if (config.hapticEnabled && object.userData.hapticProperties) {
@@ -519,20 +530,21 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
   }, [collaborativeAvatars]);
 
   const updateGestureRecognition = useCallback(() => {
-    // Implement gesture recognition logic
-    if (leftController && rightController) {
-      const leftPos = leftController.position;
-      const rightPos = rightController.position;
+    // Implement gesture recognition logic - controllers are currently null placeholders
+    // This would be implemented when actual controller support is added
+    if (false) { // Disabled until controller implementation
+      // const leftPos = leftController.position;
+      // const rightPos = rightController.position;
       
       // Detect pinch gesture
-      const distance = leftPos.distanceTo(rightPos);
-      if (distance < 0.1) {
-        onGesture({
-          type: 'pinch',
-          confidence: 0.9,
-          position: leftPos.clone().lerp(rightPos, 0.5)
-        });
-      }
+      // const distance = leftPos.distanceTo(rightPos);
+      // if (distance < 0.1) {
+      //   onGesture({
+      //     type: 'pinch',
+      //     confidence: 0.9,
+      //     position: leftPos.clone().lerp(rightPos, 0.5)
+      //   });
+      // }
     }
   }, [leftController, rightController, onGesture]);
 
@@ -600,15 +612,24 @@ export const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({
   };
 
   const createColorMap = (colorMapName: string): THREE.DataTexture => {
-    // Create color map for data visualization
+    // Create color map for data visualization based on the specified scheme
     const width = 256;
+    const colorSchemes: Record<string, number[][]> = {
+      'viridis': [[68, 1, 84], [59, 82, 139], [33, 144, 140], [93, 201, 99], [253, 231, 37]],
+      'plasma': [[13, 8, 135], [75, 3, 161], [125, 3, 168], [168, 34, 150], [208, 90, 110]],
+      'inferno': [[0, 0, 4], [31, 12, 72], [85, 15, 109], [136, 34, 106], [186, 54, 85]]
+    };
+    
+    const colors = colorSchemes[colorMapName] || colorSchemes['viridis'];
     const data = new Uint8Array(width * 4);
     
     for (let i = 0; i < width; i++) {
       const t = i / (width - 1);
-      const r = Math.floor(255 * t);
-      const g = Math.floor(255 * (1 - t));
-      const b = 0;
+      const colorIndex = Math.floor(t * (colors.length - 1));
+      const color = colors[colorIndex];
+      const r = color[0];
+      const g = color[1];
+      const b = color[2];
       const a = 255;
       
       data[i * 4] = r;
@@ -741,12 +762,24 @@ const CollaborativeAvatar: React.FC<{
   avatar: CollaborativeAvatar;
   config: any;
 }> = ({ avatar, config }) => {
+  const showLabels = config?.showAvatarLabels ?? true;
+  const avatarScale = config?.avatarScale ?? 1.0;
+  
   return (
-    <group position={avatar.position} rotation={avatar.rotation}>
+    <group position={avatar.position} rotation={avatar.rotation} scale={avatarScale}>
       {/* Head */}
       <Sphere position={avatar.headPosition} args={[0.1, 16, 16]}>
         <meshBasicMaterial color={avatar.color} />
       </Sphere>
+      
+      {/* Avatar label */}
+      {showLabels && (
+        <Billboard position={[avatar.headPosition.x, avatar.headPosition.y + 0.15, avatar.headPosition.z]}>
+          <Text fontSize={0.05} color="white" anchorX="center" anchorY="middle">
+            {avatar.name || 'User'}
+          </Text>
+        </Billboard>
+      )}
       
       {/* Hands */}
       <Sphere position={avatar.handPositions[0]} args={[0.05, 8, 8]}>
@@ -777,7 +810,7 @@ const MeasurementVisualization: React.FC<{
 }> = ({ points }) => {
   if (points.length < 2) return null;
 
-  const linePoints = points.map(p => [p.x, p.y, p.z]);
+  const linePoints = points.map(p => [p.x, p.y, p.z] as [number, number, number]);
   const distance = points[0].distanceTo(points[points.length - 1]);
 
   return (

@@ -868,30 +868,339 @@ class DatabaseConfigManager:
             return "1.0.1"
     
     async def rollback_config(self, name: str, version: Optional[str] = None) -> Optional[DatabaseConfig]:
-        """Rollback configuration to previous version"""
+        """Rollback configuration to previous version with comprehensive validation"""
         if name not in self.config_history or not self.config_history[name]:
+            self.logger.warning(f"No configuration history found for {name}")
             return None
         
         if version:
             # Find specific version
             for config in reversed(self.config_history[name]):
                 if config.version == version:
+                    # Validate rollback target
+                    is_valid, errors = config.validate()
+                    if not is_valid:
+                        self.logger.error(f"Cannot rollback to invalid configuration version {version}: {errors}")
+                        return None
+                    
+                    # Test connection before rollback
+                    test_success, test_error = await self._test_config_connection(config)
+                    if not test_success:
+                        self.logger.error(f"Connection test failed for rollback version {version}: {test_error}")
+                        return None
+                    
+                    # Store current config in history before rollback
+                    current_config = self.configs[name]
+                    self.config_history[name].append(DatabaseConfig.from_dict(current_config.to_dict()))
+                    
+                    # Perform rollback
                     self.configs[name] = config
                     await self._save_configurations()
-                    self.logger.info(f"Rolled back {name} to version {version}")
+                    
+                    # Update service discovery
+                    if self.service_discovery.enabled:
+                        await self._register_service(config)
+                    
+                    self.logger.info(f"Successfully rolled back {name} to version {version}")
                     return config
+            
+            self.logger.error(f"Version {version} not found in history for {name}")
             return None
         else:
             # Rollback to previous version
+            if len(self.config_history[name]) < 1:
+                self.logger.warning(f"No previous version available for {name}")
+                return None
+            
             previous_config = self.config_history[name][-1]
+            
+            # Validate rollback target
+            is_valid, errors = previous_config.validate()
+            if not is_valid:
+                self.logger.error(f"Cannot rollback to invalid previous configuration: {errors}")
+                return None
+            
+            # Test connection before rollback
+            test_success, test_error = await self._test_config_connection(previous_config)
+            if not test_success:
+                self.logger.error(f"Connection test failed for previous version: {test_error}")
+                return None
+            
+            # Store current config in history before rollback
+            current_config = self.configs[name]
+            self.config_history[name].append(DatabaseConfig.from_dict(current_config.to_dict()))
+            
+            # Perform rollback
             self.configs[name] = previous_config
             await self._save_configurations()
-            self.logger.info(f"Rolled back {name} to previous version")
+            
+            # Update service discovery
+            if self.service_discovery.enabled:
+                await self._register_service(previous_config)
+            
+            self.logger.info(f"Successfully rolled back {name} to previous version {previous_config.version}")
             return previous_config
     
     def get_config_history(self, name: str) -> List[DatabaseConfig]:
         """Get configuration history for a database"""
         return self.config_history.get(name, [])
+    
+    async def _test_config_connection(self, config: DatabaseConfig) -> Tuple[bool, Optional[str]]:
+        """Test database connection for a configuration"""
+        try:
+            if config.type == DatabaseType.POSTGRESQL:
+                import asyncpg
+                conn_str = config.get_connection_string()
+                conn = await asyncpg.connect(conn_str, timeout=config.timeout)
+                await conn.execute('SELECT 1')
+                await conn.close()
+                return True, None
+                
+            elif config.type == DatabaseType.REDIS:
+                import aioredis
+                conn_str = config.get_connection_string()
+                redis = aioredis.from_url(conn_str, socket_timeout=config.timeout)
+                await redis.ping()
+                await redis.close()
+                return True, None
+                
+            elif config.type == DatabaseType.INFLUXDB:
+                import aiohttp
+                url = config.get_connection_string()
+                headers = {}
+                if config.credentials and config.credentials.token:
+                    headers['Authorization'] = f'Token {config.credentials.token}'
+                
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=config.timeout)) as session:
+                    async with session.get(f"{url}/ping", headers=headers) as response:
+                        return response.status == 204, None
+                        
+            elif config.type == DatabaseType.NEO4J:
+                from neo4j import AsyncGraphDatabase
+                conn_str = config.get_connection_string()
+                auth = None
+                if config.credentials:
+                    auth = (config.credentials.username, config.credentials.password)
+                
+                driver = AsyncGraphDatabase.driver(conn_str, auth=auth)
+                async with driver.session() as session:
+                    await session.run("RETURN 1")
+                await driver.close()
+                return True, None
+                
+            elif config.type == DatabaseType.MONGODB:
+                from motor.motor_asyncio import AsyncIOMotorClient
+                conn_str = config.get_connection_string()
+                client = AsyncIOMotorClient(conn_str, serverSelectionTimeoutMS=config.timeout * 1000)
+                await client.admin.command('ping')
+                client.close()
+                return True, None
+                
+            else:
+                return False, f"Connection test not implemented for {config.type.value}"
+                
+        except Exception as e:
+            return False, str(e)
+    
+    async def create_configuration_template(self, 
+                                          environment: Environment,
+                                          template_data: Dict[str, Any]) -> bool:
+        """Create or update configuration template for environment"""
+        try:
+            templates_dir = self.config_dir / "templates"
+            templates_dir.mkdir(exist_ok=True)
+            
+            template_file = templates_dir / f"{environment.value}.yaml"
+            
+            # Backup existing template
+            if template_file.exists():
+                backup_file = templates_dir / f"{environment.value}.yaml.backup.{int(datetime.utcnow().timestamp())}"
+                template_file.rename(backup_file)
+                self.logger.info(f"Backed up existing template to {backup_file}")
+            
+            # Save new template
+            with open(template_file, 'w') as f:
+                yaml.dump(template_data, f, default_flow_style=False, indent=2)
+            
+            # Update in-memory templates
+            self.templates[environment] = template_data
+            
+            self.logger.info(f"Created configuration template for {environment.value}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create configuration template: {e}")
+            return False
+    
+    async def validate_all_configurations(self) -> Dict[str, Tuple[bool, List[str]]]:
+        """Validate all database configurations"""
+        validation_results = {}
+        
+        for name, config in self.configs.items():
+            is_valid, errors = config.validate()
+            validation_results[name] = (is_valid, errors)
+            
+            if not is_valid:
+                self.logger.warning(f"Configuration {name} validation failed: {errors}")
+        
+        return validation_results
+    
+    async def test_all_connections(self) -> Dict[str, Tuple[bool, Optional[str]]]:
+        """Test connections for all database configurations"""
+        connection_results = {}
+        
+        for name, config in self.configs.items():
+            success, error = await self._test_config_connection(config)
+            connection_results[name] = (success, error)
+            
+            if not success:
+                self.logger.warning(f"Connection test failed for {name}: {error}")
+        
+        return connection_results
+    
+    async def export_configuration(self, name: str, format: str = 'yaml') -> Optional[str]:
+        """Export database configuration in specified format"""
+        if name not in self.configs:
+            return None
+        
+        config = self.configs[name]
+        config_dict = config.to_dict()
+        
+        # Remove sensitive data for export
+        if 'credentials' in config_dict and config_dict['credentials']:
+            config_dict['credentials'] = {
+                'source': config_dict['credentials'].get('source', 'environment'),
+                'encrypted': config_dict['credentials'].get('encrypted', False)
+            }
+        
+        if format.lower() == 'json':
+            return json.dumps(config_dict, indent=2, default=str)
+        elif format.lower() == 'yaml':
+            return yaml.dump(config_dict, default_flow_style=False, indent=2)
+        else:
+            raise ValueError(f"Unsupported export format: {format}")
+    
+    async def import_configuration(self, 
+                                 name: str, 
+                                 config_data: str, 
+                                 format: str = 'yaml',
+                                 validate: bool = True) -> bool:
+        """Import database configuration from string data"""
+        try:
+            if format.lower() == 'json':
+                data = json.loads(config_data)
+            elif format.lower() == 'yaml':
+                data = yaml.safe_load(config_data)
+            else:
+                raise ValueError(f"Unsupported import format: {format}")
+            
+            # Create configuration from imported data
+            config = DatabaseConfig.from_dict(data)
+            config.name = name  # Ensure name matches
+            config.updated_at = datetime.utcnow()
+            
+            # Load credentials for imported config
+            await self._load_credentials_for_config(config)
+            
+            if validate:
+                # Validate configuration
+                is_valid, errors = config.validate()
+                if not is_valid:
+                    self.logger.error(f"Imported configuration validation failed: {errors}")
+                    return False
+                
+                # Test connection
+                test_success, test_error = await self._test_config_connection(config)
+                if not test_success:
+                    self.logger.error(f"Imported configuration connection test failed: {test_error}")
+                    return False
+            
+            # Store configuration
+            if name in self.configs:
+                # Save current version to history
+                if name not in self.config_history:
+                    self.config_history[name] = []
+                self.config_history[name].append(self.configs[name])
+            
+            self.configs[name] = config
+            await self._save_configurations()
+            
+            self.logger.info(f"Successfully imported configuration for {name}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to import configuration: {e}")
+            return False
+    
+    async def get_configuration_diff(self, name: str, version1: str, version2: str) -> Optional[Dict[str, Any]]:
+        """Get differences between two configuration versions"""
+        if name not in self.config_history:
+            return None
+        
+        config1 = None
+        config2 = None
+        
+        # Find configurations by version
+        for config in self.config_history[name]:
+            if config.version == version1:
+                config1 = config
+            if config.version == version2:
+                config2 = config
+        
+        # Check current config as well
+        current_config = self.configs.get(name)
+        if current_config:
+            if current_config.version == version1:
+                config1 = current_config
+            if current_config.version == version2:
+                config2 = current_config
+        
+        if not config1 or not config2:
+            return None
+        
+        # Generate diff
+        dict1 = config1.to_dict()
+        dict2 = config2.to_dict()
+        
+        diff = {
+            'version1': version1,
+            'version2': version2,
+            'changes': {}
+        }
+        
+        # Compare configurations
+        all_keys = set(dict1.keys()) | set(dict2.keys())
+        for key in all_keys:
+            val1 = dict1.get(key)
+            val2 = dict2.get(key)
+            
+            if val1 != val2:
+                diff['changes'][key] = {
+                    'from': val1,
+                    'to': val2
+                }
+        
+        return diff
+    
+    async def cleanup_old_versions(self, name: str, keep_versions: int = 10) -> int:
+        """Clean up old configuration versions, keeping only the most recent ones"""
+        if name not in self.config_history:
+            return 0
+        
+        history = self.config_history[name]
+        if len(history) <= keep_versions:
+            return 0
+        
+        # Sort by creation date and keep only the most recent
+        history.sort(key=lambda x: x.created_at, reverse=True)
+        removed_count = len(history) - keep_versions
+        self.config_history[name] = history[:keep_versions]
+        
+        # Save updated history
+        await self._save_configurations()
+        
+        self.logger.info(f"Cleaned up {removed_count} old versions for {name}")
+        return removed_count
     
     async def test_connection(self, name: str) -> Tuple[bool, Optional[str]]:
         """Test database connection"""

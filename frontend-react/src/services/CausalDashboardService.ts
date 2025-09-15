@@ -53,35 +53,7 @@ interface RealTimeStreamConfig {
   };
 }
 
-interface DatabaseConnectionConfig {
-  postgresql: {
-    host: string;
-    port: number;
-    database: string;
-    ssl: boolean;
-  };
-  influxdb: {
-    url: string;
-    token: string;
-    org: string;
-    bucket: string;
-  };
-  neo4j: {
-    uri: string;
-    username: string;
-    database: string;
-  };
-  redis: {
-    host: string;
-    port: number;
-    db: number;
-  };
-  timescaledb: {
-    host: string;
-    port: number;
-    database: string;
-  };
-}
+// Database connection configuration interface removed as it's not used
 
 class CausalDashboardService {
   private static instance: CausalDashboardService;
@@ -139,7 +111,7 @@ class CausalDashboardService {
         auditPlaceholders: true,
       });
 
-      this.connectionConfig = response.data.connectionConfig;
+      // Connection config handling removed as interface was unused
       
       if (response.data.placeholdersFound > 0) {
         throw new Error(`Found ${response.data.placeholdersFound} placeholder implementations that need replacement`);

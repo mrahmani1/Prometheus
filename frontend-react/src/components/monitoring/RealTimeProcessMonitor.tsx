@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, ScatterChart, Scatter, ReferenceLine 
+  ResponsiveContainer
 } from 'recharts';
-import { AlertTriangle, Activity, TrendingUp, Zap, Eye, Settings } from 'lucide-react';
+import { AlertTriangle, Activity, TrendingUp, Zap } from 'lucide-react';
 
 interface GeologicalProcess {
   id: string;
@@ -66,11 +66,10 @@ const RealTimeProcessMonitor: React.FC = () => {
   const [streamingData, setStreamingData] = useState<Map<string, StreamingDataPoint[]>>(new Map());
   const [anomalies, setAnomalies] = useState<AnomalyDetection[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(false);
-  const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
   const [timeWindow, setTimeWindow] = useState(3600000); // 1 hour in milliseconds
+  const [_selectedProcess, setSelectedProcess] = useState<string | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
-  const dataBufferRef = useRef<Map<string, StreamingDataPoint[]>>(new Map());
 
   // Initialize WebSocket connection for real-time data
   const initializeWebSocket = useCallback(() => {

@@ -245,8 +245,9 @@ class DataQualityValidator:
                 }
             },
             recommendations=recommendations
-        )    a
-sync def _assess_completeness(self, observation: GeologicalObservation) -> float:
+        )
+
+    async def _assess_completeness(self, observation: GeologicalObservation) -> float:
         """
         Assess data completeness based on expected fields and values
         
@@ -511,7 +512,8 @@ sync def _assess_completeness(self, observation: GeologicalObservation) -> float
             consistency_scores.append(weighted_consistency)
         
         return np.mean(consistency_scores) if consistency_scores else 0.7   
- async def _assess_timeliness(self, observation: GeologicalObservation) -> float:
+
+    async def _assess_timeliness(self, observation: GeologicalObservation) -> float:
         """
         Assess timeliness of the observation based on collection and processing time
         

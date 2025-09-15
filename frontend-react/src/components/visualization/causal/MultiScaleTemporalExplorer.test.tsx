@@ -2,14 +2,11 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MultiScaleTemporalExplorer } from './MultiScaleTemporalExplorer';
-import { 
-  TemporalVisualizationConfig 
-} from './types';
-import {
+import type {
+  TemporalVisualizationConfig,
   TemporalEvolutionData, 
-  TemporalCausalSnapshot, 
-  DetectedPattern
-} from '../../../types/causal';
+  TemporalCausalSnapshot
+} from './MultiScaleTemporalExplorer';
 
 // Mock Three.js Canvas component
 vi.mock('@react-three/fiber', () => ({
@@ -132,32 +129,7 @@ const createMockTemporalData = (): TemporalEvolutionData => {
   };
 };
 
-const createMockPatterns = (): DetectedPattern[] => [
-  {
-    id: 'pattern_1',
-    type: 'periodic',
-    startTime: new Date('2023-01-01'),
-    endTime: new Date('2023-01-10'),
-    timeRange: [new Date('2023-01-01'), new Date('2023-01-10')],
-    confidence: 0.85,
-    description: 'Periodic pattern detected',
-    affectedNodes: ['node_0', 'node_1'],
-    statisticalSignificance: 0.01,
-    parameters: { period: 24 },
-  },
-  {
-    id: 'pattern_2',
-    type: 'trend',
-    startTime: new Date('2023-01-05'),
-    endTime: new Date('2023-01-10'),
-    timeRange: [new Date('2023-01-05'), new Date('2023-01-10')],
-    confidence: 0.75,
-    description: 'Increasing trend detected',
-    affectedNodes: ['node_2', 'node_3'],
-    statisticalSignificance: 0.02,
-    parameters: { slope: 0.1 },
-  },
-];
+
 
 const defaultConfig: TemporalVisualizationConfig = {
   playbackSpeed: 1.0,
@@ -180,7 +152,6 @@ const defaultConfig: TemporalVisualizationConfig = {
 
 describe('MultiScaleTemporalExplorer', () => {
   let mockTemporalData: TemporalEvolutionData;
-  let mockPatterns: DetectedPattern[];
   let mockOnTimeChange: ReturnType<typeof vi.fn>;
   let mockOnScaleChange: ReturnType<typeof vi.fn>;
   let mockOnPatternDetected: ReturnType<typeof vi.fn>;
@@ -188,7 +159,6 @@ describe('MultiScaleTemporalExplorer', () => {
 
   beforeEach(() => {
     mockTemporalData = createMockTemporalData();
-    mockPatterns = createMockPatterns();
     mockOnTimeChange = vi.fn();
     mockOnScaleChange = vi.fn();
     mockOnPatternDetected = vi.fn();
@@ -285,8 +255,6 @@ describe('MultiScaleTemporalExplorer', () => {
   });
 
   it('displays current state information', () => {
-    const currentTime = new Date('2023-01-05');
-    
     render(
       <MultiScaleTemporalExplorer
         temporalData={mockTemporalData}

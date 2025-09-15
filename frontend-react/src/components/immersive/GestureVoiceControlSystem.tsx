@@ -72,6 +72,7 @@ interface VoiceCommand {
   confidence: number;
   language: string;
   speaker?: string;
+  transcript: string;
 }
 
 interface VoiceEntity {
@@ -127,9 +128,9 @@ export class GestureVoiceControlSystem {
   private context: ControlContext;
   
   private isListening: boolean = false;
-  // private _isTrackingGestures: boolean = false;
+  private isTrackingGestures: boolean = false;
   // private _lastGesture: HandGesture | null = null;
-  private _lastVoiceCommand: VoiceCommand | null = null;
+  // private _lastVoiceCommand: VoiceCommand | null = null;
   
   private callbacks: {
     onGestureRecognized?: (gesture: HandGesture | BodyGesture) => void;
@@ -556,7 +557,8 @@ export class GestureVoiceControlSystem {
           intent: pattern.intent,
           entities: entities,
           confidence: confidence,
-          language: 'en-US'
+          language: 'en-US',
+          transcript: transcript
         };
       }
     }
@@ -663,7 +665,8 @@ export class GestureVoiceControlSystem {
         intent: action.intent,
         entities: [],
         confidence: 0,
-        language: 'en-US'
+        language: 'en-US',
+        transcript: ''
       });
     });
   }
@@ -698,7 +701,8 @@ export class GestureVoiceControlSystem {
   }
 
   private handleVoiceCommand(command: VoiceCommand): void {
-    this._lastVoiceCommand = command;
+    // Store last voice command for debugging/analysis
+    // this._lastVoiceCommand = command;
     this.callbacks.onVoiceCommand?.(command);
 
     // Find matching voice action
@@ -845,7 +849,7 @@ export class GestureVoiceControlSystem {
     
     const tip = fingerLandmarks[3];
     const pip = fingerLandmarks[2];
-    const mcp = fingerLandmarks[1];
+    // const mcp = fingerLandmarks[1]; // MCP joint for future use
     
     // Check if tip is further from palm than PIP joint
     const tipDistance = tip.distanceTo(fingerLandmarks[0]);
@@ -967,6 +971,13 @@ export class GestureVoiceControlSystem {
     }
   }
 
+  public get trackingStatus(): { gestures: boolean; voice: boolean } {
+    return {
+      gestures: this.isTrackingGestures,
+      voice: this.isListening
+    };
+  }
+
   public updateContext(newContext: Partial<ControlContext>): void {
     this.context = { ...this.context, ...newContext };
   }
@@ -1044,7 +1055,7 @@ export const GestureVoiceControlProvider: React.FC<{
 
   return (
     <>
-      {children}
+      {isReady ? children : <div>Initializing gesture and voice controls...</div>}
     </>
   );
 };

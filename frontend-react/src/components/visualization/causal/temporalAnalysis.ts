@@ -577,8 +577,9 @@ export class TemporalPatternDetector {
   /**
    * Extract node count time series
    */
-  private extractNodeCountTimeSeries(snapshots: TemporalCausalSnapshot[]): TimeSeriesPoint[] {
-    return snapshots.map(snapshot => ({
+  // @ts-ignore - Reserved for future implementation
+  private _extractNodeCountTimeSeries(_snapshots: TemporalCausalSnapshot[]): TimeSeriesPoint[] {
+    return _snapshots.map((snapshot: TemporalCausalSnapshot) => ({
       timestamp: snapshot.timestamp,
       value: snapshot.graph.nodes.length,
       confidence: [
@@ -591,8 +592,9 @@ export class TemporalPatternDetector {
   /**
    * Extract edge count time series
    */
-  private extractEdgeCountTimeSeries(snapshots: TemporalCausalSnapshot[]): TimeSeriesPoint[] {
-    return snapshots.map(snapshot => ({
+  // @ts-ignore - Reserved for future implementation
+  private _extractEdgeCountTimeSeries(_snapshots: TemporalCausalSnapshot[]): TimeSeriesPoint[] {
+    return _snapshots.map((snapshot: TemporalCausalSnapshot) => ({
       timestamp: snapshot.timestamp,
       value: snapshot.graph.edges.length,
       confidence: [
@@ -626,11 +628,14 @@ export class TemporalPatternDetector {
       patterns.push({
         id: `seasonal_${index}`,
         type: 'periodic',
+        startTime: timeSeries[0].timestamp,
+        endTime: timeSeries[timeSeries.length - 1].timestamp,
         timeRange: [timeSeries[0].timestamp, timeSeries[timeSeries.length - 1].timestamp],
         confidence: magnitude / Math.max(...fftResult.magnitudes),
         description: `Periodic pattern with period ${period.toFixed(2)} time units`,
         affectedNodes: [], // Would be computed based on detailed analysis
         statisticalSignificance: this.calculatePeriodicitySignificance(values, freq),
+        parameters: { period, frequency: freq, magnitude }
       });
     });
     
@@ -652,11 +657,14 @@ export class TemporalPatternDetector {
       patterns.push({
         id: 'trend_main',
         type: 'trend',
+        startTime: timeSeries[0].timestamp,
+        endTime: timeSeries[timeSeries.length - 1].timestamp,
         timeRange: [timeSeries[0].timestamp, timeSeries[timeSeries.length - 1].timestamp],
         confidence: 1 - trendResult.pValue,
         description: `${trendResult.trend > 0 ? 'Increasing' : 'Decreasing'} trend detected`,
         affectedNodes: [],
         statisticalSignificance: trendResult.pValue,
+        parameters: { trendDirection: trendResult.trend > 0 ? 'increasing' : 'decreasing', slope: trendResult.trend }
       });
     }
     
@@ -676,11 +684,14 @@ export class TemporalPatternDetector {
       patterns.push({
         id: `anomaly_${index}`,
         type: 'anomaly',
+        startTime: timeSeries[anomaly.index].timestamp,
+        endTime: timeSeries[anomaly.index].timestamp,
         timeRange: [timeSeries[anomaly.index].timestamp, timeSeries[anomaly.index].timestamp],
         confidence: anomaly.score,
         description: `Anomalous behavior detected`,
         affectedNodes: [],
         statisticalSignificance: anomaly.pValue,
+        parameters: { anomalyScore: anomaly.score, index: anomaly.index }
       });
     });
     
@@ -716,11 +727,14 @@ export class TemporalPatternDetector {
         patterns.push({
           id: `phase_transition_${i}`,
           type: 'phase-transition',
+          startTime: prev.timestamp,
+          endTime: curr.timestamp,
           timeRange: [prev.timestamp, curr.timestamp],
           confidence: Math.min(totalChange, 1.0),
           description: `Structural phase transition detected`,
           affectedNodes: [],
           statisticalSignificance: 0.01, // Would be calculated properly
+          parameters: { densityChange, clusteringChange, centralizationChange, totalChange }
         });
       }
     }
@@ -762,11 +776,14 @@ export class TemporalPatternDetector {
         patterns.push({
           id: `cascade_${index}`,
           type: 'cascade',
+          startTime: sequence.startTime,
+          endTime: sequence.endTime,
           timeRange: [sequence.startTime, sequence.endTime],
           confidence: sequence.coherence,
           description: `Causal cascade involving ${sequence.nodes.length} nodes`,
           affectedNodes: sequence.nodes,
           statisticalSignificance: sequence.pValue,
+          parameters: { cascadeLength: sequence.nodes.length, coherence: sequence.coherence }
         });
       }
     });
@@ -903,7 +920,7 @@ export class TemporalPatternDetector {
    * Find activation sequences for cascade detection
    */
   private findActivationSequences(
-    nodeActivations: Map<string, Date[]>
+    _nodeActivations: Map<string, Date[]>
   ): { nodes: string[]; startTime: Date; endTime: Date; coherence: number; pValue: number }[] {
     // Simplified cascade detection
     // In production, this would use more sophisticated algorithms

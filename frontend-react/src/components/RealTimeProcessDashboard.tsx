@@ -12,11 +12,9 @@ import {
   Card,
   CardContent,
   Typography,
-  Alert,
   Chip,
   LinearProgress,
   IconButton,
-  Tooltip,
   Switch,
   FormControlLabel,
   Select,
@@ -39,31 +37,23 @@ import {
   PlayArrow,
   Pause,
   Refresh,
-  Settings,
-  TrendingUp,
-  TrendingDown,
+
   NetworkCheck,
   Speed,
   Memory,
   DataUsage
 } from '@mui/icons-material';
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  Cell,
-  AreaChart,
-  Area,
   ComposedChart,
-  Bar
+  Scatter
 } from 'recharts';
-import { format, subMinutes, isAfter } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 
 // Types for real-time data
 interface GeologicalDataPoint {
@@ -149,14 +139,14 @@ const SEVERITY_COLORS = {
   critical: '#9c27b0'
 };
 
-const PROCESS_TYPE_COLORS = {
-  seismic: '#2196f3',
-  volcanic: '#f44336',
-  deformation: '#4caf50',
-  geochemical: '#ff9800',
-  thermal: '#e91e63',
-  electromagnetic: '#9c27b0'
-};
+// const PROCESS_TYPE_COLORS = {
+//   seismic: '#2196f3',
+//   volcanic: '#f44336',
+//   deformation: '#4caf50',
+//   geochemical: '#ff9800',
+//   thermal: '#e91e63',
+//   electromagnetic: '#9c27b0'
+// };
 
 export const RealTimeProcessDashboard: React.FC = () => {
   const [state, setState] = useState<MonitoringState>({

@@ -6,24 +6,18 @@
  * adaptive learning pathways for geological education.
  */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import * as THREE from 'three';
+import React, { useState } from 'react';
 
 // Educational content interfaces
 interface EducationalModule {
   id: string;
   title: string;
   description: string;
+  content: string;
+  type: 'interactive' | 'video' | 'simulation';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   duration: number;
   objectives: string[];
-}
-
-interface LearningPath {
-  id: string;
-  name: string;
-  modules: string[];
-  prerequisites: string[];
 }
 
 interface AssessmentResult {
@@ -42,6 +36,37 @@ export const ImmersiveEducationSystem: React.FC = () => {
     <div className="immersive-education-system">
       <h2>Immersive Education System</h2>
       <p>Educational content and VR/AR learning experiences will be implemented here.</p>
+      
+      <div className="education-status">
+        <p>Current Module: {currentModule?.title || 'None selected'}</p>
+        <p>Progress Tracking: {learningProgress.size} modules tracked</p>
+        <p>Assessment Results: {assessmentResults.length} completed</p>
+        
+        <button onClick={() => setCurrentModule({ 
+          id: 'demo', 
+          title: 'Demo Module', 
+          description: 'A sample educational module for testing',
+          content: 'Sample content',
+          type: 'interactive',
+          difficulty: 'beginner',
+          duration: 30,
+          objectives: ['Learn basics', 'Practice skills', 'Complete assessment']
+        })}>
+          Load Demo Module
+        </button>
+        
+        <button onClick={() => {
+          setLearningProgress(new Map([['demo', 50]]));
+          setAssessmentResults([{
+            moduleId: 'demo',
+            score: 85,
+            completedAt: new Date(),
+            feedback: 'Good progress'
+          }]);
+        }}>
+          Update Progress
+        </button>
+      </div>
     </div>
   );
 };

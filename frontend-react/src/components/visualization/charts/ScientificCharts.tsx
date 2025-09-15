@@ -55,7 +55,7 @@ const SeismogramChart: React.FC<{
   onWaveformSelect?: (event: SeismicEvent) => void;
 }> = ({ data, width, height, onWaveformSelect }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [selectedEvent, setSelectedEvent] = useState<SeismicEvent | null>(null);
+  const [_selectedEvent, _setSelectedEvent] = useState<SeismicEvent | null>(null);
   const [timeWindow, setTimeWindow] = useState([0, 300]); // seconds
   const [amplitudeScale, setAmplitudeScale] = useState(1);
 
@@ -130,7 +130,7 @@ const SeismogramChart: React.FC<{
         .attr('d', line)
         .style('cursor', 'pointer')
         .on('click', () => {
-          setSelectedEvent(event);
+          _setSelectedEvent(event);
           onWaveformSelect?.(event);
         })
         .on('mouseover', function() {
@@ -257,7 +257,7 @@ const SpectrogramChart: React.FC<{
       type: 'heatmap' as const,
       colorscale: 'Viridis',
       colorbar: {
-        title: 'Power (dB)',
+        title: { text: 'Power (dB)' },
         titleside: 'right'
       }
     };
@@ -305,7 +305,7 @@ const SpectrogramChart: React.FC<{
       }}
       config={{
         displayModeBar: true,
-        modeBarButtonsToAdd: ['drawline', 'drawopenpath', 'drawclosedpath', 'drawcircle', 'drawrect', 'eraseshape']
+        modeBarButtonsToAdd: []
       }}
     />
   );
@@ -406,7 +406,7 @@ export const ScientificCharts: React.FC<ScientificChartsProps> = ({
             data={seismicEvents}
             width={dimensions.width}
             height={dimensions.height}
-            onWaveformSelect={onWaveformSelect}
+            onWaveformSelect={onDataSelect ? (event: SeismicEvent) => onDataSelect([event]) : undefined}
           />
         );
       

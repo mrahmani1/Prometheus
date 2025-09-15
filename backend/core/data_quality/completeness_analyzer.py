@@ -441,7 +441,8 @@ class CompletenessAnalyzer:
                 affected.append('long_term_trend_analysis')
         
         return affected   
- async def _analyze_spatial_gaps(
+
+    async def _analyze_spatial_gaps(
         self,
         observations: List[GeologicalObservation],
         spatial_bounds: Tuple[float, float, float, float]
