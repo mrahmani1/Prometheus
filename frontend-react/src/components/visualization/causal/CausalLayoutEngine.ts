@@ -13,6 +13,19 @@ export class CausalLayoutEngine {
     this.config = config;
   }
 
+  /**
+   * Generate deterministic hash from string for consistent positioning
+   */
+  private hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
   public updateDimensions(width: number, height: number): void {
     this.width = width;
     this.height = height;
@@ -41,9 +54,14 @@ export class CausalLayoutEngine {
     // Initialize node positions if not set
     graph.nodes.forEach(node => {
       if (!node.position) {
+        // Use deterministic positioning based on node properties instead of random
+        const hash = this.hashString(node.id);
+        const angle = (hash % 360) * (Math.PI / 180);
+        const radius = Math.min(this.width, this.height) * 0.3;
+        
         node.position = {
-          x: Math.random() * this.width,
-          y: Math.random() * this.height
+          x: this.width / 2 + Math.cos(angle) * radius,
+          y: this.height / 2 + Math.sin(angle) * radius
         };
       }
     });

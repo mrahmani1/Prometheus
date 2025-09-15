@@ -58,11 +58,13 @@ class GeologicalWebGLLayer {
   renderingMode: '3d';
   program: WebGLProgram | null = null;
   buffer: WebGLBuffer | null = null;
+  data: GeologicalData[] = [];
   
-  constructor(id: string) {
+  constructor(id: string, data: GeologicalData[] = []) {
     this.id = id;
     this.type = 'custom';
     this.renderingMode = '3d';
+    this.data = data;
   }
 
   onAdd(_map: mapboxgl.Map, gl: WebGLRenderingContext) {
@@ -139,7 +141,7 @@ class GeologicalWebGLLayer {
     gl.uniform1f(opacityLocation, 0.8);
 
     // Render geological data points
-    gl.drawArrays(gl.POINTS, 0, 1000); // Placeholder count
+    gl.drawArrays(gl.POINTS, 0, this.data.length); // Actual geological data point count
   }
 }
 
@@ -206,7 +208,10 @@ const generateVolcanicGeoJSON = (states: VolcanicState[]): GeoJSON.FeatureCollec
       id: state.volcanoId || index,
       geometry: {
         type: 'Point',
-        coordinates: [0, 0] // TODO: Add location property to VolcanicState interface
+        coordinates: [
+          state.thermalAnomalies?.[0]?.location?.longitude || 0, 
+          state.thermalAnomalies?.[0]?.location?.latitude || 0
+        ] // Real coordinates from thermal anomaly location
       },
       properties: {
         ...state,

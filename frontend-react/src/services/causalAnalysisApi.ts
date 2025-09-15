@@ -39,12 +39,12 @@ export class CausalAnalysisApiClient {
 
   constructor(config: Partial<ApiConfig> = {}) {
     this.config = {
-      baseURL: process.env.REACT_APP_CAUSAL_API_URL || 'http://localhost:8080',
+      baseURL: process.env.REACT_APP_CAUSAL_API_URL || 'https://api.prometheus-ai.platform/causal',
       timeout: 30000,
       retries: 3,
       retryDelay: 1000,
       enableWebSocket: true,
-      wsURL: process.env.REACT_APP_CAUSAL_WS_URL || 'ws://localhost:8080',
+      wsURL: process.env.REACT_APP_CAUSAL_WS_URL || 'wss://api.prometheus-ai.platform/ws/causal',
       ...config,
     };
 

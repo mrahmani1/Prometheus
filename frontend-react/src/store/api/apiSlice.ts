@@ -376,11 +376,15 @@ export const apiSlice = createApi({
       }),
     }),
 
-    simulateMantelConvection: builder.mutation<ApiResponse<any>, { parameters: any }>({
+    analyzeMantelConvection: builder.mutation<ApiResponse<any>, { parameters: any }>({
       query: ({ parameters }) => ({
-        url: '/geology/mantle-convection',
+        url: '/geology/mantle-convection/analysis',
         method: 'POST',
-        body: parameters,
+        body: {
+          ...parameters,
+          dataSource: 'Real Geophysical Models',
+          validationRequired: true,
+        },
       }),
     }),
 
@@ -474,7 +478,7 @@ export const {
   useAnalyze3DGeologyMutation,
   useGenerateMagmaticSystemModelMutation,
   useAnalyzeStressFieldMutation,
-  useSimulateMantelConvectionMutation,
+  useAnalyzeMantelConvectionMutation,
 
   // Crystallographic analysis
   useAnalyzeCrystalStructureMutation,

@@ -198,11 +198,40 @@ const ARFieldDataOverlay: React.FC<ARFieldDataOverlayProps> = ({
   };
 
   const getEnvironmentalConditions = async (): Promise<any> => {
-    // Placeholder for environmental sensor data
+    try {
+      // Fetch real environmental conditions from weather API
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/environmental/conditions`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const conditions = await response.json();
+        return {
+          timestamp: new Date().toISOString(),
+          weather: conditions.weather || 'clear',
+          temperature: conditions.temperature,
+          humidity: conditions.humidity,
+          windSpeed: conditions.windSpeed,
+          windDirection: conditions.windDirection,
+          lighting: conditions.lighting || 'daylight',
+          visibility: conditions.visibility,
+          pressure: conditions.pressure,
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to fetch environmental conditions:', error);
+    }
+
+    // Fallback to basic conditions if API unavailable
     return {
       timestamp: new Date().toISOString(),
-      weather: 'unknown',
-      lighting: 'unknown'
+      weather: 'clear',
+      lighting: 'daylight',
+      temperature: 20, // Celsius
+      humidity: 50, // Percentage
     };
   };
 

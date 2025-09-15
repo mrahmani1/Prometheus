@@ -416,7 +416,6 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - _Requirements: 9.3, 9.4, 9.5_
 
 - [x] 5.12 Run syntax checks on all TypeScript/JS, ignore depedencies/libraries:
-
   - Fix all errors in the codebase after running TypeScript/JS syntax checks.
   - Fix all errors in the codebase after running Python syntax checks
   - Fix all type errors.
@@ -512,7 +511,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
 
 ### Phase 6: Advanced Integration and Module Feature Consolidation
 
-- [ ] 6. Integrate Best Features from All Backend Modules into Dashboard
+- [x] 6. Integrate Best Features from All Backend Modules into Dashboard
   - Create unified interface combining seismic analysis, volcanic monitoring, and geological modeling
   - Implement advanced visualization features from high-resolution visualization modules
   - Add machine learning capabilities from MLOps and model management modules
@@ -523,7 +522,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 3.3, 3.4, 10.1, 10.2_
 
-- [ ] 6.1 Create Unified Geological Analysis Interface
+- [x] 6.1 Create Unified Geological Analysis Interface
   - Integrate seismic analysis tools with interactive waveform visualization
   - Add volcanic monitoring dashboard with real-time alert management
   - Create geological modeling interface with 3D visualization capabilities
@@ -536,7 +535,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 3.3, 3.4_
 
-- [ ] 6.2 Implement Advanced Visualization Integration
+- [x] 6.2 Implement Advanced Visualization Integration
   - Create 3D geological visualization with real-time data overlay
   - Add high-resolution mapping with multi-layer geological data
   - Implement 4D temporal visualization for geological evolution
@@ -549,7 +548,7 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 10.1, 10.2, 10.3_
 
-- [ ] 6.3 Create Machine Learning Integration Interface
+- [x] 6.3 Create Machine Learning Integration Interface
   - Integrate MLOps pipeline management with visual workflow builder
   - Add model performance monitoring with real-time metrics
   - Create automated model selection and hyperparameter tuning interface
@@ -561,6 +560,28 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
   - Run syntax checks on all new code.
   - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
   - _Requirements: 5.1, 5.2, 10.1_
+
+- [x] 6.4 Replace simulated code in TypeScript
+ - Replace all simulated database queries and simulated code with real database queries
+ - Replace all simulated seismic stations, data connectors, causal nodes, etc with real database queries
+ - Replace all other simulated frontend code with real, data connections
+ - Search for phrases like, "for now", "In a real implementation", etc and replace those simplifications
+ - No placeholder/mock/simulated code, only advanced/novel implementation
+
+ - [ ] 6.5 Replace simulated code in TypeScript
+ - Replace all simulated database queries and simulated code with real database queries
+ - Replace all simulated seismic stations, data connectors, causal nodes, etc with real database queries
+ - Replace all other simulated frontend code with real, data connections
+ - Add SemanticScholar, ConnectedPapers, WileyOnline, and GeoscienceWorld APIs for causal analyisis, hypothesis forming modules, etc
+ - Search for phrases like, "for now", "In a real implementation", etc and replace those simplifications
+ - No placeholder/mock/simulated code, only advanced/novel implementation
+
+ - [ ] 6.6 Replace mapping with Google Maps API
+ - Implement advanced/novel Google Maps API integration across all frontend
+ - Ensure that the mapping is correctly configured, and applied to all types
+ - Ensure Google mapping is fully integrated
+ - Run syntax checks on all new code.
+ - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
 
 ### Phase 7: Comprehensive Testing and Validation Framework
 

@@ -2,20 +2,34 @@
  * Application constants and configuration
  */
 
-// API Configuration
+// API Configuration - Production geological data APIs
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://api.prometheus-ai.platform/api/v1',
+  IRIS_API: import.meta.env.VITE_IRIS_API_URL || 'https://service.iris.edu',
+  USGS_API: import.meta.env.VITE_USGS_API_URL || 'https://earthquake.usgs.gov',
+  NASA_API: import.meta.env.VITE_NASA_API_URL || 'https://firms.modaps.eosdis.nasa.gov',
+  COPERNICUS_API: import.meta.env.VITE_COPERNICUS_API_URL || 'https://scihub.copernicus.eu',
+  ASF_HYP3_API: import.meta.env.VITE_ASF_HYP3_API_URL || 'https://hyp3-api.asf.alaska.edu',
+  EARTHCHEM_API: import.meta.env.VITE_EARTHCHEM_API_URL || 'https://www.earthchem.org',
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
+  RATE_LIMIT: {
+    REQUESTS_PER_MINUTE: 60,
+    BURST_LIMIT: 10,
+  },
 } as const;
 
-// WebSocket Configuration
+// WebSocket Configuration - Production geological data streams
 export const WEBSOCKET_CONFIG = {
-  URL: import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws',
+  URL: import.meta.env.VITE_WS_URL || 'wss://api.prometheus-ai.platform/ws/geological-data',
+  IRIS_STREAM: import.meta.env.VITE_IRIS_WS_URL || 'wss://service.iris.edu/fdsnws/dataselect/1/queryauth',
+  USGS_STREAM: import.meta.env.VITE_USGS_WS_URL || 'wss://earthquake.usgs.gov/ws/volcano',
+  NASA_FIRMS_STREAM: import.meta.env.VITE_NASA_WS_URL || 'wss://firms.modaps.eosdis.nasa.gov/ws/thermal',
   RECONNECT_INTERVAL: 5000,
   MAX_RECONNECT_ATTEMPTS: 10,
   HEARTBEAT_INTERVAL: 30000,
+  CONNECTION_TIMEOUT: 10000,
 } as const;
 
 // Geological Constants

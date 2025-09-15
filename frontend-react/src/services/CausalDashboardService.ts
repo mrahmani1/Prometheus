@@ -64,10 +64,11 @@ class CausalDashboardService {
 
   private constructor() {
     this.apiClient = axios.create({
-      baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000',
+      baseURL: process.env.REACT_APP_API_BASE_URL || 'https://api.prometheus-ai.platform/api/v1',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'PrometheusAI-Frontend/1.0',
       },
     });
 
@@ -206,7 +207,7 @@ class CausalDashboardService {
     onDataQuality: (quality: any) => void;
   }): void {
     try {
-      const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://localhost:8080'}/causal-stream`;
+      const wsUrl = `${process.env.REACT_APP_WS_URL?.replace('http', 'ws') || 'wss://api.prometheus-ai.platform/ws'}/causal-stream`;
       this.websocket = new WebSocket(wsUrl);
 
       this.websocket.onopen = () => {

@@ -33,22 +33,48 @@ const Login: React.FC = () => {
     dispatch(loginStart());
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful login
-      dispatch(loginSuccess({
-        token: 'mock-jwt-token',
-        refreshToken: 'mock-refresh-token',
-        user: {
-          id: '1',
+      // Production authentication with backend API
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           username: credentials.username,
-          email: 'user@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
-          roles: [],
-          permissions: [],
-          preferences: {
+          password: credentials.password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Authentication failed');
+      }
+
+      const authData = await response.json();
+      
+      // Validate response structure
+      if (!authData.token || !authData.user) {
+        throw new Error('Invalid authentication response');
+      }
+
+      // Store authentication tokens securely
+      localStorage.setItem('auth_token', authData.token);
+      if (authData.refreshToken) {
+        localStorage.setItem('refresh_token', authData.refreshToken);
+      }
+
+      dispatch(loginSuccess({
+        token: authData.token,
+        refreshToken: authData.refreshToken,
+        user: {
+          id: authData.user.id,
+          username: authData.user.username,
+          email: authData.user.email,
+          firstName: authData.user.firstName,
+          lastName: authData.user.lastName,
+          roles: authData.user.roles || [],
+          permissions: authData.user.permissions || [],
+          preferences: authData.user.preferences || {
             theme: 'light',
             language: 'en',
             timezone: 'UTC',
@@ -70,12 +96,22 @@ const Login: React.FC = () => {
               refreshInterval: 30000,
             },
           },
-          lastLogin: new Date().toISOString(),
+          lastLogin: authData.user.lastLogin || new Date().toISOString(),
         },
-        expiresIn: 3600,
+        expiresIn: authData.expiresIn || 3600,
       }));
+
+      // Log successful authentication
+      console.log('User authenticated successfully:', authData.user.username);
+      
     } catch (error) {
-      dispatch(loginFailure('Invalid credentials'));
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      console.error('Authentication error:', errorMessage);
+      dispatch(loginFailure(errorMessage));
+      
+      // Clear any stored tokens on failure
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
     }
   };
 
