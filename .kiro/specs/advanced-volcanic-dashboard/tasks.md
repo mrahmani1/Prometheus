@@ -112,7 +112,8 @@ The implementation follows a phased approach: (1) establish GPU-accelerated comp
 
 ### Phase 3: Stacked-Sill Complex Visualization and Analysis
 
-- [ ] 3. Develop Advanced Stacked-Sill Complex Capabilities
+- [-] 3. Develop Advanced Stacked-Sill Complex Capabilities
+
   - Create 3D geometric modeling of stacked-sill intrusion complexes
   - Implement magma emplacement mechanism simulation and visualization
   - Add surface deformation correlation with sill complex geometry
@@ -124,7 +125,8 @@ The implementation follows a phased approach: (1) establish GPU-accelerated comp
   - No simplifications/mock/simulated/etc methods, only novel/advanced code with database integration
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 3.1 Create Sill Geometry Modeling Engine
+- [-] 3.1 Create Sill Geometry Modeling Engine
+
   - Implement 3D sill shape reconstruction from seismic and structural data
   - Add thickness variation modeling based on host rock properties
   - Create lateral extent determination using geophysical constraints
