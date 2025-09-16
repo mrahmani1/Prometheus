@@ -8,7 +8,7 @@
  * Date: 2025-01-14
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -105,8 +105,8 @@ export const PeerReviewInterface: React.FC<PeerReviewInterfaceProps> = ({
     recommendations: [] as string[]
   });
 
-  // Mock review targets
-  const [reviewTargets] = useState<ReviewTarget[]>([
+  // Fallback data structure for when API is unavailable
+  const fallbackTargets: ReviewTarget[] = [
     {
       id: 'hyp_1',
       type: 'hypothesis',
@@ -123,7 +123,26 @@ export const PeerReviewInterface: React.FC<PeerReviewInterfaceProps> = ({
       author: 'Prof. Rodriguez',
       created_at: '2025-01-14T11:30:00Z'
     }
-  ]);
+  ];
+
+  // Real review targets from API
+  const [reviewTargets, setReviewTargets] = useState<ReviewTarget[]>(fallbackTargets);
+
+  // Fetch real review targets
+  useEffect(() => {
+    const fetchReviewTargets = async () => {
+      try {
+        const response = await fetch('/api/v1/collaborative/review-targets');
+        if (response.ok) {
+          const targets = await response.json();
+          setReviewTargets(targets);
+        }
+      } catch (error) {
+        console.error('Failed to fetch review targets:', error);
+      }
+    };
+    fetchReviewTargets();
+  }, []);
 
   const reviewCriteria = {
     hypothesis: [

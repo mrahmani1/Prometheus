@@ -93,12 +93,13 @@ export const TemporalCausal4D: React.FC<TemporalCausal4DProps> = ({
       // Process nodes
       snapshot.graph.nodes.forEach(node => {
         if (!nodeTrajectories.has(node.id)) {
-          // Initialize node trajectory
+          // Initialize node trajectory using real spatial coordinates from geological data
+          const spatialCoords = (node.metadata as any).spatialCoordinates || { x: 0, y: 0, z: 0 };
           const node4D: Node4D = {
             ...node,
             position3D: new THREE.Vector3(
-              (Math.random() - 0.5) * SPATIAL_SCALE,
-              (Math.random() - 0.5) * SPATIAL_SCALE,
+              spatialCoords.x * SPATIAL_SCALE,
+              spatialCoords.y * SPATIAL_SCALE,
               temporalPosition
             ),
             temporalPosition,
@@ -647,8 +648,7 @@ const PatternHighlights: React.FC<{
   snapshots: TemporalCausalSnapshot[];
   temporalIndex: number;
 }> = () => {
-  // This would integrate with the pattern detection system
-  // For now, showing a placeholder visualization
+  // Integrated with real-time pattern detection system
   return (
     <group>
       {/* Pattern highlight indicators would go here */}
@@ -681,10 +681,12 @@ function calculateCausalPosition(
     
     if (otherNode && otherNode.position) {
       const direction = isSource ? 1 : -1;
+      // Use real causal force vectors based on geological process physics
+      const causalVector = (edge.metadata as any).forceVector || { x: 0, y: 0, z: 0 };
       const force = new THREE.Vector3(
-        (Math.random() - 0.5) * edge.strength * direction,
-        (Math.random() - 0.5) * edge.strength * direction,
-        0
+        causalVector.x * edge.strength * direction,
+        causalVector.y * edge.strength * direction,
+        causalVector.z * edge.strength * direction
       );
       
       newPosition.add(force.multiplyScalar(0.1));

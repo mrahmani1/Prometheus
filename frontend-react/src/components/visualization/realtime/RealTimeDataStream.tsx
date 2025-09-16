@@ -24,6 +24,24 @@ import {
 import { io, Socket } from 'socket.io-client';
 import { GeologicalData, SeismicEvent, VolcanicState, StreamEvent } from '../../../types/geological';
 
+// Generate deterministic ID based on data properties instead of random
+const generateDeterministicId = (type: string, data: any): string => {
+  const timestamp = data.timestamp || Date.now();
+  const location = data.location ? `${data.location.latitude}_${data.location.longitude}` : 'unknown';
+  const magnitude = data.magnitude || data.value || 0;
+  
+  // Create hash from data properties
+  const dataString = `${type}_${timestamp}_${location}_${magnitude}`;
+  let hash = 0;
+  for (let i = 0; i < dataString.length; i++) {
+    const char = dataString.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  return Math.abs(hash).toString(16);
+};
+
 interface RealTimeDataStreamProps {
   wsUrl?: string;
   bufferSize?: number;
@@ -164,7 +182,7 @@ class ConnectionQualityMonitor {
 }
 
 export const RealTimeDataStream: React.FC<RealTimeDataStreamProps> = ({
-  wsUrl = process.env.REACT_APP_WS_URL?.replace('http', 'ws') || 'ws://localhost:8000/ws/real-time-geological',
+  wsUrl = process.env.REACT_APP_WS_URL?.replace('http', 'ws') || process.env.REACT_APP_GEOLOGICAL_WS_URL || 'wss://api.prometheus-ai.platform/ws/real-time-geological',
   bufferSize = 10000,
   onDataReceived,
   onConnectionChange,
@@ -288,7 +306,7 @@ export const RealTimeDataStream: React.FC<RealTimeDataStreamProps> = ({
 
     // Create stream event with real data validation
     const streamEvent: StreamEvent = {
-      eventId: data.eventId || `${type}_${Date.now()}_${crypto.randomUUID()}`,
+      eventId: data.eventId || `${type}_${Date.now()}_${generateDeterministicId(type, data)}`,
       eventType: type as any,
       timestamp: new Date(data.timestamp || Date.now()),
       sourceId: data.sourceId || data.stationId || data.volcanoId || 'unknown',

@@ -81,7 +81,7 @@ const RealTimeProcessMonitor: React.FC = () => {
   const initializeWebSocket = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    wsRef.current = new WebSocket('ws://localhost:8080/ws/geological-monitoring');
+    wsRef.current = new WebSocket(process.env.REACT_APP_MONITORING_WS_URL || 'wss://api.prometheus-ai.platform/ws/geological-monitoring');
     
     wsRef.current.onopen = () => {
       console.log('Real-time monitoring WebSocket connected');

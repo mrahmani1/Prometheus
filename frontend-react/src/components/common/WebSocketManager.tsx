@@ -23,7 +23,7 @@ const WebSocketManager: React.FC = () => {
     }
 
     try {
-      wsRef.current = new WebSocket(WEBSOCKET_CONFIG.URL);
+      wsRef.current = new WebSocket(WEBSOCKET_CONFIG.BASE_URL);
 
       wsRef.current.onopen = () => {
         console.log('WebSocket connected');

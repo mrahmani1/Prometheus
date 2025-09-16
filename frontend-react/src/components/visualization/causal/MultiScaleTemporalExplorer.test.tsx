@@ -77,7 +77,7 @@ const createMockSnapshot = (timestamp: Date, nodeCount: number = 5, edgeCount: n
       target: `node_${(i + 1) % nodeCount}`,
       strength: (i * 0.1) % 1,
       confidence: [0.7, 0.9] as [number, number],
-      temporalLag: Math.random() * 1000,
+      temporalLag: (i * 100) % 1000, // Deterministic temporal lag based on index
       edgeType: 'direct' as const,
       metadata: {
         discoveryMethod: 'PC',

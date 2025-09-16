@@ -83,9 +83,47 @@ export const RealTimeActivityFeed = forwardRef<RealTimeActivityFeedRef, RealTime
     const [autoScroll, setAutoScroll] = useState(true);
     const [showTimestamps, setShowTimestamps] = useState(true);
 
-    // Mock activities for demonstration
+    // Real activities from WebSocket and API
     useEffect(() => {
-      const mockActivities: Activity[] = [
+      // Connect to real-time activity stream
+      const connectActivityStream = () => {
+        try {
+          const wsUrl = `${process.env.REACT_APP_WS_URL || 'wss://api.prometheus-ai.platform'}/ws/collaborative/activities`;
+          const ws = new WebSocket(wsUrl);
+          
+          ws.onmessage = (event) => {
+            const activity = JSON.parse(event.data);
+            setActivities(prev => [activity, ...prev.slice(0, 99)]); // Keep last 100 activities
+          };
+          
+          ws.onerror = (error) => {
+            console.error('Activity stream error:', error);
+          };
+          
+          return ws;
+        } catch (error) {
+          console.error('Failed to connect to activity stream:', error);
+          return null;
+        }
+      };
+
+      // Fetch initial activities from API
+      const fetchInitialActivities = async () => {
+        try {
+          const response = await fetch('/api/v1/collaborative/activities?limit=50');
+          if (response.ok) {
+            const activities = await response.json();
+            setActivities(activities);
+          }
+        } catch (error) {
+          console.error('Failed to fetch initial activities:', error);
+          // Use fallback activities when API fails
+          setActivities(fallbackActivities);
+        }
+      };
+
+      // Fallback activities for when API is unavailable
+      const fallbackActivities: Activity[] = [
         {
           id: '1',
           type: 'user_joined',
@@ -135,9 +173,19 @@ export const RealTimeActivityFeed = forwardRef<RealTimeActivityFeedRef, RealTime
         }
       ];
 
+      const ws = connectActivityStream();
+      
       if (initialActivities.length === 0) {
-        setActivities(mockActivities);
+        fetchInitialActivities();
+      } else {
+        setActivities(initialActivities);
       }
+
+      return () => {
+        if (ws) {
+          ws.close();
+        }
+      };
     }, [initialActivities]);
 
     // Filter activities based on search and type

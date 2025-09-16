@@ -5,13 +5,23 @@
 // API Configuration - Production geological data APIs
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://api.prometheus-ai.platform/api/v1',
+  DATABASE_API: import.meta.env.VITE_DATABASE_API_URL || 'https://api.prometheus-ai.platform/api/v1/database',
+  
+  // Real Geological Data Sources
   IRIS_API: import.meta.env.VITE_IRIS_API_URL || 'https://service.iris.edu',
   USGS_API: import.meta.env.VITE_USGS_API_URL || 'https://earthquake.usgs.gov',
   NASA_API: import.meta.env.VITE_NASA_API_URL || 'https://firms.modaps.eosdis.nasa.gov',
   COPERNICUS_API: import.meta.env.VITE_COPERNICUS_API_URL || 'https://scihub.copernicus.eu',
   ASF_HYP3_API: import.meta.env.VITE_ASF_HYP3_API_URL || 'https://hyp3-api.asf.alaska.edu',
   EARTHCHEM_API: import.meta.env.VITE_EARTHCHEM_API_URL || 'https://www.earthchem.org',
-  TIMEOUT: 30000,
+  
+  // Academic API Sources
+  SEMANTIC_SCHOLAR_API: import.meta.env.VITE_SEMANTIC_SCHOLAR_API_URL || 'https://api.semanticscholar.org/graph/v1',
+  CONNECTED_PAPERS_API: import.meta.env.VITE_CONNECTED_PAPERS_API_URL || 'https://api.connectedpapers.com/v2',
+  WILEY_API: import.meta.env.VITE_WILEY_API_URL || 'https://api.wiley.com/onlinelibrary/tdm/v1',
+  GEOSCIENCE_WORLD_API: import.meta.env.VITE_GEOSCIENCE_WORLD_API_URL || 'https://api.geoscienceworld.org/v1',
+  
+  TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT || '30000'),
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
   RATE_LIMIT: {
@@ -22,14 +32,58 @@ export const API_CONFIG = {
 
 // WebSocket Configuration - Production geological data streams
 export const WEBSOCKET_CONFIG = {
-  URL: import.meta.env.VITE_WS_URL || 'wss://api.prometheus-ai.platform/ws/geological-data',
-  IRIS_STREAM: import.meta.env.VITE_IRIS_WS_URL || 'wss://service.iris.edu/fdsnws/dataselect/1/queryauth',
-  USGS_STREAM: import.meta.env.VITE_USGS_WS_URL || 'wss://earthquake.usgs.gov/ws/volcano',
-  NASA_FIRMS_STREAM: import.meta.env.VITE_NASA_WS_URL || 'wss://firms.modaps.eosdis.nasa.gov/ws/thermal',
-  RECONNECT_INTERVAL: 5000,
+  BASE_URL: import.meta.env.VITE_WS_URL || 'wss://api.prometheus-ai.platform',
+  IRIS_WS: import.meta.env.VITE_IRIS_WS_URL || 'wss://api.prometheus-ai.platform/ws/iris',
+  GEOLOGICAL_WS: import.meta.env.VITE_GEOLOGICAL_WS_URL || 'wss://api.prometheus-ai.platform/ws/geological',
+  PROCESS_WS: import.meta.env.VITE_PROCESS_WS_URL || 'wss://api.prometheus-ai.platform/ws/process',
+  MONITORING_WS: import.meta.env.VITE_MONITORING_WS_URL || 'wss://api.prometheus-ai.platform/ws/monitoring',
+  RECONNECT_INTERVAL: parseInt(import.meta.env.VITE_WS_RECONNECT_INTERVAL || '5000'),
   MAX_RECONNECT_ATTEMPTS: 10,
   HEARTBEAT_INTERVAL: 30000,
   CONNECTION_TIMEOUT: 10000,
+} as const;
+
+// Database Configuration
+export const DB_CONFIG = {
+  POSTGRESQL: {
+    HOST: import.meta.env.VITE_POSTGRESQL_HOST || 'postgresql.prometheus-ai.platform',
+    PORT: parseInt(import.meta.env.VITE_POSTGRESQL_PORT || '5432'),
+    DATABASE: import.meta.env.VITE_POSTGRESQL_DATABASE || 'prometheus_geological',
+    SSL: import.meta.env.VITE_POSTGRESQL_SSL === 'true',
+  },
+  INFLUXDB: {
+    HOST: import.meta.env.VITE_INFLUXDB_HOST || 'influxdb.prometheus-ai.platform',
+    PORT: parseInt(import.meta.env.VITE_INFLUXDB_PORT || '8086'),
+    DATABASE: import.meta.env.VITE_INFLUXDB_DATABASE || 'geological_timeseries',
+    SSL: import.meta.env.VITE_INFLUXDB_SSL === 'true',
+  },
+  REDIS: {
+    HOST: import.meta.env.VITE_REDIS_HOST || 'redis.prometheus-ai.platform',
+    PORT: parseInt(import.meta.env.VITE_REDIS_PORT || '6379'),
+    SSL: import.meta.env.VITE_REDIS_SSL === 'true',
+  },
+  NEO4J: {
+    HOST: import.meta.env.VITE_NEO4J_HOST || 'neo4j.prometheus-ai.platform',
+    PORT: parseInt(import.meta.env.VITE_NEO4J_PORT || '7687'),
+    DATABASE: import.meta.env.VITE_NEO4J_DATABASE || 'causal_relationships',
+    SSL: import.meta.env.VITE_NEO4J_SSL === 'true',
+  },
+  TIMESCALEDB: {
+    HOST: import.meta.env.VITE_TIMESCALEDB_HOST || 'timescaledb.prometheus-ai.platform',
+    PORT: parseInt(import.meta.env.VITE_TIMESCALEDB_PORT || '5432'),
+    DATABASE: import.meta.env.VITE_TIMESCALEDB_DATABASE || 'geological_timeseries',
+    SSL: import.meta.env.VITE_TIMESCALEDB_SSL === 'true',
+  },
+} as const;
+
+// Feature Flags
+export const FEATURE_FLAGS = {
+  ENABLE_REAL_TIME_MONITORING: import.meta.env.VITE_ENABLE_REAL_TIME_MONITORING === 'true',
+  ENABLE_ACADEMIC_INTEGRATION: import.meta.env.VITE_ENABLE_ACADEMIC_INTEGRATION === 'true',
+  ENABLE_CAUSAL_ANALYSIS: import.meta.env.VITE_ENABLE_CAUSAL_ANALYSIS === 'true',
+  ENABLE_MT_SAR_PROCESSING: import.meta.env.VITE_ENABLE_MT_SAR_PROCESSING === 'true',
+  ENABLE_LITERATURE_VALIDATION: import.meta.env.VITE_ENABLE_LITERATURE_VALIDATION === 'true',
+  ENABLE_DEBUG_MODE: import.meta.env.VITE_ENABLE_DEBUG_MODE === 'true',
 } as const;
 
 // Geological Constants

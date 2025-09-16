@@ -182,7 +182,7 @@ export const RealTimeProcessDashboard: React.FC = () => {
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
     try {
-      const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8765';
+      const wsUrl = process.env.REACT_APP_WS_URL || process.env.REACT_APP_PROCESS_WS_URL || 'wss://api.prometheus-ai.platform/ws/process-monitoring';
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {

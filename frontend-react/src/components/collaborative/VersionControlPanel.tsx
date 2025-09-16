@@ -8,7 +8,7 @@
  * Date: 2025-01-14
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -102,8 +102,8 @@ export const VersionControlPanel: React.FC<VersionControlPanelProps> = ({
     version2: ''
   });
 
-  // Mock version data - would come from API
-  const [versions] = useState<VersionSnapshot[]>([
+  // Fallback data structure for when API is unavailable
+  const fallbackVersions: VersionSnapshot[] = [
     {
       version_id: 'v1',
       author_id: 'user1',
@@ -130,7 +130,26 @@ export const VersionControlPanel: React.FC<VersionControlPanelProps> = ({
       checksum: 'ghi789',
       parent_version: 'v2'
     }
-  ]);
+  ];
+
+  // Real version data from API
+  const [versions, setVersions] = useState<VersionSnapshot[]>(fallbackVersions);
+
+  // Fetch real version history
+  useEffect(() => {
+    const fetchVersions = async () => {
+      try {
+        const response = await fetch('/api/v1/collaborative/versions');
+        if (response.ok) {
+          const versionData = await response.json();
+          setVersions(versionData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch version history:', error);
+      }
+    };
+    fetchVersions();
+  }, []);
 
   const [branches] = useState(['main', 'deformation-branch', 'geochemical-analysis']);
 

@@ -271,24 +271,31 @@ export const AlertManager: React.FC<AlertManagerProps> = ({
   }, [alerts]);
 
   // Play alert sound
-  const playAlertSound = useCallback((level: AlertLevel) => {
+  const playAlertSound = useCallback(async (level: AlertLevel) => {
     if (!soundEnabled || !audioContext || !notificationSettings?.sound) return;
 
     const config = ALERT_SEVERITY_CONFIG[level];
     if (config.sound) {
-      // In a real implementation, you would load and play the actual sound file
-      // For now, we'll use a simple beep
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(level === 'critical' ? 800 : level === 'error' ? 600 : 400, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.2);
+      // Load and play the actual sound file for the alert level
+      try {
+        const audio = new Audio(`/sounds/alerts/${level}.mp3`);
+        audio.volume = 0.7;
+        await audio.play();
+      } catch (error) {
+        console.warn('Could not play alert sound file, using fallback beep:', error);
+        // Fallback to oscillator beep
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(level === 'critical' ? 800 : level === 'error' ? 600 : 400, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+      }
     }
   }, [soundEnabled, audioContext, notificationSettings?.sound]);
 

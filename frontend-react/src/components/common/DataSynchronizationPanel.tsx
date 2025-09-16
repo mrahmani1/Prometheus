@@ -142,15 +142,46 @@ const DataSynchronizationPanel: React.FC<DataSynchronizationPanelProps> = ({
       if (onSyncAll) {
         await onSyncAll();
       } else {
-        // Simulate sync process
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const updatedStreams = dataStreams.map(stream => ({
-          ...stream,
-          syncStatus: stream.isActive ? ('synced' as const) : ('offline' as const),
-          lastSync: new Date(),
-          quality: Math.min(1, stream.quality + 0.1),
-          latency: Math.max(100, stream.latency - 100),
-        }));
+        // Execute real synchronization with data sources
+        const syncPromises = dataStreams.map(async (stream) => {
+          try {
+            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/data-streams/${stream.id}/sync`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (response.ok) {
+              const syncResult = await response.json();
+              return {
+                ...stream,
+                syncStatus: syncResult.status === 'success' ? ('synced' as const) : ('error' as const),
+                lastSync: new Date(syncResult.timestamp),
+                quality: syncResult.quality || stream.quality,
+                latency: syncResult.latency || stream.latency,
+                recordsProcessed: syncResult.recordsProcessed || 0,
+              };
+            } else {
+              console.warn(`Failed to sync stream ${stream.id}: ${response.status}`);
+              return {
+                ...stream,
+                syncStatus: 'error' as const,
+                lastSync: new Date(),
+              };
+            }
+          } catch (error) {
+            console.error(`Error syncing stream ${stream.id}:`, error);
+            return {
+              ...stream,
+              syncStatus: 'error' as const,
+              lastSync: new Date(),
+            };
+          }
+        });
+
+        const updatedStreams = await Promise.all(syncPromises);
         onStreamUpdate(updatedStreams);
       }
     } catch (error) {
@@ -354,8 +385,8 @@ const DataSynchronizationPanel: React.FC<DataSynchronizationPanelProps> = ({
                       <Tooltip title="Refresh stream">
                         <IconButton
                           size="small"
-                          onClick={() => {
-                            // Simulate refresh
+                          onClick={async () => {
+                            // Execute real refresh for specific stream
                             const updatedStreams = dataStreams.map(s =>
                               s.id === stream.id
                                 ? { ...s, lastSync: new Date(), syncStatus: 'syncing' as const }
@@ -363,14 +394,48 @@ const DataSynchronizationPanel: React.FC<DataSynchronizationPanelProps> = ({
                             );
                             onStreamUpdate(updatedStreams);
                             
-                            setTimeout(() => {
-                              const finalStreams = dataStreams.map(s =>
+                            try {
+                              const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/data-streams/${stream.id}/refresh`, {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                                  'Content-Type': 'application/json',
+                                },
+                              });
+
+                              if (response.ok) {
+                                const refreshResult = await response.json();
+                                const finalStreams = dataStreams.map(s =>
+                                  s.id === stream.id
+                                    ? { 
+                                        ...s, 
+                                        syncStatus: 'synced' as const,
+                                        lastSync: new Date(refreshResult.timestamp),
+                                        quality: refreshResult.quality || s.quality,
+                                        latency: refreshResult.latency || s.latency,
+                                        lastValue: refreshResult.lastValue || s.lastValue,
+                                      }
+                                    : s
+                                );
+                                onStreamUpdate(finalStreams);
+                              } else {
+                                console.warn(`Failed to refresh stream ${stream.id}: ${response.status}`);
+                                const errorStreams = dataStreams.map(s =>
+                                  s.id === stream.id
+                                    ? { ...s, syncStatus: 'error' as const }
+                                    : s
+                                );
+                                onStreamUpdate(errorStreams);
+                              }
+                            } catch (error) {
+                              console.error(`Error refreshing stream ${stream.id}:`, error);
+                              const errorStreams = dataStreams.map(s =>
                                 s.id === stream.id
-                                  ? { ...s, syncStatus: 'synced' as const }
+                                  ? { ...s, syncStatus: 'error' as const }
                                   : s
                               );
-                              onStreamUpdate(finalStreams);
-                            }, 1000);
+                              onStreamUpdate(errorStreams);
+                            }
                           }}
                         >
                           <Refresh />

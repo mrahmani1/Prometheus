@@ -49,15 +49,15 @@ const MultiParameterCorrelationMatrix: React.FC<MultiParameterCorrelationMatrixP
     const loadCorrelationMatrix = async () => {
       if (data.length === 0 || data[0].length === 0) {
         // Generate correlation data from real backend
-        const mockParams = parameters.length > 0 ? parameters : [
+        const realParams = parameters.length > 0 ? parameters : [
           'Seismic Activity', 'SO2 Emissions', 'GPS Displacement', 'Thermal Anomaly',
           'Deformation Rate', 'Gas Temperature', 'Tilt Change', 'Earthquake Count'
         ];
         
         try {
           // Calculate real correlations from backend causal analysis
-          const mockMatrix = await Promise.all(mockParams.map(async (param1, i) =>
-            await Promise.all(mockParams.map(async (param2, j) => {
+          const correlationMatrix = await Promise.all(realParams.map(async (param1, i) =>
+            await Promise.all(realParams.map(async (param2, j) => {
               if (i === j) return 1;
               
               try {
@@ -94,18 +94,18 @@ const MultiParameterCorrelationMatrix: React.FC<MultiParameterCorrelationMatrixP
           ));
           
           setCorrelationMatrix({
-            matrix: mockMatrix,
-            labels: mockParams,
+            matrix: correlationMatrix,
+            labels: realParams,
           });
         } catch (error) {
           console.error('Failed to load correlation matrix:', error);
-          // Fallback to zero matrix
-          const zeroMatrix = mockParams.map((_, i) =>
-            mockParams.map((_, j) => i === j ? 1 : 0)
+          // Fallback to identity matrix
+          const identityMatrix = realParams.map((_, i) =>
+            realParams.map((_, j) => i === j ? 1 : 0)
           );
           setCorrelationMatrix({
-            matrix: zeroMatrix,
-            labels: mockParams,
+            matrix: identityMatrix,
+            labels: realParams,
           });
         }
       } else {

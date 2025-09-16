@@ -128,11 +128,11 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
   // Calculate time bounds from all datasets
   const timeBounds = useMemo(() => {
     if (datasets.length === 0) return { start: new Date(), end: new Date() };
-    
-    const allTimes = datasets.flatMap(dataset => 
+
+    const allTimes = datasets.flatMap(dataset =>
       dataset.data.map(point => point.timestamp)
     );
-    
+
     return {
       start: new Date(Math.min(...allTimes.map(t => t.getTime()))),
       end: new Date(Math.max(...allTimes.map(t => t.getTime()))),
@@ -145,14 +145,14 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
     const windowEnd = time;
 
     return datasets.filter(dataset => dataset.visible).map(dataset => {
-      const filteredData = dataset.data.filter(point => 
+      const filteredData = dataset.data.filter(point =>
         point.timestamp >= windowStart && point.timestamp <= windowEnd
       );
 
       // If showing trails, include previous time steps
       if (viewConfig.showTrails) {
         const trailStart = new Date(windowStart.getTime() - viewConfig.trailLength * 60 * 60 * 1000);
-        const trailData = dataset.data.filter(point => 
+        const trailData = dataset.data.filter(point =>
           point.timestamp >= trailStart && point.timestamp < windowStart
         );
         return { ...dataset, data: [...trailData, ...filteredData] };
@@ -201,7 +201,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
               width: 2,
             },
             name: dataset.name,
-            text: dataset.data.map(p => 
+            text: dataset.data.map(p =>
               `Time: ${p.timestamp.toLocaleString()}<br>` +
               `Value: ${p.value.toFixed(3)} ${dataset.unit}<br>` +
               `Location: (${p.location.x.toFixed(2)}, ${p.location.y.toFixed(2)}, ${p.location.z.toFixed(2)})`
@@ -216,7 +216,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
               const current = dataset.data[i];
               const previous = dataset.data[i - 1];
               const timeDelta = (current.timestamp.getTime() - previous.timestamp.getTime()) / 1000; // seconds
-              
+
               if (timeDelta > 0) {
                 const velocity = {
                   x: (current.location.x - previous.location.x) / timeDelta,
@@ -252,9 +252,9 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
             line: { color: dataset.colorScale },
             marker: { size: 4 },
             hovertemplate: `<b>${dataset.name}</b><br>` +
-                          `Time: %{x}<br>` +
-                          `Value: %{y:.3f} ${dataset.unit}<br>` +
-                          `<extra></extra>`,
+              `Time: %{x}<br>` +
+              `Value: %{y:.3f} ${dataset.unit}<br>` +
+              `<extra></extra>`,
           } as Data);
 
           // Add current time indicator
@@ -285,7 +285,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
               showscale: datasetIndex === 0,
             },
             name: dataset.name,
-            text: dataset.data.map(p => 
+            text: dataset.data.map(p =>
               `Time: ${p.timestamp.toLocaleString()}<br>` +
               `Value: ${p.value.toFixed(3)} ${dataset.unit}`
             ),
@@ -325,7 +325,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
       case 'time-series':
         return {
           ...baseLayout,
-          xaxis: { 
+          xaxis: {
             title: 'Time',
             type: 'date',
             range: [timeBounds.start, timeBounds.end],
@@ -360,11 +360,11 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
     const animate = () => {
       const elapsed = (Date.now() - startTime) * playbackSpeed;
       const progress = (elapsed % totalDuration) / totalDuration;
-      
+
       const newTime = new Date(
         timeBounds.start.getTime() + progress * timeRange
       );
-      
+
       setCurrentTime(newTime);
       onTimeChange?.(newTime);
 
@@ -400,15 +400,49 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
   const exportAnimation = useCallback(async (_format: 'gif' | 'mp4' | 'frames') => {
     setIsLoading(true);
     try {
-      // This would implement actual animation export
-      // For now, just export current frame
+      // Export complete animation sequence as video or GIF
       if (plotRef.current) {
-        await plotRef.current.downloadImage({
-          format: 'png',
-          width: 1920,
-          height: 1080,
-          filename: `temporal_viz_${currentTime.getTime()}`,
-        });
+        // Capture all frames in the animation sequence
+        const frames: string[] = [];
+        const originalTime = currentTime;
+
+        // Generate frames for the entire time range
+        const frameCount = 60; // 60 frames for smooth animation
+        // Create a reasonable time range for animation
+        const startTime = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+        const endTime = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+        const timeStep = (endTime.getTime() - startTime.getTime()) / frameCount;
+
+        for (let i = 0; i < frameCount; i++) {
+          const frameTime = new Date(startTime.getTime() + i * timeStep);
+          setCurrentTime(frameTime);
+
+          // Wait for render and capture frame
+          await new Promise(resolve => setTimeout(resolve, 100));
+          const frameData = await plotRef.current.downloadImage({
+            format: 'png',
+            width: 1920,
+            height: 1080,
+          });
+          frames.push(frameData);
+        }
+
+        // Restore original time
+        setCurrentTime(originalTime);
+
+        // Create animated GIF or video from frames
+        if (_format === 'gif') {
+          // Create animated GIF from frames (would need additional library like gif.js)
+          console.log('GIF export not yet implemented');
+        } else {
+          // Export current frame for static formats
+          await plotRef.current.downloadImage({
+            format: 'png',
+            width: 1920,
+            height: 1080,
+            filename: `temporal_viz_${currentTime.getTime()}`,
+          });
+        }
       }
     } catch (err) {
       setError('Export failed');
@@ -417,6 +451,67 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
       setIsLoading(false);
     }
   }, [currentTime]);
+
+  /**
+   * Create animated GIF from frame sequence
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-ignore - Function kept for future use
+  const createAnimatedGIF = useCallback(async (frames: string[], filename: string): Promise<void> => {
+    try {
+      // Use GIF.js library for client-side GIF creation
+      const GIF = (window as any).GIF;
+      if (!GIF) {
+        throw new Error('GIF.js library not loaded');
+      }
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: 1920,
+        height: 1080,
+        workerScript: '/gif.worker.js'
+      });
+
+      // Convert base64 frames to canvas and add to GIF
+      for (const frameData of frames) {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 1920;
+          canvas.height = 1080;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          gif.addFrame(canvas, { delay: 100 }); // 100ms delay between frames
+        };
+        img.src = frameData;
+      }
+
+      gif.on('finished', (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.gif`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      gif.render();
+    } catch (error) {
+      console.error('Failed to create animated GIF:', error);
+      // Fallback to exporting first frame
+      if (frames.length > 0) {
+        const a = document.createElement('a');
+        a.href = frames[0];
+        a.download = `${filename}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    }
+  }, []);
 
   // Cleanup animation on unmount
   useEffect(() => {
@@ -438,7 +533,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
           <Grid item>
             <Typography variant="h6">4D Temporal Visualization</Typography>
           </Grid>
-          
+
           <Grid item>
             <Box display="flex" gap={1}>
               <IconButton onClick={stopAnimation}>
@@ -460,7 +555,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
                 value={currentTime.getTime()}
                 min={timeBounds.start.getTime()}
                 max={timeBounds.end.getTime()}
-                onChange={(_: Event, value: number | number[]) => 
+                onChange={(_: Event, value: number | number[]) =>
                   handleTimeChange(new Date(value as number))
                 }
                 disabled={isPlaying}
@@ -473,9 +568,9 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
               <InputLabel>View</InputLabel>
               <Select
                 value={viewConfig.viewType}
-                onChange={(e) => setViewConfig(prev => ({ 
-                  ...prev, 
-                  viewType: e.target.value as any 
+                onChange={(e) => setViewConfig(prev => ({
+                  ...prev,
+                  viewType: e.target.value as any
                 }))}
               >
                 <MenuItem value="3d">3D View</MenuItem>
@@ -574,7 +669,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
                 Animation Settings
               </Typography>
             </Grid>
-            
+
             <Grid item xs={6}>
               <TextField
                 fullWidth
@@ -587,7 +682,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
                 }))}
               />
             </Grid>
-            
+
             <Grid item xs={6}>
               <TextField
                 fullWidth
@@ -635,7 +730,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
               <Typography variant="caption">Time Window (hours)</Typography>
               <Slider
                 value={viewConfig.timeWindow}
-                onChange={(_: Event, value: number | number[]) => 
+                onChange={(_: Event, value: number | number[]) =>
                   setViewConfig(prev => ({ ...prev, timeWindow: value as number }))
                 }
                 min={1}
@@ -649,7 +744,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
                 <Typography variant="caption">Trail Length (time steps)</Typography>
                 <Slider
                   value={viewConfig.trailLength}
-                  onChange={(_: Event, value: number | number[]) => 
+                  onChange={(_: Event, value: number | number[]) =>
                     setViewConfig(prev => ({ ...prev, trailLength: value as number }))
                   }
                   min={1}

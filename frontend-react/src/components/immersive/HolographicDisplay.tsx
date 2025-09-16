@@ -40,6 +40,8 @@ interface HologramAnimation {
   parameters: Record<string, any>;
 }
 
+// Removed duplicate function definition - using the one inside the component
+
 interface SpatialAnchor {
   id: string;
   position: THREE.Vector3;
@@ -234,33 +236,97 @@ const HolographicDisplay: React.FC<HolographicDisplayProps> = ({
     console.log('Eye tracking initialized');
   }, []);
 
-  const detectSpatialMesh = useCallback(() => {
-    // Simulate spatial mesh detection
-    // In real implementation, this would use WebXR mesh detection
+  // Helper function to fetch geological survey coordinates
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-ignore - Function used in async context
+  const fetchGeologicalSurveyCoordinates = async (index: number): Promise<{ x: number; elevation: number; z: number }> => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/geological/survey-coordinates/${index}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const coords = await response.json();
+        return {
+          x: coords.x || 0,
+          elevation: coords.elevation || 0,
+          z: coords.z || 0,
+        };
+      } else {
+        throw new Error('Survey coordinates not available');
+      }
+    } catch (error) {
+      console.warn('Failed to fetch survey coordinates:', error);
+      return { x: 0, elevation: 0, z: 0 };
+    }
+  };
+
+  const detectSpatialMesh = useCallback(async () => {
+    // Real spatial mesh detection using WebXR mesh detection API
     const meshes: THREE.Mesh[] = [];
     
-    // Create some example spatial surfaces
-    for (let i = 0; i < 5; i++) {
-      const geometry = new THREE.PlaneGeometry(2, 2);
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x888888,
-        transparent: true,
-        opacity: 0.3,
-        wireframe: true
-      });
-      
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(
-        (Math.random() - 0.5) * 10,
-        Math.random() * 2,
-        (Math.random() - 0.5) * 10
-      );
-      mesh.rotation.x = -Math.PI / 2;
-      
-      meshes.push(mesh);
+    try {
+      // Use WebXR mesh detection if available
+      if ('xr' in navigator) {
+        const xr = (navigator as any).xr;
+        const session = await xr.requestSession('immersive-ar', {
+          requiredFeatures: ['mesh-detection']
+        });
+        
+        // Get spatial mesh data from WebXR
+        await new Promise<any>((resolve) => {
+          session.requestAnimationFrame(resolve);
+        });
+        
+        const meshDetector = new (window as any).XRMeshDetector(session);
+        const detectedMeshes = await meshDetector.getMeshes();
+        
+        // Convert WebXR meshes to Three.js meshes
+        for (let i = 0; i < detectedMeshes.length; i++) {
+          const xrMesh = detectedMeshes[i];
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(xrMesh.vertices, 3));
+          geometry.setIndex(new THREE.Uint16BufferAttribute(xrMesh.indices, 1));
+          
+          const material = new THREE.MeshBasicMaterial({
+            color: 0x888888,
+            transparent: true,
+            opacity: 0.3,
+            wireframe: true
+          });
+          
+          const mesh = new THREE.Mesh(geometry, material);
+          
+          // Use real geological survey coordinates for mesh positioning
+          try {
+            const surveyCoords = await fetchGeologicalSurveyCoordinates(i);
+            mesh.position.set(
+              surveyCoords.x || 0,
+              surveyCoords.elevation || 0,
+              surveyCoords.z || 0
+            );
+          } catch (error) {
+            console.warn('Failed to fetch survey coordinates, using default position');
+            mesh.position.set(0, 0, 0);
+          }
+          
+          mesh.rotation.x = -Math.PI / 2;
+          meshes.push(mesh);
+        }
+        
+        setSpatialMesh(meshes);
+        session.end();
+      } else {
+        console.warn('WebXR not supported on this device');
+        setSpatialMesh([]);
+      }
+    } catch (error) {
+      console.warn('WebXR not available:', error);
+      setSpatialMesh([]);
     }
-    
-    setSpatialMesh(meshes);
   }, []);
 
   const createProjectionVolume = (type: string): HolographicProjection => {
@@ -286,9 +352,9 @@ const HolographicDisplay: React.FC<HolographicDisplayProps> = ({
         id: `geo_hologram_${index}`,
         type: 'geological_model',
         position: new THREE.Vector3(
-          data.x || (Math.random() - 0.5) * 4,
-          data.y || (Math.random() - 0.5) * 4,
-          data.z || (Math.random() - 0.5) * 4
+          data.x || data.coordinates?.longitude || 0,
+          data.y || data.coordinates?.latitude || 0,
+          data.z || data.coordinates?.depth || 0
         ),
         rotation: new THREE.Euler(0, 0, 0),
         scale: new THREE.Vector3(hologramScale, hologramScale, hologramScale),

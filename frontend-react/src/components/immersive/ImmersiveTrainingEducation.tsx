@@ -409,8 +409,10 @@ const ImmersiveTrainingEducation: React.FC<ImmersiveTrainingEducationProps> = ({
   const handleElementInteraction = useCallback((element: InteractiveElement, interactionType: string) => {
     setSelectedElement(element);
     
-    // Provide feedback based on interaction
-    const feedback = element.feedback[Math.floor(Math.random() * element.feedback.length)];
+    // Provide contextual feedback based on user's learning progress and interaction accuracy
+    const userAccuracy = (learningProgress as any).correctAnswers / Math.max(1, (learningProgress as any).totalInteractions || 1);
+    const feedbackIndex = userAccuracy > 0.8 ? 0 : userAccuracy > 0.5 ? 1 : element.feedback.length - 1;
+    const feedback = element.feedback[Math.min(feedbackIndex, element.feedback.length - 1)];
     
     // Update learning progress
     setLearningProgress(prev => ({
@@ -724,9 +726,9 @@ const FieldEnvironment: React.FC = () => {
           key={i}
           args={[0.1, 0.5, 0.1]}
           position={[
-            (Math.random() - 0.5) * 10,
+            (i % 5 - 2) * 2, // Systematic grid positioning
             -0.75,
-            (Math.random() - 0.5) * 10
+            Math.floor(i / 5) * 2 - 2
           ]}
         >
           <meshStandardMaterial color={0x228B22} />

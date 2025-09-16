@@ -110,13 +110,13 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
     const points = geologicalData.map((data, index) => ({
       id: `point_${index}`,
       position: new THREE.Vector3(
-        data.x || Math.random() * 10 - 5,
-        data.y || Math.random() * 10 - 5,
-        data.z || Math.random() * 10 - 5
+        data.coordinates?.longitude || data.x || 0,
+        data.coordinates?.latitude || data.y || 0,
+        data.coordinates?.depth || data.z || 0
       ),
-      value: data.value || Math.random(),
+      value: data.measuredValue || data.value || 0,
       properties: data.properties || {},
-      type: data.type || 'seismic'
+      type: data.observationType || data.type || 'seismic'
     }));
     
     setDataPoints(points);
@@ -271,13 +271,50 @@ const ImmersiveDataAnalysis: React.FC<ImmersiveDataAnalysisProps> = ({
     };
   }
 
+  const initializeCentroidsKMeansPlusPlus = (points: DataPoint[], k: number): Array<{x: number, y: number, z: number}> => {
+    const centroids: Array<{x: number, y: number, z: number}> = [];
+    
+    // Choose first centroid as the point with maximum distance from origin
+    const firstPoint = points.reduce((max, point) => {
+      const distFromOrigin = Math.sqrt(point.position.x ** 2 + point.position.y ** 2 + point.position.z ** 2);
+      const maxDistFromOrigin = Math.sqrt(max.position.x ** 2 + max.position.y ** 2 + max.position.z ** 2);
+      return distFromOrigin > maxDistFromOrigin ? point : max;
+    }, points[0]);
+    centroids.push({
+      x: firstPoint.position.x,
+      y: firstPoint.position.y,
+      z: firstPoint.position.z
+    });
+    
+    // Choose remaining centroids using k-means++ algorithm
+    for (let i = 1; i < k; i++) {
+      const distances = points.map(point => {
+        const minDistToCentroid = Math.min(...centroids.map(centroid => {
+          const dx = point.position.x - centroid.x;
+          const dy = point.position.y - centroid.y;
+          const dz = point.position.z - centroid.z;
+          return dx * dx + dy * dy + dz * dz;
+        }));
+        return minDistToCentroid;
+      });
+      
+      // Use deterministic selection based on maximum distance
+      const maxDistanceIndex = distances.indexOf(Math.max(...distances));
+      const selectedPoint = points[maxDistanceIndex];
+      
+      centroids.push({
+        x: selectedPoint.position.x,
+        y: selectedPoint.position.y,
+        z: selectedPoint.position.z
+      });
+    }
+    
+    return centroids;
+  };
+
   const kMeansClustering = (data: DataPoint[], k: number) => {
-    // Initialize centroids randomly
-    let centroids = Array.from({ length: k }, () => ({
-      x: Math.random() * 10 - 5,
-      y: Math.random() * 10 - 5,
-      z: Math.random() * 10 - 5
-    }));
+    // Initialize centroids using k-means++ algorithm for better convergence
+    let centroids = initializeCentroidsKMeansPlusPlus(data, k);
     
     let clusters: { center: any; points: DataPoint[] }[] = [];
     let iterations = 0;

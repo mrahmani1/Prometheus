@@ -19,6 +19,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import {
   Box,
   Grid,
@@ -168,8 +170,8 @@ export const CollaborativeAnalysisInterface: React.FC<CollaborativeAnalysisInter
   const activityFeedRef = useRef<any>(null);
 
   // Hooks
-  const user = { id: 'current-user' }; // Mock user for now
-  const token = 'mock-token'; // Mock token for now
+  const user = useSelector((state: RootState) => state.auth.user) || { id: 'anonymous-user' };
+  const token = useSelector((state: RootState) => state.auth.token) || '';
   const { 
     isConnected, 
     lastMessage, 

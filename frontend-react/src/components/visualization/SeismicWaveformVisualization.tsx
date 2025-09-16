@@ -1,18 +1,15 @@
 /**
  * Seismic Waveform Visualization Component
- * Interactive waveform display with real-time IRIS data integration
+ * Real-time seismic data visualization with advanced signal processing
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   Grid,
   Button,
   IconButton,
-  Chip,
   FormControl,
   InputLabel,
   Select,
@@ -23,77 +20,83 @@ import {
   Alert,
   LinearProgress,
   Paper,
+  Chip,
 } from '@mui/material';
 import {
   PlayArrow,
   Pause,
   Stop,
-  Warning,
-  CheckCircle,
   Refresh,
   Download,
+  Settings,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import Plot from 'react-plotly.js';
 
 interface SeismicStation {
   id: string;
-  name: string;
   network: string;
-  location: [number, number, number]; // lat, lon, elevation
-  channels: string[];
+  station: string;
+  location: string;
+  channel: string;
+  latitude: number;
+  longitude: number;
+  elevation: number;
   sampleRate: number;
-  isActive: boolean;
+  instrumentType: string;
+}
+
+interface WaveformData {
+  stationId: string;
+  station: string;
+  data: number[];
+  sampleRate: number;
+  startTime: Date;
+  endTime: Date;
   quality: number;
 }
 
 interface SeismicEvent {
   id: string;
-  timestamp: Date;
-  magnitude: number;
+  time: Date;
+  latitude: number;
+  longitude: number;
   depth: number;
-  location: [number, number];
-  phases: PhaseArrival[];
-  quality: string;
-}
-
-interface PhaseArrival {
-  phase: string; // P, S, Pg, Sg, etc.
-  arrivalTime: Date;
-  uncertainty: number;
-  amplitude: number;
-  period: number;
-  quality: string;
-}
-
-interface WaveformData {
-  stationId: string;
-  channel: string;
-  startTime: Date;
-  sampleRate: number;
-  data: number[];
-  units: string;
+  magnitude: number;
+  phases?: Array<{
+    phase: string;
+    arrivalTime: number;
+    station: string;
+  }>;
 }
 
 interface FilterSettings {
-  lowpass: number;
-  highpass: number;
-  order: number;
   enabled: boolean;
+  highPass: boolean;
+  highPassFreq: number;
+  lowPass: boolean;
+  lowPassFreq: number;
+  bandPass: boolean;
+  bandPassLow: number;
+  bandPassHigh: number;
+  sampleRate: number;
 }
 
 interface SeismicWaveformVisualizationProps {
   realTimeMode?: boolean;
   compact?: boolean;
   stationIds?: string[];
-  timeWindow?: number; // minutes
+  timeWindow?: {
+    start: Date;
+    end: Date;
+  };
 }
 
 const SeismicWaveformVisualization: React.FC<SeismicWaveformVisualizationProps> = ({
   realTimeMode = false,
   compact = false,
   stationIds = [],
-  timeWindow = 60,
+  timeWindow,
 }) => {
   const theme = useTheme();
   const plotRef = useRef<any>(null);
@@ -101,433 +104,546 @@ const SeismicWaveformVisualization: React.FC<SeismicWaveformVisualizationProps> 
 
   // State management
   const [stations, setStations] = useState<SeismicStation[]>([]);
-  const [selectedStations, setSelectedStations] = useState<string[]>([]);
+  const [selectedStations, setSelectedStations] = useState<string[]>(stationIds);
   const [waveformData, setWaveformData] = useState<WaveformData[]>([]);
   const [events, setEvents] = useState<SeismicEvent[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
-  // Removed unused currentTime state
-  // Removed unused timeRange state - const [timeRange, setTimeRange] = useState<[Date, Date]>([
-    // new Date(Date.now() - timeWindow * 60 * 1000),
-    // new Date(),
-  // ]);
   const [filterSettings, setFilterSettings] = useState<FilterSettings>({
-    lowpass: 10,
-    highpass: 1,
-    order: 4,
-    enabled: true,
+    enabled: false,
+    highPass: false,
+    highPassFreq: 1.0,
+    lowPass: false,
+    lowPassFreq: 10.0,
+    bandPass: false,
+    bandPassLow: 1.0,
+    bandPassHigh: 10.0,
+    sampleRate: 100,
   });
-  const [amplitudeScale, setAmplitudeScale] = useState(1);
+  const [amplitudeScale, setAmplitudeScale] = useState(1.0);
   const [showPhases, setShowPhases] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize stations
-  useEffect(() => {
-    const initializeStations = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch real seismic stations from IRIS network
-        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/seismic/stations/iris`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-            'Content-Type': 'application/json',
-          },
-        });
+  /**
+   * Apply real digital signal processing filters
+   */
+  const applyDigitalFilter = useCallback((data: number[], settings: FilterSettings): number[] => {
+    if (!settings.enabled) return data;
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch IRIS seismic stations');
-        }
+    let filteredData = [...data];
 
-        const data = await response.json();
-        const realStations: SeismicStation[] = data.stations.map((station: any) => ({
-          id: station.id,
-          name: station.name,
-          network: station.network,
-          location: [station.latitude, station.longitude, station.elevation],
-          channels: station.channels,
-          sampleRate: station.sampleRate,
-          isActive: station.isActive,
-          quality: station.quality,
-          dataSource: 'IRIS/EarthScope Network',
-          instrumentType: station.instrumentType,
-          startDate: new Date(station.startDate),
-          endDate: station.endDate ? new Date(station.endDate) : undefined,
-        }));
-        
-        setStations(realStations);
-        setSelectedStations(stationIds.length > 0 ? stationIds : [realStations[0]?.id].filter(Boolean));
-        setError(null);
-        
-        console.log(`Loaded ${realStations.length} real seismic stations from IRIS network`);
-        
-      } catch (err) {
-        console.error('Failed to load stations from API, trying direct IRIS connection:', err);
-        
-        // Fallback: Load directly from RealDataService
-        try {
-          const realDataService = (await import('../../services/RealDataService')).default.getInstance();
-          
-          const realStations = await realDataService.fetchSeismicStations({
-            minLatitude: 25.0,
-            maxLatitude: 50.0,
-            minLongitude: -130.0,
-            maxLongitude: -65.0, // Continental US
-          });
-
-          const fallbackStations: SeismicStation[] = realStations.slice(0, 20).map(station => ({
-            id: station.id,
-            name: `${station.station} - ${station.network}`,
-            network: station.network,
-            location: [station.latitude, station.longitude, station.elevation],
-            channels: [station.channel],
-            sampleRate: station.sampleRate,
-            isActive: !station.endDate || station.endDate > new Date(),
-            quality: station.dataQuality,
-            dataSource: 'IRIS/EarthScope Network (Direct)',
-            instrumentType: station.instrumentType,
-            startDate: station.startDate,
-            endDate: station.endDate,
-          }));
-          
-          setStations(fallbackStations);
-          setSelectedStations(stationIds.length > 0 ? stationIds : [fallbackStations[0]?.id].filter(Boolean));
-          setError(null);
-          
-          console.log(`Loaded ${fallbackStations.length} seismic stations from direct IRIS connection`);
-          
-        } catch (fallbackError) {
-          console.error('Failed to load stations from fallback source:', fallbackError);
-          setError('Failed to load seismic stations from all data sources');
-          setStations([]);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeStations();
-  }, [stationIds]);
-
-  // Real-time seismic data updates from IRIS network
-  useEffect(() => {
-    if (realTimeMode && selectedStations.length > 0) {
-      // Connect to production IRIS real-time seismic data stream
-      const connectToIRISStream = async () => {
-        try {
-          // First, try to connect through backend API WebSocket proxy
-          const wsUrl = `${process.env.REACT_APP_WS_URL?.replace('http', 'ws') || 'ws://localhost:8000'}/ws/iris/real-time`;
-          wsRef.current = new WebSocket(wsUrl);
-
-          wsRef.current.onopen = () => {
-            console.log('Connected to IRIS real-time seismic data stream');
-            
-            // Subscribe to selected stations with authentication
-            wsRef.current?.send(JSON.stringify({
-              type: 'subscribe_iris',
-              stations: selectedStations,
-              channels: ['BHZ', 'BHN', 'BHE'],
-              format: 'miniseed',
-              quality: 'B', // Best quality
-              auth_token: localStorage.getItem('auth_token'),
-            }));
-          };
-
-          wsRef.current.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              
-              if (data.type === 'iris_waveform') {
-                handleRealTimeWaveformData(data);
-              } else if (data.type === 'iris_error') {
-                console.error('IRIS stream error:', data.message);
-                setError(`IRIS connection error: ${data.message}`);
-              } else if (data.type === 'iris_status') {
-                console.log('IRIS stream status:', data.status);
-              }
-            } catch (err) {
-              console.error('Failed to parse IRIS seismic data:', err);
-            }
-          };
-
-          wsRef.current.onerror = (error) => {
-            console.error('IRIS WebSocket error:', error);
-            setError('Real-time IRIS connection failed');
-          };
-
-          wsRef.current.onclose = () => {
-            console.log('IRIS real-time stream disconnected');
-          };
-
-        } catch (error) {
-          console.error('Failed to connect to IRIS stream:', error);
-          setError('Unable to connect to IRIS real-time data stream');
-        }
-      };
-
-      connectToIRISStream();
-
-      return () => {
-        if (wsRef.current) {
-          // Send unsubscribe message before closing
-          wsRef.current.send(JSON.stringify({
-            type: 'unsubscribe_iris',
-            stations: selectedStations,
-          }));
-          wsRef.current.close();
-        }
-      };
+    // High-pass Butterworth filter implementation
+    if (settings.highPass && settings.highPassFreq > 0) {
+      filteredData = butterworthHighPass(filteredData, settings.highPassFreq, settings.sampleRate);
     }
-  }, [realTimeMode, selectedStations]);
 
-  // Handle real-time waveform data
-  const handleRealTimeWaveformData = useCallback((data: any) => {
-    if (data.type === 'waveform') {
-      setWaveformData(prev => {
-        const updated = [...prev];
-        const existingIndex = updated.findIndex(
-          w => w.stationId === data.stationId && w.channel === data.channel
-        );
-
-        const newWaveform: WaveformData = {
-          stationId: data.stationId,
-          channel: data.channel,
-          startTime: new Date(data.startTime),
-          sampleRate: data.sampleRate,
-          data: data.samples,
-          units: data.units || 'counts',
-        };
-
-        if (existingIndex >= 0) {
-          updated[existingIndex] = newWaveform;
-        } else {
-          updated.push(newWaveform);
-        }
-
-        return updated;
-      });
-    } else if (data.type === 'event') {
-      const newEvent: SeismicEvent = {
-        id: data.eventId,
-        timestamp: new Date(data.timestamp),
-        magnitude: data.magnitude,
-        depth: data.depth,
-        location: [data.latitude, data.longitude],
-        phases: data.phases || [],
-        quality: data.quality || 'automatic',
-      };
-      setEvents(prev => [newEvent, ...prev.slice(0, 99)]); // Keep last 100 events
+    // Low-pass Butterworth filter implementation
+    if (settings.lowPass && settings.lowPassFreq > 0) {
+      filteredData = butterworthLowPass(filteredData, settings.lowPassFreq, settings.sampleRate);
     }
+
+    // Band-pass filter
+    if (settings.bandPass && settings.bandPassLow > 0 && settings.bandPassHigh > 0) {
+      filteredData = butterworthBandPass(
+        filteredData,
+        settings.bandPassLow,
+        settings.bandPassHigh,
+        settings.sampleRate
+      );
+    }
+
+    return filteredData;
   }, []);
 
-  // Generate plot data
-  const plotData = useMemo(() => {
+  /**
+   * Butterworth high-pass filter implementation
+   */
+  const butterworthHighPass = useCallback((data: number[], cutoffFreq: number, sampleRate: number): number[] => {
+    const nyquist = sampleRate / 2;
+    const normalizedCutoff = cutoffFreq / nyquist;
+
+    // Second-order Butterworth coefficients
+    const c = Math.tan(Math.PI * normalizedCutoff);
+    const c2 = c * c;
+    const sqrt2c = Math.sqrt(2) * c;
+    const d = c2 + sqrt2c + 1;
+
+    const b0 = 1 / d;
+    const b1 = -2 / d;
+    const b2 = 1 / d;
+    const a1 = (2 * (c2 - 1)) / d;
+    const a2 = (c2 - sqrt2c + 1) / d;
+
+    return applyIIRFilter(data, [b0, b1, b2], [1, a1, a2]);
+  }, []);
+
+  /**
+   * Butterworth low-pass filter implementation
+   */
+  const butterworthLowPass = useCallback((data: number[], cutoffFreq: number, sampleRate: number): number[] => {
+    const nyquist = sampleRate / 2;
+    const normalizedCutoff = cutoffFreq / nyquist;
+
+    // Second-order Butterworth coefficients
+    const c = 1 / Math.tan(Math.PI * normalizedCutoff);
+    const c2 = c * c;
+    const sqrt2c = Math.sqrt(2) * c;
+    const d = c2 + sqrt2c + 1;
+
+    const b0 = 1 / d;
+    const b1 = 2 / d;
+    const b2 = 1 / d;
+    const a1 = (2 * (1 - c2)) / d;
+    const a2 = (1 - sqrt2c + c2) / d;
+
+    return applyIIRFilter(data, [b0, b1, b2], [1, a1, a2]);
+  }, []);
+
+  /**
+   * Butterworth band-pass filter implementation
+   */
+  const butterworthBandPass = useCallback((data: number[], lowFreq: number, highFreq: number, sampleRate: number): number[] => {
+    // Apply high-pass then low-pass
+    const highPassed = butterworthHighPass(data, lowFreq, sampleRate);
+    return butterworthLowPass(highPassed, highFreq, sampleRate);
+  }, [butterworthHighPass, butterworthLowPass]);
+
+  /**
+   * Apply IIR (Infinite Impulse Response) filter
+   */
+  const applyIIRFilter = useCallback((data: number[], b: number[], a: number[]): number[] => {
+    const filtered = new Array(data.length);
+    const xHistory = new Array(b.length).fill(0);
+    const yHistory = new Array(a.length).fill(0);
+
+    for (let i = 0; i < data.length; i++) {
+      // Shift input history
+      for (let j = xHistory.length - 1; j > 0; j--) {
+        xHistory[j] = xHistory[j - 1];
+      }
+      xHistory[0] = data[i];
+
+      // Calculate output
+      let output = 0;
+      for (let j = 0; j < b.length; j++) {
+        output += b[j] * xHistory[j];
+      }
+      for (let j = 1; j < a.length; j++) {
+        output -= a[j] * yHistory[j];
+      }
+
+      // Shift output history
+      for (let j = yHistory.length - 1; j > 0; j--) {
+        yHistory[j] = yHistory[j - 1];
+      }
+      yHistory[0] = output;
+
+      filtered[i] = output;
+    }
+
+    return filtered;
+  }, []);
+
+  // Generate plot traces and annotations
+  const { traces, annotations } = useMemo(() => {
     const traces: any[] = [];
     const annotations: any[] = [];
+
+    if (!waveformData || waveformData.length === 0) {
+      return { traces, annotations };
+    }
 
     waveformData.forEach((waveform, index) => {
       const station = stations.find(s => s.id === waveform.stationId);
       if (!station) return;
 
-      // Apply filtering if enabled
       let processedData = waveform.data;
       if (filterSettings.enabled) {
-        // Simple high-pass filter simulation
-        processedData = waveform.data.map((value, i) => {
-          if (i === 0) return value;
-          return value - 0.95 * waveform.data[i - 1];
-        });
+        processedData = applyDigitalFilter(waveform.data, filterSettings);
       }
 
-      // Scale amplitude
-      processedData = processedData.map(value => value * amplitudeScale);
+      // Apply amplitude scaling
+      processedData = processedData.map((value: number) => value * amplitudeScale);
 
-      // Create time array
-      const timeArray = processedData.map((_, i) => 
-        new Date(waveform.startTime.getTime() + (i / waveform.sampleRate) * 1000)
+      // Apply time offset for multi-station display
+      const timeOffset = processedData.map((_: number, i: number) =>
+        i * (waveform.sampleRate ? 1 / waveform.sampleRate : 0.01) +
+        (index * 10) // 10-second offset between stations
       );
 
-      // Offset traces vertically for multi-station display
-      const offset = index * 1000;
-      const offsetData = processedData.map(value => value + offset);
-
       traces.push({
-        x: timeArray,
-        y: offsetData,
+        x: timeOffset,
+        y: processedData,
         type: 'scatter',
         mode: 'lines',
-        name: `${station.name} (${waveform.channel})`,
+        name: `${station.network}.${waveform.station}`,
         line: {
           color: theme.palette.primary.main,
-          width: 1,
         },
-        hovertemplate: `<b>${station.name}</b><br>` +
-                      `Channel: ${waveform.channel}<br>` +
-                      `Time: %{x}<br>` +
-                      `Amplitude: %{y:.2f} ${waveform.units}<extra></extra>`,
-      });
-
-      // Add station label
-      annotations.push({
-        x: timeArray[0],
-        y: offset,
-        text: `${station.name}<br>${waveform.channel}`,
-        showarrow: false,
-        xanchor: 'right',
-        yanchor: 'middle',
-        font: { size: 10 },
+        hovertemplate: `<b>${station.network}.${waveform.station}</b><br>` +
+          `Time: %{x:.3f}s<br>` +
+          `Amplitude: %{y:.6f}<br>` +
+          `<extra></extra>`,
       });
     });
 
-    // Add phase arrivals if enabled
-    if (showPhases) {
-      events.forEach(event => {
-        event.phases.forEach(phase => {
+    // Add phase annotations if enabled
+    if (showPhases && events && events.length > 0) {
+      events.forEach((event: any) => {
+        event.phases?.forEach((phase: any) => {
           traces.push({
-            x: [phase.arrivalTime, phase.arrivalTime],
-            y: [-2000, 2000 * waveformData.length],
+            x: [phase.arrivalTime],
+            y: [0],
             type: 'scatter',
-            mode: 'lines',
-            name: `${phase.phase} arrival`,
-            line: {
-              color: phase.phase.startsWith('P') ? 'red' : 'blue',
-              width: 2,
-              dash: 'dash',
+            mode: 'markers+text',
+            text: [phase.phase],
+            textposition: 'top center',
+            marker: {
+              color: phase.phase === 'P' ? 'red' : 'blue',
+              size: 8,
             },
+            name: `${phase.phase} Phase`,
             showlegend: false,
-            hovertemplate: `<b>${phase.phase} Phase</b><br>` +
-                          `Arrival: %{x}<br>` +
-                          `Magnitude: ${event.magnitude}<br>` +
-                          `Depth: ${event.depth} km<extra></extra>`,
           });
         });
       });
     }
 
     return { traces, annotations };
-  }, [waveformData, stations, filterSettings, amplitudeScale, showPhases, events, theme]);
+  }, [waveformData, stations, filterSettings, amplitudeScale, showPhases, events, theme, applyDigitalFilter]);
 
-  // Control functions
+  // Initialize stations data
+  useEffect(() => {
+    const fetchStations = async () => {
+      try {
+        const response = await fetch('/api/seismic/stations');
+        if (response.ok) {
+          const stationsData = await response.json();
+          setStations(stationsData);
+
+          // Update selected stations if stationIds were provided
+          if (stationIds.length > 0) {
+            setSelectedStations(stationIds);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch stations:', error);
+      }
+    };
+
+    fetchStations();
+  }, [stationIds]);
+
+  // Real-time WebSocket connection
+  useEffect(() => {
+    if (!realTimeMode) return;
+
+    const connectWebSocket = () => {
+      try {
+        // Connect to real IRIS WebSocket stream
+        const wsUrl = `${process.env.REACT_APP_WS_URL?.replace('http', 'ws') || process.env.REACT_APP_IRIS_WS_URL || 'wss://api.prometheus-ai.platform'}/ws/iris/real-time`;
+
+        wsRef.current = new WebSocket(wsUrl);
+
+        wsRef.current.onopen = () => {
+          console.log('Connected to real-time seismic stream');
+          // Subscribe to selected stations
+          selectedStations.forEach(stationId => {
+            wsRef.current?.send(JSON.stringify({
+              action: 'subscribe',
+              stationId,
+              channels: ['BHZ', 'BHN', 'BHE'],
+            }));
+          });
+        };
+
+        wsRef.current.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'waveform') {
+            setWaveformData(prev => {
+              const updated = [...prev];
+              const existingIndex = updated.findIndex(w => w.stationId === data.stationId);
+              if (existingIndex >= 0) {
+                updated[existingIndex] = data;
+              } else {
+                updated.push(data);
+              }
+              return updated;
+            });
+          }
+        };
+
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setError('Real-time connection failed');
+        };
+
+        wsRef.current.onclose = () => {
+          console.log('WebSocket connection closed');
+          // Attempt to reconnect after 5 seconds
+          setTimeout(connectWebSocket, 5000);
+        };
+      } catch (error) {
+        console.error('Failed to connect to real-time stream:', error);
+        setError('Failed to connect to real-time seismic data');
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [realTimeMode, selectedStations]);
+
+  // Handle playback controls
   const handlePlay = useCallback(() => {
     setIsPlaying(true);
-    // if (realTimeMode) {
-    //   setCurrentTime(new Date()); - removed as state was removed
-    // }
-  }, [realTimeMode]);
+  }, []);
 
   const handlePause = useCallback(() => {
+    if (realTimeMode) return;
     setIsPlaying(false);
-  }, []);
+  }, [realTimeMode]);
 
   const handleStop = useCallback(() => {
     setIsPlaying(false);
-    // setCurrentTime(new Date(Date.now() - timeWindow * 60 * 1000)); - removed as state was removed
-  }, [timeWindow]);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Refresh real seismic data from IRIS network
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/seismic/waveforms/refresh`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          stations: selectedStations,
-          timeWindow: timeWindow,
-          channels: ['BHZ', 'BHN', 'BHE'],
-          format: 'miniseed',
-        }),
-      });
+      // Fetch fresh data for selected stations
+      const freshData = await Promise.all(
+        selectedStations.map(async (stationId) => {
+          const response = await fetch(`/api/seismic/waveform/${stationId}?start=${timeWindow?.start}&end=${timeWindow?.end}`);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch data for station ${stationId}`);
+          }
+          return response.json();
+        })
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to refresh seismic data from IRIS');
-      }
+      setWaveformData(freshData);
 
-      const refreshedData = await response.json();
-      
-      // Update waveform data with fresh IRIS data
-      if (refreshedData.waveforms) {
-        setWaveformData(refreshedData.waveforms);
+      // Also refresh events
+      const eventsResponse = await fetch(`/api/seismic/events?start=${timeWindow?.start}&end=${timeWindow?.end}`);
+      if (eventsResponse.ok) {
+        setEvents(await eventsResponse.json());
       }
-      
-      // Update events if available
-      if (refreshedData.events) {
-        setEvents(refreshedData.events);
-      }
-      
-      setError(null);
-      console.log(`Refreshed seismic data for ${selectedStations.length} stations from IRIS network`);
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh seismic data';
-      console.error('Data refresh error:', errorMessage);
-      setError(errorMessage);
+    } catch (error) {
+      setError(`Failed to refresh data: ${selectedStations.join(', ')}`);
+      console.error('Refresh error:', error);
     } finally {
+      setError(null);
       setIsLoading(false);
     }
   }, [selectedStations, timeWindow]);
 
-  const handleExport = useCallback(() => {
-    const exportData = {
-      stations: selectedStations,
-      // timeRange - removed as state was removed
-      waveformData,
-      events,
-      filterSettings,
-    };
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `seismic_data_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [selectedStations, waveformData, events, filterSettings]);
+  /**
+   * Perform Fast Fourier Transform for spectral analysis
+   */
+  const performFFT = useCallback((data: number[]): { frequencies: number[], magnitudes: number[] } => {
+    const N = data.length;
+    const frequencies: number[] = [];
+    const magnitudes: number[] = [];
 
-  if (compact) {
-    return (
-      <Card>
-        <CardContent>
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-            <Typography variant="h6">Seismic Waveforms</Typography>
-            <Box>
-              <IconButton size="small" onClick={handleRefresh} disabled={isLoading}>
-                <Refresh />
-              </IconButton>
-              <IconButton size="small" onClick={isPlaying ? handlePause : handlePlay}>
-                {isPlaying ? <Pause /> : <PlayArrow />}
-              </IconButton>
-            </Box>
-          </Box>
-          
-          {isLoading && <LinearProgress />}
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          
-          <Box height={200}>
-            <Plot
-              data={plotData.traces}
-              layout={{
-                height: 200,
-                margin: { l: 50, r: 20, t: 20, b: 40 },
-                xaxis: { title: 'Time' },
-                yaxis: { title: 'Amplitude' },
-                showlegend: false,
-                annotations: plotData.annotations,
-              }}
-              config={{ displayModeBar: false }}
-              style={{ width: '100%', height: '100%' }}
-            />
-          </Box>
-        </CardContent>
-      </Card>
-    );
-  }
+    // Simple DFT implementation for demonstration
+    // In production, would use a proper FFT library like fft.js
+    for (let k = 0; k < N / 2; k++) {
+      let realSum = 0;
+      let imagSum = 0;
+
+      for (let n = 0; n < N; n++) {
+        const angle = -2 * Math.PI * k * n / N;
+        realSum += data[n] * Math.cos(angle);
+        imagSum += data[n] * Math.sin(angle);
+      }
+
+      frequencies.push(k * (filterSettings.sampleRate / N));
+      magnitudes.push(Math.sqrt(realSum * realSum + imagSum * imagSum));
+    }
+
+    return { frequencies, magnitudes };
+  }, [filterSettings.sampleRate]);
+
+  /**
+   * Detect seismic events using STA/LTA algorithm
+   */
+  const detectEvents = useCallback((data: number[], sampleRate: number): Array<{ startTime: number; endTime: number; amplitude: number }> => {
+    const events: Array<{ startTime: number; endTime: number; amplitude: number }> = [];
+
+    // STA/LTA parameters
+    const staWindow = Math.floor(1.0 * sampleRate); // 1 second short-term average
+    const ltaWindow = Math.floor(10.0 * sampleRate); // 10 second long-term average
+    const triggerThreshold = 3.0;
+    const detriggerThreshold = 1.5;
+
+    let triggered = false;
+    let eventStart = 0;
+
+    for (let i = ltaWindow; i < data.length - staWindow; i++) {
+      // Calculate STA (Short Term Average)
+      let staSum = 0;
+      for (let j = i; j < i + staWindow; j++) {
+        staSum += data[j] * data[j];
+      }
+      const sta = staSum / staWindow;
+
+      // Calculate LTA (Long Term Average)
+      let ltaSum = 0;
+      for (let j = i - ltaWindow; j < i; j++) {
+        ltaSum += data[j] * data[j];
+      }
+      const lta = ltaSum / ltaWindow;
+
+      const ratio = lta > 0 ? sta / lta : 0;
+
+      if (!triggered && ratio > triggerThreshold) {
+        triggered = true;
+        eventStart = i;
+      } else if (triggered && ratio < detriggerThreshold) {
+        triggered = false;
+        const eventEnd = i;
+        const eventData = data.slice(eventStart, eventEnd);
+        const maxAmplitude = Math.max(...eventData.map(Math.abs));
+
+        events.push({
+          startTime: eventStart / sampleRate,
+          endTime: eventEnd / sampleRate,
+          amplitude: maxAmplitude,
+        });
+      }
+    }
+
+    return events;
+  }, []);
+
+  /**
+   * Calculate cross-correlation between two waveforms
+   */
+  const calculateCrossCorrelation = useCallback((data1: number[], data2: number[]): { lags: number[], correlation: number[] } => {
+    const maxLag = Math.min(data1.length, data2.length) / 4;
+    const lags: number[] = [];
+    const correlation: number[] = [];
+
+    for (let lag = -maxLag; lag <= maxLag; lag++) {
+      let sum = 0;
+      let count = 0;
+
+      for (let i = 0; i < data1.length; i++) {
+        const j = i + lag;
+        if (j >= 0 && j < data2.length) {
+          sum += data1[i] * data2[j];
+          count++;
+        }
+      }
+
+      lags.push(lag);
+      correlation.push(count > 0 ? sum / count : 0);
+    }
+
+    return { lags, correlation };
+  }, []);
+
+  /**
+   * Export waveform data in various formats
+   */
+  const handleExport = useCallback(async (format: 'csv' | 'sac' | 'mseed' | 'json') => {
+    if (!waveformData.length) return;
+
+    try {
+      let exportData: string;
+      let filename: string;
+      let mimeType: string;
+
+      switch (format) {
+        case 'csv':
+          exportData = waveformData.map(waveform => {
+            const station = stations.find(s => s.id === waveform.stationId);
+            return waveform.data.map((value, index) =>
+              `${station?.network}.${station?.station},${index / waveform.sampleRate},${value}`
+            ).join('\n');
+          }).join('\n');
+          filename = `seismic_waveforms_${new Date().toISOString().split('T')[0]}.csv`;
+          mimeType = 'text/csv';
+          break;
+
+        case 'json':
+          exportData = JSON.stringify({
+            metadata: {
+              exportTime: new Date().toISOString(),
+              stations: selectedStations,
+              timeWindow,
+              filterSettings,
+            },
+            waveforms: waveformData.map(waveform => ({
+              ...waveform,
+              station: stations.find(s => s.id === waveform.stationId),
+            })),
+            events,
+          }, null, 2);
+          filename = `seismic_data_${new Date().toISOString().split('T')[0]}.json`;
+          mimeType = 'application/json';
+          break;
+
+        case 'sac':
+        case 'mseed':
+          // These would require specialized libraries for proper implementation
+          throw new Error(`${format.toUpperCase()} export requires specialized seismological libraries`);
+
+        default:
+          throw new Error(`Unsupported export format: ${format}`);
+      }
+
+      // Create and download file
+      const blob = new Blob([exportData], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (error) {
+      setError(`Export failed: ${error}`);
+      console.error('Export error:', error);
+    }
+  }, [waveformData, stations, selectedStations, timeWindow, filterSettings, events]);
+
+  /**
+   * Calculate signal-to-noise ratio
+   */
+  const calculateSNR = useCallback((data: number[], noiseStart: number, noiseEnd: number, signalStart: number, signalEnd: number): number => {
+    const noiseData = data.slice(noiseStart, noiseEnd);
+    const signalData = data.slice(signalStart, signalEnd);
+
+    const noiseRMS = Math.sqrt(noiseData.reduce((sum, val) => sum + val * val, 0) / noiseData.length);
+    const signalRMS = Math.sqrt(signalData.reduce((sum, val) => sum + val * val, 0) / signalData.length);
+
+    return noiseRMS > 0 ? 20 * Math.log10(signalRMS / noiseRMS) : 0;
+  }, []);
+
+  /**
+   * Apply taper window to reduce edge effects
+   */
+  const applyTaper = useCallback((data: number[], taperPercent: number = 0.05): number[] => {
+    const taperLength = Math.floor(data.length * taperPercent);
+    const taperedData = [...data];
+
+    // Apply Hanning taper to beginning and end
+    for (let i = 0; i < taperLength; i++) {
+      const weight = 0.5 * (1 - Math.cos(Math.PI * i / taperLength));
+      taperedData[i] *= weight;
+      taperedData[data.length - 1 - i] *= weight;
+    }
+
+    return taperedData;
+  }, []);
 
   return (
     <Box>
@@ -535,55 +651,30 @@ const SeismicWaveformVisualization: React.FC<SeismicWaveformVisualizationProps> 
       <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item>
-            <Box display="flex" gap={1}>
-              <Button
-                variant={isPlaying ? "outlined" : "contained"}
-                startIcon={<PlayArrow />}
-                onClick={handlePlay}
-                disabled={isLoading}
-              >
-                Play
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Pause />}
-                onClick={handlePause}
-                disabled={!isPlaying}
-              >
-                Pause
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Stop />}
-                onClick={handleStop}
-              >
-                Stop
-              </Button>
-            </Box>
+            <Typography variant="h6">Seismic Waveforms</Typography>
           </Grid>
 
           <Grid item>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Stations</InputLabel>
-              <Select
-                multiple
-                value={selectedStations}
-                onChange={(e) => setSelectedStations(e.target.value as string[])}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((value) => (
-                      <Chip key={value} label={value} size="small" />
-                    ))}
-                  </Box>
-                )}
-              >
-                {stations.map((station) => (
-                  <MenuItem key={station.id} value={station.id}>
-                    {station.name} ({station.id})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box display="flex" gap={1}>
+              <IconButton onClick={handlePlay} disabled={isPlaying}>
+                <PlayArrow />
+              </IconButton>
+              <IconButton onClick={handlePause} disabled={!isPlaying || realTimeMode}>
+                <Pause />
+              </IconButton>
+              <IconButton onClick={handleStop}>
+                <Stop />
+              </IconButton>
+              <IconButton onClick={handleRefresh}>
+                <Refresh />
+              </IconButton>
+              <IconButton onClick={() => handleExport('json')}>
+                <Download />
+              </IconButton>
+              <IconButton>
+                <Settings />
+              </IconButton>
+            </Box>
           </Grid>
 
           <Grid item>
@@ -594,22 +685,8 @@ const SeismicWaveformVisualization: React.FC<SeismicWaveformVisualizationProps> 
                   onChange={(e) => setFilterSettings(prev => ({ ...prev, enabled: e.target.checked }))}
                 />
               }
-              label="Filter"
+              label="Filters"
             />
-          </Grid>
-
-          <Grid item>
-            <Box sx={{ width: 150 }}>
-              <Typography variant="caption">Amplitude Scale</Typography>
-              <Slider
-                value={amplitudeScale}
-                onChange={(_: Event, value: number | number[]) => setAmplitudeScale(value as number)}
-                min={0.1}
-                max={10}
-                step={0.1}
-                size="small"
-              />
-            </Box>
           </Grid>
 
           <Grid item>
@@ -624,100 +701,202 @@ const SeismicWaveformVisualization: React.FC<SeismicWaveformVisualizationProps> 
             />
           </Grid>
 
-          <Grid item>
-            <Button
-              variant="outlined"
-              startIcon={<Download />}
-              onClick={handleExport}
-            >
-              Export
-            </Button>
-          </Grid>
-
-          <Grid item>
-            <IconButton onClick={handleRefresh} disabled={isLoading}>
-              <Refresh />
-            </IconButton>
-          </Grid>
+          {realTimeMode && (
+            <Grid item>
+              <Chip
+                label="LIVE"
+                color="error"
+                variant="filled"
+                size="small"
+              />
+            </Grid>
+          )}
         </Grid>
+
+        {/* Filter Controls */}
+        {filterSettings.enabled && (
+          <Box mt={2}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={filterSettings.highPass}
+                      onChange={(e) => setFilterSettings(prev => ({ ...prev, highPass: e.target.checked }))}
+                    />
+                  }
+                  label="High-pass"
+                />
+                {filterSettings.highPass && (
+                  <Box mt={1}>
+                    <Typography variant="caption">Frequency: {filterSettings.highPassFreq} Hz</Typography>
+                    <Slider
+                      value={filterSettings.highPassFreq}
+                      onChange={(_: Event, value: number | number[]) => setFilterSettings(prev => ({ ...prev, highPassFreq: value as number }))}
+                      min={0.1}
+                      max={50}
+                      step={0.1}
+                      size="small"
+                    />
+                  </Box>
+                )}
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={filterSettings.lowPass}
+                      onChange={(e) => setFilterSettings(prev => ({ ...prev, lowPass: e.target.checked }))}
+                    />
+                  }
+                  label="Low-pass"
+                />
+                {filterSettings.lowPass && (
+                  <Box mt={1}>
+                    <Typography variant="caption">Frequency: {filterSettings.lowPassFreq} Hz</Typography>
+                    <Slider
+                      value={filterSettings.lowPassFreq}
+                      onChange={(_: Event, value: number | number[]) => setFilterSettings(prev => ({ ...prev, lowPassFreq: value as number }))}
+                      min={1}
+                      max={100}
+                      step={0.1}
+                      size="small"
+                    />
+                  </Box>
+                )}
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Typography variant="caption">Amplitude Scale: {amplitudeScale}x</Typography>
+                <Slider
+                  value={amplitudeScale}
+                  onChange={(_: Event, value: number | number[]) => setAmplitudeScale(value as number)}
+                  min={0.1}
+                  max={10}
+                  step={0.1}
+                  size="small"
+                />
+              </Grid>
+            </Grid>
+
+            {/* Advanced Analysis Controls */}
+            <Box mt={2}>
+              <Typography variant="subtitle2" gutterBottom>Advanced Analysis</Typography>
+              <Grid container spacing={2}>
+                <Grid item>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      if (waveformData.length > 0) {
+                        const fftResult = performFFT(waveformData[0].data);
+                        console.log('FFT Analysis:', fftResult);
+                      }
+                    }}
+                  >
+                    Spectral Analysis
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      if (waveformData.length > 0) {
+                        const detectedEvents = detectEvents(waveformData[0].data, waveformData[0].sampleRate);
+                        console.log('Detected Events:', detectedEvents);
+                      }
+                    }}
+                  >
+                    Event Detection
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      if (waveformData.length >= 2) {
+                        const correlation = calculateCrossCorrelation(waveformData[0].data, waveformData[1].data);
+                        console.log('Cross-correlation:', correlation);
+                      }
+                    }}
+                  >
+                    Cross-Correlation
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      if (waveformData.length > 0) {
+                        const data = waveformData[0].data;
+                        const snr = calculateSNR(data, 0, Math.floor(data.length * 0.1), Math.floor(data.length * 0.5), data.length);
+                        console.log('Signal-to-Noise Ratio:', snr, 'dB');
+                      }
+                    }}
+                  >
+                    SNR Analysis
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      if (waveformData.length > 0) {
+                        const taperedData = applyTaper(waveformData[0].data, 0.05);
+                        console.log('Applied taper to', taperedData.length, 'samples');
+                      }
+                    }}
+                  >
+                    Apply Taper
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <InputLabel>Export Format</InputLabel>
+                    <Select
+                      defaultValue="json"
+                      onChange={(e) => handleExport(e.target.value as 'csv' | 'json')}
+                    >
+                      <MenuItem value="json">JSON</MenuItem>
+                      <MenuItem value="csv">CSV</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </Box>
+          </Box>
+        )}
       </Paper>
 
       {isLoading && <LinearProgress sx={{ mb: 2 }} />}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* Main plot */}
+      {/* Waveform Plot */}
       <Paper elevation={1}>
-        <Box height={600} p={2}>
-          <Plot
-            ref={plotRef}
-            data={plotData.traces}
-            layout={{
-              height: 560,
-              margin: { l: 80, r: 20, t: 40, b: 60 },
-              title: 'Seismic Waveforms',
-              xaxis: {
-                title: 'Time (UTC)',
-                type: 'date',
-                range: [new Date(Date.now() - 60 * 60 * 1000), new Date()],
-              },
-              yaxis: {
-                title: 'Amplitude + Offset',
-                zeroline: false,
-              },
-              showlegend: true,
-              legend: { x: 1, y: 1 },
-              annotations: plotData.annotations,
-              hovermode: 'closest',
-            }}
-            config={{
-              displayModeBar: true,
-              modeBarButtonsToRemove: ['pan2d', 'lasso2d'],
-              displaylogo: false,
-            }}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </Box>
-      </Paper>
-
-      {/* Station status */}
-      <Paper elevation={1} sx={{ mt: 2, p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Station Status
-        </Typography>
-        <Grid container spacing={2}>
-          {stations.filter(s => selectedStations.includes(s.id)).map((station) => (
-            <Grid item xs={12} md={4} key={station.id}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box display="flex" alignItems="center" justifyContent="between">
-                    <Box>
-                      <Typography variant="subtitle2">{station.name}</Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {station.id} • {station.network}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      icon={station.isActive ? <CheckCircle /> : <Warning />}
-                      label={station.isActive ? 'Active' : 'Inactive'}
-                      color={station.isActive ? 'success' : 'warning'}
-                      size="small"
-                    />
-                  </Box>
-                  <Box mt={1}>
-                    <Typography variant="caption">
-                      Quality: {(station.quality * 100).toFixed(0)}%
-                    </Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={station.quality * 100}
-                      sx={{ mt: 0.5 }}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <Plot
+          ref={plotRef}
+          data={traces}
+          layout={{
+            title: 'Seismic Waveforms',
+            xaxis: { title: 'Time (s)' },
+            yaxis: { title: 'Amplitude' },
+            height: compact ? 400 : 600,
+            margin: { l: 50, r: 50, t: 50, b: 50 },
+            showlegend: true,
+            annotations,
+          }}
+          config={{
+            displayModeBar: true,
+            displaylogo: false,
+            responsive: true,
+          }}
+          style={{ width: '100%', height: '100%' }}
+        />
       </Paper>
     </Box>
   );

@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Box, Container, Typography, Paper, Grid, Card, CardContent, Button } from '@mui/material';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Box, Container, Typography, Paper, Grid, Card, CardContent, Button, CircularProgress, Alert } from '@mui/material';
 import { CausalNetworkVisualization } from './CausalNetworkVisualization';
 import { CausalNetworkControls } from './CausalNetworkControls';
 import { CausalPathwayExplorer } from './CausalPathwayExplorer';
+import DatabaseService from '../../../services/DatabaseService';
 import {
   CausalGraph,
   CausalNode,
@@ -16,6 +17,12 @@ import {
 } from './types';
 
 export const CausalDashboardDemo: React.FC = () => {
+  // Real data state
+  const [causalGraph, setCausalGraph] = useState<CausalGraph | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const databaseService = DatabaseService.getInstance();
+
   // Demo state
   const [layoutConfig, setLayoutConfig] = useState<CausalLayoutConfig>({
     algorithm: 'force-directed',
@@ -64,309 +71,158 @@ export const CausalDashboardDemo: React.FC = () => {
   const [showControls, setShowControls] = useState(false);
   const [showPathExplorer, setShowPathExplorer] = useState(false);
 
-  // Generate demo causal graph data
-  const demoGraph = useMemo((): CausalGraph => {
-    const nodes: CausalNode[] = [
-      {
-        id: 'seismic-activity',
-        label: 'Seismic Activity',
-        processType: 'seismic',
-        position: { x: 200, y: 150 },
-        size: 25,
-        color: '#e74c3c',
-        metadata: {
-          description: 'Earthquake and microseismic events',
-          dataSource: 'IRIS/EarthScope',
-          lastUpdated: new Date(),
-          confidence: 0.92,
-          spatialScale: 'regional',
-          temporalScale: 'second'
-        },
-        properties: {
-          geologicalContext: 'active-fault-zone',
-          monitoringNetwork: 'regional-seismic-network'
-        }
-      },
-      {
-        id: 'magma-intrusion',
-        label: 'Magma Intrusion',
-        processType: 'magmatic',
-        position: { x: 400, y: 200 },
-        size: 30,
-        color: '#e67e22',
-        metadata: {
-          description: 'Magma injection and chamber pressurization',
-          dataSource: 'USGS Volcano Hazards Program',
-          lastUpdated: new Date(),
-          confidence: 0.85,
-          spatialScale: 'local',
-          temporalScale: 'day'
-        },
-        properties: {
-          geologicalContext: 'volcanic-system',
-          depth: '5-15 km'
-        }
-      },
-      {
-        id: 'ground-deformation',
-        label: 'Ground Deformation',
-        processType: 'deformation',
-        position: { x: 300, y: 100 },
-        size: 22,
-        color: '#f39c12',
-        metadata: {
-          description: 'Surface uplift and subsidence',
-          dataSource: 'ASF-Hyp3 MT-SAR',
-          lastUpdated: new Date(),
-          confidence: 0.88,
-          spatialScale: 'local',
-          temporalScale: 'day'
-        },
-        properties: {
-          geologicalContext: 'volcanic-edifice',
-          measurementTechnique: 'InSAR'
-        }
-      },
-      {
-        id: 'gas-emissions',
-        label: 'Volcanic Gas Emissions',
-        processType: 'geochemical',
-        position: { x: 500, y: 150 },
-        size: 20,
-        color: '#27ae60',
-        metadata: {
-          description: 'SO2, CO2, and other volcanic gas release',
-          dataSource: 'Volcanic Observatory Network',
-          lastUpdated: new Date(),
-          confidence: 0.78,
-          spatialScale: 'local',
-          temporalScale: 'hour'
-        },
-        properties: {
-          geologicalContext: 'volcanic-crater',
-          gasTypes: ['SO2', 'CO2', 'H2S']
-        }
-      },
-      {
-        id: 'thermal-anomalies',
-        label: 'Thermal Anomalies',
-        processType: 'thermal',
-        position: { x: 350, y: 300 },
-        size: 18,
-        color: '#e74c3c',
-        metadata: {
-          description: 'Surface temperature increases',
-          dataSource: 'NASA FIRMS',
-          lastUpdated: new Date(),
-          confidence: 0.82,
-          spatialScale: 'local',
-          temporalScale: 'hour'
-        },
-        properties: {
-          geologicalContext: 'volcanic-surface',
-          detectionMethod: 'satellite-thermal'
-        }
-      },
-      {
-        id: 'hydrothermal-activity',
-        label: 'Hydrothermal Activity',
-        processType: 'hydrothermal',
-        position: { x: 150, y: 250 },
-        size: 16,
-        color: '#16a085',
-        metadata: {
-          description: 'Hot spring and fumarole activity',
-          dataSource: 'Field Observations',
-          lastUpdated: new Date(),
-          confidence: 0.75,
-          spatialScale: 'outcrop',
-          temporalScale: 'day'
-        },
-        properties: {
-          geologicalContext: 'geothermal-field',
-          temperature: '80-95°C'
-        }
-      },
-      {
-        id: 'crustal-stress',
-        label: 'Crustal Stress Changes',
-        processType: 'tectonic',
-        position: { x: 100, y: 150 },
-        size: 24,
-        color: '#34495e',
-        metadata: {
-          description: 'Regional stress field variations',
-          dataSource: 'GPS Network',
-          lastUpdated: new Date(),
-          confidence: 0.90,
-          spatialScale: 'regional',
-          temporalScale: 'month'
-        },
-        properties: {
-          geologicalContext: 'tectonic-plate-boundary',
-          stressRegime: 'extensional'
-        }
-      }
-    ];
+  // Load real causal graph data from database
+  useEffect(() => {
+    const loadCausalGraph = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    const edges: CausalEdge[] = [
-      {
-        id: 'stress-seismic',
-        source: 'crustal-stress',
-        target: 'seismic-activity',
-        strength: 0.85,
-        confidence: [0.78, 0.92],
-        temporalLag: 86400000, // 1 day in ms
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'Granger Causality',
-          statisticalSignificance: 0.001,
-          validationStatus: 'validated',
-          geologicalContext: 'stress-induced seismicity'
-        },
-        properties: {
-          mechanism: 'stress-transfer',
-          evidenceStrength: 'strong'
-        }
-      },
-      {
-        id: 'magma-deformation',
-        source: 'magma-intrusion',
-        target: 'ground-deformation',
-        strength: 0.92,
-        confidence: [0.88, 0.96],
-        temporalLag: 3600000, // 1 hour in ms
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'PC Algorithm',
-          statisticalSignificance: 0.0001,
-          validationStatus: 'validated',
-          geologicalContext: 'magma-induced deformation'
-        },
-        properties: {
-          mechanism: 'volume-expansion',
-          evidenceStrength: 'very-strong'
-        }
-      },
-      {
-        id: 'magma-seismic',
-        source: 'magma-intrusion',
-        target: 'seismic-activity',
-        strength: 0.78,
-        confidence: [0.70, 0.86],
-        temporalLag: 1800000, // 30 minutes in ms
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'Transfer Entropy',
-          statisticalSignificance: 0.005,
-          validationStatus: 'validated',
-          geologicalContext: 'magma-induced seismicity'
-        },
-        properties: {
-          mechanism: 'fracturing-pressurization',
-          evidenceStrength: 'strong'
-        }
-      },
-      {
-        id: 'magma-gas',
-        source: 'magma-intrusion',
-        target: 'gas-emissions',
-        strength: 0.88,
-        confidence: [0.82, 0.94],
-        temporalLag: 7200000, // 2 hours in ms
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'LiNGAM',
-          statisticalSignificance: 0.0005,
-          validationStatus: 'validated',
-          geologicalContext: 'magma-degassing'
-        },
-        properties: {
-          mechanism: 'volatile-exsolution',
-          evidenceStrength: 'very-strong'
-        }
-      },
-      {
-        id: 'magma-thermal',
-        source: 'magma-intrusion',
-        target: 'thermal-anomalies',
-        strength: 0.82,
-        confidence: [0.75, 0.89],
-        temporalLag: 10800000, // 3 hours in ms
-        edgeType: 'direct',
-        metadata: {
-          discoveryMethod: 'Causal Forests',
-          statisticalSignificance: 0.002,
-          validationStatus: 'validated',
-          geologicalContext: 'thermal-conduction'
-        },
-        properties: {
-          mechanism: 'heat-transfer',
-          evidenceStrength: 'strong'
-        }
-      },
-      {
-        id: 'thermal-hydrothermal',
-        source: 'thermal-anomalies',
-        target: 'hydrothermal-activity',
-        strength: 0.65,
-        confidence: [0.55, 0.75],
-        temporalLag: 21600000, // 6 hours in ms
-        edgeType: 'indirect',
-        metadata: {
-          discoveryMethod: 'Cross-Correlation',
-          statisticalSignificance: 0.02,
-          validationStatus: 'pending',
-          geologicalContext: 'thermal-fluid-interaction'
-        },
-        properties: {
-          mechanism: 'fluid-heating',
-          evidenceStrength: 'moderate'
-        }
-      },
-      {
-        id: 'deformation-seismic-feedback',
-        source: 'ground-deformation',
-        target: 'seismic-activity',
-        strength: 0.45,
-        confidence: [0.35, 0.55],
-        temporalLag: 43200000, // 12 hours in ms
-        edgeType: 'bidirectional',
-        metadata: {
-          discoveryMethod: 'GES',
-          statisticalSignificance: 0.05,
-          validationStatus: 'uncertain',
-          geologicalContext: 'stress-redistribution'
-        },
-        properties: {
-          mechanism: 'feedback-loop',
-          evidenceStrength: 'weak'
-        }
-      }
-    ];
+        // Query real causal nodes from Neo4j
+        const causalNodes = await databaseService.queryCausalNodes({
+          processTypes: ['seismic', 'magmatic', 'deformation', 'geochemical', 'thermal', 'hydrothermal', 'tectonic'],
+          confidenceThreshold: 0.5,
+          dataSources: ['IRIS/EarthScope', 'USGS Volcano Hazards Program', 'ASF-Hyp3 MT-SAR', 'NASA FIRMS', 'Volcanic Observatory Network', 'GPS Network']
+        });
 
+        // Query real causal relationships from Neo4j
+        const causalRelationships = await databaseService.queryCausalRelationships({
+          strengthThreshold: 0.3,
+          confidenceThreshold: 0.5,
+          validationStatus: ['validated', 'pending', 'uncertain']
+        });
+
+        // Transform database records to CausalGraph format
+        const nodes: CausalNode[] = causalNodes.map(node => ({
+          id: node.id,
+          label: node.label,
+          processType: node.process_type as any,
+          position: {
+            x: node.longitude ? (node.longitude + 122) * 400 : calculateDeterministicPosition(node.id, 'x', 600, 100),
+            y: node.latitude ? (45 - node.latitude) * 400 : calculateDeterministicPosition(node.id, 'y', 400, 100)
+          },
+          size: Math.max(15, Math.min(35, node.confidence * 40)),
+          color: getProcessTypeColor(node.process_type),
+          metadata: {
+            description: node.metadata.description || `${node.process_type} process`,
+            dataSource: node.data_source,
+            lastUpdated: node.updated_at,
+            confidence: node.confidence,
+            spatialScale: (node.spatial_scale as any) || 'local',
+            temporalScale: (node.temporal_scale as any) || 'hours'
+          },
+          properties: {
+            geologicalContext: node.metadata.geologicalContext || 'unknown',
+            ...node.metadata
+          }
+        }));
+
+        const edges: CausalEdge[] = causalRelationships.map(edge => ({
+          id: edge.id,
+          source: edge.source_node_id,
+          target: edge.target_node_id,
+          strength: edge.strength,
+          confidence: [edge.confidence_lower, edge.confidence_upper],
+          temporalLag: edge.temporal_lag || 0,
+          edgeType: edge.relationship_type as any,
+          metadata: {
+            discoveryMethod: edge.discovery_method,
+            statisticalSignificance: edge.statistical_significance,
+            validationStatus: (edge.validation_status as any) || 'pending',
+            geologicalContext: edge.evidence.geologicalContext || 'unknown'
+          },
+          properties: {
+            mechanism: edge.evidence.mechanism || 'unknown',
+            evidenceStrength: edge.evidence.evidenceStrength || 'unknown'
+          }
+        }));
+
+        const graph: CausalGraph = {
+          nodes,
+          edges,
+          metadata: {
+            createdAt: new Date(),
+            lastUpdated: new Date(),
+            totalNodes: nodes.length,
+            totalEdges: edges.length,
+            averageCausalStrength: edges.length > 0 ? edges.reduce((sum, e) => sum + e.strength, 0) / edges.length : 0,
+            spatialExtent: {
+              north: nodes.length > 0 ? Math.max(...nodes.filter(n => n.position).map(n => n.position!.y)) : 45.0,
+              south: nodes.length > 0 ? Math.min(...nodes.filter(n => n.position).map(n => n.position!.y)) : 44.0,
+              east: nodes.length > 0 ? Math.max(...nodes.filter(n => n.position).map(n => n.position!.x)) : -121.0,
+              west: nodes.length > 0 ? Math.min(...nodes.filter(n => n.position).map(n => n.position!.x)) : -122.0
+            },
+            temporalExtent: {
+              start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+              end: new Date()
+            }
+          }
+        };
+
+        setCausalGraph(graph);
+      } catch (err) {
+        console.error('Failed to load causal graph:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load causal graph data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCausalGraph();
+  }, [databaseService]);
+
+  // Helper function to get color based on process type
+  const getProcessTypeColor = (processType: string): string => {
+    const colorMap: Record<string, string> = {
+      seismic: '#e74c3c',
+      magmatic: '#e67e22',
+      deformation: '#f39c12',
+      geochemical: '#27ae60',
+      thermal: '#e74c3c',
+      hydrothermal: '#16a085',
+      tectonic: '#34495e'
+    };
+    return colorMap[processType] || '#95a5a6';
+  };
+
+  // Deterministic positioning based on node properties instead of random
+  const calculateDeterministicPosition = (nodeId: string, axis: 'x' | 'y', range: number, offset: number): number => {
+    // Create deterministic hash from node ID
+    let hash = 0;
+    for (let i = 0; i < nodeId.length; i++) {
+      const char = nodeId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Use different hash seeds for x and y axes
+    const seed = axis === 'x' ? hash : hash * 31;
+    const normalized = Math.abs(seed) / 2147483647; // Normalize to 0-1
+    
+    return normalized * range + offset;
+  };
+
+  // Use real data or fallback to empty graph
+  const displayGraph = useMemo((): CausalGraph => {
+    if (causalGraph) {
+      return causalGraph;
+    }
+
+    // Return empty graph structure if no data loaded yet
     return {
-      nodes,
-      edges,
+      nodes: [],
+      edges: [],
       metadata: {
         createdAt: new Date(),
         lastUpdated: new Date(),
-        totalNodes: nodes.length,
-        totalEdges: edges.length,
-        averageCausalStrength: edges.reduce((sum, e) => sum + e.strength, 0) / edges.length,
-        spatialExtent: {
-          north: 45.0,
-          south: 44.0,
-          east: -121.0,
-          west: -122.0
-        },
-        temporalExtent: {
-          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-          end: new Date()
-        }
+        totalNodes: 0,
+        totalEdges: 0,
+        averageCausalStrength: 0,
+        spatialExtent: { north: 45.0, south: 44.0, east: -121.0, west: -122.0 },
+        temporalExtent: { start: new Date(), end: new Date() }
       }
     };
-  }, []);
+  }, [causalGraph]);
 
   // Event handlers
   const handleNodeClick = useCallback((node: CausalNode) => {
@@ -391,16 +247,43 @@ export const CausalDashboardDemo: React.FC = () => {
     setHighlightedPaths(paths);
   }, []);
 
+  if (loading) {
+    return (
+      <Container maxWidth={false} sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box textAlign="center">
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Loading Real Causal Network Data...
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Querying Neo4j graph database for causal relationships
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth={false} sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Alert severity="error" sx={{ maxWidth: 600 }}>
+          <Typography variant="h6">Failed to Load Causal Network</Typography>
+          <Typography variant="body2">{error}</Typography>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth={false} sx={{ height: '100vh', p: 2 }}>
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Interactive Causal Network Visualization Demo
+          Real-Time Causal Network Visualization
         </Typography>
         <Typography variant="subtitle1" color="textSecondary" gutterBottom>
-          Advanced geological process causality analysis with real-time interaction
+          Live geological process causality analysis from Neo4j graph database
         </Typography>
-        
+
         <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
           <Button
             variant={showControls ? 'contained' : 'outlined'}
@@ -434,7 +317,7 @@ export const CausalDashboardDemo: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Paper elevation={3} sx={{ height: '100%', position: 'relative' }}>
             <CausalNetworkVisualization
-              graph={demoGraph}
+              graph={displayGraph}
               width={800}
               height={600}
               layoutConfig={layoutConfig}
@@ -484,7 +367,7 @@ export const CausalDashboardDemo: React.FC = () => {
             {/* Pathway Explorer */}
             {showPathExplorer && (
               <CausalPathwayExplorer
-                graph={demoGraph}
+                graph={displayGraph}
                 selectedNodes={selectedNodes}
                 onPathHighlight={handlePathHighlight}
                 onClose={() => setShowPathExplorer(false)}
@@ -503,13 +386,13 @@ export const CausalDashboardDemo: React.FC = () => {
                   Network Statistics
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Nodes: {demoGraph.nodes.length}
+                  Nodes: {displayGraph.nodes.length}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Edges: {demoGraph.edges.length}
+                  Edges: {displayGraph.edges.length}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Avg. Causal Strength: {demoGraph.metadata.averageCausalStrength.toFixed(2)}
+                  Avg. Causal Strength: {displayGraph.metadata.averageCausalStrength.toFixed(2)}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                   Selected Nodes: {selectedNodes.length}
@@ -530,14 +413,14 @@ export const CausalDashboardDemo: React.FC = () => {
                   Geological Process Types
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {Array.from(new Set(demoGraph.nodes.map(n => n.processType))).map(type => (
+                  {Array.from(new Set(displayGraph.nodes.map(n => n.processType))).map(type => (
                     <Box key={type} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Box
                         sx={{
                           width: 16,
                           height: 16,
                           borderRadius: '50%',
-                          bgcolor: demoGraph.nodes.find(n => n.processType === type)?.color || '#ccc'
+                          bgcolor: displayGraph.nodes.find(n => n.processType === type)?.color || '#ccc'
                         }}
                       />
                       <Typography variant="body2">
@@ -560,7 +443,7 @@ export const CausalDashboardDemo: React.FC = () => {
                     <Box sx={{ mb: 1 }}>
                       <Typography variant="subtitle2">Selected Nodes:</Typography>
                       {selectedNodes.map(nodeId => {
-                        const node = demoGraph.nodes.find(n => n.id === nodeId);
+                        const node = displayGraph.nodes.find(n => n.id === nodeId);
                         return (
                           <Typography key={nodeId} variant="body2" color="textSecondary">
                             • {node?.label || nodeId}
@@ -573,9 +456,9 @@ export const CausalDashboardDemo: React.FC = () => {
                     <Box>
                       <Typography variant="subtitle2">Selected Edges:</Typography>
                       {selectedEdges.map(edgeId => {
-                        const edge = demoGraph.edges.find(e => e.id === edgeId);
-                        const sourceNode = demoGraph.nodes.find(n => n.id === edge?.source);
-                        const targetNode = demoGraph.nodes.find(n => n.id === edge?.target);
+                        const edge = displayGraph.edges.find(e => e.id === edgeId);
+                        const sourceNode = displayGraph.nodes.find(n => n.id === edge?.source);
+                        const targetNode = displayGraph.nodes.find(n => n.id === edge?.target);
                         return (
                           <Typography key={edgeId} variant="body2" color="textSecondary">
                             • {sourceNode?.label} → {targetNode?.label}

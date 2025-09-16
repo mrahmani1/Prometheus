@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import DatabaseService from '../../services/DatabaseService';
+import RealDataService from '../../services/RealDataService';
 import {
   Box,
   Paper,
@@ -199,9 +201,39 @@ export const VolcanicMonitoringDashboard: React.FC<VolcanicMonitoringDashboardPr
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const interval = setInterval(() => {
-      // In a real implementation, this would trigger a data refresh
-      console.log('Auto-refreshing volcanic monitoring data...');
+    const interval = setInterval(async () => {
+      // Trigger real data refresh from volcanic monitoring networks
+      try {
+        const databaseService = DatabaseService.getInstance();
+        const realDataService = RealDataService.getInstance();
+        
+        // Refresh volcanic systems data
+        const updatedVolcanicSystems = await databaseService.queryVolcanicSystems({
+          alertLevels: ['yellow', 'orange', 'red'],
+          monitoringStatus: ['monitored', 'partially_monitored'],
+        });
+        
+        // Refresh thermal anomalies from NASA FIRMS
+        const thermalAnomalies = await realDataService.fetchThermalAnomalies({
+          bounds: {
+            minLatitude: -90,
+            maxLatitude: 90,
+            minLongitude: -180,
+            maxLongitude: 180,
+          },
+          startDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+          endDate: new Date(),
+          satellite: 'MODIS',
+        });
+        
+        console.log(`Refreshed ${updatedVolcanicSystems.length} volcanic systems and ${thermalAnomalies.length} thermal anomalies`);
+        
+        // Update component state with new data
+        // This would trigger re-render with fresh data
+        
+      } catch (error) {
+        console.error('Failed to refresh volcanic monitoring data:', error);
+      }
     }, refreshInterval * 1000);
 
     return () => clearInterval(interval);

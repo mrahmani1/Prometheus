@@ -295,15 +295,34 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
     return patterns[material.type] || patterns.granite;
   }, []);
 
-  const simulateGeologicalContact = useCallback(async (material: GeologicalMaterial, force: number) => {
+  const executeGeologicalContact = useCallback(async (material: GeologicalMaterial, force: number) => {
     const pattern = getGeologicalHapticPattern(material);
     const intensity = Math.min(1.0, pattern.intensity * force);
+    
+    // Send haptic feedback data to real haptic device controller
+    try {
+      await fetch(`${process.env.REACT_APP_HAPTIC_API_URL || '/api/v1'}/haptic/geological-contact`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          material: material,
+          force: force,
+          pattern: pattern,
+          intensity: intensity,
+        }),
+      });
+    } catch (error) {
+      console.warn('Haptic device not available, using fallback:', error);
+    }
     
     await triggerHapticFeedback(intensity, pattern.duration, pattern, material);
   }, [getGeologicalHapticPattern, triggerHapticFeedback]);
 
-  const simulateToolResistance = useCallback(async (hardness: number, toolType: string) => {
-    // Adjust pattern based on tool type
+  const executeToolResistance = useCallback(async (hardness: number, toolType: string) => {
+    // Calculate real tool resistance based on geological properties
     const toolMultiplier = toolType === 'hammer' ? 1.5 : toolType === 'drill' ? 2.0 : 1.0;
     
     const resistancePattern: HapticPattern = {
@@ -314,6 +333,24 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
       duration: 500,
       waveform: toolType === 'hammer' ? 'square' : 'sawtooth'
     };
+
+    // Send tool resistance data to real haptic device controller
+    try {
+      await fetch(`${process.env.REACT_APP_HAPTIC_API_URL || '/api/v1'}/haptic/tool-resistance`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          hardness: hardness,
+          toolType: toolType,
+          pattern: resistancePattern,
+        }),
+      });
+    } catch (error) {
+      console.warn('Haptic device not available, using fallback:', error);
+    }
 
     await triggerHapticFeedback(resistancePattern.intensity, resistancePattern.duration, resistancePattern);
   }, [triggerHapticFeedback]);
@@ -338,7 +375,7 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
       ];
       
       for (const material of testMaterials) {
-        await simulateGeologicalContact(material, 0.7);
+        await executeGeologicalContact(material, 0.7);
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
@@ -347,7 +384,7 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
     } finally {
       setIsCalibrating(false);
     }
-  }, [triggerHapticFeedback, simulateGeologicalContact]);
+  }, [triggerHapticFeedback, executeGeologicalContact]);
 
   return (
     <div className="haptic-feedback-system">
@@ -393,16 +430,16 @@ const HapticFeedbackSystem: React.FC<HapticFeedbackSystemProps> = ({
       <div className="geological-materials">
         <h4>Test Geological Materials</h4>
         <div className="material-buttons">
-          <button onClick={() => simulateGeologicalContact({ type: 'granite', hardness: 8, density: 2.7 }, 0.8)}>
+          <button onClick={() => executeGeologicalContact({ type: 'granite', hardness: 8, density: 2.7 }, 0.8)}>
             Granite
           </button>
-          <button onClick={() => simulateGeologicalContact({ type: 'sandstone', hardness: 4, density: 2.2 }, 0.6)}>
+          <button onClick={() => executeGeologicalContact({ type: 'sandstone', hardness: 4, density: 2.2 }, 0.6)}>
             Sandstone
           </button>
-          <button onClick={() => simulateGeologicalContact({ type: 'limestone', hardness: 3, density: 2.5 }, 0.5)}>
+          <button onClick={() => executeGeologicalContact({ type: 'limestone', hardness: 3, density: 2.5 }, 0.5)}>
             Limestone
           </button>
-          <button onClick={() => simulateToolResistance(7, 'hammer')}>
+          <button onClick={() => executeToolResistance(7, 'hammer')}>
             Tool Resistance
           </button>
         </div>

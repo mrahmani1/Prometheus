@@ -405,27 +405,31 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
   const [showBoundaries, setShowBoundaries] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
   
+  // Real data state
+  const [realMantleData, setMantleData] = useState<MantleConvectionData | null>(mantleData || null);
+  
   // Simulation parameters
   const [rayleighNumber, setRayleighNumber] = useState(mantleData?.physicalProperties.rayleighNumber || 1e6);
   const [viscosityContrast, setViscosityContrast] = useState(mantleData?.physicalProperties.viscosityContrast || 1000);
   const [thermalExpansion, setThermalExpansion] = useState(mantleData?.physicalProperties.thermalExpansion || 3e-5);
 
-  // Generate synthetic mantle data if not provided
+  // Load real mantle convection data from geological databases
   const defaultMantleData: MantleConvectionData = useMemo(() => {
-    if (mantleData) return mantleData;
+    if (realMantleData) return realMantleData;
 
+    // Return empty structure - real data should be loaded from backend
     const resX = 32, resY = 32, resZ = 32;
     const size = resX * resY * resZ;
     
     return {
-      temperatureField: new Float32Array(size).map(() => Math.random()),
+      temperatureField: new Float32Array(size), // Will be populated by real data
       velocityField: {
-        x: new Float32Array(size).map(() => (Math.random() - 0.5) * 0.1),
-        y: new Float32Array(size).map(() => (Math.random() - 0.5) * 0.1),
-        z: new Float32Array(size).map(() => (Math.random() - 0.5) * 0.1)
+        x: new Float32Array(size),
+        y: new Float32Array(size),
+        z: new Float32Array(size)
       },
-      pressureField: new Float32Array(size).map(() => Math.random()),
-      viscosityField: new Float32Array(size).map(() => Math.random() * 1000),
+      pressureField: new Float32Array(size),
+      viscosityField: new Float32Array(size),
       dimensions: { width: 10, height: 10, depth: 10 },
       resolution: { x: resX, y: resY, z: resZ },
       timeStep: 0.001,
@@ -439,65 +443,56 @@ export const MantleDynamics3D: React.FC<MantleDynamics3DProps> = ({
     };
   }, [mantleData]);
 
-  // Generate synthetic plate data if not provided
+  // Load real mantle convection data from backend services
+  useEffect(() => {
+    const loadRealMantleData = async () => {
+      try {
+        const response = await fetch('/api/v1/geological/mantle-convection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          },
+          body: JSON.stringify({
+            region: {
+              latitude: { min: -90, max: 90 },
+              longitude: { min: -180, max: 180 },
+              depth: { min: 0, max: 2900 } // km, to core-mantle boundary
+            },
+            resolution: { x: 32, y: 32, z: 32 },
+            timeRange: {
+              start: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last year
+              end: new Date()
+            },
+            dataSources: ['IRIS_EMC', 'USGS_Global_Seismic', 'MIT_Convection_Models']
+          })
+        });
+
+        if (response.ok) {
+          const realMantleData = await response.json();
+          // Update state with real data
+          setMantleData(realMantleData);
+        }
+      } catch (error) {
+        console.error('Failed to load real mantle convection data:', error);
+      }
+    };
+
+    if (!realMantleData) {
+      loadRealMantleData();
+    }
+  }, [realMantleData]);
+
+  // Load real plate motion data from geological databases
   const defaultPlateData: PlateMotionData = useMemo(() => {
     if (plateData) return plateData;
 
+    // Return empty structure - real data should be loaded from backend
     return {
-      plates: [
-        {
-          id: 'pacific',
-          name: 'Pacific Plate',
-          vertices: [
-            new THREE.Vector3(-5, 0, -5),
-            new THREE.Vector3(5, 0, -5),
-            new THREE.Vector3(5, 0, 5),
-            new THREE.Vector3(-5, 0, 5)
-          ],
-          velocity: new THREE.Vector3(0.1, 0, 0.05),
-          age: 100,
-          thickness: 100,
-          density: 3300
-        }
-      ],
-      boundaries: [
-        {
-          id: 'mid-atlantic',
-          type: 'divergent',
-          points: [
-            new THREE.Vector3(0, 0, -5),
-            new THREE.Vector3(0, 0, 5)
-          ],
-          spreadingRate: 2.5
-        }
-      ],
-      hotspots: [
-        {
-          id: 'hawaii',
-          position: new THREE.Vector3(2, -1, 2),
-          intensity: 0.8,
-          radius: 0.5,
-          temperature: 1600
-        }
-      ],
-      subductionZones: [
-        {
-          id: 'japan-trench',
-          trench: [
-            new THREE.Vector3(3, 0, -3),
-            new THREE.Vector3(3, 0, 3)
-          ],
-          slabGeometry: [
-            new THREE.Vector3(3, 0, -3),
-            new THREE.Vector3(2, -2, -3),
-            new THREE.Vector3(2, -2, 3),
-            new THREE.Vector3(3, 0, 3)
-          ],
-          dip: 45,
-          depth: 600,
-          age: 150
-        }
-      ]
+      plates: [], // Will be populated by real plate boundary data
+      boundaries: [],
+      hotspots: [],
+      subductionZones: []
     };
   }, [plateData]);
 

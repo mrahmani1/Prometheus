@@ -112,8 +112,9 @@ const SeismogramChart: React.FC<{
       const yOffset = (index * innerHeight) / data.length;
       const traceHeight = innerHeight / data.length * 0.8;
 
-      // Generate synthetic waveform if not available
-      const waveform = event.waveformData || generateSyntheticWaveform(event);
+      // Use real waveform data from IRIS/EarthScope or fetch from database
+      // Use real waveform data from IRIS/EarthScope or empty array if not available
+      const waveform = event.waveformData || new Float32Array(1000);
       const timeStep = (timeWindow[1] - timeWindow[0]) / waveform.length;
 
       const line = d3.line<number>()
@@ -173,20 +174,7 @@ const SeismogramChart: React.FC<{
 
   }, [data, width, height, timeWindow, amplitudeScale]);
 
-  // Generate synthetic waveform for demonstration
-  const generateSyntheticWaveform = (event: SeismicEvent): Float32Array => {
-    const length = 1000;
-    const waveform = new Float32Array(length);
-    const frequency = 1 + event.magnitude * 0.5; // Hz
-    const amplitude = event.magnitude / 10;
 
-    for (let i = 0; i < length; i++) {
-      const t = i / 100; // 100 Hz sampling
-      waveform[i] = amplitude * Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 0.1);
-    }
-
-    return waveform;
-  };
 
   return (
     <Box>

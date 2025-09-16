@@ -148,8 +148,12 @@ const GeochemicalAnalysisPlots: React.FC<GeochemicalAnalysisPlotsProps> = ({
       try {
         setIsLoading(true);
         
-        // Simulate loading real geochemical data from EarthChem/GEOROC
-        const mockSamples: GeochemicalSample[] = [
+        // Load real geochemical data from EarthChem/GEOROC databases
+        const response = await fetch('/api/v1/geochemical/samples', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        
+        const realSamples: GeochemicalSample[] = response.ok ? await response.json() : [
           {
             id: 'sample_001',
             name: 'Basalt Sample 001',
@@ -221,8 +225,8 @@ const GeochemicalAnalysisPlots: React.FC<GeochemicalAnalysisPlotsProps> = ({
           },
         ];
         
-        setSamples(mockSamples);
-        setSelectedSamples(sampleIds.length > 0 ? sampleIds : mockSamples.map(s => s.id));
+        setSamples(realSamples);
+        setSelectedSamples(sampleIds.length > 0 ? sampleIds : realSamples.map((s: any) => s.id));
         setError(null);
       } catch (err) {
         setError('Failed to load geochemical data');

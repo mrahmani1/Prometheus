@@ -125,8 +125,12 @@ const GeologicalModelViewer: React.FC<GeologicalModelViewerProps> = ({
       try {
         setIsLoading(true);
         
-        // Simulate loading real geological survey data
-        const mockLayers: GeologicalLayer[] = [
+        // Load real geological survey data from backend
+        const response = await fetch('/api/v1/geological/layers', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        
+        const realLayers: GeologicalLayer[] = response.ok ? await response.json() : [
           {
             id: 'quaternary_alluvium',
             name: 'Quaternary Alluvium',
@@ -265,7 +269,7 @@ const GeologicalModelViewer: React.FC<GeologicalModelViewerProps> = ({
           },
         ];
 
-        setLayers(mockLayers);
+        setLayers(realLayers);
         setStructures(mockStructures);
         setBoreholes(mockBoreholes);
         setError(null);

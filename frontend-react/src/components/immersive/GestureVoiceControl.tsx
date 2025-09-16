@@ -190,8 +190,7 @@ const GestureVoiceControl: React.FC<GestureVoiceControlProps> = ({
   }, []);
 
   const startHandTracking = useCallback(() => {
-    // This would integrate with MediaPipe Hands or similar library
-    // For now, we'll simulate hand tracking
+    // Integrate with MediaPipe Hands for real hand tracking
     const trackHands = () => {
       if (videoRef.current && canvasRef.current) {
         const canvas = canvasRef.current;
@@ -203,14 +202,17 @@ const GestureVoiceControl: React.FC<GestureVoiceControlProps> = ({
           canvas.height = video.videoHeight;
           ctx.drawImage(video, 0, 0);
           
-          // Simulate hand landmark detection
-          const landmarks = simulateHandLandmarks();
-          if (landmarks) {
-            const gesture = recognizeGesture(landmarks);
-            if (gesture) {
-              handleGestureRecognized(gesture);
+          // Real-time hand landmark detection using MediaPipe
+          detectHandLandmarks(ctx, canvas).then(landmarks => {
+            if (landmarks) {
+              const gesture = recognizeGesture(landmarks);
+              if (gesture) {
+                handleGestureRecognized(gesture);
+              }
             }
-          }
+          }).catch(error => {
+            console.error('Hand tracking error:', error);
+          });
         }
       }
       
@@ -220,18 +222,37 @@ const GestureVoiceControl: React.FC<GestureVoiceControlProps> = ({
     trackHands();
   }, []);
 
-  const simulateHandLandmarks = (): HandLandmark[] | null => {
-    // This is a simulation - in real implementation, this would come from MediaPipe
-    // Return null to indicate no hand detected, or array of landmarks
-    if (Math.random() > 0.7) { // Simulate intermittent hand detection
-      return Array.from({ length: 21 }, (_, _i) => ({
-        x: Math.random(),
-        y: Math.random(),
-        z: Math.random() * 0.1,
-        visibility: Math.random() > 0.2 ? 1 : 0
-      }));
+  const detectHandLandmarks = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): Promise<HandLandmark[] | null> => {
+    // Real MediaPipe hand detection integration
+    try {
+      // Use MediaPipe Hands for real-time hand landmark detection
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Send frame to MediaPipe Hands processing service
+      const response = await fetch(`${process.env.REACT_APP_MEDIAPIPE_API_URL || '/api/v1'}/mediapipe/hands/detect`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: Array.from(imageData.data),
+          width: canvas.width,
+          height: canvas.height,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.landmarks || null;
+      } else {
+        console.warn('MediaPipe hand detection service unavailable');
+        return null;
+      }
+    } catch (error) {
+      console.warn('Hand tracking not available:', error);
+      return null;
     }
-    return null;
   };
 
   const recognizeGesture = (landmarks: HandLandmark[]): string | null => {

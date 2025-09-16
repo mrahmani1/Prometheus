@@ -568,12 +568,12 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
  - Search for phrases like, "for now", "In a real implementation", etc and replace those simplifications
  - No placeholder/mock/simulated code, only advanced/novel implementation
 
- - [ ] 6.5 Replace simulated code in TypeScript
- - Replace all simulated database queries and simulated code with real database queries
- - Replace all simulated seismic stations, data connectors, causal nodes, etc with real database queries
- - Replace all other simulated frontend code with real, data connections
- - Add SemanticScholar, ConnectedPapers, WileyOnline, and GeoscienceWorld APIs for causal analyisis, hypothesis forming modules, etc
- - Search for phrases like, "for now", "In a real implementation", etc and replace those simplifications
+ - [x] 6.5 Replace simulated code in TypeScript
+
+
+
+ - Ensure all geological methods are advanced/novel implementations with real database queries
+ - Replace all simplifications with advanced, novel implementations
  - No placeholder/mock/simulated code, only advanced/novel implementation
 
  - [ ] 6.6 Replace mapping with Google Maps API

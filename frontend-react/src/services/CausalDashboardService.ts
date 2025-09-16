@@ -6,14 +6,16 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { 
   CausalGraph, 
-  // CausalNode, // Unused
-  // CausalEdge, // Unused
+  CausalNode,
+  CausalEdge,
   // CausalRelationship, // Unused
   CausalAnalysisResult,
   GeologicalProcessType,
   SpatialScale,
   TemporalScale,
 } from '../components/visualization/causal/types';
+import DatabaseService from './DatabaseService';
+import AcademicAPIService from './AcademicAPIService';
 
 interface RealDataSource {
   id: string;
@@ -59,6 +61,8 @@ class CausalDashboardService {
   private static instance: CausalDashboardService;
   private apiClient: AxiosInstance;
   private websocket: WebSocket | null = null;
+  private databaseService: DatabaseService;
+  private academicService: AcademicAPIService;
   // private realTimeCallbacks: Map<string, (data: any) => void> = new Map(); // Unused
   // private connectionConfig: DatabaseConnectionConfig | null = null; // Unused
 
@@ -92,6 +96,10 @@ class CausalDashboardService {
         return Promise.reject(error);
       }
     );
+
+    // Initialize database and academic services
+    this.databaseService = DatabaseService.getInstance();
+    this.academicService = AcademicAPIService.getInstance();
   }
 
   static getInstance(): CausalDashboardService {
@@ -485,33 +493,281 @@ class CausalDashboardService {
    * Validate that causal graph uses only real data sources
    */
   private validateRealDataSources(graph: CausalGraph): void {
-    const suspiciousPatterns = [
-      'mock', 'fake', 'dummy', 'placeholder', 'synthetic', 'simulated',
-      'random', 'generated', 'test', 'sample'
+    // Validate against authenticated real data sources
+    const validSources = [
+      'iris', 'usgs', 'nasa', 'copernicus', 'asf-hyp3', 'earthchem', 'georoc', 'navdat', 'petdb',
+      'global volcanism program', 'volcano discovery', 'smithsonian', 'real-time monitoring',
+      'semantic scholar', 'connected papers', 'wiley online', 'geoscience world',
+      'postgresql', 'influxdb', 'redis', 'neo4j', 'timescaledb'
     ];
 
     graph.nodes.forEach(node => {
-      const dataSource = node.metadata.dataSource.toLowerCase();
-      const hasSuspiciousPattern = suspiciousPatterns.some(pattern => 
-        dataSource.includes(pattern)
-      );
+      const dataSource = node.metadata.dataSource?.toLowerCase() || '';
+      const hasValidSource = validSources.some(source => dataSource.includes(source));
       
-      if (hasSuspiciousPattern) {
-        console.warn(`Suspicious data source detected for node ${node.id}: ${node.metadata.dataSource}`);
+      if (!hasValidSource) {
+        throw new Error(`Node ${node.id} does not have a verified real data source: ${node.metadata.dataSource}. All nodes must connect to authenticated geological databases or academic sources.`);
+      }
+
+      // Validate data quality and authenticity
+      if ((node as any).confidence < 0.7) {
+        console.warn(`Node ${node.id} has low confidence (${(node as any).confidence}). Consider additional validation.`);
+      }
+
+      // Check for required metadata
+      if (!node.metadata.lastUpdated || (node.metadata as any).dataQuality === undefined) {
+        throw new Error(`Node ${node.id} missing required metadata (lastUpdated, dataQuality) for real data validation.`);
       }
     });
 
     graph.edges.forEach(edge => {
-      const discoveryMethod = edge.metadata.discoveryMethod.toLowerCase();
-      const hasSuspiciousPattern = suspiciousPatterns.some(pattern => 
-        discoveryMethod.includes(pattern)
-      );
+      // Validate causal discovery methods
+      const validMethods = [
+        'pc algorithm', 'ges', 'lingam', 'causal forests', 'granger causality',
+        'transfer entropy', 'cross-correlation', 'literature analysis', 'expert knowledge'
+      ];
+
+      const discoveryMethod = edge.metadata.discoveryMethod?.toLowerCase() || '';
+      const hasValidMethod = validMethods.some(method => discoveryMethod.includes(method));
       
-      if (hasSuspiciousPattern) {
-        console.warn(`Suspicious discovery method detected for edge ${edge.id}: ${edge.metadata.discoveryMethod}`);
+      if (!hasValidMethod) {
+        throw new Error(`Edge ${edge.id} uses unvalidated discovery method: ${edge.metadata.discoveryMethod}. All causal relationships must use established causal inference algorithms or literature validation.`);
+      }
+
+      // Validate statistical significance
+      if ((edge as any).statisticalSignificance > 0.05) {
+        console.warn(`Edge ${edge.id} has low statistical significance (p=${(edge as any).statisticalSignificance}). Consider additional validation.`);
       }
     });
   }
+
+  /**
+   * Build causal graph from real database sources
+   */
+  async buildCausalGraphFromDatabase(params: {
+    spatial?: {
+      bounds?: {
+        minLatitude: number;
+        maxLatitude: number;
+        minLongitude: number;
+        maxLongitude: number;
+      };
+    };
+    temporal?: {
+      start: Date;
+      end: Date;
+    };
+    processTypes?: GeologicalProcessType[];
+    confidenceThreshold?: number;
+  }): Promise<CausalGraph> {
+    try {
+      // Query causal nodes and relationships from Neo4j
+      const [nodes, edges] = await Promise.all([
+        this.databaseService.queryCausalNodes({
+          processTypes: params.processTypes?.map(p => p.toString()),
+          confidenceThreshold: params.confidenceThreshold || 0.7,
+        }),
+        this.databaseService.queryCausalRelationships({
+          confidenceThreshold: params.confidenceThreshold || 0.7,
+          validationStatus: ['validated', 'peer_reviewed'],
+        }),
+      ]);
+
+      // Convert database records to causal graph format
+      const causalNodes = nodes.map(node => ({
+        id: node.id,
+        label: node.label,
+        processType: node.process_type as GeologicalProcessType,
+        spatialScale: node.spatial_scale as SpatialScale,
+        temporalScale: node.temporal_scale as TemporalScale,
+        dataSource: node.data_source,
+        metadata: {
+          ...node.metadata,
+          lastUpdated: node.updated_at,
+          dataQuality: node.confidence,
+        },
+        size: node.size,
+        color: node.color,
+        confidence: node.confidence,
+        location: node.latitude && node.longitude ? {
+          latitude: node.latitude,
+          longitude: node.longitude,
+        } : undefined,
+      }));
+
+      const causalEdges = edges.map(edge => ({
+        id: edge.id,
+        source: edge.source_node_id,
+        target: edge.target_node_id,
+        strength: edge.strength,
+        confidence: [edge.confidence_lower, edge.confidence_upper] as [number, number],
+        temporalLag: edge.temporal_lag,
+        statisticalSignificance: edge.statistical_significance,
+        discoveryMethod: edge.discovery_method,
+        validationStatus: edge.validation_status,
+        metadata: {
+          discoveryMethod: edge.discovery_method,
+          evidence: edge.evidence,
+          lastUpdated: edge.updated_at,
+        },
+      }));
+
+      return {
+        nodes: causalNodes as unknown as CausalNode[],
+        edges: causalEdges as unknown as CausalEdge[],
+        metadata: {
+          createdAt: new Date(),
+          lastUpdated: new Date(),
+          totalNodes: causalNodes.length,
+          totalEdges: causalEdges.length,
+          averageCausalStrength: causalEdges.reduce((sum, edge) => sum + edge.strength, 0) / causalEdges.length || 0,
+          spatialExtent: {
+            north: 90,
+            south: -90,
+            east: 180,
+            west: -180,
+          },
+          temporalExtent: {
+            start: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+            end: new Date(),
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Failed to build causal graph from database:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enhance causal graph with academic literature
+   */
+  async enhanceCausalGraphWithLiterature(
+    graph: CausalGraph,
+    searchTerms: string[]
+  ): Promise<CausalGraph> {
+    try {
+      // Search academic literature for each search term
+      const literaturePromises = searchTerms.map(term =>
+        this.academicService.searchLiterature({
+          query: term,
+          limit: 50,
+          yearRange: { start: 2015, end: new Date().getFullYear() },
+        })
+      );
+
+      const literatureResults = await Promise.all(literaturePromises);
+      const allPapers = literatureResults.flat();
+
+      // Extract causal relationships from literature
+      const causalExtraction = await this.academicService.extractCausalRelationships(
+        allPapers,
+        'geology'
+      );
+
+      // Enhance existing nodes with literature evidence
+      const enhancedNodes = graph.nodes.map(node => {
+        const relevantPapers = allPapers.filter(paper =>
+          paper.title.toLowerCase().includes(node.label.toLowerCase()) ||
+          paper.abstract.toLowerCase().includes(node.label.toLowerCase())
+        );
+
+        return {
+          ...node,
+          metadata: {
+            ...node.metadata,
+            literatureSupport: relevantPapers.length,
+            supportingPapers: relevantPapers.slice(0, 5).map(p => ({
+              title: p.title,
+              authors: p.authors.map(a => a.name).join(', '),
+              year: p.year,
+              citationCount: p.citationCount,
+            })),
+          },
+        };
+      });
+
+      // Add new relationships discovered from literature
+      const literatureEdges = causalExtraction.relationships.map(rel => ({
+        id: `lit_${rel.source}_${rel.target}`,
+        source: rel.source,
+        target: rel.target,
+        strength: rel.confidence,
+        confidence: [rel.confidence * 0.8, rel.confidence] as [number, number],
+        statisticalSignificance: 0.05, // Literature-based relationships
+        discoveryMethod: 'literature_analysis',
+        validationStatus: 'literature_supported',
+        metadata: {
+          discoveryMethod: 'literature_analysis',
+          evidence: rel.evidence,
+          supportingPapers: rel.paperIds.length,
+          lastUpdated: new Date(),
+        },
+      }));
+
+      return {
+        ...graph,
+        nodes: enhancedNodes,
+        edges: [...graph.edges, ...literatureEdges] as CausalEdge[],
+        metadata: {
+          ...graph.metadata,
+          lastUpdated: new Date(),
+        },
+      };
+    } catch (error) {
+      console.error('Failed to enhance causal graph with literature:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate causal hypothesis using academic literature
+   */
+  async validateCausalHypothesisWithLiterature(hypothesis: {
+    sourceVariable: string;
+    targetVariable: string;
+    expectedStrength: number;
+    domain?: string;
+  }): Promise<{
+    validation: 'supported' | 'contradicted' | 'inconclusive';
+    confidence: number;
+    supportingPapers: number;
+    contradictingPapers: number;
+    recommendations: string[];
+  }> {
+    try {
+      const causalHypothesis = {
+        id: `hyp_${hypothesis.sourceVariable}_${hypothesis.targetVariable}`,
+        hypothesis: `${hypothesis.sourceVariable} has a causal influence on ${hypothesis.targetVariable}`,
+        variables: [hypothesis.sourceVariable, hypothesis.targetVariable],
+        expectedRelationships: [{
+          source: hypothesis.sourceVariable,
+          target: hypothesis.targetVariable,
+          type: 'causal' as const,
+          strength: hypothesis.expectedStrength,
+        }],
+        supportingEvidence: [],
+        contradictingEvidence: [],
+        confidence: hypothesis.expectedStrength,
+        domain: hypothesis.domain || 'geology',
+      };
+
+      const validation = await this.academicService.validateHypothesis(causalHypothesis);
+
+      return {
+        validation: validation.validation,
+        confidence: validation.confidence,
+        supportingPapers: validation.supportingPapers.length,
+        contradictingPapers: validation.contradictingPapers.length,
+        recommendations: validation.recommendations,
+      };
+    } catch (error) {
+      console.error('Failed to validate hypothesis with literature:', error);
+      throw error;
+    }
+  }
+
+
 
   /**
    * Get content type for export format

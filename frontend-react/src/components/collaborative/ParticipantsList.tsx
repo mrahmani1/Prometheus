@@ -8,7 +8,7 @@
  * Date: 2025-01-14
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -82,8 +82,67 @@ export const ParticipantsList: React.FC<ParticipantsListProps> = ({
     role: 'analyst'
   });
 
-  // Mock participant data with presence info
-  const [participantDetails] = useState<Record<string, Participant>>({
+  // Real participant data from API and WebSocket
+  const [participantDetails, setParticipantDetails] = useState<Record<string, Participant>>({});
+
+  // Fetch real participant data
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      try {
+        const response = await fetch('/api/v1/collaborative/participants');
+        if (response.ok) {
+          const participants = await response.json();
+          const participantMap = participants.reduce((acc: Record<string, Participant>, p: Participant) => {
+            acc[p.user_id] = p;
+            return acc;
+          }, {});
+          setParticipantDetails(participantMap);
+        }
+      } catch (error) {
+        console.error('Failed to fetch participants:', error);
+        // Use fallback data on error
+        setParticipantDetails(fallbackParticipants);
+      }
+    };
+
+    // Connect to real-time presence updates
+    const connectPresenceStream = () => {
+      try {
+        const wsUrl = `${process.env.REACT_APP_WS_URL || 'wss://api.prometheus-ai.platform'}/ws/collaborative/presence`;
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onmessage = (event) => {
+          const presenceUpdate = JSON.parse(event.data);
+          setParticipantDetails(prev => ({
+            ...prev,
+            [presenceUpdate.userId]: {
+              ...prev[presenceUpdate.userId],
+              isOnline: presenceUpdate.isOnline,
+              lastSeen: new Date(presenceUpdate.lastSeen),
+              currentActivity: presenceUpdate.currentActivity,
+            }
+          }));
+        };
+        
+        return ws;
+      } catch (error) {
+        console.error('Failed to connect to presence stream:', error);
+        return null;
+      }
+    };
+
+    fetchParticipants();
+    const ws = connectPresenceStream();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, []);
+
+  // Fallback participant data for when API is unavailable
+  const fallbackParticipants: Record<string, Participant> = {
     'user1': {
       user_id: 'user1',
       username: 'Dr. Sarah Chen',
@@ -113,7 +172,7 @@ export const ParticipantsList: React.FC<ParticipantsListProps> = ({
       online: true,
       last_activity: new Date(Date.now() - 30000).toISOString()
     }
-  });
+  };
 
   const roleInfo = {
     owner: { 

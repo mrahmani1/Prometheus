@@ -162,27 +162,50 @@ const MLOpsIntegrationInterface: React.FC<MLOpsIntegrationInterfaceProps> = ({
   // Model performance metrics over time
   useEffect(() => {
     if (realTimeMonitoring) {
-      const interval = setInterval(() => {
-        // Simulate real-time metrics updates
+      const interval = setInterval(async () => {
+        // Fetch real-time metrics updates from MLOps monitoring system
         const newMetrics: Record<string, number[]> = {};
-        models.forEach(model => {
+        // Process models sequentially to handle async operations
+        for (const model of models) {
           if (!monitoringMetrics[model.id]) {
             newMetrics[model.id] = [];
           } else {
             newMetrics[model.id] = [...monitoringMetrics[model.id]];
           }
           
-          // Add new metric point
-          newMetrics[model.id].push(
-            (model.metrics.accuracy || model.metrics.r2Score || Math.random()) + 
-            (Math.random() - 0.5) * 0.1
-          );
-          
-          // Keep only last 50 points
-          if (newMetrics[model.id].length > 50) {
-            newMetrics[model.id] = newMetrics[model.id].slice(-50);
+          // Fetch real-time metrics from production MLOps monitoring system
+          try {
+            const response = await fetch(`${process.env.REACT_APP_MLOPS_API_URL || '/api/v1'}/models/${model.id}/metrics/latest`, {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (response.ok) {
+              const latestMetrics = await response.json();
+              newMetrics[model.id].push(latestMetrics.primaryMetric || 0);
+            } else {
+              console.warn(`Failed to fetch metrics for model ${model.id}: ${response.status}`);
+              // Use last known value if API fails
+              const lastValue = newMetrics[model.id][newMetrics[model.id].length - 1] || 0;
+              newMetrics[model.id].push(lastValue);
+            }
+          } catch (error) {
+            console.error(`Failed to fetch metrics for model ${model.id}:`, error);
+            // Use last known value if API fails
+            const lastValue = newMetrics[model.id][newMetrics[model.id].length - 1] || 0;
+            newMetrics[model.id].push(lastValue);
           }
-        });
+        }
+        
+        // Process all models and update metrics
+        for (const modelId of Object.keys(newMetrics)) {
+          // Keep only last 50 points
+          if (newMetrics[modelId].length > 50) {
+            newMetrics[modelId] = newMetrics[modelId].slice(-50);
+          }
+        }
         setMonitoringMetrics(newMetrics);
       }, 5000);
 

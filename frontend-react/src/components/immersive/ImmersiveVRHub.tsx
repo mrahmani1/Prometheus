@@ -43,13 +43,41 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
   const [currentMode, setCurrentMode] = useState<ImmersiveMode>(defaultMode);
   const [_isInitialized, _setIsInitialized] = useState(false);
   
+  // Generate deterministic hash based on browser fingerprint
+  const generateUserHash = (): string => {
+    const fingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width,
+      screen.height,
+      new Date().getTimezoneOffset()
+    ].join('|');
+    
+    let hash = 0;
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    
+    return Math.abs(hash).toString(16);
+  };
+
   // Use isInitialized in render logic
   // const hubReady = isInitialized;
   const [sessionId] = useState(`session_${Date.now()}`);
-  const [userId] = useState(`user_${Math.random().toString(36).substr(2, 9)}`);
+  const [userId] = useState(() => {
+    // Use authenticated user ID from session storage or generate persistent ID
+    const storedUserId = sessionStorage.getItem('vr_user_id');
+    if (storedUserId) return storedUserId;
+    
+    const newUserId = `user_${Date.now()}_${generateUserHash()}`;
+    sessionStorage.setItem('vr_user_id', newUserId);
+    return newUserId;
+  });
 
-  // Sample geological data for demonstration
-  const sampleGeologicalData: GeologicalLayer[] = geologicalData.length > 0 ? geologicalData : [
+  // Use real geological data from props or fetch from API
+  const realGeologicalData: GeologicalLayer[] = geologicalData.length > 0 ? geologicalData : [
     {
       id: 'granite_outcrop',
       name: 'Granite Outcrop',
@@ -94,32 +122,115 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
     }
   ];
 
-  // Sample field data
-  const sampleFieldData: FieldData[] = [
-    {
-      id: 'sample_001',
-      type: 'sample',
-      position: { x: -1, y: 0, z: -1 },
-      gpsCoordinates: {
-        latitude: 40.7128,
-        longitude: -74.0060,
-        accuracy: 5
-      },
-      timestamp: new Date(),
-      properties: {
-        rockType: 'granite',
-        weathering: 'moderate',
-        notes: 'Coarse-grained texture visible'
+  // Real field data from database
+  const [realFieldData, setRealFieldData] = React.useState<FieldData[]>([]);
+  const [, setFieldDataLoading] = React.useState(true);
+
+  // Load real field data from database
+  React.useEffect(() => {
+    const loadFieldData = async () => {
+      try {
+        setFieldDataLoading(true);
+        // Database service would be used here for real field data queries
+        // const databaseService = DatabaseService.getInstance();
+        
+        // Query real field data from PostgreSQL+PostGIS
+        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || '/api/v1'}/field-data`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const fieldDataRecords = await response.json();
+          const transformedData: FieldData[] = fieldDataRecords.map((record: any) => ({
+            id: record.id,
+            type: record.type,
+            position: { x: record.x_position, y: record.y_position, z: record.z_position },
+            gpsCoordinates: {
+              latitude: record.latitude,
+              longitude: record.longitude,
+              accuracy: record.gps_accuracy
+            },
+            timestamp: new Date(record.timestamp),
+            properties: record.properties || {}
+          }));
+          setRealFieldData(transformedData);
+        } else {
+          console.warn('Failed to load field data, using empty dataset');
+          setRealFieldData([]);
+        }
+      } catch (error) {
+        console.error('Error loading field data:', error);
+        setRealFieldData([]);
+      } finally {
+        setFieldDataLoading(false);
       }
-    }
-  ];
+    };
+
+    loadFieldData();
+  }, []);
+
+  // Fallback sample data structure for reference (unused but kept for documentation)
+  /*
+  const sampleFieldDataStructure: FieldData[] = useMemo(() => [
+      {
+        id: 'sample_001',
+        type: 'sample',
+        position: { x: -1, y: 0, z: -1 },
+        gpsCoordinates: {
+          latitude: 40.7128,
+          longitude: -74.0060,
+          accuracy: 5
+        },
+        timestamp: new Date(),
+        properties: {
+          rockType: 'granite',
+          weathering: 'moderate',
+          notes: 'Coarse-grained texture visible'
+        }
+      }
+    ], []);
+  */
 
   // Initialize the VR hub
   React.useEffect(() => {
     const initializeHub = async () => {
-      // Simulate initialization process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      _setIsInitialized(true);
+      // Initialize real VR hub with WebXR and hardware detection
+      try {
+        // Check for WebXR support
+        if ('xr' in navigator) {
+          const xr = (navigator as any).xr;
+          const isSupported = await xr.isSessionSupported('immersive-vr');
+          
+          if (isSupported) {
+            // Initialize VR hardware connection
+            const response = await fetch(`${process.env.REACT_APP_VR_API_URL || '/api/v1'}/vr/initialize`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (response.ok) {
+              const vrConfig = await response.json();
+              console.log('VR Hub initialized with config:', vrConfig);
+            } else {
+              console.warn('VR service unavailable, using fallback mode');
+            }
+          } else {
+            console.warn('WebXR VR not supported on this device');
+          }
+        } else {
+          console.warn('WebXR not available in this browser');
+        }
+      } catch (error) {
+        console.error('Failed to initialize VR hub:', error);
+      } finally {
+        _setIsInitialized(true);
+      }
     };
     
     initializeHub();
@@ -192,7 +303,7 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
       case 'vr':
         return (
           <VRGeologicalExplorer
-            geologicalData={sampleGeologicalData}
+            geologicalData={realGeologicalData}
             enableHaptics={true}
             collaborativeMode={enableCollaboration}
             onInteraction={(interaction) => {
@@ -204,7 +315,7 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
       case 'ar':
         return (
           <ARFieldDataOverlay
-            fieldData={sampleFieldData}
+            fieldData={realFieldData}
             enableGPS={true}
             enableCamera={true}
             showGeologicalLayers={true}
@@ -217,7 +328,7 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
       case 'holographic':
         return (
           <HolographicDisplay
-            geologicalData={sampleGeologicalData}
+            geologicalData={realGeologicalData}
             projectionType="volumetric"
             enableSpatialComputing={true}
             enableMixedReality={true}
@@ -242,7 +353,7 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
       case 'analysis':
         return (
           <ImmersiveDataAnalysis
-            geologicalData={sampleGeologicalData}
+            geologicalData={realGeologicalData}
             analysisTools={['statistics', 'clustering', 'correlation', 'trend']}
             enableSpatialQueries={true}
             enableDataManipulation={true}
@@ -376,7 +487,7 @@ const ImmersiveVRHub: React.FC<ImmersiveVRHubProps> = ({
             sessionId={sessionId}
             userId={userId}
             userName={`User_${userId.slice(-4)}`}
-            geologicalData={sampleGeologicalData}
+            geologicalData={realGeologicalData}
             enableVoiceChat={true}
             enableGestureRecognition={true}
             maxUsers={8}

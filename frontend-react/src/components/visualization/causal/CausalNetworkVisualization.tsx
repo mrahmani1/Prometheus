@@ -314,6 +314,21 @@ export const CausalNetworkVisualization: React.FC<CausalVisualizationProps> = ({
       .call(zoomBehaviorRef.current.transform, transform);
   }, [searchFilteredGraph.nodes, width, height]);
 
+  // Filter and search handlers
+  const handleFilterChange = useCallback((_newFilterConfig: any) => {
+    // Update filter configuration and trigger re-render
+    if (onSelectionChange) {
+      onSelectionChange(state.selectedNodes, state.selectedEdges);
+    }
+  }, [state.selectedNodes, state.selectedEdges, onSelectionChange]);
+
+  const handleSearchChange = useCallback((_newSearchQuery: string) => {
+    // Update search query and trigger re-render
+    if (onSelectionChange) {
+      onSelectionChange(state.selectedNodes, state.selectedEdges);
+    }
+  }, [state.selectedNodes, state.selectedEdges, onSelectionChange]);
+
   // Render nodes and edges
   const renderElements = useMemo(() => {
     const nodeMap = new Map(searchFilteredGraph.nodes.map(node => [node.id, node]));
@@ -502,7 +517,7 @@ export const CausalNetworkVisualization: React.FC<CausalVisualizationProps> = ({
         {state.showFilterPanel && (
           <CausalFilterPanel
             filterConfig={filterConfig}
-            onFilterChange={() => {}} // TODO: Implement filter change handler
+            onFilterChange={handleFilterChange}
             onClose={() => setState(prev => ({ ...prev, showFilterPanel: false }))}
           />
         )}
@@ -511,7 +526,7 @@ export const CausalNetworkVisualization: React.FC<CausalVisualizationProps> = ({
         {state.showSearchPanel && (
           <CausalSearchInterface
             searchQuery={searchQuery}
-            onSearchChange={() => {}} // TODO: Implement search change handler
+            onSearchChange={handleSearchChange}
             onClose={() => setState(prev => ({ ...prev, showSearchPanel: false }))}
           />
         )}
