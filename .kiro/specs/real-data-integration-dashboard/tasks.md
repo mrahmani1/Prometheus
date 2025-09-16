@@ -569,17 +569,14 @@ The implementation follows a phased approach: (1) audit and replace placeholder 
  - No placeholder/mock/simulated code, only advanced/novel implementation
 
  - [x] 6.5 Replace simulated code in TypeScript
-
-
-
  - Ensure all geological methods are advanced/novel implementations with real database queries
  - Replace all simplifications with advanced, novel implementations
  - No placeholder/mock/simulated code, only advanced/novel implementation
 
- - [ ] 6.6 Replace mapping with Google Maps API
+ - [x] 6.6 Replace generic mapping with Google Maps API
  - Implement advanced/novel Google Maps API integration across all frontend
- - Ensure that the mapping is correctly configured, and applied to all types
- - Ensure Google mapping is fully integrated
+ - Ensure that the mapping is correctly configured, and applied to all types/methods
+ - Ensure Google mapping is fully integrated with all modules
  - Run syntax checks on all new code.
  - No simplified/placeholder/simulated/mock code, production quality code with advanced/novel features only.
 

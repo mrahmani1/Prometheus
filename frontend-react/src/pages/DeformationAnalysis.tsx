@@ -222,7 +222,7 @@ const DeformationAnalysis: React.FC = () => {
                   }))}
                   seismicEvents={[]}
                   volcanicStates={[]}
-                  initialViewport={{ longitude: 0, latitude: 0, zoom: 2 }}
+                  initialViewport={{ center: { lat: 0, lng: 0 }, zoom: 2 }}
                   onFeatureClick={(feature) => console.log('Selected deformation point:', feature)}
                 />
               </Box>

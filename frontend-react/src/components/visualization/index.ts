@@ -3,6 +3,7 @@ export { GeologicalRenderer } from './3D/GeologicalRenderer';
 
 // Mapping Components
 export { GeologicalMap } from './maps/GeologicalMap';
+export { default as GoogleGeologicalMap } from './maps/GoogleGeologicalMap';
 
 // Chart Components
 export { ScientificCharts } from './charts/ScientificCharts';

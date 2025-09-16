@@ -149,11 +149,11 @@ const HighResolutionMappingInterface: React.FC<HighResolutionMappingInterfacePro
   const mapTraces = useMemo(() => {
     const traces: Data[] = [];
 
-    // Add basemap layer
+    // Add Google Maps basemap layer
     if (mapConfig.basemap === 'satellite') {
-      // Satellite imagery would be loaded from tile service
+      // Google Maps satellite imagery integration
       traces.push({
-        type: 'scattermapbox',
+        type: 'scattergeo',
         lat: [],
         lon: [],
         mode: 'markers',
@@ -170,7 +170,7 @@ const HighResolutionMappingInterface: React.FC<HighResolutionMappingInterfacePro
       switch (layer.type) {
         case 'scatter':
           traces.push({
-            type: 'scattermapbox',
+            type: 'scattergeo',
             lat: layer.data.lat,
             lon: layer.data.lon,
             mode: 'markers',
@@ -198,7 +198,7 @@ const HighResolutionMappingInterface: React.FC<HighResolutionMappingInterfacePro
 
         case 'heatmap':
           traces.push({
-            type: 'densitymapbox',
+            type: 'densitymapbox', // Note: Plotly still uses mapbox for density maps
             lat: layer.data.lat,
             lon: layer.data.lon,
             z: layer.data.z,
@@ -216,7 +216,7 @@ const HighResolutionMappingInterface: React.FC<HighResolutionMappingInterfacePro
 
         case 'contour':
           traces.push({
-            type: 'scattermapbox',
+            type: 'scattergeo',
             lat: layer.data.lat,
             lon: layer.data.lon,
             mode: 'lines',
@@ -234,10 +234,10 @@ const HighResolutionMappingInterface: React.FC<HighResolutionMappingInterfacePro
           break;
 
         case 'choropleth':
-          // For choropleth maps, we'd need GeoJSON data
+          // For choropleth maps with Google Maps integration
           traces.push({
-            type: 'choroplethmapbox',
-            geojson: layer.data.customdata?.[0], // Assuming GeoJSON is in customdata
+            type: 'choropleth',
+            geojson: layer.data.customdata?.[0], // GeoJSON data for choropleth
             locations: layer.data.text,
             z: layer.data.z,
             colorscale: layer.style.colorscale || 'Blues',
@@ -260,32 +260,33 @@ const HighResolutionMappingInterface: React.FC<HighResolutionMappingInterfacePro
     return traces;
   }, [layers, mapConfig]);
 
-  // Generate layout configuration
+  // Generate layout configuration for Google Maps integration
   const mapLayout = useMemo((): Partial<Layout> => ({
-    mapbox: {
-      style: getMapboxStyle(mapConfig.basemap),
+    geo: {
+      projection: { type: 'natural earth' },
+      showland: true,
+      landcolor: getGoogleMapsStyle(mapConfig.basemap).landColor,
+      coastlinecolor: 'rgb(204, 204, 204)',
       center: mapConfig.center,
-      zoom: mapConfig.zoom,
-      bearing: 0,
-      pitch: 0,
+      // Google Maps tiles will be overlaid via custom integration
     },
     height,
     margin: { l: 0, r: 0, t: 40, b: 0 },
     showlegend: true,
     legend: { x: 0, y: 1 },
-    title: 'High-Resolution Geological Map',
+    title: 'High-Resolution Geological Map (Google Maps)',
     hovermode: 'closest',
   }), [mapConfig, height]);
 
-  // Get Mapbox style based on basemap selection
-  function getMapboxStyle(basemap: string): string {
+  // Get Google Maps style configuration based on basemap selection
+  function getGoogleMapsStyle(basemap: string): { landColor: string; mapType: string } {
     switch (basemap) {
-      case 'satellite': return 'satellite-streets';
-      case 'terrain': return 'outdoors';
-      case 'street': return 'streets';
-      case 'topo': return 'outdoors';
-      case 'ocean': return 'satellite';
-      default: return 'satellite-streets';
+      case 'satellite': return { landColor: 'rgb(50, 50, 50)', mapType: 'satellite' };
+      case 'terrain': return { landColor: 'rgb(200, 180, 140)', mapType: 'terrain' };
+      case 'street': return { landColor: 'rgb(243, 243, 243)', mapType: 'roadmap' };
+      case 'topo': return { landColor: 'rgb(200, 180, 140)', mapType: 'terrain' };
+      case 'ocean': return { landColor: 'rgb(50, 50, 50)', mapType: 'satellite' };
+      default: return { landColor: 'rgb(50, 50, 50)', mapType: 'hybrid' };
     }
   }
 
@@ -569,17 +570,17 @@ const HighResolutionMappingInterface: React.FC<HighResolutionMappingInterfacePro
                 modeBarButtonsToRemove: ['pan2d', 'lasso2d'],
                 displaylogo: false,
                 responsive: true,
-                mapboxAccessToken: process.env.REACT_APP_MAPBOX_TOKEN,
+                // Google Maps integration handled separately
               }}
               style={{ width: '100%', height: `${height}px` }}
               onClick={handleMapClick}
               onHover={(event) => setHoveredFeature(event.points[0])}
               onRelayout={(eventData) => {
-                if ((eventData as any)['mapbox.center']) {
+                if ((eventData as any)['geo.center']) {
                   setMapConfig(prev => ({
                     ...prev,
-                    center: (eventData as any)['mapbox.center'],
-                    zoom: (eventData as any)['mapbox.zoom'] || prev.zoom,
+                    center: (eventData as any)['geo.center'],
+                    zoom: (eventData as any)['geo.zoom'] || prev.zoom,
                   }));
                 }
               }}

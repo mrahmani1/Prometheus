@@ -273,7 +273,7 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
         case 'map':
           // 2D map view
           traces.push({
-            type: 'scattermapbox',
+            type: 'scattergeo',
             lat: dataset.data.map(p => p.location.y),
             lon: dataset.data.map(p => p.location.x),
             mode: 'markers',
@@ -336,8 +336,10 @@ const TemporalVisualization4D: React.FC<TemporalVisualization4DProps> = ({
       case 'map':
         return {
           ...baseLayout,
-          mapbox: {
-            style: 'satellite-streets',
+          geo: {
+            projection: { type: 'natural earth' },
+            showland: true,
+            landcolor: 'rgb(50, 50, 50)',
             center: { lat: 0, lon: 0 },
             zoom: 8,
           },
