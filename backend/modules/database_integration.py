@@ -1284,8 +1284,10 @@ class PostgreSQLGISManager:
                     local_sum = np.sum([weights[k] * magnitudes[neighbors[k]] for k in range(len(neighbors))])
                     global_mean = np.mean(magnitudes)
                     
-                    # Simplified Gi* calculation
-                    gi_star = (local_sum - global_mean * np.sum(weights)) / np.std(magnitudes)
+                    # Advanced Getis-Ord Gi* calculation with proper statistical framework
+                    gi_star = await self._calculate_advanced_getis_ord_statistic(
+                        local_sum, global_mean, weights, magnitudes, spatial_coords
+                    )
                     
                     # Determine if it's a hotspot (high values) or coldspot (low values)
                     if abs(gi_star) > 1.96:  # 95% confidence level

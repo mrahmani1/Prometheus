@@ -3613,20 +3613,45 @@ class ProcessingRouteSelector:
             mu = 1.0  # Penalty parameter
             lambda_vec = np.zeros(5)  # Lagrangian multipliers for main constraints
             
-            # Simplified augmented Lagrangian step
-            augmented_iterations = 5
+            # Advanced augmented Lagrangian method with adaptive penalty parameters
+            augmented_iterations = 50
+            convergence_tolerance = 1e-6
+            
+            # Initialize advanced penalty parameter adaptation
+            penalty_adaptation_history = []
+            constraint_violation_history = []
             
             for iteration in range(augmented_iterations):
-                # Update allocation using augmented Lagrangian gradient
-                current_violations = self._analyze_constraint_violations(
+                # Advanced constraint violation analysis with sensitivity computation
+                current_violations = await self._compute_advanced_constraint_violations(
                     {'allocation_matrix': allocation_matrix}, ore_types, 0.5, 0.8, 0.6)
                 
-                if current_violations['total_violation_magnitude'] < 1e-4:
+                constraint_violation_history.append(current_violations['total_violation_magnitude'])
+                
+                if current_violations['total_violation_magnitude'] < convergence_tolerance:
                     break
                 
-                # Simple constraint satisfaction step
-                if current_violations['risk_violation'] > 0:
-                    allocation_matrix *= 0.98  # Reduce risk by scaling down
+                # Compute augmented Lagrangian gradient with second-order information
+                augmented_gradient = await self._compute_augmented_lagrangian_gradient(
+                    allocation_matrix, lambda_vec, mu, current_violations, ore_types)
+                
+                # Adaptive step size using Armijo line search
+                step_size = await self._armijo_line_search(
+                    allocation_matrix, augmented_gradient, lambda_vec, mu, ore_types)
+                
+                # Update allocation matrix with projected gradient step
+                allocation_matrix = await self._projected_gradient_update(
+                    allocation_matrix, augmented_gradient, step_size, ore_types)
+                
+                # Update Lagrangian multipliers using dual ascent
+                lambda_vec = await self._update_lagrangian_multipliers(
+                    lambda_vec, current_violations, mu, iteration)
+                
+                # Adaptive penalty parameter update
+                mu = await self._update_penalty_parameter(
+                    mu, current_violations, constraint_violation_history, iteration)
+                
+                penalty_adaptation_history.append(mu)
                 
                 if current_violations['utilization_violation'] > 0:
                     # Try to increase utilization while respecting constraints

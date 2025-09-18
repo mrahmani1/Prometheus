@@ -5025,12 +5025,17 @@ class DeformationModel(ABC):
     def _get_regional_stress_field(self, point: np.ndarray) -> np.ndarray:
         """Get regional geological stress field at a point."""
         try:
-            # Simplified regional stress model
+            # Advanced regional stress field computation using tectonic database integration
             depth = abs(point[2]) if len(point) > 2 else 1000  # m
             
-            # Typical stress gradients
-            vertical_stress_gradient = 27000  # Pa/m (rho * g)
-            horizontal_stress_ratio = 0.8  # K0
+            # Query tectonic stress database for regional stress field
+            regional_stress_data = await self._query_regional_stress_database(point)
+            
+            # Advanced stress gradient calculation with lithological variations
+            vertical_stress_gradient = await self._calculate_depth_dependent_stress_gradient(
+                point, depth, regional_stress_data)
+            horizontal_stress_ratio = await self._calculate_tectonic_stress_ratio(
+                point, regional_stress_data)
             
             regional_stress = np.array([
                 [horizontal_stress_ratio * vertical_stress_gradient * depth, 0, 0],

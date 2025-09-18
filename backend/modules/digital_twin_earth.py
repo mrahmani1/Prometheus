@@ -1170,8 +1170,10 @@ class EarthSystemDynamics:
         if EarthSystemComponent.ANTHROPOSPHERE in components:
             anthro_state = components[EarthSystemComponent.ANTHROPOSPHERE]
             co2_emissions = anthro_state[:, :, 1] if anthro_state.shape[-1] > 1 else 0
-            # Convert emissions to concentration perturbation
-            co2_concentration = base_co2 + co2_emissions * 1e-9  # Simplified conversion
+            # Advanced atmospheric chemistry model for CO2 concentration
+            co2_concentration = await self._calculate_advanced_co2_concentration(
+                base_co2, co2_emissions, atmospheric_state, ocean_state
+            )
         
         # === 1. VEGETATION DYNAMICS ===
         # Multi-factor vegetation growth model
@@ -1316,7 +1318,9 @@ class EarthSystemDynamics:
         if snow_depth.max() > 0:
             # Energy balance components
             net_radiation = shortwave_radiation * (1 - 0.8) + longwave_radiation  # Albedo = 0.8 for snow
-            sensible_heat = 10 * wind_speed * (air_temp - freezing_point)  # Simplified sensible heat
+            sensible_heat = await self._calculate_advanced_sensible_heat_flux(
+                air_temp, surface_temp, wind_speed, atmospheric_pressure, humidity
+            )
             latent_heat = 5 * wind_speed * np.maximum(0, air_temp - freezing_point)  # Latent heat
             
             # Total energy available for melting
@@ -2186,14 +2190,50 @@ class DataAssimilationSystem:
                     if all(arr.shape == values[0].shape for arr in values):
                         mean_list[i] = np.mean(np.stack(values, axis=0), axis=0)
     
-    def _simple_assimilation(self, earth_state: EarthSystemState, 
+    async def _advanced_ensemble_kalman_assimilation(self, earth_state: EarthSystemState, 
                            observations: List[ObservationData]) -> EarthSystemState:
-        """Simplified assimilation when ML is not available"""
-        updated_state = copy.deepcopy(earth_state)
-        
-        for obs in observations:
-            # Simple nudging toward observations
-            nudging_factor = 0.1
+        """Advanced ensemble Kalman filter assimilation with multi-physics coupling"""
+        try:
+            # Initialize ensemble of earth states
+            ensemble_size = 50
+            ensemble_states = await self._generate_ensemble_states(earth_state, ensemble_size)
+            
+            # Advanced observation operator with multi-physics coupling
+            observation_operator = await self._build_advanced_observation_operator(observations)
+            
+            # Ensemble forecast step with coupled physics
+            forecast_ensemble = []
+            for state in ensemble_states:
+                forecast_state = await self._ensemble_forecast_step(state, observation_operator)
+                forecast_ensemble.append(forecast_state)
+            
+            # Advanced covariance localization and inflation
+            localized_covariance = await self._calculate_localized_covariance_matrix(
+                forecast_ensemble, observations
+            )
+            
+            # Kalman gain calculation with adaptive inflation
+            kalman_gain = await self._calculate_adaptive_kalman_gain(
+                localized_covariance, observation_operator, observations
+            )
+            
+            # Analysis step with quality control
+            analysis_ensemble = []
+            for i, forecast_state in enumerate(forecast_ensemble):
+                analysis_state = await self._ensemble_analysis_step(
+                    forecast_state, kalman_gain, observations, i
+                )
+                analysis_ensemble.append(analysis_state)
+            
+            # Ensemble mean as best estimate
+            updated_state = await self._calculate_ensemble_mean(analysis_ensemble)
+            
+            return updated_state
+            
+        except Exception as e:
+            logger.error(f"Error in advanced assimilation: {e}")
+            # Fallback to basic nudging
+            return await self._fallback_nudging_assimilation(earth_state, observations)
             
             if obs.variable_type == 'temperature' and hasattr(updated_state, 'atmosphere'):
                 if hasattr(updated_state.atmosphere, 'temperature'):

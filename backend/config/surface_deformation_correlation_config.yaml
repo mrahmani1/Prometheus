@@ -1,0 +1,443 @@
+# Surface Deformation Correlation System Configuration
+# Configuration for advanced sill emplacement deformation analysis
+
+# Database Configuration
+database:
+  postgres:
+    host: ${POSTGRES_HOST:-localhost}
+    port: ${POSTGRES_PORT:-5432}
+    user: ${POSTGRES_USER:-prometheus}
+    password: ${POSTGRES_PASSWORD:-prometheus123}
+    database: ${POSTGRES_DB:-prometheus}
+    pool_size:
+      min: 5
+      max: 20
+    connection_timeout: 30
+    command_timeout: 60
+  
+  redis:
+    host: ${REDIS_HOST:-localhost}
+    port: ${REDIS_PORT:-6379}
+    password: ${REDIS_PASSWORD:-}
+    db: ${REDIS_DB:-0}
+    connection_timeout: 10
+    socket_timeout: 10
+    max_connections: 20
+  
+  influxdb:
+    url: ${INFLUX_URL:-http://localhost:8086}
+    token: ${INFLUX_TOKEN:-prometheus-token}
+    org: ${INFLUX_ORG:-prometheus}
+    bucket: ${INFLUX_BUCKET:-prometheus}
+    timeout: 30
+  
+  neo4j:
+    uri: ${NEO4J_URI:-bolt://localhost:7687}
+    user: ${NEO4J_USER:-neo4j}
+    password: ${NEO4J_PASSWORD:-prometheus123}
+    max_connection_lifetime: 3600
+    max_connection_pool_size: 50
+
+# Processing Configuration
+processing:
+  # Parallel processing settings
+  max_workers: ${MAX_WORKERS:-8}
+  chunk_size: ${CHUNK_SIZE:-1000}
+  memory_limit_gb: ${MEMORY_LIMIT:-16}
+  
+  # GPU acceleration settings
+  gpu_enabled: ${GPU_ENABLED:-false}
+  gpu_memory_fraction: ${GPU_MEMORY_FRACTION:-0.8}
+  cuda_device: ${CUDA_DEVICE:-0}
+  
+  # Computation timeouts
+  correlation_timeout: 300  # seconds
+  inversion_timeout: 1800   # seconds
+  forward_model_timeout: 120 # seconds
+
+# InSAR Correlation Parameters
+insar:
+  # Data quality thresholds
+  coherence_threshold: 0.3
+  unwrapping_error_threshold: 0.1
+  atmospheric_correction_threshold: 0.05
+  
+  # Spatial analysis parameters
+  spatial_window_default: 10000  # meters
+  spatial_resolution_min: 5      # meters
+  spatial_resolution_max: 100    # meters
+  
+  # Temporal analysis parameters
+  temporal_window_default: 365   # days
+  temporal_baseline_max: 1000    # days
+  perpendicular_baseline_max: 500 # meters
+  
+  # Correlation analysis
+  min_valid_pixels: 100
+  outlier_threshold: 3.0  # standard deviations
+  smoothing_kernel_size: 3
+  
+  # Supported satellites and processing
+  supported_satellites:
+    - "Sentinel-1A"
+    - "Sentinel-1B"
+    - "ALOS-2"
+    - "TerraSAR-X"
+    - "COSMO-SkyMed"
+  
+  processing_methods:
+    unwrapping: ["snaphu", "icu", "branch_cut"]
+    atmospheric_correction: ["gacos", "ecmwf", "era5"]
+    filtering: ["goldstein", "adaptive", "median"]
+
+# GPS Analysis Parameters
+gps:
+  # Station selection criteria
+  max_distance_default: 50000   # meters
+  min_stations: 3
+  max_stations: 50
+  
+  # Data quality requirements
+  position_uncertainty_max: 0.01  # meters
+  velocity_uncertainty_max: 0.005 # meters/year
+  data_availability_min: 0.8      # 80% data availability
+  
+  # Processing parameters
+  reference_frame: "ITRF2014"
+  processing_strategies: ["PPP", "DD", "RTK"]
+  outlier_detection_threshold: 2.5  # standard deviations
+  
+  # Temporal analysis
+  velocity_threshold: 1e-3  # m/year
+  acceleration_threshold: 1e-4  # m/year^2
+  trend_significance_level: 0.05
+  
+  # Environmental corrections
+  apply_tropospheric_correction: true
+  apply_ionospheric_correction: true
+  apply_multipath_correction: true
+  apply_antenna_phase_center: true
+
+# Tilt and Strain Parameters
+tilt_strain:
+  # Instrument selection
+  max_distance_default: 20000  # meters
+  min_instruments: 2
+  
+  # Data quality thresholds
+  tilt_precision_threshold: 1.0    # microradians
+  strain_precision_threshold: 1e-8 # strain units
+  drift_correction_max: 0.1        # microradians/day for tilt
+  
+  # Analysis parameters
+  depth_weighting: true
+  temperature_correction: true
+  pressure_correction: true
+  
+  # Instrument types and capabilities
+  supported_instruments:
+    tiltmeter:
+      precision: 0.1  # microradians
+      range: 1000     # microradians
+      sampling_rate: 1 # Hz
+    strainmeter:
+      precision: 1e-9  # strain
+      range: 1e-4      # strain
+      sampling_rate: 1 # Hz
+    borehole_strainmeter:
+      precision: 1e-10 # strain
+      range: 1e-5      # strain
+      sampling_rate: 10 # Hz
+
+# Forward Modeling Parameters
+forward_modeling:
+  # Elastic parameters
+  default_elastic_parameters:
+    youngs_modulus: 30e9    # Pa
+    poisson_ratio: 0.25
+    density: 2700           # kg/m^3
+  
+  # Model types and settings
+  model_types:
+    mogi:
+      enabled: true
+      transition_distance_factor: 2.0
+    finite_rectangular:
+      enabled: true
+      okada_implementation: true
+    hybrid:
+      enabled: true
+      weight_function: "distance_based"
+  
+  # Computation parameters
+  observation_grid:
+    resolution: 100  # meters
+    extent_factor: 3.0  # times sill dimensions
+  
+  # Validation settings
+  synthetic_noise_level: 0.01  # meters
+  benchmark_tolerance: 1e-6
+
+# Parameter Inversion Settings
+inversion:
+  # Optimization methods
+  default_method: "differential_evolution"
+  available_methods:
+    - "differential_evolution"
+    - "basin_hopping"
+    - "L-BFGS-B"
+    - "trust-constr"
+  
+  # Convergence criteria
+  max_iterations: 1000
+  tolerance: 1e-6
+  function_tolerance: 1e-8
+  
+  # Parameter bounds (relative to initial values)
+  parameter_bounds:
+    coordinate_uncertainty: 5000    # meters
+    depth_uncertainty: 2000         # meters
+    dimension_factor: 0.5           # ±50% of initial
+    angle_bounds: [0, 360]          # degrees
+    opening_factor: [0.1, 10.0]     # times initial
+  
+  # Uncertainty estimation
+  uncertainty_methods:
+    - "hessian"
+    - "bootstrap"
+    - "monte_carlo"
+  
+  bootstrap_samples: 500
+  monte_carlo_samples: 1000
+  confidence_levels: [0.68, 0.95, 0.99]
+
+# Temporal Analysis Configuration
+temporal_analysis:
+  # Time series processing
+  default_time_window: 365      # days
+  min_measurements: 5
+  max_gap_days: 90
+  
+  # Smoothing and filtering
+  smoothing_window: 30          # days
+  outlier_detection_method: "modified_z_score"
+  outlier_threshold: 3.5
+  
+  # Trend analysis
+  trend_methods: ["linear", "polynomial", "spline"]
+  trend_significance_level: 0.05
+  detrending_method: "linear"
+  
+  # Change point detection
+  change_detection_enabled: true
+  change_detection_methods: ["pelt", "binary_segmentation"]
+  change_significance_level: 0.01
+  min_segment_length: 10
+  
+  # Velocity and acceleration
+  velocity_estimation_method: "weighted_least_squares"
+  acceleration_analysis: true
+  seasonal_correction: true
+
+# Uncertainty Quantification
+uncertainty:
+  # General settings
+  default_confidence_level: 0.95
+  propagation_method: "monte_carlo"
+  
+  # Monte Carlo parameters
+  monte_carlo:
+    samples: 1000
+    random_seed: 42
+    parallel_processing: true
+  
+  # Bootstrap parameters
+  bootstrap:
+    samples: 500
+    replacement: true
+    confidence_intervals: "percentile"
+  
+  # Error sources
+  error_sources:
+    measurement_errors: true
+    model_errors: true
+    parameter_errors: true
+    systematic_errors: true
+  
+  # Visualization settings
+  uncertainty_visualization:
+    confidence_ellipses: true
+    error_bars: true
+    probability_distributions: true
+    correlation_matrices: true
+
+# Validation Configuration
+validation:
+  # Correlation thresholds
+  min_correlation_threshold: 0.3
+  good_correlation_threshold: 0.7
+  excellent_correlation_threshold: 0.9
+  
+  # Statistical significance
+  significance_level: 0.05
+  multiple_testing_correction: "bonferroni"
+  
+  # Validation against monitored events
+  monitored_events:
+    temporal_tolerance: 30        # days
+    spatial_tolerance: 5000       # meters
+    magnitude_tolerance: 0.5
+    pattern_matching_threshold: 0.6
+  
+  # Cross-validation settings
+  cross_validation:
+    enabled: true
+    k_folds: 5
+    stratified: true
+    random_seed: 42
+  
+  # Model selection criteria
+  model_selection:
+    criteria: ["aic", "bic", "cross_validation"]
+    aic_weight: 0.4
+    bic_weight: 0.4
+    cv_weight: 0.2
+
+# Data Quality Assessment
+data_quality:
+  # Quality metrics
+  completeness_threshold: 0.8     # 80% data completeness
+  precision_threshold_factor: 2.0 # times measurement uncertainty
+  accuracy_threshold: 0.05        # meters for deformation
+  
+  # Outlier detection
+  outlier_methods: ["iqr", "z_score", "isolation_forest"]
+  outlier_action: "flag"  # "remove", "flag", "weight"
+  
+  # Quality scoring
+  quality_weights:
+    completeness: 0.3
+    precision: 0.3
+    accuracy: 0.2
+    consistency: 0.2
+  
+  # Quality flags
+  quality_flags:
+    excellent: [0.9, 1.0]
+    good: [0.7, 0.9]
+    fair: [0.5, 0.7]
+    poor: [0.0, 0.5]
+
+# Logging and Monitoring
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: ${LOG_FILE:-/var/log/prometheus/surface_deformation_correlation.log}
+  max_size: 100MB
+  backup_count: 5
+  
+  # Component-specific logging
+  components:
+    correlation: INFO
+    inversion: DEBUG
+    temporal_analysis: INFO
+    validation: INFO
+    database: WARNING
+
+# Performance Monitoring
+monitoring:
+  # Metrics collection
+  enable_metrics: true
+  metrics_interval: 60  # seconds
+  
+  # Performance thresholds
+  performance_thresholds:
+    correlation_time_max: 300     # seconds
+    inversion_time_max: 1800      # seconds
+    memory_usage_max: 16          # GB
+    cpu_usage_max: 80             # percent
+  
+  # Health checks
+  health_checks:
+    database_connectivity: true
+    data_availability: true
+    processing_capacity: true
+    
+  # Alerting
+  alerts:
+    email_notifications: false
+    slack_notifications: false
+    webhook_url: ${ALERT_WEBHOOK_URL:-}
+
+# Caching Configuration
+caching:
+  # Redis caching
+  redis_cache:
+    enabled: true
+    default_ttl: 3600      # seconds
+    max_memory_policy: "allkeys-lru"
+  
+  # Memory caching
+  memory_cache:
+    enabled: true
+    max_size: 1000         # number of items
+    ttl: 1800              # seconds
+  
+  # File caching
+  file_cache:
+    enabled: true
+    directory: ${CACHE_DIR:-/tmp/prometheus_cache}
+    max_size_gb: 10
+    cleanup_interval: 86400 # seconds
+
+# API Configuration
+api:
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    burst_size: 10
+  
+  # Response formats
+  default_format: "json"
+  supported_formats: ["json", "csv", "hdf5", "netcdf"]
+  
+  # Pagination
+  default_page_size: 100
+  max_page_size: 1000
+  
+  # CORS settings
+  cors:
+    enabled: true
+    allowed_origins: ["*"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+    allowed_headers: ["*"]
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: ${AUTH_ENABLED:-true}
+    method: "jwt"
+    token_expiry: 3600     # seconds
+  
+  # Authorization
+  authorization:
+    enabled: true
+    role_based: true
+    permissions:
+      read: ["user", "analyst", "admin"]
+      write: ["analyst", "admin"]
+      admin: ["admin"]
+  
+  # Data encryption
+  encryption:
+    at_rest: true
+    in_transit: true
+    algorithm: "AES-256"
+  
+  # Audit logging
+  audit:
+    enabled: true
+    log_file: ${AUDIT_LOG:-/var/log/prometheus/audit.log}
+    include_data: false
