@@ -112,3 +112,33 @@ $$ language 'plpgsql';
 -- Create triggers for automatic timestamp updates
 CREATE TRIGGER update_volcanoes_updated_at BEFORE UPDATE ON geological.volcanoes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Digit
+al Elevation Models table for DEM caching
+CREATE TABLE IF NOT EXISTS geological.digital_elevation_models (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    center_point GEOMETRY(POINT, 4326) NOT NULL,
+    radius_km FLOAT NOT NULL,
+    dem_data BYTEA NOT NULL,
+    quality_score FLOAT CHECK (quality_score >= 0 AND quality_score <= 1),
+    source_combination TEXT,
+    processing_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolution_m FLOAT,
+    bbox GEOMETRY(POLYGON, 4326),
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Unique constraint to prevent duplicate cache entries
+    UNIQUE(center_point, radius_km)
+);
+
+-- Indexes for DEM table
+CREATE INDEX IF NOT EXISTS idx_dem_center_point ON geological.digital_elevation_models USING GIST (center_point);
+CREATE INDEX IF NOT EXISTS idx_dem_bbox ON geological.digital_elevation_models USING GIST (bbox);
+CREATE INDEX IF NOT EXISTS idx_dem_quality_score ON geological.digital_elevation_models (quality_score);
+CREATE INDEX IF NOT EXISTS idx_dem_processing_timestamp ON geological.digital_elevation_models (processing_timestamp);
+CREATE INDEX IF NOT EXISTS idx_dem_source_combination ON geological.digital_elevation_models (source_combination);
+
+-- Trigger for updating timestamps
+CREATE TRIGGER update_dem_updated_at BEFORE UPDATE ON geological.digital_elevation_models
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
