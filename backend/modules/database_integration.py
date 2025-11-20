@@ -115,7 +115,7 @@ if SQLALCHEMY_AVAILABLE:
         magnitude = Column(Float)
         depth = Column(Float)
         data = Column(JSONB)
-        metadata = Column(JSONB)
+        event_metadata = Column(JSONB)
         created_at = Column(DateTime, default=datetime.utcnow)
     
     class SeismicStation(Base):
@@ -131,7 +131,7 @@ if SQLALCHEMY_AVAILABLE:
         instrument_type = Column(String(100))
         sampling_rate = Column(Float)
         active = Column(Boolean, default=True)
-        metadata = Column(JSONB)
+        station_metadata = Column(JSONB)
         created_at = Column(DateTime, default=datetime.utcnow)
     
     class GPSStation(Base):
@@ -147,7 +147,7 @@ if SQLALCHEMY_AVAILABLE:
         receiver_type = Column(String(100))
         antenna_type = Column(String(100))
         active = Column(Boolean, default=True)
-        metadata = Column(JSONB)
+        gps_metadata = Column(JSONB)
         created_at = Column(DateTime, default=datetime.utcnow)
     
     class DeformationMeasurement(Base):
@@ -165,7 +165,7 @@ if SQLALCHEMY_AVAILABLE:
         uncertainty_z = Column(Float)
         processing_method = Column(String(100))
         quality_flag = Column(String(20))
-        metadata = Column(JSONB)
+        measurement_metadata = Column(JSONB)
         created_at = Column(DateTime, default=datetime.utcnow)
     
     class GeologicalStructure(Base):
@@ -181,7 +181,7 @@ if SQLALCHEMY_AVAILABLE:
         age = Column(Float)    # Ma (millions of years)
         lithology = Column(String(255))
         properties = Column(JSONB)
-        metadata = Column(JSONB)
+        structure_metadata = Column(JSONB)
         created_at = Column(DateTime, default=datetime.utcnow)
     
     class VolcanicEvent(Base):
@@ -197,7 +197,7 @@ if SQLALCHEMY_AVAILABLE:
         magnitude = Column(Float)
         duration = Column(Float)  # minutes
         properties = Column(JSONB)
-        metadata = Column(JSONB)
+        volcanic_metadata = Column(JSONB)
         created_at = Column(DateTime, default=datetime.utcnow)
 
 class PostgreSQLGISManager:
@@ -413,7 +413,7 @@ class PostgreSQLGISManager:
                     magnitude=event_data.get('magnitude'),
                     depth=event_data.get('depth'),
                     data=event_data.get('data', {}),
-                    metadata=event_data.get('metadata', {})
+                    event_metadata=event_data.get('metadata', {})
                 )
                 
                 session.add(event)
@@ -440,7 +440,7 @@ class PostgreSQLGISManager:
                 cursor.execute("""
                     INSERT INTO geological_events 
                     (id, event_id, event_type, timestamp, source_id, location, 
-                     magnitude, depth, data, metadata)
+                     magnitude, depth, data, event_metadata)
                     VALUES (%s, %s, %s, %s, %s, ST_GeomFromText(%s), %s, %s, %s, %s)
                 """, (
                     event_id,
@@ -474,7 +474,7 @@ class PostgreSQLGISManager:
                     uncertainty_z=measurement_data.get('uncertainty_z'),
                     processing_method=measurement_data.get('processing_method'),
                     quality_flag=measurement_data.get('quality_flag', 'GOOD'),
-                    metadata=measurement_data.get('metadata', {})
+                    measurement_metadata=measurement_data.get('metadata', {})
                 )
                 
                 session.add(measurement)
@@ -523,7 +523,7 @@ class PostgreSQLGISManager:
                         'magnitude': event.magnitude,
                         'depth': event.depth,
                         'data': event.data,
-                        'metadata': event.metadata
+                        'metadata': event.event_metadata
                     }
                     
                     # Extract location
@@ -1285,8 +1285,8 @@ class PostgreSQLGISManager:
                     global_mean = np.mean(magnitudes)
                     
                     # Advanced Getis-Ord Gi* calculation with proper statistical framework
-                    gi_star = await self._calculate_advanced_getis_ord_statistic(
-                        local_sum, global_mean, weights, magnitudes, spatial_coords
+                    gi_star = self._calculate_advanced_getis_ord_statistic(
+                        local_sum, global_mean, weights, magnitudes, neighbors
                     )
                     
                     # Determine if it's a hotspot (high values) or coldspot (low values)
@@ -1309,6 +1309,51 @@ class PostgreSQLGISManager:
         except Exception as e:
             self.logger.warning(f"Failed to calculate hotspots: {e}")
             return []
+    
+    def _calculate_advanced_getis_ord_statistic(self, local_sum: float, global_mean: float, 
+                                              weights: np.ndarray, magnitudes: np.ndarray, 
+                                              neighbors: List[int]) -> float:
+        """Calculate advanced Getis-Ord Gi* statistic with proper statistical framework"""
+        try:
+            n = len(magnitudes)
+            if n < 3 or len(neighbors) < 2:
+                return 0.0
+            
+            # Calculate weighted local sum
+            neighbor_magnitudes = np.array([magnitudes[i] for i in neighbors])
+            weighted_local_sum = np.sum(weights * neighbor_magnitudes)
+            
+            # Calculate expected value and variance
+            S = np.sum(weights)  # Sum of weights
+            S2 = np.sum(weights**2)  # Sum of squared weights
+            
+            # Global statistics
+            global_sum = np.sum(magnitudes)
+            global_mean = global_sum / n
+            
+            # Calculate variance of magnitudes
+            magnitude_variance = np.var(magnitudes, ddof=1) if n > 1 else 0.0
+            
+            # Expected value of Gi*
+            expected_gi = S * global_mean
+            
+            # Variance of Gi* under null hypothesis
+            if n > 1:
+                variance_gi = (S2 * magnitude_variance * (n - 1)) / (n - 2) if n > 2 else S2 * magnitude_variance
+            else:
+                variance_gi = S2 * magnitude_variance
+            
+            # Standardized Gi* statistic
+            if variance_gi > 0:
+                gi_star = (weighted_local_sum - expected_gi) / np.sqrt(variance_gi)
+            else:
+                gi_star = 0.0
+            
+            return float(gi_star)
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate Getis-Ord Gi* statistic: {e}")
+            return 0.0
     
     def _calculate_fractal_dimension(self, locations: np.ndarray) -> float:
         """Calculate fractal dimension using box-counting method"""

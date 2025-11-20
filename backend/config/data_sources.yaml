@@ -1,170 +1,216 @@
-# Real Data Sources Configuration
-# Configuration for all authenticated geological data source connectors
+# Data Sources Configuration for Volcanic Spatial Data Integration
+# This configuration defines the real data connectors used by the volcanic spatial data system
 
 data_sources:
-  # IRIS/EarthScope Seismic Data
-  iris_primary:
-    type: iris
-    name: "IRIS/EarthScope Seismic Data"
-    base_url: "http://service.iris.edu"
-    enabled: true
-    timeout: 30
-    max_retries: 3
-    rate_limit: 100
-    data_type: "seismic"
-    # Optional authentication (most IRIS services are open)
-    # api_key: "${IRIS_API_KEY}"
-
-  # USGS Volcano Hazards Program
+  # USGS Volcano Hazards Program - Primary volcanic monitoring data
   usgs_volcano_primary:
     type: usgs_volcano
-    name: "USGS Volcano Hazards Program"
-    base_url: "https://api.usgs.gov/volcano"
     enabled: true
+    name: "USGS Volcano Hazards Program"
+    base_url: "https://volcano.wr.usgs.gov/vsc/api/volcanoApi"
     timeout: 30
     max_retries: 3
     rate_limit: 60
     data_type: "volcanic"
-    api_key: "${USGS_API_KEY}"
-
-  # NASA EarthData
-  nasa_earthdata_primary:
-    type: nasa_earthdata
-    name: "NASA EarthData"
-    base_url: "https://api.earthdata.nasa.gov"
+    api_key: null  # Set via environment variable USGS_API_KEY if required
+    
+  # Global Volcanism Program (Smithsonian) - Historical and reference data
+  gvp_primary:
+    type: geological_survey
     enabled: true
+    name: "Global Volcanism Program (Smithsonian)"
+    base_url: "https://volcano.si.edu/api"
+    timeout: 45
+    max_retries: 3
+    rate_limit: 30
+    data_type: "volcanic"
+    
+  # IRIS/EarthScope - Seismic data for volcanic regions
+  iris_seismic:
+    type: iris
+    enabled: true
+    name: "IRIS/EarthScope Seismic Data"
+    base_url: "http://service.iris.edu"
+    timeout: 30
+    max_retries: 3
+    rate_limit: 100
+    data_type: "seismic"
+    
+  # NASA EarthData - Satellite monitoring of volcanic activity
+  nasa_earthdata:
+    type: nasa_earthdata
+    enabled: true
+    name: "NASA EarthData Volcanic Monitoring"
+    base_url: "https://api.earthdata.nasa.gov"
     timeout: 60
     max_retries: 3
     rate_limit: 50
     data_type: "satellite"
-    username: "${NASA_EARTHDATA_USERNAME}"
-    password: "${NASA_EARTHDATA_PASSWORD}"
-
-  # Copernicus Data Space Ecosystem
-  copernicus_primary:
+    username: null  # Set via environment variable NASA_USERNAME
+    password: null  # Set via environment variable NASA_PASSWORD
+    
+  # Copernicus Sentinel Data - European satellite monitoring
+  copernicus_sentinel:
     type: copernicus
-    name: "Copernicus Data Space Ecosystem"
-    base_url: "https://catalogue.dataspace.copernicus.eu"
     enabled: true
+    name: "Copernicus Sentinel Volcanic Monitoring"
+    base_url: "https://catalogue.dataspace.copernicus.eu"
     timeout: 60
     max_retries: 3
     rate_limit: 40
     data_type: "satellite"
-    username: "${COPERNICUS_USERNAME}"
-    password: "${COPERNICUS_PASSWORD}"
-
-  # ASF-Hyp3 InSAR Processing
-  asf_hyp3_primary:
+    username: null  # Set via environment variable COPERNICUS_USERNAME
+    password: null  # Set via environment variable COPERNICUS_PASSWORD
+    
+  # ASF-Hyp3 - InSAR processing for ground deformation
+  asf_hyp3:
     type: asf_hyp3
+    enabled: true
     name: "ASF-Hyp3 InSAR Processing"
     base_url: "https://hyp3-api.asf.alaska.edu"
-    enabled: true
     timeout: 120
     max_retries: 3
     rate_limit: 30
     data_type: "insar"
-    username: "${ASF_USERNAME}"
-    password: "${ASF_PASSWORD}"
-
-  # Geochemical Databases (EarthChem, GEOROC, NAVDAT, PetDB)
-  geochem_primary:
+    username: null  # Set via environment variable ASF_USERNAME
+    password: null  # Set via environment variable ASF_PASSWORD
+    
+  # EarthChem - Geochemical data for volcanic rocks
+  earthchem:
     type: geochem
-    name: "Geochemical Databases"
-    base_url: "https://api.earthchem.org"
     enabled: true
+    name: "EarthChem Volcanic Geochemistry"
+    base_url: "https://api.earthchem.org"
     timeout: 30
     max_retries: 3
     rate_limit: 60
     data_type: "geochemical"
-    api_key: "${EARTHCHEM_API_KEY}"
 
-  # National Geological Surveys (USGS, BGS, GSC, GA)
-  geological_survey_primary:
-    type: geological_survey
-    name: "National Geological Surveys"
-    base_url: "https://api.usgs.gov"
-    enabled: true
-    timeout: 30
-    max_retries: 3
-    rate_limit: 60
-    data_type: "geological_survey"
-    api_key: "${USGS_GEOLOGY_API_KEY}"
-
-# Health Monitoring Configuration
+# Health monitoring configuration
 health_monitoring:
-  check_interval: 60 # seconds
-  history_retention_hours: 24
+  check_interval: 60  # seconds
   alert_thresholds:
     response_time_ms: 5000
     success_rate: 0.95
     consecutive_failures: 3
-    error_rate_threshold: 0.1
+  enable_alerts: true
+  alert_channels:
+    - log
+    # - email  # Configure email settings separately
+    # - slack  # Configure Slack webhook separately
 
-# Failover Configuration
+# Failover configuration for high availability
 failover:
-  seismic_data:
-    primary_source: "iris_primary"
-    fallback_sources: []
-    max_failures: 3
-    failure_window_minutes: 15
-    recovery_check_interval: 300
-    auto_failback: true
-
   volcanic_data:
     primary_source: "usgs_volcano_primary"
-    fallback_sources: []
+    fallback_sources: 
+      - "gvp_primary"
     max_failures: 3
     failure_window_minutes: 15
     recovery_check_interval: 300
     auto_failback: true
-
+    
+  seismic_data:
+    primary_source: "iris_seismic"
+    fallback_sources: []
+    max_failures: 5
+    failure_window_minutes: 10
+    recovery_check_interval: 180
+    auto_failback: true
+    
   satellite_data:
-    primary_source: "nasa_earthdata_primary"
-    fallback_sources: ["copernicus_primary"]
-    max_failures: 3
-    failure_window_minutes: 15
-    recovery_check_interval: 300
+    primary_source: "nasa_earthdata"
+    fallback_sources:
+      - "copernicus_sentinel"
+    max_failures: 2
+    failure_window_minutes: 30
+    recovery_check_interval: 600
     auto_failback: true
-
+    
   insar_data:
-    primary_source: "asf_hyp3_primary"
+    primary_source: "asf_hyp3"
     fallback_sources: []
     max_failures: 3
-    failure_window_minutes: 15
-    recovery_check_interval: 300
-    auto_failback: true
-
+    failure_window_minutes: 60
+    recovery_check_interval: 1800
+    auto_failback: false  # Manual failback due to processing complexity
+    
   geochemical_data:
-    primary_source: "geochem_primary"
+    primary_source: "earthchem"
     fallback_sources: []
-    max_failures: 3
-    failure_window_minutes: 15
-    recovery_check_interval: 300
+    max_failures: 5
+    failure_window_minutes: 20
+    recovery_check_interval: 900
     auto_failback: true
 
-  geological_survey_data:
-    primary_source: "geological_survey_primary"
-    fallback_sources: []
-    max_failures: 3
-    failure_window_minutes: 15
-    recovery_check_interval: 300
-    auto_failback: true
+# Data quality and validation settings
+data_quality:
+  min_data_quality_score: 0.7
+  max_uncertainty_radius_km: 10.0
+  require_coordinates: true
+  require_elevation: false
+  validate_alert_levels: true
+  allowed_alert_levels:
+    - "green"
+    - "yellow" 
+    - "orange"
+    - "red"
+  
+# Spatial analysis configuration
+spatial_analysis:
+  clustering:
+    algorithm: "DBSCAN"
+    eps: 0.5  # degrees
+    min_samples: 3
+    max_clusters: 100
+    
+  deduplication:
+    proximity_threshold_km: 5.0
+    prefer_higher_quality: true
+    
+  cache:
+    duration_hours: 1
+    max_cache_size_mb: 100
+    
+# Regional boundaries for focused analysis
+regions:
+  pacific_ring_of_fire:
+    bounds: [-60, 120, 70, -60]  # [min_lat, min_lon, max_lat, max_lon]
+    priority: high
+    
+  mediterranean:
+    bounds: [30, -10, 50, 45]
+    priority: medium
+    
+  east_africa_rift:
+    bounds: [-30, 30, 20, 50]
+    priority: medium
+    
+  iceland:
+    bounds: [63, -25, 67, -13]
+    priority: high
+    
+  kamchatka:
+    bounds: [50, 155, 65, 165]
+    priority: high
 
-# Logging Configuration
+# Environment variable mappings
+environment_variables:
+  USGS_API_KEY: "usgs_volcano_primary.api_key"
+  NASA_USERNAME: "nasa_earthdata.username"
+  NASA_PASSWORD: "nasa_earthdata.password"
+  COPERNICUS_USERNAME: "copernicus_sentinel.username"
+  COPERNICUS_PASSWORD: "copernicus_sentinel.password"
+  ASF_USERNAME: "asf_hyp3.username"
+  ASF_PASSWORD: "asf_hyp3.password"
+  
+# Logging configuration
 logging:
-  level: "INFO"
+  level: INFO
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   handlers:
-    - type: "file"
-      filename: "logs/real_data_connectors.log"
-      max_bytes: 10485760 # 10MB
-      backup_count: 5
-    - type: "console"
-
-# Performance Configuration
-performance:
-  connection_pool_size: 10
-  max_concurrent_requests: 50
-  request_timeout: 30
-  retry_backoff_factor: 2
-  cache_ttl_seconds: 300
+    - console
+    - file
+  file_path: "logs/volcanic_spatial_data.log"
+  max_file_size_mb: 50
+  backup_count: 5

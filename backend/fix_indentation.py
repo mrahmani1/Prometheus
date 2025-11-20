@@ -1,52 +1,48 @@
 #!/usr/bin/env python3
-"""Fix indentation issues in enkf_knowledge_integration.py"""
+"""
+Fix indentation issues in consciousness-inspired volcanic system files
+"""
 
 import re
+import os
 
-def fix_indentation(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
+def fix_indentation_issues(file_path):
+    """Fix common indentation issues in the file"""
     
-    fixed_lines = []
-    in_class = False
-    class_indent = 0
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
     
-    for i, line in enumerate(lines):
-        # Check if this is a class definition
-        if re.match(r'^(\s*)class\s+\w+.*:', line):
-            match = re.match(r'^(\s*)class\s+\w+.*:', line)
-            class_indent = len(match.group(1))
-            in_class = True
-            fixed_lines.append(line)
-        # Check if this is a method definition that needs fixing
-        elif re.match(r'^(\s*)def\s+\w+.*:', line):
-            match = re.match(r'^(\s*)def\s+\w+.*:', line)
-            current_indent = len(match.group(1))
-            
-            # Check if previous non-empty line was a class definition
-            prev_line_idx = i - 1
-            while prev_line_idx >= 0 and lines[prev_line_idx].strip() == '':
-                prev_line_idx -= 1
-            
-            if prev_line_idx >= 0:
-                prev_line = lines[prev_line_idx]
-                # If previous line was a class, this def should be indented 4 spaces more
-                if re.match(r'^(\s*)class\s+\w+.*:', prev_line):
-                    prev_match = re.match(r'^(\s*)class\s+\w+.*:', prev_line)
-                    expected_indent = len(prev_match.group(1)) + 4
-                    if current_indent != expected_indent:
-                        # Fix the indentation
-                        line = ' ' * expected_indent + line.lstrip()
-            
-            fixed_lines.append(line)
+    # Fix pattern: "return something async def" -> "return something\n\n    async def"
+    content = re.sub(r'(\s+return [^\n]+)\s+async def', r'\1\n\n    async def', content)
+    
+    # Fix pattern: "return something   async def" -> "return something\n\n    async def"  
+    content = re.sub(r'(\s+return [^\n]+)\s+asy\nnc def', r'\1\n\n    async def', content)
+    
+    # Fix pattern where async got split across lines
+    content = re.sub(r'asy\nnc def', 'async def', content)
+    
+    # Fix indentation for methods that start with wrong indentation
+    content = re.sub(r'\n   async def', '\n\n    async def', content)
+    content = re.sub(r'\n  def', '\n\n    def', content)
+    
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    
+    print(f"Fixed indentation issues in {file_path}")
+
+def main():
+    files_to_fix = [
+        'modules/consciousness_simulation_engine.py',
+        'modules/emergent_behavior_detection_system.py', 
+        'modules/system_memory_learning_framework.py',
+        'modules/inter_system_communication_modeling.py'
+    ]
+    
+    for file_path in files_to_fix:
+        if os.path.exists(file_path):
+            fix_indentation_issues(file_path)
         else:
-            fixed_lines.append(line)
-    
-    # Write back the fixed file
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.writelines(fixed_lines)
-    
-    print(f"Fixed indentation in {filepath}")
+            print(f"File not found: {file_path}")
 
 if __name__ == "__main__":
-    fix_indentation("backend/modules/enkf_knowledge_integration.py")
+    main()

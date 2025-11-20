@@ -10441,5 +10441,6 @@ class CoupledReactionTransportSolver:
         except Exception as e:
             logger.error(f"Error parsing PostGIS geometry: {e}")
             return (0.0, 0.0)
+
 # Alias for backward compatibility
 AdvancedUpliftMechanismEngine = QuantumEnhancedUpliftMechanismEngine

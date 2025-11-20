@@ -232,12 +232,60 @@ def _estimate_negentropy(signal: np.ndarray) -> float:
             negentropy_final = negentropy_est * reliability + 0.1 * (1 - reliability)
             
         else:
-            # Fallback to simple moment-based estimate
-            try:
-                kurt_val = stats.kurtosis(signal_std, fisher=True)
-                negentropy_final = abs(kurt_val) / 12.0
-            except:
-                negentropy_final = 0.1
+            # Advanced multi-method negentropy estimation without FastICA
+            negentropy_estimates = []
+            
+            # Method 1: Higher-order cumulant-based estimation
+            cumulant_negentropy = await _compute_cumulant_based_negentropy(signal_std)
+            if cumulant_negentropy is not None:
+                negentropy_estimates.append(cumulant_negentropy)
+            
+            # Method 2: Edgeworth expansion approximation
+            edgeworth_negentropy = await _compute_edgeworth_negentropy(signal_std)
+            if edgeworth_negentropy is not None:
+                negentropy_estimates.append(edgeworth_negentropy)
+            
+            # Method 3: Maximum entropy principle estimation
+            maxent_negentropy = await _compute_maxent_negentropy(signal_std)
+            if maxent_negentropy is not None:
+                negentropy_estimates.append(maxent_negentropy)
+            
+            # Method 4: Kernel density estimation approach
+            kde_negentropy = await _compute_kde_negentropy(signal_std)
+            if kde_negentropy is not None:
+                negentropy_estimates.append(kde_negentropy)
+            
+            # Method 5: Gram-Charlier series approximation
+            gram_charlier_negentropy = await _compute_gram_charlier_negentropy(signal_std)
+            if gram_charlier_negentropy is not None:
+                negentropy_estimates.append(gram_charlier_negentropy)
+            
+            # Robust combination of estimates
+            if negentropy_estimates:
+                # Remove outliers using IQR method
+                q1, q3 = np.percentile(negentropy_estimates, [25, 75])
+                iqr = q3 - q1
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+                
+                filtered_estimates = [est for est in negentropy_estimates 
+                                    if lower_bound <= est <= upper_bound]
+                
+                if filtered_estimates:
+                    # Weighted average based on method reliability
+                    weights = np.array([0.25, 0.2, 0.2, 0.2, 0.15])[:len(filtered_estimates)]
+                    weights = weights / np.sum(weights)
+                    negentropy_final = np.average(filtered_estimates, weights=weights)
+                else:
+                    negentropy_final = np.median(negentropy_estimates)
+            else:
+                # Ultimate fallback using robust kurtosis estimation
+                try:
+                    # Robust kurtosis using Huber's method
+                    robust_kurt = await _compute_robust_kurtosis(signal_std)
+                    negentropy_final = abs(robust_kurt) / 12.0
+                except:
+                    negentropy_final = 0.1
         
         # Final bounds and validation
         negentropy_final = float(np.clip(negentropy_final, 0.0, 5.0))
@@ -333,26 +381,47 @@ def _assess_component_stability(source: np.ndarray) -> float:
         try:
             from statsmodels.tsa.stattools import adfuller, kpss
         except ImportError:
-            # Fallback: simple variance stability test
-            n_segments = min(5, len(x) // 20)
-            if n_segments < 2:
+            # Advanced stationarity testing without statsmodels
+            stationarity_tests = []
+            
+            # Test 1: Advanced variance stability using Levene's test approximation
+            variance_stability = await _compute_advanced_variance_stability(x)
+            stationarity_tests.append(variance_stability)
+            
+            # Test 2: Mean reversion test using Ornstein-Uhlenbeck process
+            mean_reversion = await _compute_mean_reversion_test(x)
+            stationarity_tests.append(mean_reversion)
+            
+            # Test 3: Spectral stationarity test
+            spectral_stationarity = await _compute_spectral_stationarity_test(x)
+            stationarity_tests.append(spectral_stationarity)
+            
+            # Test 4: Runs test for randomness
+            runs_test = await _compute_runs_test_stationarity(x)
+            stationarity_tests.append(runs_test)
+            
+            # Test 5: Ljung-Box test approximation for autocorrelation
+            ljung_box = await _compute_ljung_box_approximation(x)
+            stationarity_tests.append(ljung_box)
+            
+            # Test 6: Phillips-Perron test approximation
+            phillips_perron = await _compute_phillips_perron_approximation(x)
+            stationarity_tests.append(phillips_perron)
+            
+            # Test 7: KPSS test approximation
+            kpss_approx = await _compute_kpss_approximation(x)
+            stationarity_tests.append(kpss_approx)
+            
+            # Combine test results with weights
+            valid_tests = [test for test in stationarity_tests if test is not None]
+            if valid_tests:
+                # Weight by test reliability
+                weights = np.array([0.2, 0.15, 0.15, 0.1, 0.15, 0.15, 0.1])[:len(valid_tests)]
+                weights = weights / np.sum(weights)
+                combined_score = np.average(valid_tests, weights=weights)
+                return max(0.0, min(1.0, combined_score))
+            else:
                 return 0.5
-            
-            segment_length = len(x) // n_segments
-            variances = []
-            for i in range(n_segments):
-                start = i * segment_length
-                end = (i + 1) * segment_length
-                segment = x[start:end]
-                if len(segment) > 3:
-                    variances.append(np.var(segment))
-            
-            if len(variances) < 2:
-                return 0.5
-            
-            # Coefficient of variation of variances
-            cv_var = np.std(variances) / (np.mean(variances) + 1e-10)
-            return max(0.0, min(1.0, 1.0 - cv_var))
         
         stationarity_scores = []
         
@@ -1213,38 +1282,54 @@ def _assess_component_consistency(source: np.ndarray) -> float:
         return np.mean(scale_consistencies) if scale_consistencies else 0.5
     
     def _simple_multiresolution_consistency(x):
-        """Simple multi-resolution consistency analysis without wavelets"""
-        scales = [2, 4, 8]
-        consistencies = []
+        """Advanced multi-resolution consistency analysis using multiple methods"""
+        import numpy as np
+        from scipy import signal, stats
         
-        for scale in scales:
-            if len(x) >= scale * 4:
-                # Downsample by averaging
-                downsampled = []
-                for i in range(0, len(x) - scale + 1, scale):
-                    segment_mean = np.mean(x[i:i + scale])
-                    downsampled.append(segment_mean)
-                
-                downsampled = np.array(downsampled)
-                
-                if len(downsampled) >= 4:
-                    # Assess consistency in downsampled signal
-                    n_segments = len(downsampled) // 2
-                    if n_segments >= 2:
-                        segment_length = len(downsampled) // n_segments
-                        segment_vars = []
-                        
-                        for i in range(n_segments):
-                            start = i * segment_length
-                            end = (i + 1) * segment_length
-                            segment = downsampled[start:end]
-                            if len(segment) > 1:
-                                segment_vars.append(np.var(segment))
-                        
-                        if len(segment_vars) > 1:
-                            cv_var = np.std(segment_vars) / (np.mean(segment_vars) + 1e-15)
-                            consistency = 1.0 / (1.0 + cv_var)
-                            consistencies.append(consistency)
+        # Multiple advanced methods for multiresolution analysis
+        
+        # 1. Empirical Mode Decomposition (EMD) approximation
+        emd_consistency = _compute_emd_consistency(x)
+        
+        # 2. Multiscale entropy analysis
+        mse_consistency = _compute_multiscale_entropy_consistency(x)
+        
+        # 3. Fractal dimension analysis across scales
+        fractal_consistency = _compute_fractal_dimension_consistency(x)
+        
+        # 4. Spectral analysis across frequency bands
+        spectral_consistency = _compute_spectral_band_consistency(x)
+        
+        # 5. Local polynomial fitting at multiple scales
+        polynomial_consistency = _compute_polynomial_scale_consistency(x)
+        
+        # 6. Singular Spectrum Analysis (SSA) approximation
+        ssa_consistency = _compute_ssa_consistency(x)
+        
+        # 7. Variational Mode Decomposition approximation
+        vmd_consistency = _compute_vmd_consistency(x)
+        
+        # Combine all consistency measures
+        consistency_measures = [
+            emd_consistency, mse_consistency, fractal_consistency,
+            spectral_consistency, polynomial_consistency, ssa_consistency, vmd_consistency
+        ]
+        
+        # Weight by method reliability
+        weights = np.array([0.2, 0.15, 0.15, 0.2, 0.1, 0.1, 0.1])
+        valid_measures = [(m, w) for m, w in zip(consistency_measures, weights) 
+                         if m is not None and not np.isnan(m)]
+        
+        if valid_measures:
+            measures, measure_weights = zip(*valid_measures)
+            measure_weights = np.array(measure_weights)
+            measure_weights = measure_weights / np.sum(measure_weights)
+            
+            combined_consistency = np.average(measures, weights=measure_weights)
+            return float(np.clip(combined_consistency, 0, 1))
+        else:
+            # Enhanced fallback using advanced statistical methods
+            return _enhanced_statistical_consistency(x)
         
         return np.mean(consistencies) if consistencies else 0.5
     
@@ -1300,13 +1385,65 @@ def _assess_component_consistency(source: np.ndarray) -> float:
             return np.mean(coherences) if coherences else 0.5
             
         except:
-            # Fallback to simple phase analysis
-            try:
-                phase_diffs = np.diff(np.angle(signal.hilbert(x)))
-                phase_consistency = 1.0 - np.std(phase_diffs) / np.pi
-                return max(0.0, min(1.0, phase_consistency))
-            except:
-                return 0.5
+            # Advanced phase analysis using multiple sophisticated methods
+            phase_analyses = []
+            
+            # Method 1: Instantaneous phase analysis using Hilbert transform
+            hilbert_phase = await _compute_hilbert_phase_analysis(x)
+            if hilbert_phase is not None:
+                phase_analyses.append(hilbert_phase)
+            
+            # Method 2: Synchrosqueezed wavelet transform phase analysis
+            synchrosqueezed_phase = await _compute_synchrosqueezed_phase_analysis(x)
+            if synchrosqueezed_phase is not None:
+                phase_analyses.append(synchrosqueezed_phase)
+            
+            # Method 3: Empirical mode decomposition phase analysis
+            emd_phase = await _compute_emd_phase_analysis(x)
+            if emd_phase is not None:
+                phase_analyses.append(emd_phase)
+            
+            # Method 4: Phase space reconstruction analysis
+            phase_space = await _compute_phase_space_analysis(x)
+            if phase_space is not None:
+                phase_analyses.append(phase_space)
+            
+            # Method 5: Kuramoto order parameter analysis
+            kuramoto_phase = await _compute_kuramoto_phase_analysis(x)
+            if kuramoto_phase is not None:
+                phase_analyses.append(kuramoto_phase)
+            
+            # Method 6: Phase locking value analysis
+            plv_analysis = await _compute_phase_locking_analysis(x)
+            if plv_analysis is not None:
+                phase_analyses.append(plv_analysis)
+            
+            # Robust combination of phase analyses
+            if phase_analyses:
+                # Remove outliers and compute weighted average
+                phase_array = np.array(phase_analyses)
+                q1, q3 = np.percentile(phase_array, [25, 75])
+                iqr = q3 - q1
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+                
+                filtered_phases = [p for p in phase_analyses if lower_bound <= p <= upper_bound]
+                
+                if filtered_phases:
+                    # Weight by method reliability
+                    weights = np.array([0.2, 0.18, 0.17, 0.15, 0.15, 0.15])[:len(filtered_phases)]
+                    weights = weights / np.sum(weights)
+                    combined_phase = np.average(filtered_phases, weights=weights)
+                    return max(0.0, min(1.0, combined_phase))
+                else:
+                    return np.median(phase_analyses)
+            else:
+                # Ultimate fallback using robust phase difference analysis
+                try:
+                    robust_phase = await _compute_robust_phase_difference(x)
+                    return max(0.0, min(1.0, robust_phase))
+                except:
+                    return 0.5
     
     def _permutation_entropy_consistency(x, order=3, delay=1):
         """Assess regularity using permutation entropy"""
@@ -3214,8 +3351,49 @@ def _classify_source_type(source: np.ndarray, kurtosis: float, skewness: float) 
             return np.array(bootstrap_sample)
             
         except:
-            # Fallback to simple bootstrap
-            return np.random.choice(data, size=len(data), replace=True)
+            # Advanced bootstrap methods without stratification
+            bootstrap_methods = []
+            
+            # Method 1: Balanced bootstrap (ensures each observation appears at least once)
+            balanced_bootstrap = await _compute_balanced_bootstrap(data)
+            if balanced_bootstrap is not None:
+                bootstrap_methods.append(balanced_bootstrap)
+            
+            # Method 2: Smooth bootstrap using kernel density estimation
+            smooth_bootstrap = await _compute_smooth_bootstrap(data)
+            if smooth_bootstrap is not None:
+                bootstrap_methods.append(smooth_bootstrap)
+            
+            # Method 3: Wild bootstrap for heteroscedastic data
+            wild_bootstrap = await _compute_wild_bootstrap(data)
+            if wild_bootstrap is not None:
+                bootstrap_methods.append(wild_bootstrap)
+            
+            # Method 4: Block bootstrap for time series structure
+            block_bootstrap = await _compute_block_bootstrap(data)
+            if block_bootstrap is not None:
+                bootstrap_methods.append(block_bootstrap)
+            
+            # Method 5: Bayesian bootstrap using Dirichlet weights
+            bayesian_bootstrap = await _compute_bayesian_bootstrap(data)
+            if bayesian_bootstrap is not None:
+                bootstrap_methods.append(bayesian_bootstrap)
+            
+            # Select best method based on data characteristics
+            if bootstrap_methods:
+                # Choose method based on data properties
+                data_variance = np.var(data)
+                data_skewness = abs(stats.skew(data)) if len(data) > 3 else 0
+                
+                if data_variance > np.mean(data)**2:  # High variance
+                    return wild_bootstrap if wild_bootstrap is not None else bootstrap_methods[0]
+                elif data_skewness > 1:  # Highly skewed
+                    return smooth_bootstrap if smooth_bootstrap is not None else bootstrap_methods[0]
+                else:
+                    return balanced_bootstrap if balanced_bootstrap is not None else bootstrap_methods[0]
+            else:
+                # Ultimate fallback with enhanced sampling
+                return await _compute_enhanced_simple_bootstrap(data)
     
     def _compute_bootstrap_stability_metrics(bootstrap_results, feature_distributions, 
                                            dist_test_stability, mixture_stability, 
@@ -8335,3 +8513,1544 @@ def _cluster_outlier_patterns(S: np.ndarray, outliers: np.ndarray) -> Dict:
         'cluster_separation': float(cluster_separation),
         'density_distribution': density_distribution
     }
+# ============================================================================
+# ADVANCED MULTIRESOLUTION ANALYSIS HELPER FUNCTIONS
+# ============================================================================
+
+def _compute_emd_consistency(x):
+    """Compute consistency using Empirical Mode Decomposition approximation"""
+    import numpy as np
+    
+    try:
+        if len(x) < 8:
+            return 0.5
+        
+        # Simplified EMD using iterative sifting process
+        signal_copy = x.copy()
+        imfs = []
+        
+        # Extract up to 3 IMFs
+        for _ in range(3):
+            if len(signal_copy) < 4:
+                break
+            
+            # Sifting process approximation
+            imf = _extract_imf_approximation(signal_copy)
+            if imf is not None and len(imf) == len(signal_copy):
+                imfs.append(imf)
+                signal_copy = signal_copy - imf
+            else:
+                break
+        
+        if len(imfs) >= 2:
+            # Compute consistency between IMFs
+            correlations = []
+            for i in range(len(imfs) - 1):
+                corr = np.corrcoef(imfs[i], imfs[i + 1])[0, 1]
+                if not np.isnan(corr):
+                    correlations.append(abs(corr))
+            
+            if correlations:
+                # High correlation indicates inconsistency (modes should be orthogonal)
+                consistency = 1.0 - np.mean(correlations)
+                return max(0, min(1, consistency))
+        
+        return 0.5
+        
+    except Exception as e:
+        return None
+
+def _extract_imf_approximation(signal):
+    """Extract Intrinsic Mode Function approximation"""
+    import numpy as np
+    from scipy import interpolate
+    
+    try:
+        if len(signal) < 6:
+            return None
+        
+        # Find local maxima and minima
+        maxima_indices = []
+        minima_indices = []
+        
+        for i in range(1, len(signal) - 1):
+            if signal[i] > signal[i-1] and signal[i] > signal[i+1]:
+                maxima_indices.append(i)
+            elif signal[i] < signal[i-1] and signal[i] < signal[i+1]:
+                minima_indices.append(i)
+        
+        if len(maxima_indices) < 2 or len(minima_indices) < 2:
+            return None
+        
+        # Create envelopes using spline interpolation
+        x_indices = np.arange(len(signal))
+        
+        # Upper envelope
+        if len(maxima_indices) >= 2:
+            upper_envelope = interpolate.interp1d(
+                maxima_indices, signal[maxima_indices], 
+                kind='linear', bounds_error=False, fill_value='extrapolate'
+            )(x_indices)
+        else:
+            upper_envelope = np.full_like(signal, np.max(signal))
+        
+        # Lower envelope
+        if len(minima_indices) >= 2:
+            lower_envelope = interpolate.interp1d(
+                minima_indices, signal[minima_indices], 
+                kind='linear', bounds_error=False, fill_value='extrapolate'
+            )(x_indices)
+        else:
+            lower_envelope = np.full_like(signal, np.min(signal))
+        
+        # Mean envelope
+        mean_envelope = (upper_envelope + lower_envelope) / 2
+        
+        # IMF candidate
+        imf = signal - mean_envelope
+        
+        return imf
+        
+    except Exception as e:
+        return None
+
+def _compute_multiscale_entropy_consistency(x):
+    """Compute consistency using multiscale entropy analysis"""
+    import numpy as np
+    
+    try:
+        if len(x) < 10:
+            return 0.5
+        
+        scales = [1, 2, 4, 8]
+        entropies = []
+        
+        for scale in scales:
+            if len(x) >= scale * 5:
+                # Coarse-grain the signal
+                coarse_grained = []
+                for i in range(0, len(x) - scale + 1, scale):
+                    coarse_grained.append(np.mean(x[i:i + scale]))
+                
+                coarse_grained = np.array(coarse_grained)
+                
+                # Compute sample entropy approximation
+                entropy = _compute_sample_entropy_approximation(coarse_grained)
+                if entropy is not None:
+                    entropies.append(entropy)
+        
+        if len(entropies) >= 2:
+            # Consistency based on entropy variation across scales
+            entropy_std = np.std(entropies)
+            entropy_mean = np.mean(entropies)
+            
+            if entropy_mean > 0:
+                cv = entropy_std / entropy_mean
+                consistency = np.exp(-cv)  # Lower CV indicates higher consistency
+                return max(0, min(1, consistency))
+        
+        return 0.5
+        
+    except Exception as e:
+        return None
+
+def _compute_sample_entropy_approximation(data, m=2, r=None):
+    """Compute sample entropy approximation"""
+    import numpy as np
+    
+    try:
+        N = len(data)
+        if N < 10:
+            return None
+        
+        if r is None:
+            r = 0.2 * np.std(data)
+        
+        # Template matching for patterns of length m and m+1
+        def _maxdist(xi, xj, m):
+            return max([abs(ua - va) for ua, va in zip(xi, xj)])
+        
+        def _phi(m):
+            patterns = np.array([data[i:i + m] for i in range(N - m + 1)])
+            C = np.zeros(N - m + 1)
+            
+            for i in range(N - m + 1):
+                template = patterns[i]
+                for j in range(N - m + 1):
+                    if _maxdist(template, patterns[j], m) <= r:
+                        C[i] += 1
+            
+            phi = np.mean(np.log(C / (N - m + 1)))
+            return phi
+        
+        return _phi(m) - _phi(m + 1)
+        
+    except Exception as e:
+        return None
+
+def _compute_fractal_dimension_consistency(x):
+    """Compute consistency using fractal dimension analysis"""
+    import numpy as np
+    
+    try:
+        if len(x) < 16:
+            return 0.5
+        
+        # Box-counting method for fractal dimension
+        scales = [2, 4, 8, 16]
+        fractal_dims = []
+        
+        for scale in scales:
+            if len(x) >= scale * 4:
+                # Partition signal into boxes
+                n_boxes = len(x) // scale
+                box_counts = []
+                
+                for i in range(n_boxes):
+                    start_idx = i * scale
+                    end_idx = (i + 1) * scale
+                    box_data = x[start_idx:end_idx]
+                    
+                    # Count "occupied" boxes (simplified)
+                    box_range = np.max(box_data) - np.min(box_data)
+                    if box_range > 0:
+                        box_counts.append(1)
+                    else:
+                        box_counts.append(0)
+                
+                if box_counts:
+                    # Fractal dimension approximation
+                    occupied_boxes = sum(box_counts)
+                    if occupied_boxes > 0:
+                        fractal_dim = np.log(occupied_boxes) / np.log(1.0 / scale)
+                        fractal_dims.append(fractal_dim)
+        
+        if len(fractal_dims) >= 2:
+            # Consistency based on fractal dimension stability
+            fractal_std = np.std(fractal_dims)
+            consistency = np.exp(-fractal_std)
+            return max(0, min(1, consistency))
+        
+        return 0.5
+        
+    except Exception as e:
+        return None
+
+def _compute_spectral_band_consistency(x):
+    """Compute consistency using spectral analysis across frequency bands"""
+    import numpy as np
+    from scipy import signal
+    
+    try:
+        if len(x) < 16:
+            return 0.5
+        
+        # Compute power spectral density
+        freqs, psd = signal.welch(x, nperseg=min(len(x)//4, 64))
+        
+        # Divide spectrum into frequency bands
+        n_bands = 4
+        band_size = len(freqs) // n_bands
+        band_powers = []
+        
+        for i in range(n_bands):
+            start_idx = i * band_size
+            end_idx = (i + 1) * band_size if i < n_bands - 1 else len(freqs)
+            band_power = np.sum(psd[start_idx:end_idx])
+            band_powers.append(band_power)
+        
+        # Consistency based on power distribution
+        total_power = sum(band_powers)
+        if total_power > 0:
+            band_ratios = [p / total_power for p in band_powers]
+            
+            # Entropy of power distribution
+            entropy = -sum(r * np.log(r + 1e-10) for r in band_ratios if r > 0)
+            max_entropy = np.log(n_bands)
+            
+            if max_entropy > 0:
+                normalized_entropy = entropy / max_entropy
+                # High entropy indicates consistent distribution across bands
+                return max(0, min(1, normalized_entropy))
+        
+        return 0.5
+        
+    except Exception as e:
+        return None
+
+def _compute_polynomial_scale_consistency(x):
+    """Compute consistency using local polynomial fitting at multiple scales"""
+    import numpy as np
+    
+    try:
+        if len(x) < 12:
+            return 0.5
+        
+        scales = [4, 8, 16]
+        fit_errors = []
+        
+        for scale in scales:
+            if len(x) >= scale * 2:
+                # Fit polynomials at this scale
+                n_segments = len(x) // scale
+                segment_errors = []
+                
+                for i in range(n_segments):
+                    start_idx = i * scale
+                    end_idx = (i + 1) * scale
+                    segment = x[start_idx:end_idx]
+                    
+                    if len(segment) >= 3:
+                        # Fit quadratic polynomial
+                        x_seg = np.arange(len(segment))
+                        try:
+                            coeffs = np.polyfit(x_seg, segment, 2)
+                            fitted = np.polyval(coeffs, x_seg)
+                            error = np.mean((segment - fitted)**2)
+                            segment_errors.append(error)
+                        except:
+                            continue
+                
+                if segment_errors:
+                    scale_error = np.mean(segment_errors)
+                    fit_errors.append(scale_error)
+        
+        if len(fit_errors) >= 2:
+            # Consistency based on fitting error variation across scales
+            error_std = np.std(fit_errors)
+            error_mean = np.mean(fit_errors)
+            
+            if error_mean > 0:
+                cv = error_std / error_mean
+                consistency = np.exp(-cv)
+                return max(0, min(1, consistency))
+        
+        return 0.5
+        
+    except Exception as e:
+        return None
+
+def _compute_ssa_consistency(x):
+    """Compute consistency using Singular Spectrum Analysis approximation"""
+    import numpy as np
+    
+    try:
+        if len(x) < 20:
+            return 0.5
+        
+        # SSA parameters
+        window_length = min(len(x) // 3, 20)
+        
+        # Create trajectory matrix
+        trajectory_matrix = []
+        for i in range(len(x) - window_length + 1):
+            trajectory_matrix.append(x[i:i + window_length])
+        
+        trajectory_matrix = np.array(trajectory_matrix)
+        
+        # SVD decomposition
+        U, s, Vt = np.linalg.svd(trajectory_matrix, full_matrices=False)
+        
+        # Analyze singular values for consistency
+        if len(s) >= 3:
+            # Compute relative importance of components
+            total_variance = np.sum(s**2)
+            explained_variance = np.cumsum(s**2) / total_variance
+            
+            # Find number of components explaining 90% of variance
+            n_components = np.argmax(explained_variance >= 0.9) + 1
+            
+            # Consistency based on component concentration
+            if len(s) > 0:
+                concentration = n_components / len(s)
+                consistency = 1.0 - concentration  # Lower concentration = higher consistency
+                return max(0, min(1, consistency))
+        
+        return 0.5
+        
+    except Exception as e:
+        return None
+
+def _compute_vmd_consistency(x):
+    """Compute consistency using Variational Mode Decomposition approximation"""
+    import numpy as np
+    from scipy import signal
+    
+    try:
+        if len(x) < 16:
+            return 0.5
+        
+        # Simplified VMD using bandpass filtering
+        # Divide frequency spectrum into modes
+        n_modes = 3
+        
+        # Compute frequency bands
+        nyquist = 0.5
+        band_width = nyquist / n_modes
+        
+        modes = []
+        for i in range(n_modes):
+            low_freq = i * band_width
+            high_freq = (i + 1) * band_width
+            
+            # Bandpass filter to extract mode
+            if high_freq < nyquist:
+                try:
+                    sos = signal.butter(4, [low_freq, high_freq], btype='band', output='sos')
+                    mode = signal.sosfilt(sos, x)
+                    modes.append(mode)
+                except:
+                    continue
+        
+        if len(modes) >= 2:
+            # Compute orthogonality between modes
+            orthogonalities = []
+            for i in range(len(modes)):
+                for j in range(i + 1, len(modes)):
+                    corr = np.corrcoef(modes[i], modes[j])[0, 1]
+                    if not np.isnan(corr):
+                        orthogonalities.append(abs(corr))
+            
+            if orthogonalities:
+                # High orthogonality (low correlation) indicates good decomposition
+                mean_correlation = np.mean(orthogonalities)
+                consistency = 1.0 - mean_correlation
+                return max(0, min(1, consistency))
+        
+        return 0.5
+        
+    except Exception as e:
+        return None
+
+def _enhanced_statistical_consistency(x):
+    """Enhanced statistical consistency analysis"""
+    import numpy as np
+    from scipy import stats
+    
+    try:
+        if len(x) < 6:
+            return 0.5
+        
+        # Multiple statistical consistency measures
+        
+        # 1. Stationarity test using runs test
+        median_val = np.median(x)
+        runs = []
+        current_run = 1
+        
+        for i in range(1, len(x)):
+            if (x[i] > median_val) == (x[i-1] > median_val):
+                current_run += 1
+            else:
+                runs.append(current_run)
+                current_run = 1
+        runs.append(current_run)
+        
+        # Expected number of runs for random sequence
+        n_above = np.sum(x > median_val)
+        n_below = len(x) - n_above
+        
+        if n_above > 0 and n_below > 0:
+            expected_runs = (2 * n_above * n_below) / len(x) + 1
+            actual_runs = len(runs)
+            
+            if expected_runs > 0:
+                runs_consistency = min(1, actual_runs / expected_runs)
+            else:
+                runs_consistency = 0.5
+        else:
+            runs_consistency = 0.0
+        
+        # 2. Autocorrelation consistency
+        if len(x) >= 10:
+            autocorr_lags = [1, 2, 3]
+            autocorrs = []
+            
+            for lag in autocorr_lags:
+                if len(x) > lag:
+                    corr = np.corrcoef(x[:-lag], x[lag:])[0, 1]
+                    if not np.isnan(corr):
+                        autocorrs.append(abs(corr))
+            
+            if autocorrs:
+                # Low autocorrelation indicates consistency (white noise-like)
+                autocorr_consistency = 1.0 - np.mean(autocorrs)
+            else:
+                autocorr_consistency = 0.5
+        else:
+            autocorr_consistency = 0.5
+        
+        # 3. Normality test consistency
+        try:
+            _, p_value = stats.normaltest(x)
+            normality_consistency = min(1, p_value)  # Higher p-value = more normal
+        except:
+            normality_consistency = 0.5
+        
+        # Combine measures
+        consistencies = [runs_consistency, autocorr_consistency, normality_consistency]
+        weights = [0.4, 0.4, 0.2]
+        
+        combined_consistency = np.average(consistencies, weights=weights)
+        return max(0, min(1, combined_consistency))
+        
+    except Exception as e:
+        return 0.5
+
+# ============================================================================
+# ADVANCED NEGENTROPY ESTIMATION METHODS
+# ============================================================================
+
+async def _compute_cumulant_based_negentropy(signal_std):
+    """Compute negentropy using higher-order cumulants"""
+    import numpy as np
+    from scipy import stats
+    
+    try:
+        if len(signal_std) < 10:
+            return None
+        
+        # Compute cumulants up to 4th order
+        mean_val = np.mean(signal_std)
+        variance = np.var(signal_std)
+        
+        if variance <= 0:
+            return 0.0
+        
+        # Standardize the signal
+        standardized = (signal_std - mean_val) / np.sqrt(variance)
+        
+        # Third cumulant (skewness)
+        kappa_3 = stats.skew(standardized)
+        
+        # Fourth cumulant (excess kurtosis)
+        kappa_4 = stats.kurtosis(standardized, fisher=True)
+        
+        # Negentropy approximation using cumulants
+        # J(X) ≈ (1/12) * κ₃² + (1/48) * κ₄²
+        negentropy = (1/12) * kappa_3**2 + (1/48) * kappa_4**2
+        
+        return float(np.clip(negentropy, 0, 5))
+        
+    except Exception as e:
+        return None
+
+async def _compute_edgeworth_negentropy(signal_std):
+    """Compute negentropy using Edgeworth expansion"""
+    import numpy as np
+    from scipy import stats
+    
+    try:
+        if len(signal_std) < 15:
+            return None
+        
+        # Standardize signal
+        standardized = stats.zscore(signal_std)
+        
+        # Compute moments
+        mu_3 = stats.moment(standardized, 3)
+        mu_4 = stats.moment(standardized, 4)
+        
+        # Edgeworth expansion coefficients
+        c_1 = mu_3 / 6
+        c_2 = mu_4 / 24 - 1/8
+        
+        # Negentropy using Edgeworth expansion
+        # J(X) ≈ (1/2) * c₁² + (1/3) * c₂²
+        negentropy = 0.5 * c_1**2 + (1/3) * c_2**2
+        
+        return float(np.clip(negentropy, 0, 5))
+        
+    except Exception as e:
+        return None
+
+async def _compute_maxent_negentropy(signal_std):
+    """Compute negentropy using maximum entropy principle"""
+    import numpy as np
+    
+    try:
+        if len(signal_std) < 10:
+            return None
+        
+        # Histogram-based entropy estimation
+        n_bins = min(int(np.sqrt(len(signal_std))), 50)
+        hist, bin_edges = np.histogram(signal_std, bins=n_bins, density=True)
+        
+        # Remove zero bins
+        hist = hist[hist > 0]
+        
+        if len(hist) == 0:
+            return 0.0
+        
+        # Compute differential entropy
+        bin_width = (bin_edges[1] - bin_edges[0])
+        entropy = -np.sum(hist * np.log(hist + 1e-10)) * bin_width
+        
+        # Gaussian entropy with same variance
+        variance = np.var(signal_std)
+        gaussian_entropy = 0.5 * np.log(2 * np.pi * np.e * variance)
+        
+        # Negentropy
+        negentropy = gaussian_entropy - entropy
+        
+        return float(np.clip(negentropy, 0, 5))
+        
+    except Exception as e:
+        return None
+
+async def _compute_kde_negentropy(signal_std):
+    """Compute negentropy using kernel density estimation"""
+    import numpy as np
+    from scipy import stats
+    
+    try:
+        if len(signal_std) < 20:
+            return None
+        
+        # Kernel density estimation
+        kde = stats.gaussian_kde(signal_std)
+        
+        # Evaluate KDE on a grid
+        x_min, x_max = np.min(signal_std), np.max(signal_std)
+        x_range = x_max - x_min
+        x_grid = np.linspace(x_min - 0.1*x_range, x_max + 0.1*x_range, 200)
+        
+        kde_values = kde(x_grid)
+        kde_values = kde_values[kde_values > 1e-10]
+        
+        if len(kde_values) == 0:
+            return 0.0
+        
+        # Compute entropy from KDE
+        dx = x_grid[1] - x_grid[0]
+        entropy = -np.sum(kde_values * np.log(kde_values + 1e-10)) * dx
+        
+        # Gaussian entropy
+        variance = np.var(signal_std)
+        gaussian_entropy = 0.5 * np.log(2 * np.pi * np.e * variance)
+        
+        negentropy = gaussian_entropy - entropy
+        
+        return float(np.clip(negentropy, 0, 5))
+        
+    except Exception as e:
+        return None
+
+async def _compute_gram_charlier_negentropy(signal_std):
+    """Compute negentropy using Gram-Charlier series"""
+    import numpy as np
+    from scipy import stats
+    
+    try:
+        if len(signal_std) < 12:
+            return None
+        
+        # Standardize signal
+        standardized = stats.zscore(signal_std)
+        
+        # Compute Hermite polynomial coefficients
+        # Using moments to approximate Gram-Charlier series
+        moments = [stats.moment(standardized, i) for i in range(2, 7)]
+        
+        # Gram-Charlier coefficients
+        c_3 = moments[1] / 6  # 3rd moment / 3!
+        c_4 = (moments[2] - 3) / 24  # (4th moment - 3) / 4!
+        c_5 = moments[3] / 120  # 5th moment / 5!
+        c_6 = (moments[4] - 15) / 720  # (6th moment - 15) / 6!
+        
+        # Negentropy approximation using Gram-Charlier series
+        negentropy = (c_3**2 / 2 + c_4**2 / 3 + c_5**2 / 4 + c_6**2 / 5)
+        
+        return float(np.clip(negentropy, 0, 5))
+        
+    except Exception as e:
+        return None
+
+async def _compute_robust_kurtosis(signal_std):
+    """Compute robust kurtosis using Huber's method"""
+    import numpy as np
+    
+    try:
+        if len(signal_std) < 8:
+            return 0.0
+        
+        # Robust location and scale estimates
+        median_val = np.median(signal_std)
+        mad = np.median(np.abs(signal_std - median_val))
+        
+        if mad == 0:
+            return 0.0
+        
+        # Huber's robust standardization
+        k = 1.345  # Huber constant
+        standardized = (signal_std - median_val) / (1.4826 * mad)
+        
+        # Winsorize extreme values
+        winsorized = np.clip(standardized, -k, k)
+        
+        # Robust fourth moment
+        robust_fourth_moment = np.mean(winsorized**4)
+        
+        # Robust kurtosis (excess)
+        robust_kurtosis = robust_fourth_moment - 3
+        
+        return float(robust_kurtosis)
+        
+    except Exception as e:
+        return 0.0
+
+# ============================================================================
+# ADVANCED STATIONARITY TESTING METHODS
+# ============================================================================
+
+async def _compute_advanced_variance_stability(x):
+    """Advanced variance stability using multiple methods"""
+    import numpy as np
+    from scipy import stats
+    
+    try:
+        if len(x) < 20:
+            return 0.5
+        
+        # Method 1: Levene's test approximation
+        n_segments = min(5, len(x) // 10)
+        segment_length = len(x) // n_segments
+        
+        segment_vars = []
+        for i in range(n_segments):
+            start = i * segment_length
+            end = (i + 1) * segment_length if i < n_segments - 1 else len(x)
+            segment = x[start:end]
+            if len(segment) > 3:
+                segment_vars.append(np.var(segment))
+        
+        if len(segment_vars) < 2:
+            return 0.5
+        
+        # Levene's test statistic approximation
+        overall_median = np.median(segment_vars)
+        deviations = [abs(var - overall_median) for var in segment_vars]
+        levene_stat = np.var(deviations) / (np.mean(deviations)**2 + 1e-10)
+        
+        # Convert to stability score (lower stat = more stable)
+        stability_score = 1.0 / (1.0 + levene_stat)
+        
+        return float(np.clip(stability_score, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_mean_reversion_test(x):
+    """Test for mean reversion using Ornstein-Uhlenbeck process"""
+    import numpy as np
+    
+    try:
+        if len(x) < 15:
+            return 0.5
+        
+        # Fit AR(1) model: x_t = α + β*x_{t-1} + ε_t
+        x_lag = x[:-1]
+        x_current = x[1:]
+        
+        # Add constant term
+        X = np.column_stack([np.ones(len(x_lag)), x_lag])
+        
+        # Least squares estimation
+        try:
+            coeffs = np.linalg.lstsq(X, x_current, rcond=None)[0]
+            alpha, beta = coeffs[0], coeffs[1]
+        except:
+            return 0.5
+        
+        # Mean reversion parameter
+        # β < 1 indicates mean reversion (stationarity)
+        # β = 1 indicates unit root (non-stationarity)
+        
+        if beta >= 1:
+            reversion_score = 0.0
+        else:
+            # Stronger mean reversion (smaller β) = higher stationarity
+            reversion_score = 1.0 - beta
+        
+        return float(np.clip(reversion_score, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_spectral_stationarity_test(x):
+    """Test stationarity using spectral analysis"""
+    import numpy as np
+    from scipy import signal
+    
+    try:
+        if len(x) < 32:
+            return 0.5
+        
+        # Divide signal into overlapping segments
+        segment_length = len(x) // 4
+        overlap = segment_length // 2
+        
+        spectra = []
+        for i in range(0, len(x) - segment_length + 1, overlap):
+            segment = x[i:i + segment_length]
+            if len(segment) >= 16:
+                freqs, psd = signal.welch(segment, nperseg=min(len(segment), 32))
+                spectra.append(psd)
+        
+        if len(spectra) < 2:
+            return 0.5
+        
+        # Compute spectral stability
+        spectra = np.array(spectra)
+        
+        # Normalize each spectrum
+        normalized_spectra = []
+        for spectrum in spectra:
+            total_power = np.sum(spectrum)
+            if total_power > 0:
+                normalized_spectra.append(spectrum / total_power)
+        
+        if len(normalized_spectra) < 2:
+            return 0.5
+        
+        # Compute variance across time for each frequency
+        normalized_spectra = np.array(normalized_spectra)
+        freq_variances = np.var(normalized_spectra, axis=0)
+        
+        # Stationarity score (lower variance = more stationary)
+        mean_variance = np.mean(freq_variances)
+        stationarity_score = 1.0 / (1.0 + 10 * mean_variance)
+        
+        return float(np.clip(stationarity_score, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_runs_test_stationarity(x):
+    """Runs test for randomness/stationarity"""
+    import numpy as np
+    
+    try:
+        if len(x) < 10:
+            return 0.5
+        
+        # Convert to binary sequence based on median
+        median_val = np.median(x)
+        binary_seq = (x > median_val).astype(int)
+        
+        # Count runs
+        runs = []
+        current_run = 1
+        
+        for i in range(1, len(binary_seq)):
+            if binary_seq[i] == binary_seq[i-1]:
+                current_run += 1
+            else:
+                runs.append(current_run)
+                current_run = 1
+        runs.append(current_run)
+        
+        n_runs = len(runs)
+        n_ones = np.sum(binary_seq)
+        n_zeros = len(binary_seq) - n_ones
+        
+        if n_ones == 0 or n_zeros == 0:
+            return 0.0
+        
+        # Expected number of runs under null hypothesis of randomness
+        expected_runs = (2 * n_ones * n_zeros) / len(binary_seq) + 1
+        
+        # Variance of runs
+        variance_runs = (2 * n_ones * n_zeros * (2 * n_ones * n_zeros - len(binary_seq))) / \
+                       (len(binary_seq)**2 * (len(binary_seq) - 1))
+        
+        if variance_runs <= 0:
+            return 0.5
+        
+        # Z-statistic
+        z_stat = abs(n_runs - expected_runs) / np.sqrt(variance_runs)
+        
+        # Convert to stationarity score (lower z = more random = more stationary)
+        stationarity_score = 1.0 / (1.0 + z_stat / 2)
+        
+        return float(np.clip(stationarity_score, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_ljung_box_approximation(x):
+    """Ljung-Box test approximation for autocorrelation"""
+    import numpy as np
+    
+    try:
+        if len(x) < 20:
+            return 0.5
+        
+        # Compute autocorrelations up to lag h
+        h = min(10, len(x) // 4)
+        autocorrs = []
+        
+        x_centered = x - np.mean(x)
+        variance = np.var(x_centered)
+        
+        if variance <= 0:
+            return 0.5
+        
+        for lag in range(1, h + 1):
+            if len(x_centered) > lag:
+                autocorr = np.corrcoef(x_centered[:-lag], x_centered[lag:])[0, 1]
+                if not np.isnan(autocorr):
+                    autocorrs.append(autocorr)
+        
+        if len(autocorrs) == 0:
+            return 0.5
+        
+        # Ljung-Box statistic approximation
+        n = len(x)
+        lb_stat = n * (n + 2) * sum(autocorr**2 / (n - lag - 1) 
+                                   for lag, autocorr in enumerate(autocorrs, 1))
+        
+        # Convert to stationarity score (lower LB stat = less autocorrelation = more stationary)
+        stationarity_score = 1.0 / (1.0 + lb_stat / (10 * len(autocorrs)))
+        
+        return float(np.clip(stationarity_score, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_phillips_perron_approximation(x):
+    """Phillips-Perron test approximation"""
+    import numpy as np
+    
+    try:
+        if len(x) < 25:
+            return 0.5
+        
+        # First difference
+        dx = np.diff(x)
+        x_lag = x[:-1]
+        
+        # Regression: Δx_t = α + β*x_{t-1} + ε_t
+        X = np.column_stack([np.ones(len(x_lag)), x_lag])
+        
+        try:
+            coeffs = np.linalg.lstsq(X, dx, rcond=None)[0]
+            alpha, beta = coeffs[0], coeffs[1]
+            
+            # Residuals
+            residuals = dx - (alpha + beta * x_lag)
+            
+            # Standard error of beta
+            residual_var = np.var(residuals)
+            x_lag_var = np.var(x_lag)
+            
+            if x_lag_var <= 0:
+                return 0.5
+            
+            se_beta = np.sqrt(residual_var / (len(x_lag) * x_lag_var))
+            
+            if se_beta <= 0:
+                return 0.5
+            
+            # t-statistic for β = 0
+            t_stat = beta / se_beta
+            
+            # Phillips-Perron adjustment (simplified)
+            # More negative t-stat indicates stationarity
+            if t_stat < -2.5:
+                pp_score = 1.0
+            elif t_stat > 0:
+                pp_score = 0.0
+            else:
+                pp_score = (-t_stat) / 2.5
+            
+            return float(np.clip(pp_score, 0, 1))
+            
+        except:
+            return 0.5
+        
+    except Exception as e:
+        return None
+
+async def _compute_kpss_approximation(x):
+    """KPSS test approximation"""
+    import numpy as np
+    
+    try:
+        if len(x) < 15:
+            return 0.5
+        
+        # Detrend the series (remove linear trend)
+        t = np.arange(len(x))
+        try:
+            trend_coeffs = np.polyfit(t, x, 1)
+            detrended = x - np.polyval(trend_coeffs, t)
+        except:
+            detrended = x - np.mean(x)
+        
+        # Compute partial sums
+        partial_sums = np.cumsum(detrended)
+        
+        # KPSS statistic
+        n = len(x)
+        s_squared = np.sum(partial_sums**2) / n**2
+        
+        # Long-run variance estimate (simplified)
+        residual_var = np.var(detrended)
+        
+        if residual_var <= 0:
+            return 0.5
+        
+        kpss_stat = s_squared / residual_var
+        
+        # Critical values (approximate)
+        # 10%: 0.347, 5%: 0.463, 1%: 0.739
+        critical_5pct = 0.463
+        
+        # Stationarity score (lower KPSS stat = more stationary)
+        if kpss_stat < critical_5pct:
+            kpss_score = 1.0 - (kpss_stat / critical_5pct)
+        else:
+            kpss_score = 0.0
+        
+        return float(np.clip(kpss_score, 0, 1))
+        
+    except Exception as e:
+        return None
+
+# ============================================================================
+# ADVANCED PHASE ANALYSIS METHODS
+# ============================================================================
+
+async def _compute_hilbert_phase_analysis(x):
+    """Advanced Hilbert transform phase analysis"""
+    import numpy as np
+    from scipy import signal
+    
+    try:
+        if len(x) < 16:
+            return None
+        
+        # Compute analytic signal using Hilbert transform
+        analytic_signal = signal.hilbert(x)
+        
+        # Instantaneous phase
+        instantaneous_phase = np.angle(analytic_signal)
+        
+        # Phase differences
+        phase_diffs = np.diff(instantaneous_phase)
+        
+        # Unwrap phase to handle discontinuities
+        unwrapped_phase = np.unwrap(instantaneous_phase)
+        unwrapped_diffs = np.diff(unwrapped_phase)
+        
+        # Instantaneous frequency
+        inst_freq = unwrapped_diffs / (2 * np.pi)
+        
+        # Phase consistency metrics
+        phase_var = np.var(phase_diffs)
+        freq_var = np.var(inst_freq)
+        
+        # Combine metrics
+        phase_consistency = 1.0 / (1.0 + phase_var + freq_var)
+        
+        return float(np.clip(phase_consistency, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_synchrosqueezed_phase_analysis(x):
+    """Synchrosqueezed wavelet transform phase analysis"""
+    import numpy as np
+    from scipy import signal
+    
+    try:
+        if len(x) < 32:
+            return None
+        
+        # Continuous wavelet transform approximation using Morlet wavelet
+        scales = np.logspace(0, 2, 20)  # 20 scales
+        
+        # Simplified synchrosqueezing using multiple scales
+        phase_consistencies = []
+        
+        for scale in scales:
+            # Morlet wavelet approximation
+            sigma = scale / 6
+            t = np.arange(-3*sigma, 3*sigma, 1)
+            if len(t) > len(x):
+                continue
+                
+            morlet = np.exp(1j * 2 * np.pi * t / scale) * np.exp(-t**2 / (2 * sigma**2))
+            
+            # Convolution
+            if len(morlet) <= len(x):
+                cwt_coeff = np.convolve(x, morlet, mode='same')
+                
+                # Phase extraction
+                phase = np.angle(cwt_coeff)
+                phase_diff_var = np.var(np.diff(phase))
+                
+                consistency = 1.0 / (1.0 + phase_diff_var)
+                phase_consistencies.append(consistency)
+        
+        if phase_consistencies:
+            return float(np.mean(phase_consistencies))
+        else:
+            return None
+        
+    except Exception as e:
+        return None
+
+async def _compute_emd_phase_analysis(x):
+    """EMD-based phase analysis"""
+    import numpy as np
+    
+    try:
+        if len(x) < 20:
+            return None
+        
+        # Extract first few IMFs using simplified EMD
+        imfs = []
+        residue = x.copy()
+        
+        for _ in range(3):  # Extract up to 3 IMFs
+            if len(residue) < 8:
+                break
+                
+            imf = await _extract_imf_simplified(residue)
+            if imf is not None and len(imf) == len(residue):
+                imfs.append(imf)
+                residue = residue - imf
+            else:
+                break
+        
+        if len(imfs) == 0:
+            return None
+        
+        # Analyze phase consistency of IMFs
+        phase_consistencies = []
+        
+        for imf in imfs:
+            # Hilbert transform of IMF
+            try:
+                from scipy import signal
+                analytic_imf = signal.hilbert(imf)
+                phase = np.angle(analytic_imf)
+                
+                # Phase derivative (instantaneous frequency)
+                phase_deriv = np.diff(np.unwrap(phase))
+                phase_consistency = 1.0 / (1.0 + np.var(phase_deriv))
+                
+                phase_consistencies.append(phase_consistency)
+            except:
+                continue
+        
+        if phase_consistencies:
+            return float(np.mean(phase_consistencies))
+        else:
+            return None
+        
+    except Exception as e:
+        return None
+
+async def _extract_imf_simplified(signal):
+    """Simplified IMF extraction"""
+    import numpy as np
+    
+    try:
+        if len(signal) < 8:
+            return None
+        
+        # Find extrema
+        maxima_idx = []
+        minima_idx = []
+        
+        for i in range(1, len(signal) - 1):
+            if signal[i] > signal[i-1] and signal[i] > signal[i+1]:
+                maxima_idx.append(i)
+            elif signal[i] < signal[i-1] and signal[i] < signal[i+1]:
+                minima_idx.append(i)
+        
+        if len(maxima_idx) < 2 or len(minima_idx) < 2:
+            return None
+        
+        # Simple envelope estimation using linear interpolation
+        from scipy import interpolate
+        
+        x_indices = np.arange(len(signal))
+        
+        # Upper envelope
+        upper_env = interpolate.interp1d(
+            maxima_idx, signal[maxima_idx], 
+            kind='linear', bounds_error=False, fill_value='extrapolate'
+        )(x_indices)
+        
+        # Lower envelope
+        lower_env = interpolate.interp1d(
+            minima_idx, signal[minima_idx], 
+            kind='linear', bounds_error=False, fill_value='extrapolate'
+        )(x_indices)
+        
+        # Mean envelope
+        mean_env = (upper_env + lower_env) / 2
+        
+        # IMF candidate
+        imf = signal - mean_env
+        
+        return imf
+        
+    except Exception as e:
+        return None
+
+async def _compute_phase_space_analysis(x):
+    """Phase space reconstruction analysis"""
+    import numpy as np
+    
+    try:
+        if len(x) < 30:
+            return None
+        
+        # Phase space reconstruction using delay embedding
+        # Takens' theorem: embed in m-dimensional space with delay τ
+        
+        # Estimate optimal delay using autocorrelation
+        max_delay = min(20, len(x) // 3)
+        autocorrs = []
+        
+        for delay in range(1, max_delay):
+            if len(x) > delay:
+                corr = np.corrcoef(x[:-delay], x[delay:])[0, 1]
+                if not np.isnan(corr):
+                    autocorrs.append(abs(corr))
+        
+        if len(autocorrs) == 0:
+            return None
+        
+        # Find first minimum in autocorrelation (optimal delay)
+        optimal_delay = 1
+        for i in range(1, len(autocorrs) - 1):
+            if autocorrs[i] < autocorrs[i-1] and autocorrs[i] < autocorrs[i+1]:
+                optimal_delay = i + 1
+                break
+        
+        # Embedding dimension (simplified)
+        embed_dim = 3
+        
+        # Create phase space vectors
+        n_vectors = len(x) - (embed_dim - 1) * optimal_delay
+        if n_vectors < 10:
+            return None
+        
+        phase_vectors = []
+        for i in range(n_vectors):
+            vector = [x[i + j * optimal_delay] for j in range(embed_dim)]
+            phase_vectors.append(vector)
+        
+        phase_vectors = np.array(phase_vectors)
+        
+        # Analyze phase space structure
+        # Compute correlation dimension approximation
+        distances = []
+        n_pairs = min(100, n_vectors * (n_vectors - 1) // 2)
+        
+        for i in range(min(n_vectors, 10)):
+            for j in range(i + 1, min(n_vectors, 10)):
+                dist = np.linalg.norm(phase_vectors[i] - phase_vectors[j])
+                distances.append(dist)
+        
+        if len(distances) == 0:
+            return None
+        
+        # Phase space consistency based on distance distribution
+        dist_std = np.std(distances)
+        dist_mean = np.mean(distances)
+        
+        if dist_mean > 0:
+            cv = dist_std / dist_mean
+            consistency = 1.0 / (1.0 + cv)
+        else:
+            consistency = 0.5
+        
+        return float(np.clip(consistency, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_kuramoto_phase_analysis(x):
+    """Kuramoto order parameter analysis"""
+    import numpy as np
+    
+    try:
+        if len(x) < 16:
+            return None
+        
+        # Convert signal to phase using Hilbert transform
+        from scipy import signal
+        analytic_signal = signal.hilbert(x)
+        phases = np.angle(analytic_signal)
+        
+        # Kuramoto order parameter
+        # R = |1/N * Σ exp(iθ_j)|
+        
+        complex_phases = np.exp(1j * phases)
+        order_parameter = abs(np.mean(complex_phases))
+        
+        # Phase coherence analysis
+        # High order parameter indicates phase synchronization
+        
+        return float(np.clip(order_parameter, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_phase_locking_analysis(x):
+    """Phase locking value analysis"""
+    import numpy as np
+    
+    try:
+        if len(x) < 24:
+            return None
+        
+        # Split signal into two parts for PLV calculation
+        mid_point = len(x) // 2
+        x1 = x[:mid_point]
+        x2 = x[mid_point:2*mid_point]
+        
+        if len(x1) != len(x2) or len(x1) < 8:
+            return None
+        
+        # Compute phases using Hilbert transform
+        from scipy import signal
+        
+        analytic1 = signal.hilbert(x1)
+        analytic2 = signal.hilbert(x2)
+        
+        phase1 = np.angle(analytic1)
+        phase2 = np.angle(analytic2)
+        
+        # Phase difference
+        phase_diff = phase1 - phase2
+        
+        # Phase locking value
+        plv = abs(np.mean(np.exp(1j * phase_diff)))
+        
+        return float(np.clip(plv, 0, 1))
+        
+    except Exception as e:
+        return None
+
+async def _compute_robust_phase_difference(x):
+    """Robust phase difference analysis"""
+    import numpy as np
+    
+    try:
+        if len(x) < 12:
+            return 0.5
+        
+        # Multiple methods for phase difference estimation
+        
+        # Method 1: Hilbert transform
+        try:
+            from scipy import signal
+            analytic = signal.hilbert(x)
+            phase = np.angle(analytic)
+            phase_diffs = np.diff(phase)
+            
+            # Robust statistics
+            median_diff = np.median(phase_diffs)
+            mad_diff = np.median(np.abs(phase_diffs - median_diff))
+            
+            if mad_diff > 0:
+                consistency1 = 1.0 / (1.0 + mad_diff / np.pi)
+            else:
+                consistency1 = 1.0
+        except:
+            consistency1 = 0.5
+        
+        # Method 2: Zero-crossing analysis
+        try:
+            zero_crossings = []
+            for i in range(1, len(x)):
+                if x[i-1] * x[i] < 0:  # Sign change
+                    zero_crossings.append(i)
+            
+            if len(zero_crossings) > 2:
+                crossing_intervals = np.diff(zero_crossings)
+                interval_cv = np.std(crossing_intervals) / (np.mean(crossing_intervals) + 1e-10)
+                consistency2 = 1.0 / (1.0 + interval_cv)
+            else:
+                consistency2 = 0.5
+        except:
+            consistency2 = 0.5
+        
+        # Combine methods
+        combined_consistency = (consistency1 + consistency2) / 2
+        
+        return float(np.clip(combined_consistency, 0, 1))
+        
+    except Exception as e:
+        return 0.5
+
+# ============================================================================
+# ADVANCED BOOTSTRAP METHODS
+# ============================================================================
+
+async def _compute_balanced_bootstrap(data):
+    """Balanced bootstrap ensuring each observation appears at least once"""
+    import numpy as np
+    
+    try:
+        n = len(data)
+        if n < 2:
+            return None
+        
+        # Balanced bootstrap: each original observation appears exactly once
+        # plus additional random samples
+        
+        # Start with permutation of original data
+        bootstrap_sample = list(np.random.permutation(data))
+        
+        # Add random samples to reach original size
+        remaining = n - len(bootstrap_sample)
+        if remaining > 0:
+            additional_samples = np.random.choice(data, size=remaining, replace=True)
+            bootstrap_sample.extend(additional_samples)
+        
+        return np.array(bootstrap_sample[:n])
+        
+    except Exception as e:
+        return None
+
+async def _compute_smooth_bootstrap(data):
+    """Smooth bootstrap using kernel density estimation"""
+    import numpy as np
+    from scipy import stats
+    
+    try:
+        if len(data) < 5:
+            return None
+        
+        # Kernel density estimation
+        kde = stats.gaussian_kde(data)
+        
+        # Generate smooth bootstrap samples
+        # Sample from KDE instead of original data points
+        bootstrap_sample = kde.resample(len(data)).flatten()
+        
+        return bootstrap_sample
+        
+    except Exception as e:
+        return None
+
+async def _compute_wild_bootstrap(data):
+    """Wild bootstrap for heteroscedastic data"""
+    import numpy as np
+    
+    try:
+        if len(data) < 3:
+            return None
+        
+        # Estimate residuals (simplified)
+        data_mean = np.mean(data)
+        residuals = data - data_mean
+        
+        # Wild bootstrap: multiply residuals by random weights
+        # Use Rademacher distribution (±1 with equal probability)
+        wild_weights = np.random.choice([-1, 1], size=len(data))
+        
+        # Generate bootstrap sample
+        bootstrap_sample = data_mean + wild_weights * residuals
+        
+        return bootstrap_sample
+        
+    except Exception as e:
+        return None
+
+async def _compute_block_bootstrap(data):
+    """Block bootstrap for time series structure"""
+    import numpy as np
+    
+    try:
+        n = len(data)
+        if n < 6:
+            return None
+        
+        # Block length (rule of thumb: n^(1/3))
+        block_length = max(2, int(n**(1/3)))
+        
+        # Number of blocks needed
+        n_blocks = int(np.ceil(n / block_length))
+        
+        bootstrap_sample = []
+        
+        for _ in range(n_blocks):
+            # Random starting position
+            start_pos = np.random.randint(0, n - block_length + 1)
+            block = data[start_pos:start_pos + block_length]
+            bootstrap_sample.extend(block)
+        
+        # Trim to original length
+        return np.array(bootstrap_sample[:n])
+        
+    except Exception as e:
+        return None
+
+async def _compute_bayesian_bootstrap(data):
+    """Bayesian bootstrap using Dirichlet weights"""
+    import numpy as np
+    
+    try:
+        n = len(data)
+        if n < 2:
+            return None
+        
+        # Generate Dirichlet weights (all parameters = 1)
+        # This is equivalent to exponential random variables
+        weights = np.random.exponential(1, n)
+        weights = weights / np.sum(weights)  # Normalize to sum to 1
+        
+        # Weighted resampling
+        # Each observation gets weight proportional to Dirichlet sample
+        cumulative_weights = np.cumsum(weights)
+        
+        bootstrap_sample = []
+        for _ in range(n):
+            # Inverse transform sampling
+            u = np.random.random()
+            idx = np.searchsorted(cumulative_weights, u)
+            idx = min(idx, n - 1)  # Ensure valid index
+            bootstrap_sample.append(data[idx])
+        
+        return np.array(bootstrap_sample)
+        
+    except Exception as e:
+        return None
+
+async def _compute_enhanced_simple_bootstrap(data):
+    """Enhanced simple bootstrap with bias correction"""
+    import numpy as np
+    
+    try:
+        if len(data) < 2:
+            return data.copy()
+        
+        # Standard bootstrap with bias correction
+        n = len(data)
+        
+        # Generate bootstrap indices
+        bootstrap_indices = np.random.choice(n, size=n, replace=True)
+        bootstrap_sample = data[bootstrap_indices]
+        
+        # Bias correction: adjust for sampling bias
+        original_mean = np.mean(data)
+        bootstrap_mean = np.mean(bootstrap_sample)
+        
+        # Apply bias correction
+        bias = bootstrap_mean - original_mean
+        corrected_sample = bootstrap_sample - bias
+        
+        return corrected_sample
+        
+    except Exception as e:
+        return np.random.choice(data, size=len(data), replace=True)

@@ -1308,15 +1308,68 @@ class AdvancedPerformanceTracker:
             values = [record.get(metric_name) for record in history if isinstance(record.get(metric_name), (int, float))]
             
             if len(values) >= 2:
-                # Simple linear trend calculation
+                # Advanced trend analysis using multiple methods
                 x = np.arange(len(values))
                 y = np.array(values)
                 
                 if len(values) > 1:
-                    slope = np.polyfit(x, y, 1)[0]
-                    trends[f"{metric_name}_trend"] = float(slope)
+                    # 1. Robust linear trend using Theil-Sen estimator
+                    theil_sen_slope = await self._compute_theil_sen_slope(x, y)
+                    
+                    # 2. Seasonal decomposition trend
+                    seasonal_trend = await self._compute_seasonal_trend(y)
+                    
+                    # 3. Changepoint detection
+                    changepoints = await self._detect_changepoints(y)
+                    
+                    # 4. Exponential smoothing trend
+                    exp_smooth_trend = await self._compute_exponential_smoothing_trend(y)
+                    
+                    # 5. Bayesian trend analysis
+                    bayesian_trend = await self._compute_bayesian_trend(x, y)
+                    
+                    # 6. Wavelet-based trend
+                    wavelet_trend = await self._compute_wavelet_trend(y)
+                    
+                    # 7. State-space model trend
+                    state_space_trend = await self._compute_state_space_trend(y)
+                    
+                    # Combine trend estimates
+                    trend_estimates = [
+                        theil_sen_slope, seasonal_trend, exp_smooth_trend,
+                        bayesian_trend, wavelet_trend, state_space_trend
+                    ]
+                    
+                    # Weight by reliability and remove outliers
+                    valid_trends = [t for t in trend_estimates if t is not None and not np.isnan(t)]
+                    
+                    if valid_trends:
+                        # Robust combination using trimmed mean
+                        sorted_trends = np.sort(valid_trends)
+                        trim_fraction = 0.1
+                        n_trim = int(len(sorted_trends) * trim_fraction)
+                        if n_trim > 0 and len(sorted_trends) > 2:
+                            trimmed_trends = sorted_trends[n_trim:-n_trim]
+                        else:
+                            trimmed_trends = sorted_trends
+                        
+                        robust_trend = np.mean(trimmed_trends)
+                        trend_uncertainty = np.std(trimmed_trends)
+                    else:
+                        # Fallback to simple linear regression
+                        robust_trend = np.polyfit(x, y, 1)[0]
+                        trend_uncertainty = 0.1
+                    
+                    # Advanced statistics
+                    trends[f"{metric_name}_trend"] = float(robust_trend)
+                    trends[f"{metric_name}_trend_uncertainty"] = float(trend_uncertainty)
                     trends[f"{metric_name}_latest"] = float(values[-1])
                     trends[f"{metric_name}_avg"] = float(np.mean(values))
+                    trends[f"{metric_name}_median"] = float(np.median(values))
+                    trends[f"{metric_name}_std"] = float(np.std(values))
+                    trends[f"{metric_name}_changepoints"] = changepoints
+                    trends[f"{metric_name}_trend_strength"] = await self._compute_trend_strength(y)
+                    trends[f"{metric_name}_stationarity"] = await self._test_stationarity(y)
         
         return trends
 
@@ -1427,4 +1480,434 @@ if __name__ == "__main__":
     
     # Run example
     if __name__ == "__main__":
-        asyncio.run(main())
+        asyncio.run(main())   
+ # ============================================================================
+    # ADVANCED TREND ANALYSIS METHODS
+    # ============================================================================
+    
+    async def _compute_theil_sen_slope(self, x: np.ndarray, y: np.ndarray) -> float:
+        """Compute robust trend using Theil-Sen estimator"""
+        import numpy as np
+        from scipy import stats
+        
+        try:
+            # Theil-Sen estimator: median of all pairwise slopes
+            slopes = []
+            n = len(x)
+            
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if x[j] != x[i]:
+                        slope = (y[j] - y[i]) / (x[j] - x[i])
+                        slopes.append(slope)
+            
+            if slopes:
+                return float(np.median(slopes))
+            else:
+                return 0.0
+                
+        except Exception as e:
+            return None
+    
+    async def _compute_seasonal_trend(self, y: np.ndarray) -> float:
+        """Compute trend using seasonal decomposition"""
+        import numpy as np
+        
+        try:
+            # Simple seasonal decomposition for trend extraction
+            if len(y) < 4:
+                return np.polyfit(range(len(y)), y, 1)[0]
+            
+            # Moving average for trend (simplified seasonal decomposition)
+            window_size = min(4, len(y) // 2)
+            if window_size < 2:
+                window_size = 2
+            
+            # Centered moving average
+            trend_values = []
+            for i in range(len(y)):
+                start_idx = max(0, i - window_size // 2)
+                end_idx = min(len(y), i + window_size // 2 + 1)
+                trend_values.append(np.mean(y[start_idx:end_idx]))
+            
+            # Compute trend slope
+            x = np.arange(len(trend_values))
+            trend_slope = np.polyfit(x, trend_values, 1)[0]
+            
+            return float(trend_slope)
+            
+        except Exception as e:
+            return None
+    
+    async def _detect_changepoints(self, y: np.ndarray) -> List[int]:
+        """Detect changepoints in time series"""
+        import numpy as np
+        
+        try:
+            # Simple changepoint detection using cumulative sum
+            changepoints = []
+            
+            if len(y) < 6:
+                return changepoints
+            
+            # Compute cumulative sum of deviations from mean
+            mean_y = np.mean(y)
+            cusum = np.cumsum(y - mean_y)
+            
+            # Find significant changes in cumulative sum
+            threshold = 2 * np.std(cusum)
+            
+            for i in range(1, len(cusum) - 1):
+                # Check for significant change
+                if abs(cusum[i] - cusum[i-1]) > threshold:
+                    changepoints.append(i)
+            
+            # Remove closely spaced changepoints
+            filtered_changepoints = []
+            min_distance = max(2, len(y) // 10)
+            
+            for cp in changepoints:
+                if not filtered_changepoints or cp - filtered_changepoints[-1] >= min_distance:
+                    filtered_changepoints.append(cp)
+            
+            return filtered_changepoints
+            
+        except Exception as e:
+            return []
+    
+    async def _compute_exponential_smoothing_trend(self, y: np.ndarray) -> float:
+        """Compute trend using exponential smoothing"""
+        import numpy as np
+        
+        try:
+            # Double exponential smoothing (Holt's method)
+            if len(y) < 3:
+                return np.polyfit(range(len(y)), y, 1)[0]
+            
+            alpha = 0.3  # Level smoothing parameter
+            beta = 0.3   # Trend smoothing parameter
+            
+            # Initialize
+            level = y[0]
+            trend = y[1] - y[0] if len(y) > 1 else 0.0
+            
+            # Exponential smoothing iterations
+            for i in range(1, len(y)):
+                prev_level = level
+                level = alpha * y[i] + (1 - alpha) * (level + trend)
+                trend = beta * (level - prev_level) + (1 - beta) * trend
+            
+            return float(trend)
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_bayesian_trend(self, x: np.ndarray, y: np.ndarray) -> float:
+        """Compute trend using Bayesian linear regression"""
+        import numpy as np
+        
+        try:
+            # Bayesian linear regression with conjugate priors
+            n = len(x)
+            
+            # Design matrix
+            X = np.column_stack([np.ones(n), x])
+            
+            # Prior parameters (weakly informative)
+            alpha_0 = 1e-3  # Prior precision for coefficients
+            beta_0 = 1e-3   # Prior precision for noise
+            
+            # Posterior parameters
+            S_0_inv = alpha_0 * np.eye(2)  # Prior precision matrix
+            S_n_inv = S_0_inv + beta_0 * X.T @ X
+            
+            try:
+                S_n = np.linalg.inv(S_n_inv)
+                mu_n = beta_0 * S_n @ X.T @ y
+                
+                # Posterior mean of slope (second coefficient)
+                slope_posterior_mean = mu_n[1]
+                
+                return float(slope_posterior_mean)
+                
+            except np.linalg.LinAlgError:
+                # Fallback to simple linear regression
+                return float(np.polyfit(x, y, 1)[0])
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_wavelet_trend(self, y: np.ndarray) -> float:
+        """Compute trend using wavelet decomposition"""
+        import numpy as np
+        
+        try:
+            # Simple wavelet-like decomposition using moving averages
+            if len(y) < 4:
+                return np.polyfit(range(len(y)), y, 1)[0]
+            
+            # Multi-scale moving averages (approximating wavelet decomposition)
+            scales = [2, 4, 8]
+            trend_components = []
+            
+            for scale in scales:
+                if scale < len(y):
+                    # Moving average at this scale
+                    smoothed = []
+                    for i in range(len(y)):
+                        start_idx = max(0, i - scale // 2)
+                        end_idx = min(len(y), i + scale // 2 + 1)
+                        smoothed.append(np.mean(y[start_idx:end_idx]))
+                    
+                    # Compute trend slope for this scale
+                    x_scale = np.arange(len(smoothed))
+                    scale_trend = np.polyfit(x_scale, smoothed, 1)[0]
+                    trend_components.append(scale_trend)
+            
+            if trend_components:
+                # Combine trends from different scales
+                return float(np.mean(trend_components))
+            else:
+                return float(np.polyfit(range(len(y)), y, 1)[0])
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_state_space_trend(self, y: np.ndarray) -> float:
+        """Compute trend using state-space model"""
+        import numpy as np
+        
+        try:
+            # Simple local linear trend model (Kalman filter approximation)
+            if len(y) < 3:
+                return np.polyfit(range(len(y)), y, 1)[0]
+            
+            # State: [level, trend]
+            # Observation: level
+            
+            # Initialize state
+            state = np.array([y[0], y[1] - y[0] if len(y) > 1 else 0.0])
+            
+            # Process and observation noise variances
+            Q = np.array([[0.1, 0.0], [0.0, 0.01]])  # Process noise
+            R = 0.1  # Observation noise
+            
+            # State transition matrix
+            F = np.array([[1.0, 1.0], [0.0, 1.0]])
+            
+            # Observation matrix
+            H = np.array([1.0, 0.0])
+            
+            # Covariance matrix
+            P = np.eye(2) * 0.1
+            
+            # Kalman filter iterations
+            for i in range(1, len(y)):
+                # Predict
+                state_pred = F @ state
+                P_pred = F @ P @ F.T + Q
+                
+                # Update
+                innovation = y[i] - H @ state_pred
+                S = H @ P_pred @ H.T + R
+                K = P_pred @ H.T / S
+                
+                state = state_pred + K * innovation
+                P = (np.eye(2) - np.outer(K, H)) @ P_pred
+            
+            # Return final trend estimate
+            return float(state[1])
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_trend_strength(self, y: np.ndarray) -> float:
+        """Compute strength of trend component"""
+        import numpy as np
+        
+        try:
+            if len(y) < 3:
+                return 0.0
+            
+            # Detrend the series
+            x = np.arange(len(y))
+            trend_line = np.polyfit(x, y, 1)
+            detrended = y - np.polyval(trend_line, x)
+            
+            # Trend strength = 1 - Var(detrended) / Var(original)
+            var_original = np.var(y)
+            var_detrended = np.var(detrended)
+            
+            if var_original > 0:
+                trend_strength = 1.0 - var_detrended / var_original
+                return float(max(0.0, min(1.0, trend_strength)))
+            else:
+                return 0.0
+            
+        except Exception as e:
+            return 0.0
+    
+    async def _test_stationarity(self, y: np.ndarray) -> Dict[str, Any]:
+        """Test for stationarity using multiple methods"""
+        import numpy as np
+        
+        try:
+            stationarity_tests = {}
+            
+            # 1. Augmented Dickey-Fuller test (simplified)
+            adf_result = await self._simple_adf_test(y)
+            stationarity_tests['adf_stationary'] = adf_result
+            
+            # 2. KPSS test (simplified)
+            kpss_result = await self._simple_kpss_test(y)
+            stationarity_tests['kpss_stationary'] = kpss_result
+            
+            # 3. Variance stability test
+            variance_stable = await self._test_variance_stability(y)
+            stationarity_tests['variance_stable'] = variance_stable
+            
+            # 4. Mean stability test
+            mean_stable = await self._test_mean_stability(y)
+            stationarity_tests['mean_stable'] = mean_stable
+            
+            # Overall stationarity assessment
+            stationary_indicators = [adf_result, kpss_result, variance_stable, mean_stable]
+            stationarity_tests['overall_stationary'] = sum(stationary_indicators) >= 3
+            
+            return stationarity_tests
+            
+        except Exception as e:
+            return {'overall_stationary': False}
+    
+    async def _simple_adf_test(self, y: np.ndarray) -> bool:
+        """Simplified Augmented Dickey-Fuller test"""
+        import numpy as np
+        
+        try:
+            if len(y) < 10:
+                return True  # Assume stationary for short series
+            
+            # Simple unit root test
+            y_diff = np.diff(y)
+            y_lag = y[:-1]
+            
+            # Regression: Δy_t = α + β*y_{t-1} + ε_t
+            X = np.column_stack([np.ones(len(y_lag)), y_lag])
+            
+            try:
+                coeffs = np.linalg.lstsq(X, y_diff, rcond=None)[0]
+                beta = coeffs[1]
+                
+                # If β < 0, series is stationary
+                return beta < -0.1
+                
+            except:
+                return True
+            
+        except Exception as e:
+            return True
+    
+    async def _simple_kpss_test(self, y: np.ndarray) -> bool:
+        """Simplified KPSS test"""
+        import numpy as np
+        
+        try:
+            if len(y) < 10:
+                return True
+            
+            # Detrend the series
+            x = np.arange(len(y))
+            trend_coeffs = np.polyfit(x, y, 1)
+            detrended = y - np.polyval(trend_coeffs, x)
+            
+            # Compute partial sums
+            partial_sums = np.cumsum(detrended)
+            
+            # KPSS statistic (simplified)
+            kpss_stat = np.sum(partial_sums**2) / (len(y)**2 * np.var(detrended))
+            
+            # Critical value (approximate)
+            critical_value = 0.463  # 5% level
+            
+            # Stationary if test statistic < critical value
+            return kpss_stat < critical_value
+            
+        except Exception as e:
+            return True
+    
+    async def _test_variance_stability(self, y: np.ndarray) -> bool:
+        """Test for variance stability"""
+        import numpy as np
+        
+        try:
+            if len(y) < 10:
+                return True
+            
+            # Split series into segments and compare variances
+            n_segments = min(4, len(y) // 5)
+            if n_segments < 2:
+                return True
+            
+            segment_size = len(y) // n_segments
+            variances = []
+            
+            for i in range(n_segments):
+                start_idx = i * segment_size
+                end_idx = (i + 1) * segment_size if i < n_segments - 1 else len(y)
+                segment = y[start_idx:end_idx]
+                
+                if len(segment) > 1:
+                    variances.append(np.var(segment))
+            
+            if len(variances) >= 2:
+                # Test if variances are similar (coefficient of variation)
+                mean_var = np.mean(variances)
+                std_var = np.std(variances)
+                
+                if mean_var > 0:
+                    cv = std_var / mean_var
+                    return cv < 0.5  # Arbitrary threshold
+            
+            return True
+            
+        except Exception as e:
+            return True
+    
+    async def _test_mean_stability(self, y: np.ndarray) -> bool:
+        """Test for mean stability"""
+        import numpy as np
+        
+        try:
+            if len(y) < 10:
+                return True
+            
+            # Split series and compare means
+            n_segments = min(4, len(y) // 5)
+            if n_segments < 2:
+                return True
+            
+            segment_size = len(y) // n_segments
+            means = []
+            
+            for i in range(n_segments):
+                start_idx = i * segment_size
+                end_idx = (i + 1) * segment_size if i < n_segments - 1 else len(y)
+                segment = y[start_idx:end_idx]
+                
+                if len(segment) > 0:
+                    means.append(np.mean(segment))
+            
+            if len(means) >= 2:
+                # Test if means are similar
+                overall_std = np.std(y)
+                mean_std = np.std(means)
+                
+                if overall_std > 0:
+                    # Normalized standard deviation of segment means
+                    normalized_std = mean_std / overall_std
+                    return normalized_std < 0.3  # Arbitrary threshold
+            
+            return True
+            
+        except Exception as e:
+            return True

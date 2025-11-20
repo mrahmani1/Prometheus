@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable
 import concurrent.futures
 
 # Import existing security framework
-from backend.modules.security_framework import SecurityFramework, SecurityLevel, ThreatLevel, SecurityEvent
+from backend.modules.security_framework import ComprehensiveSecurityFramework, SecurityLevel, ThreatLevel, SecurityEvent
 
 # Advanced cryptographic libraries
 import jwt
@@ -119,7 +119,7 @@ class EnhancedSecurityFramework:
         self.logger = logging.getLogger(__name__ + ".EnhancedSecurityFramework")
         
         # Initialize base security framework
-        self.base_security = SecurityFramework(config)
+        self.base_security = ComprehensiveSecurityFramework(config)
         
         # Security policy
         self.security_policy = SecurityPolicy(**self.config.get('security_policy', {}))

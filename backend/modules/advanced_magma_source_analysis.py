@@ -8789,12 +8789,75 @@ def _calculate_integrated_source_fractions(source_discrimination: Dict, contamin
         
     except Exception as e:
         warnings.warn(f"Error in integrated source fraction calculation: {e}")
-        # Fallback to simple calculation
+        # Advanced multi-method source fraction calculation
         mantle_strength = source_discrimination.get('he_systematics', {}).get('mantle_signature_strength', 0.25)
         contamination = contamination_model.get('contamination_degree', {}).get('value', 0.3)
         
-        mantle_fraction = mantle_strength * (1.0 - contamination) * 1.5
-        crustal_fraction = contamination + (1.0 - mantle_strength) * 0.5
+        # 1. Helium isotope-based calculation
+        he_mantle_fraction = await self._compute_helium_isotope_source_fraction(
+            source_discrimination, contamination_model
+        )
+        
+        # 2. Trace element ratio-based calculation
+        trace_element_fraction = await self._compute_trace_element_source_fraction(
+            source_discrimination, contamination_model
+        )
+        
+        # 3. Radiogenic isotope-based calculation
+        radiogenic_fraction = await self._compute_radiogenic_isotope_source_fraction(
+            source_discrimination, contamination_model
+        )
+        
+        # 4. REE pattern-based calculation
+        ree_fraction = await self._compute_ree_pattern_source_fraction(
+            source_discrimination, contamination_model
+        )
+        
+        # 5. Multi-isotope mixing model
+        mixing_model_fraction = await self._compute_mixing_model_source_fraction(
+            source_discrimination, contamination_model
+        )
+        
+        # 6. Thermodynamic equilibrium-based calculation
+        thermodynamic_fraction = await self._compute_thermodynamic_source_fraction(
+            source_discrimination, contamination_model
+        )
+        
+        # Combine all methods with uncertainty quantification
+        fraction_estimates = [
+            he_mantle_fraction, trace_element_fraction, radiogenic_fraction,
+            ree_fraction, mixing_model_fraction, thermodynamic_fraction
+        ]
+        
+        # Weight by method reliability
+        method_weights = np.array([0.25, 0.2, 0.2, 0.15, 0.15, 0.05])
+        
+        # Robust combination
+        valid_estimates = [(est, weight) for est, weight in zip(fraction_estimates, method_weights) 
+                          if est is not None and 'mantle_fraction' in est]
+        
+        if valid_estimates:
+            mantle_fractions = [est['mantle_fraction'] for est, _ in valid_estimates]
+            crustal_fractions = [est['crustal_fraction'] for est, _ in valid_estimates]
+            weights = [weight for _, weight in valid_estimates]
+            
+            # Normalize weights
+            weights = np.array(weights)
+            weights = weights / np.sum(weights)
+            
+            # Weighted average
+            mantle_fraction = np.average(mantle_fractions, weights=weights)
+            crustal_fraction = np.average(crustal_fractions, weights=weights)
+            
+            # Uncertainty estimation
+            mantle_uncertainty = np.sqrt(np.average((mantle_fractions - mantle_fraction)**2, weights=weights))
+            crustal_uncertainty = np.sqrt(np.average((crustal_fractions - crustal_fraction)**2, weights=weights))
+        else:
+            # Enhanced fallback calculation
+            mantle_fraction = mantle_strength * (1.0 - contamination) * 1.5
+            crustal_fraction = contamination + (1.0 - mantle_strength) * 0.5
+            mantle_uncertainty = 0.1
+            crustal_uncertainty = 0.1
         
         total = mantle_fraction + crustal_fraction
         if total > 0:
@@ -10304,4 +10367,454 @@ def _bootstrap_confidence_validation(confidence_components: Dict, weights: Dict,
         else:
             return 0.5
     except Exception:
-        return 0.5
+        return 0.5  
+  # ============================================================================
+    # ADVANCED SOURCE FRACTION CALCULATION METHODS
+    # ============================================================================
+    
+    async def _compute_helium_isotope_source_fraction(self, source_discrimination: Dict[str, Any], 
+                                                    contamination_model: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute source fractions using helium isotope systematics"""
+        import numpy as np
+        
+        try:
+            he_data = source_discrimination.get('he_systematics', {})
+            
+            # Helium isotope ratios
+            he3_he4_measured = he_data.get('he3_he4_ratio', 1e-6)
+            he3_he4_mantle = 1.1e-5  # MORB value
+            he3_he4_crustal = 2e-8   # Crustal production ratio
+            he3_he4_atmospheric = 1.4e-6  # Atmospheric ratio
+            
+            # Three-component mixing model
+            # R_measured = f_mantle * R_mantle + f_crustal * R_crustal + f_atm * R_atm
+            # with f_mantle + f_crustal + f_atm = 1
+            
+            # Solve for mantle fraction using least squares
+            A = np.array([
+                [he3_he4_mantle, he3_he4_crustal, he3_he4_atmospheric],
+                [1, 1, 1]  # Sum constraint
+            ])
+            b = np.array([he3_he4_measured, 1])
+            
+            # Add regularization for stability
+            A_reg = np.vstack([A, 0.1 * np.eye(3)])
+            b_reg = np.hstack([b, np.zeros(3)])
+            
+            try:
+                fractions = np.linalg.lstsq(A_reg, b_reg, rcond=None)[0]
+                fractions = np.maximum(0, fractions)  # Ensure non-negative
+                fractions = fractions / np.sum(fractions)  # Normalize
+                
+                mantle_fraction = fractions[0]
+                crustal_fraction = fractions[1]
+                atmospheric_fraction = fractions[2]
+                
+            except:
+                # Fallback to two-component model
+                if he3_he4_mantle != he3_he4_crustal:
+                    mantle_fraction = ((he3_he4_measured - he3_he4_crustal) / 
+                                     (he3_he4_mantle - he3_he4_crustal))
+                    mantle_fraction = max(0, min(1, mantle_fraction))
+                    crustal_fraction = 1 - mantle_fraction
+                    atmospheric_fraction = 0
+                else:
+                    mantle_fraction = 0.5
+                    crustal_fraction = 0.5
+                    atmospheric_fraction = 0
+            
+            # Apply contamination corrections
+            contamination_degree = contamination_model.get('contamination_degree', {}).get('value', 0.0)
+            
+            # Reduce mantle fraction based on contamination
+            corrected_mantle_fraction = mantle_fraction * (1 - contamination_degree)
+            corrected_crustal_fraction = crustal_fraction + mantle_fraction * contamination_degree
+            
+            return {
+                'mantle_fraction': corrected_mantle_fraction,
+                'crustal_fraction': corrected_crustal_fraction,
+                'atmospheric_fraction': atmospheric_fraction,
+                'method': 'helium_isotope',
+                'confidence': 0.8 if he3_he4_measured > 0 else 0.3
+            }
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_trace_element_source_fraction(self, source_discrimination: Dict[str, Any], 
+                                                   contamination_model: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute source fractions using trace element ratios"""
+        import numpy as np
+        
+        try:
+            trace_elements = source_discrimination.get('trace_element_ratios', {})
+            
+            # Key trace element ratios for source discrimination
+            nb_y_ratio = trace_elements.get('nb_y_ratio', 0.5)
+            th_nb_ratio = trace_elements.get('th_nb_ratio', 2.0)
+            la_nb_ratio = trace_elements.get('la_nb_ratio', 1.5)
+            ba_nb_ratio = trace_elements.get('ba_nb_ratio', 10.0)
+            
+            # Reference values for different sources
+            mantle_ratios = {
+                'nb_y': 0.6,   # Primitive mantle
+                'th_nb': 0.12, # Primitive mantle
+                'la_nb': 0.94, # Primitive mantle
+                'ba_nb': 7.5   # Primitive mantle
+            }
+            
+            crustal_ratios = {
+                'nb_y': 0.3,   # Average crust
+                'th_nb': 10.0, # Average crust
+                'la_nb': 2.5,  # Average crust
+                'ba_nb': 50.0  # Average crust
+            }
+            
+            # Multi-ratio mixing calculation
+            ratios_measured = [nb_y_ratio, th_nb_ratio, la_nb_ratio, ba_nb_ratio]
+            ratios_mantle = [mantle_ratios['nb_y'], mantle_ratios['th_nb'], 
+                           mantle_ratios['la_nb'], mantle_ratios['ba_nb']]
+            ratios_crustal = [crustal_ratios['nb_y'], crustal_ratios['th_nb'], 
+                            crustal_ratios['la_nb'], crustal_ratios['ba_nb']]
+            
+            # Weighted least squares for mixing fractions
+            weights = np.array([1.0, 0.8, 0.9, 0.7])  # Weight by reliability
+            
+            mantle_fractions = []
+            for i, (measured, mantle, crustal) in enumerate(zip(ratios_measured, ratios_mantle, ratios_crustal)):
+                if mantle != crustal:
+                    f_mantle = (measured - crustal) / (mantle - crustal)
+                    f_mantle = max(0, min(1, f_mantle))
+                    mantle_fractions.append(f_mantle)
+                else:
+                    mantle_fractions.append(0.5)
+            
+            # Weighted average
+            mantle_fraction = np.average(mantle_fractions, weights=weights[:len(mantle_fractions)])
+            crustal_fraction = 1 - mantle_fraction
+            
+            # Apply enrichment/depletion corrections
+            enrichment_factor = trace_elements.get('enrichment_factor', 1.0)
+            
+            # Adjust for source enrichment
+            if enrichment_factor > 1.5:  # Enriched source
+                mantle_fraction *= 0.8  # Reduce primitive mantle component
+                crustal_fraction = 1 - mantle_fraction
+            elif enrichment_factor < 0.7:  # Depleted source
+                mantle_fraction *= 1.2  # Increase depleted mantle component
+                mantle_fraction = min(1, mantle_fraction)
+                crustal_fraction = 1 - mantle_fraction
+            
+            return {
+                'mantle_fraction': mantle_fraction,
+                'crustal_fraction': crustal_fraction,
+                'method': 'trace_element',
+                'confidence': 0.7,
+                'enrichment_factor': enrichment_factor
+            }
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_radiogenic_isotope_source_fraction(self, source_discrimination: Dict[str, Any], 
+                                                        contamination_model: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute source fractions using radiogenic isotope systematics"""
+        import numpy as np
+        
+        try:
+            isotope_data = source_discrimination.get('radiogenic_isotopes', {})
+            
+            # Sr-Nd-Pb isotope systematics
+            sr87_sr86 = isotope_data.get('sr87_sr86_ratio', 0.7045)
+            nd143_nd144 = isotope_data.get('nd143_nd144_ratio', 0.5129)
+            pb206_pb204 = isotope_data.get('pb206_pb204_ratio', 18.5)
+            pb207_pb204 = isotope_data.get('pb207_pb204_ratio', 15.6)
+            pb208_pb204 = isotope_data.get('pb208_pb204_ratio', 38.5)
+            
+            # Mantle end-member compositions
+            mantle_sr = 0.7025  # Depleted MORB mantle
+            mantle_nd = 0.5132  # Depleted MORB mantle
+            mantle_pb206 = 17.5 # Depleted MORB mantle
+            
+            # Crustal end-member compositions
+            crustal_sr = 0.720   # Average upper crust
+            crustal_nd = 0.5120  # Average upper crust
+            crustal_pb206 = 19.5 # Average upper crust
+            
+            # Multi-isotope mixing calculation
+            isotope_fractions = []
+            
+            # Sr isotopes
+            if crustal_sr != mantle_sr:
+                f_sr = (sr87_sr86 - mantle_sr) / (crustal_sr - mantle_sr)
+                f_sr = max(0, min(1, f_sr))
+                isotope_fractions.append(1 - f_sr)  # Mantle fraction
+            
+            # Nd isotopes (inverse relationship)
+            if crustal_nd != mantle_nd:
+                f_nd = (nd143_nd144 - crustal_nd) / (mantle_nd - crustal_nd)
+                f_nd = max(0, min(1, f_nd))
+                isotope_fractions.append(f_nd)  # Mantle fraction
+            
+            # Pb isotopes
+            if mantle_pb206 != crustal_pb206:
+                f_pb = (pb206_pb204 - crustal_pb206) / (mantle_pb206 - crustal_pb206)
+                f_pb = max(0, min(1, f_pb))
+                isotope_fractions.append(1 - f_pb)  # Mantle fraction
+            
+            if isotope_fractions:
+                # Weight isotope systems by reliability
+                weights = np.array([0.4, 0.4, 0.2])[:len(isotope_fractions)]
+                mantle_fraction = np.average(isotope_fractions, weights=weights)
+            else:
+                mantle_fraction = 0.5
+            
+            crustal_fraction = 1 - mantle_fraction
+            
+            # Age corrections for radiogenic growth
+            age_ma = contamination_model.get('age_ma', 0)
+            if age_ma > 0:
+                # Apply age correction for radiogenic isotope evolution
+                age_correction = 1 - np.exp(-age_ma / 1000)  # Exponential decay
+                mantle_fraction *= (1 - 0.1 * age_correction)
+                crustal_fraction = 1 - mantle_fraction
+            
+            return {
+                'mantle_fraction': mantle_fraction,
+                'crustal_fraction': crustal_fraction,
+                'method': 'radiogenic_isotope',
+                'confidence': 0.85,
+                'age_corrected': age_ma > 0
+            }
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_ree_pattern_source_fraction(self, source_discrimination: Dict[str, Any], 
+                                                 contamination_model: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute source fractions using REE pattern analysis"""
+        import numpy as np
+        
+        try:
+            ree_data = source_discrimination.get('ree_patterns', {})
+            
+            # REE ratios and patterns
+            la_yb_n = ree_data.get('la_yb_normalized', 5.0)  # Chondrite-normalized
+            eu_eu_star = ree_data.get('eu_anomaly', 1.0)     # Eu/Eu*
+            ce_ce_star = ree_data.get('ce_anomaly', 1.0)     # Ce/Ce*
+            lree_hree_ratio = ree_data.get('lree_hree_ratio', 3.0)
+            
+            # Reference patterns
+            mantle_patterns = {
+                'la_yb_n': 1.5,      # Primitive mantle
+                'eu_anomaly': 1.0,    # No Eu anomaly
+                'ce_anomaly': 1.0,    # No Ce anomaly
+                'lree_hree': 1.2      # Slightly enriched
+            }
+            
+            crustal_patterns = {
+                'la_yb_n': 15.0,     # Enriched in LREE
+                'eu_anomaly': 0.7,    # Negative Eu anomaly
+                'ce_anomaly': 1.1,    # Slight positive Ce anomaly
+                'lree_hree': 8.0      # Highly fractionated
+            }
+            
+            # Pattern matching using chi-squared-like metric
+            measured_pattern = np.array([la_yb_n, eu_eu_star, ce_ce_star, lree_hree_ratio])
+            mantle_pattern = np.array([mantle_patterns['la_yb_n'], mantle_patterns['eu_anomaly'], 
+                                     mantle_patterns['ce_anomaly'], mantle_patterns['lree_hree']])
+            crustal_pattern = np.array([crustal_patterns['la_yb_n'], crustal_patterns['eu_anomaly'], 
+                                      crustal_patterns['ce_anomaly'], crustal_patterns['lree_hree']])
+            
+            # Compute distances to end-member patterns
+            mantle_distance = np.sqrt(np.sum((measured_pattern - mantle_pattern)**2))
+            crustal_distance = np.sqrt(np.sum((measured_pattern - crustal_pattern)**2))
+            
+            # Convert distances to fractions
+            total_distance = mantle_distance + crustal_distance
+            if total_distance > 0:
+                crustal_fraction = mantle_distance / total_distance
+                mantle_fraction = crustal_distance / total_distance
+            else:
+                mantle_fraction = 0.5
+                crustal_fraction = 0.5
+            
+            # Apply fractionation corrections
+            fractionation_index = ree_data.get('fractionation_index', 1.0)
+            
+            if fractionation_index > 2.0:  # Highly fractionated
+                # Increase crustal component
+                crustal_fraction *= 1.2
+                mantle_fraction = 1 - crustal_fraction
+                if crustal_fraction > 1:
+                    crustal_fraction = 1.0
+                    mantle_fraction = 0.0
+            
+            return {
+                'mantle_fraction': mantle_fraction,
+                'crustal_fraction': crustal_fraction,
+                'method': 'ree_pattern',
+                'confidence': 0.6,
+                'fractionation_index': fractionation_index
+            }
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_mixing_model_source_fraction(self, source_discrimination: Dict[str, Any], 
+                                                  contamination_model: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute source fractions using multi-component mixing models"""
+        import numpy as np
+        
+        try:
+            # Multi-component mixing using multiple tracers
+            tracers = {}
+            
+            # Collect all available tracers
+            he_data = source_discrimination.get('he_systematics', {})
+            if 'he3_he4_ratio' in he_data:
+                tracers['he3_he4'] = he_data['he3_he4_ratio']
+            
+            isotope_data = source_discrimination.get('radiogenic_isotopes', {})
+            if 'sr87_sr86_ratio' in isotope_data:
+                tracers['sr87_sr86'] = isotope_data['sr87_sr86_ratio']
+            
+            trace_data = source_discrimination.get('trace_element_ratios', {})
+            if 'nb_y_ratio' in trace_data:
+                tracers['nb_y'] = trace_data['nb_y_ratio']
+            
+            if len(tracers) < 2:
+                return None  # Need at least 2 tracers for mixing model
+            
+            # End-member compositions
+            mantle_compositions = {
+                'he3_he4': 1.1e-5,
+                'sr87_sr86': 0.7025,
+                'nb_y': 0.6
+            }
+            
+            crustal_compositions = {
+                'he3_he4': 2e-8,
+                'sr87_sr86': 0.720,
+                'nb_y': 0.3
+            }
+            
+            # Set up mixing equations
+            # C_measured = f_mantle * C_mantle + f_crustal * C_crustal
+            # with f_mantle + f_crustal = 1
+            
+            equations = []
+            for tracer, measured_value in tracers.items():
+                if tracer in mantle_compositions and tracer in crustal_compositions:
+                    mantle_val = mantle_compositions[tracer]
+                    crustal_val = crustal_compositions[tracer]
+                    
+                    # Equation: measured = f_mantle * mantle + (1 - f_mantle) * crustal
+                    # Rearranged: f_mantle = (measured - crustal) / (mantle - crustal)
+                    if mantle_val != crustal_val:
+                        f_mantle = (measured_value - crustal_val) / (mantle_val - crustal_val)
+                        f_mantle = max(0, min(1, f_mantle))
+                        equations.append(f_mantle)
+            
+            if equations:
+                # Average the solutions from different tracers
+                mantle_fraction = np.mean(equations)
+                crustal_fraction = 1 - mantle_fraction
+                
+                # Uncertainty from spread of solutions
+                uncertainty = np.std(equations) if len(equations) > 1 else 0.1
+            else:
+                mantle_fraction = 0.5
+                crustal_fraction = 0.5
+                uncertainty = 0.2
+            
+            # Apply contamination model constraints
+            contamination_degree = contamination_model.get('contamination_degree', {}).get('value', 0.0)
+            contamination_uncertainty = contamination_model.get('contamination_degree', {}).get('uncertainty', 0.1)
+            
+            # Bayesian update with contamination prior
+            prior_crustal = contamination_degree
+            prior_uncertainty = contamination_uncertainty
+            
+            # Combine likelihood (from tracers) with prior (from contamination model)
+            likelihood_precision = 1 / (uncertainty**2 + 1e-6)
+            prior_precision = 1 / (prior_uncertainty**2 + 1e-6)
+            
+            posterior_precision = likelihood_precision + prior_precision
+            posterior_mean = (likelihood_precision * crustal_fraction + 
+                            prior_precision * prior_crustal) / posterior_precision
+            
+            posterior_crustal_fraction = max(0, min(1, posterior_mean))
+            posterior_mantle_fraction = 1 - posterior_crustal_fraction
+            
+            return {
+                'mantle_fraction': posterior_mantle_fraction,
+                'crustal_fraction': posterior_crustal_fraction,
+                'method': 'mixing_model',
+                'confidence': 0.75,
+                'n_tracers': len(equations),
+                'uncertainty': 1 / np.sqrt(posterior_precision)
+            }
+            
+        except Exception as e:
+            return None
+    
+    async def _compute_thermodynamic_source_fraction(self, source_discrimination: Dict[str, Any], 
+                                                   contamination_model: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute source fractions using thermodynamic equilibrium constraints"""
+        import numpy as np
+        
+        try:
+            # Thermodynamic constraints from mineral equilibria
+            temperature_k = contamination_model.get('temperature_k', 1400)
+            pressure_gpa = contamination_model.get('pressure_gpa', 1.5)
+            
+            # Olivine-melt equilibrium for mantle source
+            mg_number = source_discrimination.get('mg_number', 0.7)
+            
+            # Mantle olivine typically has Fo88-92
+            mantle_fo_content = 0.90
+            crustal_fo_content = 0.70  # More evolved compositions
+            
+            # Partition coefficient for Mg between olivine and melt
+            kd_mg_ol_melt = 0.3  # Temperature and pressure dependent
+            
+            # Calculate equilibrium olivine composition
+            if mg_number > 0:
+                equilibrium_fo = mg_number * kd_mg_ol_melt / (1 + mg_number * (kd_mg_ol_melt - 1))
+                
+                # Compare with mantle vs crustal signatures
+                if mantle_fo_content != crustal_fo_content:
+                    mantle_fraction = ((equilibrium_fo - crustal_fo_content) / 
+                                     (mantle_fo_content - crustal_fo_content))
+                    mantle_fraction = max(0, min(1, mantle_fraction))
+                else:
+                    mantle_fraction = 0.5
+            else:
+                mantle_fraction = 0.5
+            
+            # Temperature-pressure corrections
+            # Higher pressure favors mantle signature
+            pressure_correction = min(1.2, 1 + (pressure_gpa - 1) * 0.1)
+            mantle_fraction *= pressure_correction
+            
+            # Temperature effects on equilibrium
+            reference_temp = 1350  # K
+            temp_correction = 1 + (temperature_k - reference_temp) / 1000
+            mantle_fraction *= temp_correction
+            
+            # Normalize
+            mantle_fraction = max(0, min(1, mantle_fraction))
+            crustal_fraction = 1 - mantle_fraction
+            
+            return {
+                'mantle_fraction': mantle_fraction,
+                'crustal_fraction': crustal_fraction,
+                'method': 'thermodynamic',
+                'confidence': 0.5,  # Lower confidence due to assumptions
+                'temperature_k': temperature_k,
+                'pressure_gpa': pressure_gpa
+            }
+            
+        except Exception as e:
+            return None

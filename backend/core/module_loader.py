@@ -21,7 +21,7 @@ import weakref
 
 # Import existing modules
 from backend.modules.advanced_error_handling_validation import AdvancedErrorHandler, ErrorSeverity, ErrorCategory, RecoveryStrategy
-from backend.modules.security_framework import SecurityFramework, SecurityLevel, ThreatLevel
+from backend.modules.security_framework import ComprehensiveSecurityFramework, SecurityLevel, ThreatLevel
 from backend.modules.advanced_database_integration import AdvancedDatabaseIntegrator
 
 
@@ -222,7 +222,7 @@ class CoreModuleIntegrationFramework:
         
         # Core components
         self.error_handler = AdvancedErrorHandler(self.config.get('error_handling', {}))
-        self.security_framework = SecurityFramework(self.config.get('security', {}))
+        self.security_framework = ComprehensiveSecurityFramework(self.config.get('security', {}))
         self.database_integrator = AdvancedDatabaseIntegrator(self.config.get('database', {}))
         
         # Module management
